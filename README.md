@@ -171,6 +171,7 @@ npm run lint         # ESLint Check
 
 MIT License - siehe [LICENSE](LICENSE) Datei
 
+<<<<<<< HEAD
 ## 🤝 Contributing
 
 Contributions sind willkommen! Bitte:
@@ -183,6 +184,9 @@ Contributions sind willkommen! Bitte:
 ## 📞 Support
 
 Bei Fragen oder Problemen öffne bitte ein [Issue](https://github.com/tobiwan24/schmerztagebuch/issues).
+=======
+
+>>>>>>> 16055110fc4b06db16a9c6c4c69da1f6e5aacd8e
 
 ## 🙏 Danksagungen
 
