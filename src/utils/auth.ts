@@ -319,7 +319,7 @@ export async function authenticateWithBiometric(): Promise<string | null> {
       publicKey: {
         challenge,
         allowCredentials: [{
-          id: credentialId,
+          id: credentialId.buffer as ArrayBuffer,
           type: 'public-key',
         }],
         userVerification: 'required',
