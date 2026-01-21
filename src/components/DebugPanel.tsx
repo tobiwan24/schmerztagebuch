@@ -159,9 +159,9 @@ export default function DebugPanel() {
                 <span style={{ color: '#9ca3af', minWidth: '4rem' }}>{log.timestamp}</span>
                 <span style={{ flex: 1, wordBreak: 'break-word' }}>{log.message}</span>
               </div>
-              {log.data && (
+              {log.data != null && (
                 <div style={{ marginTop: '0.25rem', marginLeft: '4.5rem', color: '#9ca3af', fontSize: '0.7rem' }}>
-                  {String(JSON.stringify(log.data, null, 2))}
+                  {JSON.stringify(log.data, null, 2)}
                 </div>
               )}
             </div>
