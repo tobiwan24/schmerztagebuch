@@ -1,0 +1,161 @@
+/* ========== TEXT ========== */
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-gray-600 {
+  color: var(--color-text-muted);
+}
+
+.text-error {
+  color: var(--color-error);
+}
+
+/* ========== SPACING ========== */
+.mb-4 {
+  margin-bottom: var(--spacing-lg);
+}
+
+.mb-6 {
+  margin-bottom: var(--spacing-xl);
+}
+
+.mt-4 {
+  margin-top: var(--spacing-lg);
+}
+
+.mt-6 {
+  margin-top: var(--spacing-xl);
+}
+
+.p-4 {
+  padding: var(--spacing-lg);
+}
+
+.px-4 {
+  padding-left: var(--spacing-lg);
+  padding-right: var(--spacing-lg);
+}
+
+.py-4 {
+  padding-top: var(--spacing-lg);
+  padding-bottom: var(--spacing-lg);
+}
+
+/* ========== ICON SIZES ========== */
+.icon-sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+.icon-md {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.icon-lg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.icon-xl {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* ========== SETUP WIZARD ========== */
+.welcome-icon {
+  width: 4rem;
+  height: 4rem;
+  background: #2563eb;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.welcome-icon svg {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: white;
+}
+
+.welcome-title {
+  font-size: 1.875rem;
+  font-weight: bold;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.feature-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  background: #d1fae5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.feature-icon svg {
+  width: 1rem;
+  height: 1rem;
+  color: #059669;
+}
+
+.feature-title {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.feature-description {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.setup-note {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin-top: 1rem;
+}
+
+/* ========== DIARY VIEW ========== */
+.diary-with-tabs {
+  padding-bottom: 5rem;
+}
+
+.content-with-padding {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.btn-full-width {
+  width: 100%;
+}
+
+/* ========== SPACE Y ========== */
+.space-y-4 > * + * {
+  margin-top: 1rem;
+}
+
+.space-y-6 > * + * {
+  margin-top: 1.5rem;
+}

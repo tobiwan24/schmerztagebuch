@@ -1,0 +1,111 @@
+/* ========== CONTAINER ========== */
+.app-container {
+  min-height: 100vh;
+  background-color: var(--color-bg-secondary);
+}
+
+.content-wrapper {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+}
+
+/* ========== HEADER ========== */
+.header {
+  background: var(--color-bg-primary);
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-content {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* ========== TAB BAR ========== */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-bg-primary);
+  border-top: 1px solid var(--color-border-light);
+  padding: var(--spacing-sm);
+  z-index: 10;
+}
+
+.tab-bar-content {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  gap: var(--spacing-sm);
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+}
+
+.tab-bar-content::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+.tab {
+  flex: 1;
+  min-width: 100px;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+}
+
+.tab-inactive {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
+.tab-inactive:hover {
+  background-color: var(--color-secondary);
+}
+
+.tab-active {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+/* ========== SPACING UTILITIES ========== */
+.space-y-4 > * + * {
+  margin-top: var(--spacing-lg);
+}
+
+.space-y-6 > * + * {
+  margin-top: var(--spacing-xl);
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 640px) {
+  .content-wrapper {
+    padding: var(--spacing-md);
+  }
+  
+  .card {
+    padding: var(--spacing-lg);
+  }
+  
+  .header-content {
+    padding: var(--spacing-md);
+  }
+}

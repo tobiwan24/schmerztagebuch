@@ -1,0 +1,86 @@
+/* ========== SETUP WIZARD ========== */
+.welcome-icon {
+  width: 4rem;
+  height: 4rem;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.welcome-icon svg {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: white;
+}
+
+.welcome-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.feature-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  background: #d1fae5;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.feature-icon svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-success);
+}
+
+.feature-title {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 0.125rem;
+}
+
+.feature-description {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.setup-note {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin-top: 1rem;
+}
+
+/* ========== ENCRYPTION OPTIONS ========== */
+.encryption-option {
+  padding: 1rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  background: var(--color-bg-primary);
+}
+
+.encryption-option:hover {
+  border-color: var(--color-primary-light);
+  background: var(--color-bg-secondary);
+}
+
+.encryption-option-selected {
+  border-color: var(--color-primary);
+  background: #eff6ff;
+}

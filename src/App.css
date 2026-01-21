@@ -1,0 +1,7 @@
+/* Import all style modules */
+@import './styles/global.css';
+@import './styles/components.css';
+@import './styles/layout.css';
+@import './styles/utilities.css';
+@import './styles/blocks.css';
+@import './styles/setup.css';
