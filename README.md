@@ -171,18 +171,7 @@ npm run lint         # ESLint Check
 
 MIT License - siehe [LICENSE](LICENSE) Datei
 
-## 🤝 Contributing
 
-Contributions sind willkommen! Bitte:
-1. Fork das Repository
-2. Erstelle einen Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit deine Änderungen (`git commit -m 'Add AmazingFeature'`)
-4. Push zum Branch (`git push origin feature/AmazingFeature`)
-5. Öffne einen Pull Request
-
-## 📞 Support
-
-Bei Fragen oder Problemen öffne bitte ein [Issue](https://github.com/tobiwan24/schmerztagebuch/issues).
 
 ## 🙏 Danksagungen
 
