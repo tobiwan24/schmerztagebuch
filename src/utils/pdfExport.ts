@@ -176,22 +176,14 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
           case 'textarea':
             valueText = String(block.value || '—');
             break;
-          case 'number':
           case 'slider':
             valueText = String(block.value ?? '—');
             break;
           case 'date':
             valueText = block.value ? new Date(String(block.value)).toLocaleDateString('de-DE') : '—';
             break;
-          case 'time':
-            valueText = String(block.value || '—');
-            break;
           case 'checkbox':
             valueText = block.value ? '☑ Ja' : '☐ Nein';
-            break;
-          case 'radio':
-          case 'select':
-            valueText = String(block.value || '—');
             break;
           case 'multiselect':
             valueText = Array.isArray(block.value) && block.value.length > 0 

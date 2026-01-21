@@ -161,7 +161,7 @@ export default function DebugPanel() {
               </div>
               {log.data && (
                 <div style={{ marginTop: '0.25rem', marginLeft: '4.5rem', color: '#9ca3af', fontSize: '0.7rem' }}>
-                  {JSON.stringify(log.data, null, 2)}
+                  {String(JSON.stringify(log.data, null, 2))}
                 </div>
               )}
             </div>

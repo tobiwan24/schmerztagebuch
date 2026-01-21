@@ -22,12 +22,14 @@ export async function createTemplate(name: string, blocks: Block[] = []): Promis
   const maxOrder = await db.templates.orderBy('order').reverse().first();
   const order = (maxOrder?.order ?? -1) + 1;
   
-  return await db.templates.add({
+  const id = await db.templates.add({
     name,
     order,
     blocks,
     tags: []
   });
+  
+  return id as number;
 }
 
 export async function getTemplates(): Promise<Template[]> {
@@ -77,13 +79,15 @@ export async function createEntry(
     }
   });
   
-  return await db.entries.add({
+  const id = await db.entries.add({
     templateId,
     timestamp: new Date(),
     encrypted,
     data,
     tags
   });
+  
+  return id as number;
 }
 
 export async function getEntries(templateId?: number): Promise<Entry[]> {
