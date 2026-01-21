@@ -17,8 +17,8 @@ export default function TextBlock({ block, onChange, readOnly = false }: TextBlo
   };
 
   return (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">
+    <div className="form-group">
+      <label className="form-label">
         {block.label}
       </label>
       <input
@@ -26,7 +26,7 @@ export default function TextBlock({ block, onChange, readOnly = false }: TextBlo
         value={value}
         onChange={handleChange}
         readOnly={readOnly}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+        className="form-input"
         disabled={readOnly}
       />
     </div>

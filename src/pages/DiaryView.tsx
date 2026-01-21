@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Block } from '../types/blocks';
 import type { Template } from '../types/database';
 import db from '../db';
-import { getEncryptionMode, getSessionPassword } from '../utils/auth';
+import { getEncryptionMode, getSessionPassword, refreshSession } from '../utils/auth';
 import { encryptData } from '../utils/crypto';
 import Header from '../components/Header';
 import BlockRenderer from '../components/BlockRenderer';
@@ -46,6 +46,9 @@ async function handleSave() {
   
   setIsSaving(true);
   try {
+    // Session refreshen bei Aktivität
+    refreshSession();
+    
     // Nur Blöcke mit Werten speichern
     const blocksToSave = currentBlocks.filter(block => {
       // Prüfe ob Block einen Wert hat

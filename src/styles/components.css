@@ -77,9 +77,11 @@
   padding: var(--spacing-md);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-size: 1rem;
+  font-size: 16px; /* Mindestens 16px verhindert iOS Auto-Zoom */
   font-family: inherit;
   transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  box-sizing: border-box; /* Verhindert Überlauf */
+  max-width: 100%; /* Passt sich Container an */
 }
 
 .form-input:focus,

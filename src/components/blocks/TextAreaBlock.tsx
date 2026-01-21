@@ -17,8 +17,8 @@ export default function TextAreaBlock({ block, onChange, readOnly = false }: Tex
   };
 
   return (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">
+    <div className="form-group">
+      <label className="form-label">
         {block.label}
       </label>
       <textarea
@@ -26,7 +26,7 @@ export default function TextAreaBlock({ block, onChange, readOnly = false }: Tex
         onChange={handleChange}
         readOnly={readOnly}
         rows={4}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:bg-gray-100"
+        className="form-textarea"
         disabled={readOnly}
       />
     </div>

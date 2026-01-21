@@ -7,6 +7,13 @@ export default defineConfig({
   plugins: [react()], // basicSsl() nur für lokale Entwicklung
   server: {
     // https: true, // Nur für lokale Entwicklung mit basicSsl
-    host: true // Erlaubt Zugriff von anderen Geräten im Netzwerk
+    host: '0.0.0.0', // Erlaubt Zugriff von anderen Geräten
+    port: 5173,
+    strictPort: true,
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 5173
+    }
   }
 })

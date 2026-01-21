@@ -15,6 +15,8 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [passwordExists, setPasswordExists] = useState(false);
+  const [debugEnabled, setDebugEnabled] = useState(false);
   
   // Change Password State
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -42,6 +44,15 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
       
       const bioAvailable = isBiometricAvailable();
       setBiometricAvailable(bioAvailable);
+      
+      // Prüfe ob Passwort existiert
+      const { hasPassword } = await import('../utils/auth');
+      const pwExists = await hasPassword();
+      setPasswordExists(pwExists);
+      
+      // Debug-Modus laden
+      const debugMode = localStorage.getItem('debugEnabled');
+      setDebugEnabled(debugMode === 'true');
     } catch (error) {
       console.error('Fehler beim Laden der Settings:', error);
     } finally {
@@ -79,6 +90,59 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
       return;
     }
     
+    // Prüfen ob bereits ein Passwort existiert
+    const { hasPassword } = await import('../utils/auth');
+    const passwordExists = await hasPassword();
+    
+    // Falls kein Passwort existiert: Nur neues Passwort setzen (Ersteinrichtung)
+    if (!passwordExists) {
+      if (!newPassword.trim()) {
+        setPasswordError('Bitte neues Passwort eingeben');
+        return;
+      }
+      
+      if (newPassword !== confirmPassword) {
+        setPasswordError('Neue Passwörter stimmen nicht überein');
+        return;
+      }
+      
+      const validation = validatePassword(newPassword);
+      if (!validation.valid) {
+        setPasswordError(validation.errors.join('. '));
+        return;
+      }
+      
+      setIsLoading(true);
+      
+      try {
+        // Neues Passwort setzen (Ersteinrichtung)
+        await updatePassword(newPassword);
+        
+        // Session setzen
+        setSession(newPassword);
+        
+        // State aktualisieren
+        setPasswordExists(true);
+        
+        alert('Passwort erfolgreich erstellt!');
+        
+        // Reset form
+        setShowChangePassword(false);
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setPasswordError('');
+      } catch (error) {
+        console.error('Passwort-Erstellung fehlgeschlagen:', error);
+        setPasswordError('Fehler beim Erstellen des Passworts');
+      } finally {
+        setIsLoading(false);
+      }
+      
+      return;
+    }
+    
+    // Passwort existiert bereits: Passwort ändern
     if (!oldPassword.trim()) {
       setPasswordError('Bitte altes Passwort eingeben');
       return;
@@ -214,6 +278,15 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
       alert('Fehler beim Löschen der Daten');
     }
   }
+  
+  function toggleDebugMode() {
+    const newValue = !debugEnabled;
+    setDebugEnabled(newValue);
+    localStorage.setItem('debugEnabled', String(newValue));
+    
+    // Seite neu laden damit DebugPanel aktiviert/deaktiviert wird
+    window.location.reload();
+  }
 
   if (isLoading) {
     return (
@@ -269,21 +342,29 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                 </button>
               </div>
             ) : !showChangePassword ? (
-              <button onClick={() => setShowChangePassword(true)} className="btn btn-secondary">
-                Passwort ändern
-              </button>
+              <div>
+                <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: '0.75rem' }}>
+                  {passwordExists ? 'Passwort ändern' : 'Passwort erstellen für Verschlüsselung'}
+                </p>
+                <button onClick={() => setShowChangePassword(true)} className="btn btn-secondary">
+                  {passwordExists ? 'Passwort ändern' : 'Passwort erstellen'}
+                </button>
+              </div>
             ) : (
                 <div className="space-y-4">
-                  <div className="form-group">
-                    <label className="form-label">Altes Passwort</label>
-                    <input
-                      type="password"
-                      value={oldPassword}
-                      onChange={(e) => setOldPassword(e.target.value)}
-                      className="form-input"
-                      placeholder="Aktuelles Passwort"
-                    />
-                  </div>
+                  {/* Altes Passwort nur zeigen wenn Passwort existiert */}
+                  {passwordExists && (
+                    <div className="form-group">
+                      <label className="form-label">Altes Passwort</label>
+                      <input
+                        type="password"
+                        value={oldPassword}
+                        onChange={(e) => setOldPassword(e.target.value)}
+                        className="form-input"
+                        placeholder="Aktuelles Passwort"
+                      />
+                    </div>
+                  )}
 
                   <div className="form-group">
                     <label className="form-label">Neues Passwort</label>
@@ -375,6 +456,32 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                 <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>Verschlüsselung</p>
                 <p style={{ fontWeight: 500 }}>AES-GCM 256-bit</p>
               </div>
+            </div>
+          </div>
+
+          {/* Debug-Modus */}
+          <div className="card" style={{ marginBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem' }}>🐛 Debug-Modus</h3>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div>
+                <p style={{ fontWeight: 500 }}>Debug-Konsole</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+                  {debugEnabled ? 'Aktiviert - Zeigt Logs am unteren Rand' : 'Deaktiviert'}
+                </p>
+              </div>
+              <button 
+                onClick={toggleDebugMode}
+                className={`btn ${debugEnabled ? 'btn-secondary' : 'btn-primary'}`}
+              >
+                {debugEnabled ? 'Deaktivieren' : 'Aktivieren'}
+              </button>
+            </div>
+            
+            <div style={{ padding: '0.75rem', backgroundColor: '#fef3c7', borderRadius: '0.5rem', border: '1px solid #fde047' }}>
+              <p style={{ fontSize: '0.75rem', color: '#92400e' }}>
+                ⚠️ Hinweis: Nach Änderung wird die App neu geladen
+              </p>
             </div>
           </div>
 

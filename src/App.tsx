@@ -16,9 +16,14 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingView, setPendingView] = useState<'diary' | 'editor' | 'history' | null>(null);
+  const [debugEnabled, setDebugEnabled] = useState(false);
 
   useEffect(() => {
     initApp();
+    
+    // Debug-Modus laden
+    const debugMode = localStorage.getItem('debugEnabled');
+    setDebugEnabled(debugMode === 'true');
   }, []);
 
   async function initApp() {
@@ -97,7 +102,7 @@ export default function App() {
             <p className="text-gray-600" style={{ marginTop: '1rem' }}>Wird geladen...</p>
           </div>
         </div>
-        <DebugPanel />
+        {debugEnabled && <DebugPanel />}
       </>
     );
   }
@@ -106,7 +111,7 @@ export default function App() {
     return (
       <>
         <SetupWizard onComplete={handleSetupComplete} />
-        <DebugPanel />
+        {debugEnabled && <DebugPanel />}
       </>
     );
   }
@@ -121,7 +126,7 @@ export default function App() {
             onCancel={handleCancelAuth}
           />
         )}
-        <DebugPanel />
+        {debugEnabled && <DebugPanel />}
       </>
     );
   }
@@ -136,14 +141,19 @@ export default function App() {
             onCancel={handleCancelAuth}
           />
         )}
-        <DebugPanel />
+        {debugEnabled && <DebugPanel />}
       </>
     );
   }
 
   if (currentView === 'settings') {
     // Settings view not yet implemented, redirect to diary
-    return <SettingsView onBack={handleBack} />;
+    return (
+      <>
+        <SettingsView onBack={handleBack} />
+        {debugEnabled && <DebugPanel />}
+      </>
+    );
   
   }
 
@@ -156,7 +166,7 @@ export default function App() {
           onCancel={handleCancelAuth}
         />
       )}
-      <DebugPanel />
+      {debugEnabled && <DebugPanel />}
       <InstallPrompt />
     </>
   );

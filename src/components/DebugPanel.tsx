@@ -9,7 +9,7 @@ interface DebugLogEntry {
 
 export default function DebugPanel() {
   const [logs, setLogs] = useState<DebugLogEntry[]>([]);
-  const [isVisible, setIsVisible] = useState(true); // Immer sichtbar beim Start
+  const [isVisible, setIsVisible] = useState(false); // Standardmäßig minimiert
 
   const addLog = useCallback((level: DebugLogEntry['level'], message: string, data?: unknown) => {
     const entry: DebugLogEntry = {
