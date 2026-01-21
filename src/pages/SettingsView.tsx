@@ -3,6 +3,7 @@ import { getEncryptionMode, setEncryptionMode, isBiometricEnabled, isBiometricAv
 import type { EncryptionMode } from '../utils/auth';
 import Header from '../components/Header';
 import AuthModal from '../components/AuthModal';
+import UpdateControl from '../components/UpdateControl';
 import db from '../db';
 
 interface SettingsViewProps {
@@ -351,6 +352,9 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
               )}
             </div>
           )}
+
+          {/* Update Control */}
+          <UpdateControl />
 
           {/* Info */}
           <div className="card" style={{ marginBottom: '1.5rem' }}>

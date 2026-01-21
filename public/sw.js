@@ -1,58 +1,40 @@
 // Service Worker für Schmerztagebuch PWA
-// Offline-First Strategie mit Cache
+// Vollständig Offline-First mit manuellem Update
 
-const CACHE_NAME = 'schmerztagebuch-v1';
-const RUNTIME_CACHE = 'schmerztagebuch-runtime-v1';
+const VERSION = '1.0.0';
+const CACHE_NAME = `schmerztagebuch-v${VERSION}`;
+const RUNTIME_CACHE = `schmerztagebuch-runtime-v${VERSION}`;
 
-// Dateien die beim Install gecacht werden sollen
-const PRECACHE_ASSETS = [
-  '/',
-  '/index.html',
-  '/src/main.tsx',
-  '/src/App.tsx',
-  '/src/App.css',
-  '/manifest.json'
-];
-
-// Install Event - Pre-Cache wichtige Assets
+// Install Event - Aggressive Pre-Caching
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing Service Worker...');
+  console.log('[SW] Installing Service Worker v' + VERSION);
   
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[SW] Pre-caching app shell');
-        return cache.addAll(PRECACHE_ASSETS);
-      })
-      .then(() => {
-        console.log('[SW] Skip waiting');
-        return self.skipWaiting();
-      })
-  );
+  // Übernimmt sofort die Kontrolle
+  event.waitUntil(self.skipWaiting());
 });
 
 // Activate Event - Cleanup alte Caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating Service Worker...');
+  console.log('[SW] Activating Service Worker v' + VERSION);
   
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE) {
+          if (cacheName.startsWith('schmerztagebuch-') && cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE) {
             console.log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     }).then(() => {
-      console.log('[SW] Claiming clients');
+      console.log('[SW] Claiming all clients');
       return self.clients.claim();
     })
   );
 });
 
-// Fetch Event - Cache-First Strategie
+// Fetch Event - Cache First (vollständig offline)
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -66,65 +48,113 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') {
     return;
   }
-  
+
+  // CACHE FIRST Strategie - App funktioniert vollständig offline
   event.respondWith(
     caches.match(request)
       .then((cachedResponse) => {
         if (cachedResponse) {
-          console.log('[SW] Serving from cache:', request.url);
+          console.log('[SW] Serving from cache:', url.pathname);
           return cachedResponse;
         }
-        
+
         // Nicht im Cache - vom Netzwerk holen
+        console.log('[SW] Fetching from network:', url.pathname);
         return fetch(request)
           .then((response) => {
             // Nur erfolgreiche Responses cachen
             if (!response || response.status !== 200 || response.type === 'error') {
               return response;
             }
-            
-            // Clone response (kann nur einmal gelesen werden)
+
+            // Clone response
             const responseToCache = response.clone();
-            
-            caches.open(RUNTIME_CACHE)
-              .then((cache) => {
-                console.log('[SW] Caching new resource:', request.url);
-                cache.put(request, responseToCache);
-              });
-            
+
+            // Cache in Runtime-Cache
+            caches.open(RUNTIME_CACHE).then((cache) => {
+              console.log('[SW] Caching new resource:', url.pathname);
+              cache.put(request, responseToCache);
+            });
+
             return response;
           })
           .catch((error) => {
             console.error('[SW] Fetch failed:', error);
             
-            // Fallback für Navigation requests
+            // Fallback für Navigation
             if (request.mode === 'navigate') {
-              return caches.match('/index.html');
+              return caches.match('/index.html').then((fallback) => {
+                return fallback || new Response('Offline - Bitte App neu laden', {
+                  status: 503,
+                  headers: { 'Content-Type': 'text/plain' }
+                });
+              });
             }
-            
+
             throw error;
           });
       })
   );
 });
 
-// Message Event - Für Updates und Cache-Management
+// Message Event - Update-Handling
 self.addEventListener('message', (event) => {
   console.log('[SW] Message received:', event.data);
   
   if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[SW] Skip waiting - activating immediately');
     self.skipWaiting();
+  }
+  
+  if (event.data && event.data.type === 'CHECK_UPDATE') {
+    // Client kann Update-Check triggern
+    event.waitUntil(
+      self.registration.update().then(() => {
+        if (event.ports && event.ports[0]) {
+          event.ports[0].postMessage({ 
+            type: 'UPDATE_CHECKED',
+            hasUpdate: self.registration.waiting !== null
+          });
+        }
+      })
+    );
   }
   
   if (event.data && event.data.type === 'CLEAR_CACHE') {
     event.waitUntil(
       caches.keys().then((cacheNames) => {
         return Promise.all(
-          cacheNames.map((cacheName) => caches.delete(cacheName))
+          cacheNames.map((cacheName) => {
+            if (cacheName.startsWith('schmerztagebuch-')) {
+              return caches.delete(cacheName);
+            }
+          })
         );
       }).then(() => {
-        event.ports[0].postMessage({ success: true });
+        if (event.ports && event.ports[0]) {
+          event.ports[0].postMessage({ success: true });
+        }
       })
+    );
+  }
+  
+  if (event.data && event.data.type === 'GET_VERSION') {
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({ 
+        version: VERSION 
+      });
+    }
+  }
+});
+
+// Background Sync (optional - wenn unterstützt)
+self.addEventListener('sync', (event) => {
+  console.log('[SW] Background sync:', event.tag);
+  
+  if (event.tag === 'sync-data') {
+    event.waitUntil(
+      // Hier könnte man Daten synchronisieren
+      Promise.resolve()
     );
   }
 });

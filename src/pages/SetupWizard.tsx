@@ -29,8 +29,9 @@ interface SetupWizardProps {
 }
 
 export default function SetupWizard({ onComplete }: SetupWizardProps) {
-  const [step, setStep] = useState<'welcome' | 'encryption' | 'password' | 'biometric'>('welcome');
+  const [step, setStep] = useState<'welcome' | 'updates' | 'encryption' | 'password' | 'biometric'>('welcome');
   const [selectedMode, setSelectedMode] = useState<EncryptionMode>('none');
+  const [autoUpdate, setAutoUpdate] = useState(true); // Standard: Auto-Update AN
   const [password, setPasswordInput] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -38,6 +39,12 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
   const [savedPassword, setSavedPassword] = useState<string>('');
 
   async function handleWelcomeContinue() {
+    setStep('updates');
+  }
+
+  async function handleUpdatesContinue() {
+    // Auto-Update Preference speichern
+    localStorage.setItem('autoUpdate', String(autoUpdate));
     setStep('encryption');
   }
 
@@ -180,6 +187,102 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
     );
   }
 
+  if (step === 'updates') {
+    return (
+      <div className="app-container" style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #e0e7ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+        <div className="card" style={{ maxWidth: '32rem', width: '100%' }}>
+          <div className="text-center mb-6">
+            <div className="welcome-icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
+            <h1 className="welcome-title">App-Updates</h1>
+            <p className="text-gray-600">Wie möchten Sie Updates erhalten?</p>
+          </div>
+
+          <div className="space-y-4 mb-6">
+            {/* Auto-Update */}
+            <div
+              onClick={() => setAutoUpdate(true)}
+              className={`encryption-option ${autoUpdate ? 'encryption-option-selected' : ''}`}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                <input
+                  type="radio"
+                  checked={autoUpdate}
+                  onChange={() => setAutoUpdate(true)}
+                  style={{ marginTop: '0.25rem' }}
+                />
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ fontWeight: 600, marginBottom: '0.25rem' }}>🎉 Automatische Updates (Empfohlen)</h3>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+                    Neue Versionen werden automatisch im Hintergrund installiert. Sie erhalten immer die neuesten Features und Bugfixes.
+                  </p>
+                  <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#d1fae5', borderRadius: '0.375rem' }}>
+                    <p style={{ fontSize: '0.75rem', color: '#065f46', fontWeight: 500 }}>
+                      ✓ Immer aktuell • ✓ Keine Unterbrechungen • ✓ Neue Features sofort
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Manuell */}
+            <div
+              onClick={() => setAutoUpdate(false)}
+              className={`encryption-option ${!autoUpdate ? 'encryption-option-selected' : ''}`}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                <input
+                  type="radio"
+                  checked={!autoUpdate}
+                  onChange={() => setAutoUpdate(false)}
+                  style={{ marginTop: '0.25rem' }}
+                />
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ fontWeight: 600, marginBottom: '0.25rem' }}>🔍 Manuell prüfen</h3>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+                    Sie werden benachrichtigt wenn Updates verfügbar sind und können selbst entscheiden wann Sie aktualisieren möchten.
+                  </p>
+                  <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#fef3c7', borderRadius: '0.375rem' }}>
+                    <p style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: 500 }}>
+                      💡 Sie können jederzeit in den Einstellungen manuell nach Updates suchen
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Info Box */}
+            <div style={{ padding: '1rem', backgroundColor: '#dbeafe', borderRadius: '0.5rem', border: '1px solid #bfdbfe', marginTop: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '1.25rem' }}>ℹ️</span>
+                <div>
+                  <p style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    Vollständige Offline-Fähigkeit
+                  </p>
+                  <p style={{ fontSize: '0.75rem', color: '#1e40af' }}>
+                    Die App funktioniert komplett offline. Updates werden nur installiert wenn Sie online sind.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button onClick={() => setStep('welcome')} className="btn btn-secondary" style={{ flex: 1 }}>
+              Zurück
+            </button>
+            <button onClick={handleUpdatesContinue} className="btn btn-primary" style={{ flex: 2 }}>
+              Weiter
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (step === 'encryption') {
     return (
       <div className="app-container" style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #e0e7ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
@@ -272,7 +375,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button onClick={() => setStep('welcome')} className="btn btn-secondary" style={{ flex: 1 }}>
+            <button onClick={() => setStep('updates')} className="btn btn-secondary" style={{ flex: 1 }}>
               Zurück
             </button>
             <button onClick={handleEncryptionContinue} className="btn btn-primary" style={{ flex: 2 }}>
