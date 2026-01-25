@@ -173,7 +173,7 @@ export default function TemplateStylePicker({
                 justifyContent: 'center',
               }}
             >
-              <CurrentIconComponent size={20} color="white" />
+              <CurrentIconComponent size={20} style={{ color: 'white' }} />
             </div>
             <span style={{ fontSize: '0.875rem' }}>
               {currentIcon}
@@ -242,7 +242,7 @@ export default function TemplateStylePicker({
                     >
                       <IconComponent 
                         size={20} 
-                        color={currentIcon === iconName ? 'white' : 'var(--color-text-secondary)'} 
+                        style={{ color: currentIcon === iconName ? 'white' : 'var(--color-text-secondary)' }} 
                       />
                     </button>
                   );

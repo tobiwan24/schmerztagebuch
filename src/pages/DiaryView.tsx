@@ -235,7 +235,7 @@ async function handleSave() {
                     backgroundColor: template.color || '#007AFF',
                   }}
                 >
-                  <IconComponent size={20} color="white" />
+                  <IconComponent size={20} style={{ color: 'white' }} />
                 </button>
               );
             })}
@@ -249,7 +249,7 @@ async function handleSave() {
           >
             {(() => {
               const IconComponent = getIconComponent(activeTemplate.icon);
-              return <IconComponent size={24} color="white" />;
+              return <IconComponent size={24} style={{ color: 'white' }} />;
             })()}
           </button>
 
@@ -266,7 +266,7 @@ async function handleSave() {
                   backgroundColor: template.color || '#007AFF',
                 }}
               >
-                <IconComponent size={20} color="white" />
+                <IconComponent size={20} style={{ color: 'white' }} />
               </button>
             );
           })}

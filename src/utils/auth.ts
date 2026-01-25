@@ -150,7 +150,7 @@ export function refreshSession(): void {
 /**
  * Prüft ob Auth für eine View erforderlich ist
  */
-export async function requiresAuth(view: 'diary' | 'history' | 'editor'): Promise<boolean> {
+export async function requiresAuth(_view: 'diary' | 'history' | 'editor'): Promise<boolean> {
   const mode = await getEncryptionMode();
   
   // Bei 'full' ist IMMER Auth erforderlich (wird beim App-Start gemacht)
