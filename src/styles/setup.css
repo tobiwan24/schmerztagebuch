@@ -84,3 +84,174 @@
   border-color: var(--color-primary);
   background: #eff6ff;
 }
+
+/* ========== SETUP WIZARD LAYOUT ========== */
+.setup-container {
+  min-height: 100vh;
+  background: linear-gradient(to bottom right, #eff6ff, #e0e7ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.setup-card-small {
+  max-width: 28rem;
+  width: 100%;
+}
+
+.setup-card-medium {
+  max-width: 32rem;
+  width: 100%;
+}
+
+/* ========== SETUP WIZARD ELEMENTS ========== */
+.setup-header {
+  text-center: center;
+  margin-bottom: 1.5rem;
+}
+
+.setup-content {
+  margin-bottom: 1.5rem;
+}
+
+.setup-option-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.setup-option-radio {
+  margin-top: 0.25rem;
+}
+
+.setup-option-content {
+  flex: 1;
+}
+
+.setup-option-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.setup-option-description {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.setup-highlight-box {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+}
+
+.setup-highlight-success {
+  background-color: #d1fae5;
+}
+
+.setup-highlight-success-text {
+  font-size: 0.75rem;
+  color: #065f46;
+  font-weight: 500;
+}
+
+.setup-highlight-warning {
+  background-color: #fef3c7;
+}
+
+.setup-highlight-warning-text {
+  font-size: 0.75rem;
+  color: #92400e;
+  font-weight: 500;
+}
+
+.setup-info-box {
+  padding: 1rem;
+  background-color: #dbeafe;
+  border-radius: 0.5rem;
+  border: 1px solid #bfdbfe;
+  margin-top: 1.5rem;
+}
+
+.setup-info-wrapper {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.setup-info-icon {
+  font-size: 1.25rem;
+}
+
+.setup-info-title {
+  font-size: 0.875rem;
+  color: #1e40af;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.setup-info-text {
+  font-size: 0.75rem;
+  color: #1e40af;
+}
+
+.setup-error-box {
+  padding: 0.75rem;
+  background-color: #fee2e2;
+  border-radius: 0.5rem;
+  border: 1px solid #fecaca;
+}
+
+.setup-error-text {
+  font-size: 0.875rem;
+  color: #dc2626;
+}
+
+.setup-warning-box {
+  padding: 1rem;
+  background-color: #fef3c7;
+  border-radius: 0.5rem;
+  border: 2px solid #f59e0b;
+}
+
+.setup-warning-text {
+  font-size: 0.875rem;
+  color: #92400e;
+  font-weight: 600;
+}
+
+.setup-warning-subtext {
+  font-size: 0.75rem;
+  color: #92400e;
+  margin-top: 0.5rem;
+}
+
+.setup-requirements-list {
+  font-size: 0.75rem;
+  color: #1e40af;
+  padding-left: 1.25rem;
+  margin: 0;
+}
+
+.setup-button-group {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.setup-button-group-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.setup-button-flex-1 {
+  flex: 1;
+}
+
+.setup-button-flex-2 {
+  flex: 2;
+}
+
+.setup-button-full {
+  width: 100%;
+}

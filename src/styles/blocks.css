@@ -1,4 +1,63 @@
 /* ========== IMAGE BLOCK ========== */
+/* NEU: Simpler Foto-Button */
+.photo-button {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 300px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-secondary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+
+.photo-button:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background-color: var(--color-bg-tertiary);
+}
+
+.photo-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.photo-button-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: var(--spacing-sm);
+}
+
+.photo-delete-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  transition: all var(--transition-base);
+  z-index: 2;
+}
+
+.photo-delete-button:hover {
+  background: rgba(220, 38, 38, 0.9);
+  transform: scale(1.1);
+}
+
+/* ALT: Alte Styles (fallback) */
 .image-preview-container {
   display: flex;
   flex-direction: column;
@@ -84,4 +143,23 @@
   background-color: var(--color-bg-primary);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border-light);
+}
+
+/* ========== SLIDER BLOCK ========== */
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.slider-input {
+  flex: 1;
+}
+
+.slider-value {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #2563eb;
+  min-width: 3rem;
+  text-align: center;
 }

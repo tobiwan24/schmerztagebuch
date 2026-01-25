@@ -16,6 +16,105 @@ db.version(5).stores({
   settings: 'key'
 });
 
+// ========== MIGRATIONS ==========
+
+// Standard-Icons basierend auf Template-Namen - ERWEITERT mit medizinischen Icons
+const DEFAULT_ICONS: Record<string, string> = {
+  // Schmerz-bezogen
+  'schmerz': 'flame',
+  'pain': 'flame',
+  'weh': 'alertcircle',
+  'kopf': 'brain',
+  'kopfschmerz': 'brain',
+  'migräne': 'brain',
+  'rücken': 'user',
+  'bauch': 'user',
+  'brust': 'heartpulse',
+  'herz': 'heartpulse',
+  'gelenk': 'hand',
+  'knie': 'footprints',
+  'fuß': 'footprints',
+  'bein': 'footprints',
+  'hand': 'hand',
+  'arm': 'hand',
+  'auge': 'eye',
+  'ohr': 'ear',
+  'akut': 'alertcircle',
+  'stark': 'trendingup',
+  'chronisch': 'target',
+  
+  // Medizin & Behandlung
+  'medikament': 'pill',
+  'tablette': 'pill',
+  'pille': 'pill',
+  'spritze': 'syringe',
+  'injektion': 'syringe',
+  'arzt': 'stethoscope',
+  'behandlung': 'stethoscope',
+  'therapie': 'activity',
+  'vitals': 'heartpulse',
+  'temperatur': 'thermometer',
+  'fieber': 'thermometer',
+  
+  // Allgemein
+  'beispiel': 'book',
+  'tagebuch': 'book',
+  'notiz': 'book',
+  'schlaf': 'bed',
+  'ruhe': 'bed',
+  'essen': 'coffee',
+  'nahrung': 'coffee',
+  'stimmung': 'smile',
+  'gefühl': 'smile',
+  'termin': 'calendar',
+  'datum': 'calendar',
+  'tag': 'calendar',
+};
+
+// Standard-Farben
+const DEFAULT_COLORS = [
+  '#007AFF', // Blau (Standard)
+  '#FF3B30', // Rot
+  '#34C759', // Grün
+  '#5856D6', // Lila
+  '#FF9500', // Orange
+];
+
+function getDefaultIconForTemplate(name: string): string {
+  const lowerName = name.toLowerCase();
+  for (const [keyword, icon] of Object.entries(DEFAULT_ICONS)) {
+    if (lowerName.includes(keyword)) {
+      return icon;
+    }
+  }
+  return 'book'; // Fallback
+}
+
+// Migration: Templates ohne icon/color mit Defaults versehen
+export async function migrateTemplateStyles(): Promise<void> {
+  const templates = await db.templates.toArray();
+  let colorIndex = 0;
+  
+  for (const template of templates) {
+    if (!template.icon || !template.color) {
+      const updates: Partial<Template> = {};
+      
+      if (!template.icon) {
+        updates.icon = getDefaultIconForTemplate(template.name);
+      }
+      
+      if (!template.color) {
+        updates.color = DEFAULT_COLORS[colorIndex % DEFAULT_COLORS.length];
+        colorIndex++;
+      }
+      
+      if (template.id) {
+        await db.templates.update(template.id, updates);
+      }
+    }
+  }
+}
+
 // ========== TEMPLATE CRUD ==========
 
 export async function createTemplate(name: string, blocks: Block[] = []): Promise<number> {
@@ -26,7 +125,9 @@ export async function createTemplate(name: string, blocks: Block[] = []): Promis
     name,
     order,
     blocks,
-    tags: []
+    tags: [],
+    icon: getDefaultIconForTemplate(name),
+    color: DEFAULT_COLORS[order % DEFAULT_COLORS.length]
   });
   
   return id as number;
@@ -171,11 +272,14 @@ export async function setAppSettings(settings: {
 // ========== INITIALISIERUNG ==========
 
 export async function initializeDB(): Promise<void> {
+  // Migration ausführen
+  await migrateTemplateStyles();
+  
   const count = await db.templates.count();
   
   if (count === 0) {
-    // Beispiel-Template: Tägliches Schmerztagebuch
-    await createTemplate('Tägliches Tagebuch', [
+    // Beispiel-Template: Tab mit Datum, Schmerzstärke und Notizen
+    await createTemplate('Beispiel-Tab', [
       {
         id: generateUUID(),
         type: 'date',

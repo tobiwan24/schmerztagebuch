@@ -6,6 +6,7 @@ import type { Block, BlockType } from '../types/blocks';
 import Header from '../components/Header';
 import BlockPalette from '../components/BlockPalette';
 import SortableBlock from '../components/SortableBlock';
+import TemplateStylePicker from '../components/TemplateStylePicker';
 import {
   DndContext,
   closestCenter,
@@ -39,6 +40,8 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
   const [tempTemplateName, setTempTemplateName] = useState('');
   const [editingBlockLabel, setEditingBlockLabel] = useState<string | null>(null);
   const [tempBlockLabel, setTempBlockLabel] = useState('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [originalTemplate, setOriginalTemplate] = useState<Template | null>(null);
   
 
   // Sensors für Drag & Drop
@@ -57,8 +60,24 @@ const sensors = useSensors(
   useEffect(() => {
     if (selectedTemplate) {
       setEditingBlocks([...selectedTemplate.blocks]);
+      setOriginalTemplate(JSON.parse(JSON.stringify(selectedTemplate)));
+      setHasUnsavedChanges(false);
     }
   }, [selectedTemplate]);
+
+  // Prüfe ob Änderungen vorhanden sind
+  useEffect(() => {
+    if (!selectedTemplate || !originalTemplate) return;
+    
+    const templateChanged = 
+      selectedTemplate.name !== originalTemplate.name ||
+      selectedTemplate.icon !== originalTemplate.icon ||
+      selectedTemplate.color !== originalTemplate.color;
+    
+    const blocksChanged = JSON.stringify(editingBlocks) !== JSON.stringify(originalTemplate.blocks);
+    
+    setHasUnsavedChanges(templateChanged || blocksChanged);
+  }, [selectedTemplate, editingBlocks, originalTemplate]);
 
   async function loadTemplates() {
     try {
@@ -92,18 +111,49 @@ const sensors = useSensors(
     // Nichts tun - im Editor ändern wir nur die Struktur
   }
 
+  // Icon und Farbe ändern
+  function handleIconChange(icon: string) {
+    if (!selectedTemplate) return;
+    const updated = { ...selectedTemplate, icon };
+    setSelectedTemplate(updated);
+    setTemplates(templates.map(t => t.id === selectedTemplate.id ? updated : t));
+  }
+
+  function handleColorChange(color: string) {
+    if (!selectedTemplate) return;
+    const updated = { ...selectedTemplate, color };
+    setSelectedTemplate(updated);
+    setTemplates(templates.map(t => t.id === selectedTemplate.id ? updated : t));
+  }
+
   // Speichern
   async function handleSave() {
     if (!selectedTemplate?.id) return;
     
     await updateTemplate(selectedTemplate.id, {
       name: selectedTemplate.name,
-      blocks: editingBlocks
+      blocks: editingBlocks,
+      icon: selectedTemplate.icon || 'book',
+      color: selectedTemplate.color || '#007AFF'
     });
     
     alert('Template gespeichert!');
+    setHasUnsavedChanges(false);
+    setOriginalTemplate(JSON.parse(JSON.stringify(selectedTemplate)));
     setSelectedTemplate(null); // Zurück zur Liste
     loadTemplates(); // Liste neu laden
+  }
+
+  // Zurück zur Liste mit Warnung
+  function handleBackToList() {
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        '⚠️ Du hast ungespeicherte Änderungen!\n\nMöchtest du wirklich zurück zur Liste gehen? Alle Änderungen gehen verloren.'
+      );
+      if (!confirmed) return;
+    }
+    setSelectedTemplate(null);
+    setHasUnsavedChanges(false);
   }
 
   const menuItems = [
@@ -207,7 +257,7 @@ async function handleCreateTemplate() {
           <div>
             {/* Header mit Zurück-Button */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <button onClick={() => setSelectedTemplate(null)} className="btn btn-secondary">
+              <button onClick={handleBackToList} className="btn btn-secondary">
                 ← Zurück zur Liste
               </button>
               
@@ -244,15 +294,49 @@ async function handleCreateTemplate() {
                 </div>
               )}
               
-              <button onClick={handleSave} className="btn btn-primary">
+              <button onClick={handleSave} className="btn btn-primary" style={{ position: 'relative' }}>
                 Speichern
+                {hasUnsavedChanges && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    backgroundColor: '#FF3B30',
+                    border: '2px solid white'
+                  }} />
+                )}
               </button>
             </div>
+
+            {/* Ungespeicherte Änderungen Warnung */}
+            {hasUnsavedChanges && (
+              <div style={{
+                padding: '0.75rem',
+                backgroundColor: '#FFF3CD',
+                border: '1px solid #FFE69C',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '1rem',
+                fontSize: '0.875rem',
+                color: '#856404'
+              }}>
+                ⚠️ Du hast ungespeicherte Änderungen
+              </div>
+            )}
+
+            {/* Template Style Picker - NEUE KOMPONENTE */}
+            <TemplateStylePicker
+              currentIcon={selectedTemplate.icon || 'book'}
+              currentColor={selectedTemplate.color || '#007AFF'}
+              onIconChange={handleIconChange}
+              onColorChange={handleColorChange}
+            />
 
             {/* Block-Palette */}
             <BlockPalette onAddBlock={handleAddBlock} />
 
-            {/* Blöcke-Liste */}
             {/* Blöcke-Liste */}
             <DndContext 
               sensors={sensors}

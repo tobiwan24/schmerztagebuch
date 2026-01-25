@@ -3,7 +3,7 @@
 import { getSetting, setSetting } from '../db';
 import { verifyPassword, createPasswordTest } from './crypto';
 
-export type EncryptionMode = 'none' | 'history' | 'full';
+export type EncryptionMode = 'none' | 'full';
 
 const PASSWORD_TEST_KEY = 'passwordTest';
 const ENCRYPTION_MODE_KEY = 'encryptionMode';
@@ -153,9 +153,10 @@ export function refreshSession(): void {
 export async function requiresAuth(view: 'diary' | 'history' | 'editor'): Promise<boolean> {
   const mode = await getEncryptionMode();
   
+  // Bei 'full' ist IMMER Auth erforderlich (wird beim App-Start gemacht)
+  // Bei 'none' ist NIE Auth erforderlich
   if (mode === 'none') return false;
   if (mode === 'full') return true;
-  if (mode === 'history') return view === 'history' || view === 'editor';
   
   return false;
 }

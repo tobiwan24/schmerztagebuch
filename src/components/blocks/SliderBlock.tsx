@@ -20,28 +20,24 @@ export default function SliderBlock({ block, onChange, readOnly = false }: Slide
   };
 
   return (
-    <div className="space-y-2">
-      <div className="flex justify-between items-center">
-        <label className="text-sm font-medium text-gray-700">
-          {block.label}
-        </label>
-        <span className="text-lg font-bold text-blue-600">
+    <div className="form-group">
+      <label className="form-label">
+        {block.label}
+      </label>
+      <div className="slider-container">
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={handleChange}
+          disabled={readOnly}
+          className="slider-input w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 disabled:opacity-50"
+        />
+        <span className="slider-value">
           {value}
         </span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={handleChange}
-        disabled={readOnly}
-        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 disabled:opacity-50"
-      />
-      <div className="flex justify-between text-xs text-gray-500">
-        <span>{min}</span>
-        <span>{max}</span>
       </div>
     </div>
   );

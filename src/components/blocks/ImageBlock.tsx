@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Camera } from 'lucide-react';
 import type { Block } from '../../types/blocks';
 
 interface ImageBlockProps {
@@ -9,12 +10,9 @@ interface ImageBlockProps {
 
 export default function ImageBlock({ block, onChange, readOnly = false }: ImageBlockProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(
-  (block.value && typeof block.value === 'string') ? block.value : null
-);
-// ✅ Kein useEffect nötig!
+    (block.value && typeof block.value === 'string') ? block.value : null
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-
 
   // Bild hochladen
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,7 +41,8 @@ export default function ImageBlock({ block, onChange, readOnly = false }: ImageB
   };
 
   // Bild löschen
-  const handleDelete = () => {
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setImagePreview(null);
     onChange('');
     if (fileInputRef.current) {
@@ -71,50 +70,37 @@ export default function ImageBlock({ block, onChange, readOnly = false }: ImageB
         style={{ display: 'none' }}
       />
 
-      {imagePreview ? (
-        // VORSCHAU-MODUS: Bild vorhanden
-        <div className="image-preview-container">
-          <img 
-            src={imagePreview} 
-            alt={block.label}
-            className="image-preview"
-          />
-          
-          {!readOnly && (
-            <div className="image-actions">
-              <button 
-                onClick={handleUploadClick} 
-                className="btn btn-secondary"
-                type="button"
-              >
-                📷 Bild ändern
-              </button>
-              <button 
-                onClick={handleDelete} 
-                className="btn btn-secondary"
-                type="button"
-              >
-                🗑️ Löschen
-              </button>
-            </div>
-          )}
-        </div>
-      ) : (
-        // UPLOAD-MODUS: Noch kein Bild
-        <div className="image-upload-placeholder">
-          <button 
-            onClick={handleUploadClick}
-            disabled={readOnly}
-            className="btn btn-primary"
+      {/* Simpler Foto-Button */}
+      <button
+        onClick={handleUploadClick}
+        disabled={readOnly}
+        className="photo-button"
+        type="button"
+        style={{
+          backgroundImage: imagePreview ? `url(${imagePreview})` : 'none',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        {!imagePreview && (
+          <div className="photo-button-content">
+            <Camera size={32} color="var(--color-text-secondary)" />
+            <span style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>
+              Foto aufnehmen
+            </span>
+          </div>
+        )}
+        
+        {imagePreview && !readOnly && (
+          <button
+            onClick={handleDelete}
+            className="photo-delete-button"
             type="button"
           >
-            📷 Bild hochladen
+            ✕
           </button>
-          <p className="text-gray-600" style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
-            Foto aufnehmen oder aus Galerie wählen
-          </p>
-        </div>
-      )}
+        )}
+      </button>
     </div>
   );
 }

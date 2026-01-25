@@ -129,8 +129,8 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
 
   if (step === 'welcome') {
     return (
-      <div className="app-container" style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #e0e7ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-        <div className="card" style={{ maxWidth: '28rem', width: '100%' }}>
+      <div className="app-container setup-container">
+        <div className="card setup-card-small">
           <div className="text-center mb-6">
             <div className="welcome-icon">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,7 +179,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
             </div>
           </div>
 
-          <button onClick={handleWelcomeContinue} className="btn btn-primary" style={{ width: '100%' }}>
+          <button onClick={handleWelcomeContinue} className="btn btn-primary setup-button-full">
             Weiter
           </button>
         </div>
@@ -189,8 +189,8 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
 
   if (step === 'updates') {
     return (
-      <div className="app-container" style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #e0e7ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-        <div className="card" style={{ maxWidth: '32rem', width: '100%' }}>
+      <div className="app-container setup-container">
+        <div className="card setup-card-medium">
           <div className="text-center mb-6">
             <div className="welcome-icon">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -207,20 +207,20 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               onClick={() => setAutoUpdate(true)}
               className={`encryption-option ${autoUpdate ? 'encryption-option-selected' : ''}`}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+              <div className="setup-option-wrapper">
                 <input
                   type="radio"
                   checked={autoUpdate}
                   onChange={() => setAutoUpdate(true)}
-                  style={{ marginTop: '0.25rem' }}
+                  className="setup-option-radio"
                 />
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ fontWeight: 600, marginBottom: '0.25rem' }}>🎉 Automatische Updates (Empfohlen)</h3>
-                  <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+                <div className="setup-option-content">
+                  <h3 className="setup-option-title">🎉 Automatische Updates (Empfohlen)</h3>
+                  <p className="setup-option-description">
                     Neue Versionen werden automatisch im Hintergrund installiert. Sie erhalten immer die neuesten Features und Bugfixes.
                   </p>
-                  <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#d1fae5', borderRadius: '0.375rem' }}>
-                    <p style={{ fontSize: '0.75rem', color: '#065f46', fontWeight: 500 }}>
+                  <div className="setup-highlight-box setup-highlight-success">
+                    <p className="setup-highlight-success-text">
                       ✓ Immer aktuell • ✓ Keine Unterbrechungen • ✓ Neue Features sofort
                     </p>
                   </div>
@@ -233,20 +233,20 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               onClick={() => setAutoUpdate(false)}
               className={`encryption-option ${!autoUpdate ? 'encryption-option-selected' : ''}`}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+              <div className="setup-option-wrapper">
                 <input
                   type="radio"
                   checked={!autoUpdate}
                   onChange={() => setAutoUpdate(false)}
-                  style={{ marginTop: '0.25rem' }}
+                  className="setup-option-radio"
                 />
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ fontWeight: 600, marginBottom: '0.25rem' }}>🔍 Manuell prüfen</h3>
-                  <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+                <div className="setup-option-content">
+                  <h3 className="setup-option-title">🔍 Manuell prüfen</h3>
+                  <p className="setup-option-description">
                     Sie werden benachrichtigt wenn Updates verfügbar sind und können selbst entscheiden wann Sie aktualisieren möchten.
                   </p>
-                  <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#fef3c7', borderRadius: '0.375rem' }}>
-                    <p style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: 500 }}>
+                  <div className="setup-highlight-box setup-highlight-warning">
+                    <p className="setup-highlight-warning-text">
                       💡 Sie können jederzeit in den Einstellungen manuell nach Updates suchen
                     </p>
                   </div>
@@ -255,14 +255,14 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
             </div>
 
             {/* Info Box */}
-            <div style={{ padding: '1rem', backgroundColor: '#dbeafe', borderRadius: '0.5rem', border: '1px solid #bfdbfe', marginTop: '1.5rem' }}>
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '1.25rem' }}>ℹ️</span>
+            <div className="setup-info-box">
+              <div className="setup-info-wrapper">
+                <span className="setup-info-icon">ℹ️</span>
                 <div>
-                  <p style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: 600, marginBottom: '0.25rem' }}>
+                  <p className="setup-info-title">
                     Vollständige Offline-Fähigkeit
                   </p>
-                  <p style={{ fontSize: '0.75rem', color: '#1e40af' }}>
+                  <p className="setup-info-text">
                     Die App funktioniert komplett offline. Updates werden nur installiert wenn Sie online sind.
                   </p>
                 </div>
@@ -270,11 +270,11 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button onClick={() => setStep('welcome')} className="btn btn-secondary" style={{ flex: 1 }}>
+          <div className="setup-button-group">
+            <button onClick={() => setStep('welcome')} className="btn btn-secondary setup-button-flex-1">
               Zurück
             </button>
-            <button onClick={handleUpdatesContinue} className="btn btn-primary" style={{ flex: 2 }}>
+            <button onClick={handleUpdatesContinue} className="btn btn-primary setup-button-flex-2">
               Weiter
             </button>
           </div>
@@ -325,28 +325,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 <div style={{ flex: 1 }}>
                   <h3 style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Keine Verschlüsselung</h3>
                   <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-                    Alle Daten werden unverschlüsselt gespeichert. Schnellster Zugriff, aber weniger Privatsphäre.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Historie-Verschlüsselung */}
-            <div
-              onClick={() => setSelectedMode('history')}
-              className={`encryption-option ${selectedMode === 'history' ? 'encryption-option-selected' : ''}`}
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                <input
-                  type="radio"
-                  checked={selectedMode === 'history'}
-                  onChange={() => setSelectedMode('history')}
-                  style={{ marginTop: '0.25rem' }}
-                />
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Historie verschlüsseln</h3>
-                  <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-                    Tagebuch-Einträge frei zugänglich, Verlauf und Editor passwortgeschützt. Gute Balance.
+                    Alle Daten werden unverschlüsselt gespeichert. Schnellster Zugriff, kein Passwort erforderlich.
                   </p>
                 </div>
               </div>
@@ -367,7 +346,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 <div style={{ flex: 1 }}>
                   <h3 style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Volle Verschlüsselung</h3>
                   <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-                    App-Start erfordert Passwort. Maximale Sicherheit und Privatsphäre.
+                    App-Start erfordert Passwort. Alle Daten sind verschlüsselt. Maximale Sicherheit und Privatsphäre.
                   </p>
                 </div>
               </div>

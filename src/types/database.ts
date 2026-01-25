@@ -7,6 +7,8 @@ export interface Template {
   order: number;
   tags?: string[];
   blocks: Block[];
+  icon?: string;      // Icon-Name aus Lucide-Bibliothek
+  color?: string;     // Hex-Farbcode für Button-Hintergrund
 }
 
 // Entry: Ausgefülltes Template (verschlüsselt gespeichert)

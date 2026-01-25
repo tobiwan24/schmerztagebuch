@@ -17,6 +17,7 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [passwordExists, setPasswordExists] = useState(false);
   const [debugEnabled, setDebugEnabled] = useState(false);
+  const [passwordSectionRef, setPasswordSectionRef] = useState<HTMLDivElement | null>(null);
   
   // Change Password State
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -33,6 +34,13 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
   useEffect(() => {
     loadSettings();
   }, []);
+
+  // Scroll to password section when opened
+  useEffect(() => {
+    if (showChangePassword && passwordSectionRef) {
+      passwordSectionRef.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [showChangePassword, passwordSectionRef]);
 
   async function loadSettings() {
     try {
@@ -70,9 +78,19 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
     }
     
     // Wenn zu verschlüsseltem Modus: Password Setup nötig
-    if (currentMode === 'none' && newMode !== 'none') {
-      // Nutzer sieht jetzt den Passwort-Bereich und kann dort ein Passwort erstellen
-      // Modus wird erst nach Passwort-Erstellung wirklich aktiv
+    if (currentMode === 'none' && newMode === 'full') {
+      // Prüfe ob Passwort existiert
+      const { hasPassword } = await import('../utils/auth');
+      const pwExists = await hasPassword();
+      
+      if (!pwExists) {
+        // Kein Passwort: Zeige Passwort-Erstellungs-Bereich
+        await setEncryptionMode(newMode);
+        setCurrentMode(newMode);
+        alert('Verschlüsselungsmodus geändert! Bitte erstelle jetzt ein Passwort.');
+        setShowChangePassword(true);
+        return;
+      }
     }
     
     // Modus ändern
@@ -317,19 +335,21 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
                 onChange={(e) => handleModeChange(e.target.value as EncryptionMode)}
               >
                 <option value="none">Keine Verschlüsselung</option>
-                <option value="history">Historie verschlüsseln</option>
                 <option value="full">Volle Verschlüsselung</option>
               </select>
               <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>
-                {currentMode === 'none' && 'Alle Daten unverschlüsselt'}
-                {currentMode === 'history' && 'Nur Historie & Editor passwortgeschützt'}
-                {currentMode === 'full' && 'App-Start erfordert Passwort'}
+                {currentMode === 'none' && 'Alle Daten unverschlüsselt, kein Passwort erforderlich'}
+                {currentMode === 'full' && 'App-Start erfordert Passwort, alle Daten verschlüsselt'}
               </p>
             </div>
           </div>
 
           {/* Passwort */}
-          <div className="card" style={{ marginBottom: '1.5rem', opacity: currentMode === 'none' ? 0.5 : 1 }}>
+          <div 
+            ref={(el) => setPasswordSectionRef(el)}
+            className="card" 
+            style={{ marginBottom: '1.5rem', opacity: currentMode === 'none' ? 0.5 : 1 }}
+          >
             <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem' }}>Passwort</h3>
             
             {currentMode === 'none' ? (
