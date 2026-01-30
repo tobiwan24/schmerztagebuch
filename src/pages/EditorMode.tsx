@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getTemplates, updateTemplate, createTemplate, deleteTemplate } from '../db';
 import { generateUUID } from '../utils/uuid';
 import type { Template } from '../types/database';
-import type { Block, BlockType } from '../types/blocks';
+import type { Block, BlockType, BlockValue } from '../types/blocks';
 import Header from '../components/Header';
 import BlockPalette from '../components/BlockPalette';
 import SortableBlock from '../components/SortableBlock';
@@ -126,7 +126,7 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
     setEditingBlocks(editingBlocks.filter(b => b.id !== blockId));
   }
 
-  function handleBlockChange(_blockId: string, _value: string | number | boolean | string[]) {
+  function handleBlockChange(_blockId: string, _value: BlockValue) {
     // Nichts tun - im Editor ändern wir nur die Struktur
   }
 
