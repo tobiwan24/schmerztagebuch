@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Save, X, Plus, ChevronRight, Trash2 } from 'lucide-react';
-import { cn } from "@/lib/utils";
+// import { cn } from "@/lib/utils"; // Unused
 import {
   DndContext,
   closestCenter,
@@ -44,7 +44,7 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
   const [originalTemplate, setOriginalTemplate] = useState<Template | null>(null);
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const [tempBlockLabel, setTempBlockLabel] = useState('');
-  const [blockOptionsInput, setBlockOptionsInput] = useState('');
+  // const [blockOptionsInput, setBlockOptionsInput] = useState(''); // Unused
   const [multiSelectButtons, setMultiSelectButtons] = useState<{text: string; color: string}[]>([]);
   const [newButtonText, setNewButtonText] = useState('');
   const [newButtonColor, setNewButtonColor] = useState('#007AFF');
@@ -208,14 +208,14 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
     }
   }
 
-  function handleSaveBlockLabel(blockId: string) {
-    if (!tempBlockLabel.trim()) return;
-    
-    setEditingBlocks(editingBlocks.map(block =>
-      block.id === blockId ? { ...block, label: tempBlockLabel } : block
-    ));
-    setTempBlockLabel('');
-  }
+  // function handleSaveBlockLabel(blockId: string) {
+  //   if (!tempBlockLabel.trim()) return;
+  //   
+  //   setEditingBlocks(editingBlocks.map(block =>
+  //     block.id === blockId ? { ...block, label: tempBlockLabel } : block
+  //   ));
+  //   setTempBlockLabel('');
+  // }
 
   function handleToggleHideLabel(blockId: string) {
     setEditingBlocks(editingBlocks.map(block =>
@@ -269,7 +269,7 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
       setNewButtonText('');
       setNewButtonColor('#007AFF');
     } else {
-      setBlockOptionsInput('');
+      // setBlockOptionsInput('');
     }
   }
 
@@ -316,7 +316,7 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
     }));
     
     setEditingBlockId(null);
-    setBlockOptionsInput('');
+    // setBlockOptionsInput('');
     setMultiSelectButtons([]);
     setNewButtonText('');
     setNewButtonColor('#007AFF');

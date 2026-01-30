@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, FileText, Trash2, ChevronRight, X, Download } from 'lucide-react';
+import { ArrowLeft, Trash2, ChevronRight, X, Download } from 'lucide-react';
 import BlockRenderer from '../components/BlockRenderer';
 
 interface HistoryViewProps {

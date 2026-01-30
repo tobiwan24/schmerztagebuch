@@ -11,7 +11,7 @@ import BodyMapBlock from './blocks/BodyMapBlock';
 
 interface BlockRendererProps {
   block: Block;
-  onChange: (value: string | number | boolean | string []) => void;
+  onChange: (value: string | number | boolean | string[] | File) => void;
   readOnly?: boolean;
   hideLabel?: boolean;
 }

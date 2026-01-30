@@ -29,7 +29,7 @@ export default function DatePickerBlock({ block, onChange, readOnly = false, hid
       };
     }
     if (typeof block.value === 'object' && block.value !== null && 'mode' in block.value) {
-      return block.value as DatePickerValue;
+      return block.value as unknown as DatePickerValue;
     }
     // Default: heute
     return {
