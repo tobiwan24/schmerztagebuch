@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Block } from '../types/blocks';
+import type { Block, BlockValue } from '../types/blocks';
 import type { Template } from '../types/database';
 import db from '../db';
 import { getEncryptionMode, getSessionPassword, refreshSession } from '../utils/auth';
@@ -57,7 +57,7 @@ export default function DiaryView({ onNavigate }: DiaryViewProps) {
     setTemplates(allTemplates);
   }
 
-  function handleBlockChange(blockId: string, value: string | number | boolean | string[]) {
+  function handleBlockChange(blockId: string, value: BlockValue) {
     setCurrentBlocks(prev => 
       prev.map(block => 
         block.id === blockId ? { ...block, value } : block

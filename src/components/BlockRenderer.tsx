@@ -1,4 +1,4 @@
-import type { Block } from '../types/blocks';
+import type { Block, BlockValue } from '../types/blocks';
 import TextBlock from './blocks/TextBlock';
 import CheckboxBlock from './blocks/CheckboxBlock';
 import SliderBlock from './blocks/SliderBlock';
@@ -11,7 +11,7 @@ import BodyMapBlock from './blocks/BodyMapBlock';
 
 interface BlockRendererProps {
   block: Block;
-  onChange: (value: string | number | boolean | string[] | File) => void;
+  onChange: (value: BlockValue) => void;
   readOnly?: boolean;
   hideLabel?: boolean;
 }

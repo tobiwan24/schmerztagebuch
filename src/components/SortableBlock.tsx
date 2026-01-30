@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { Block } from '../types/blocks';
+import type { Block, BlockValue } from '../types/blocks';
 import BlockRenderer from './BlockRenderer';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,7 +10,7 @@ interface SortableBlockProps {
   block: Block;
   onEdit: () => void;
   onDelete: () => void;
-  onChange: (value: string | number | boolean | string[]) => void;
+  onChange: (value: BlockValue) => void;
   onToggleHideLabel?: (blockId: string) => void;
 }
 

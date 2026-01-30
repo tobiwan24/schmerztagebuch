@@ -15,13 +15,22 @@ export interface MultiSelectOption {
   color: string;
 }
 
+// CheckboxValue für erweiterte Checkbox-Funktionalität
+export interface CheckboxValue {
+  checked: boolean;
+  text?: string;
+}
+
+// Alle möglichen Block-Werte
+export type BlockValue = string | number | boolean | File | string[] | CheckboxValue;
+
 // Basis-Interface für alle Blöcke
 export interface Block {
   id: string;
   type: BlockType;
   label: string;
   hideLabelInDiary?: boolean;  // NEU: Flag zum Ausblenden des Labels in DiaryView
-  value?: string | number | boolean | File | string[];
+  value?: BlockValue;
   options?: string[];  // Deprecated - alte MultiSelect
   multiSelectOptions?: MultiSelectOption[];  // Neue MultiSelect mit Farben
   min?: number;        // Für Slider

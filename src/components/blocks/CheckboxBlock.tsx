@@ -1,14 +1,9 @@
 import { useState } from 'react';
-import type { Block } from '../../types/blocks';
+import type { Block, CheckboxValue } from '../../types/blocks';
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-
-interface CheckboxValue {
-  checked: boolean;
-  text?: string;
-}
 
 interface CheckboxBlockProps {
   block: Block;

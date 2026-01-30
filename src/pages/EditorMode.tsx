@@ -325,7 +325,6 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
 
   function handleCancelBlockOptions() {
     setEditingBlockId(null);
-    setBlockOptionsInput('');
     setMultiSelectButtons([]);
     setNewButtonText('');
     setNewButtonColor('#007AFF');
