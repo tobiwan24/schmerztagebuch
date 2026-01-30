@@ -1,0 +1,62 @@
+/* ========== SPINNER (wird noch verwendet) ========== */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid hsl(var(--border));
+  border-top-color: hsl(var(--primary));
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========== TEMPLATE BUTTON CUSTOM COLORS (DiaryView) ========== */
+.template-button-custom {
+  background-color: var(--template-bg) !important;
+  color: white !important;
+  border-color: var(--template-bg) !important;
+}
+
+.template-button-custom:hover {
+  background-color: var(--template-bg) !important;
+  opacity: 0.9;
+}
+
+.template-button-active-custom {
+  background-color: var(--template-bg) !important;
+  color: white !important;
+  box-shadow: 0 0 0 2px var(--template-bg), 0 0 0 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.template-button-active-custom:hover {
+  background-color: var(--template-bg) !important;
+  opacity: 0.9;
+}
+
+/* ========== MULTISELECT BUTTON CUSTOM COLORS (MultiSelectBlock) ========== */
+.multiselect-button-selected {
+  background-color: var(--multiselect-color) !important;
+  color: white !important;
+  border-color: var(--multiselect-color) !important;
+}
+
+.multiselect-button-selected:hover {
+  background-color: var(--multiselect-color) !important;
+  opacity: 0.9;
+}
+
+.multiselect-button-unselected {
+  background-color: transparent !important;
+  color: var(--multiselect-color) !important;
+  border-color: var(--multiselect-color) !important;
+}
+
+.multiselect-button-unselected:hover {
+  background-color: var(--multiselect-color) !important;
+  color: white !important;
+  opacity: 0.9;
+}
