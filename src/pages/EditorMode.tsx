@@ -3,16 +3,16 @@ import { getTemplates, updateTemplate, createTemplate, deleteTemplate } from '..
 import { generateUUID } from '../utils/uuid';
 import type { Template } from '../types/database';
 import type { Block, BlockType, BlockValue } from '../types/blocks';
-import Header from '../components/Header';
 import BlockPalette from '../components/BlockPalette';
 import SortableBlock from '../components/SortableBlock';
 import TemplateStylePicker from '../components/TemplateStylePicker';
+import { DashboardConfigModal, type DashboardConfigState } from '../components/dashboard';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Save, X, Plus, ChevronRight, Trash2 } from 'lucide-react';
-// import { cn } from "@/lib/utils"; // Unused
+import { ArrowLeft, Save, X, Plus, Trash2, Check } from 'lucide-react';
+import { cn } from "@/lib/utils";
 import {
   DndContext,
   closestCenter,
@@ -32,10 +32,11 @@ import type { DragEndEvent } from '@dnd-kit/core';
 
 interface EditorModeProps {
   onBack: () => void;
-  onNavigate: (view: 'editor' | 'history' | 'diary' | 'settings') => void;
+  initialTemplateId?: number;
 }
 
-export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
+export default function EditorMode({ onBack, initialTemplateId }: EditorModeProps) {
+  // State
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
@@ -44,40 +45,52 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
   const [originalTemplate, setOriginalTemplate] = useState<Template | null>(null);
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const [tempBlockLabel, setTempBlockLabel] = useState('');
-  // const [blockOptionsInput, setBlockOptionsInput] = useState(''); // Unused
   const [multiSelectButtons, setMultiSelectButtons] = useState<{text: string; color: string}[]>([]);
   const [newButtonText, setNewButtonText] = useState('');
   const [newButtonColor, setNewButtonColor] = useState('#007AFF');
+  const [showAddBlockPopup, setShowAddBlockPopup] = useState(false);
+  const [pendingBlockType, setPendingBlockType] = useState<BlockType | null>(null);
+  const [newBlockLabel, setNewBlockLabel] = useState('');
+  const [pendingEditBlockId, setPendingEditBlockId] = useState<string | null>(null);
+  const [configuringDashboard, setConfiguringDashboard] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
+      activationConstraint: { distance: 8 },
     }),
     useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 200,
-        tolerance: 5,
-      },
+      activationConstraint: { delay: 200, tolerance: 5 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
+  // Load templates on mount
   useEffect(() => {
     loadTemplates();
   }, []);
 
+  // Load initial template if provided
   useEffect(() => {
-    if (selectedTemplate) {
+    if (initialTemplateId && templates.length > 0) {
+      const template = templates.find(t => t.id === initialTemplateId);
+      if (template) {
+        setSelectedTemplate(template);
+      }
+    }
+  }, [initialTemplateId, templates]);
+
+  // Update editing blocks when template changes
+  useEffect(() => {
+    if (selectedTemplate && selectedTemplate.id !== originalTemplate?.id) {
       setEditingBlocks([...selectedTemplate.blocks]);
       setOriginalTemplate(JSON.parse(JSON.stringify(selectedTemplate)));
       setHasUnsavedChanges(false);
     }
-  }, [selectedTemplate]);
+  }, [selectedTemplate, originalTemplate]);
 
+  // Detect unsaved changes
   useEffect(() => {
     if (!selectedTemplate || !originalTemplate) return;
     
@@ -90,6 +103,25 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
     
     setHasUnsavedChanges(templateChanged || blocksChanged);
   }, [selectedTemplate, editingBlocks, originalTemplate]);
+  
+  // Open edit modal after block creation
+  useEffect(() => {
+    if (pendingEditBlockId && editingBlocks.find(b => b.id === pendingEditBlockId)) {
+      const block = editingBlocks.find(b => b.id === pendingEditBlockId);
+      if (!block) return;
+      
+      setEditingBlockId(pendingEditBlockId);
+      setTempBlockLabel(block.label);
+      
+      if (block.type === 'multiselect') {
+        setMultiSelectButtons(block.multiSelectOptions ? [...block.multiSelectOptions] : []);
+        setNewButtonText('');
+        setNewButtonColor('#007AFF');
+      }
+      
+      setPendingEditBlockId(null);
+    }
+  }, [pendingEditBlockId, editingBlocks]);
 
   async function loadTemplates() {
     try {
@@ -103,23 +135,60 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
   }
 
   function handleAddBlock(type: BlockType) {
+    if (type === 'multiselect') {
+      const newBlock: Block = {
+        id: generateUUID(),
+        type: type,
+        label: 'Neue Auswahl',
+        hideLabelInDiary: false,
+        value: undefined,
+        multiSelectOptions: []
+      };
+      
+      setEditingBlocks([...editingBlocks, newBlock]);
+      setPendingEditBlockId(newBlock.id);
+      return;
+    }
+    
+    setPendingBlockType(type);
+    setNewBlockLabel('');
+    setShowAddBlockPopup(true);
+  }
+  
+  function handleConfirmAddBlock() {
+    if (!pendingBlockType || !newBlockLabel.trim()) {
+      alert('Bitte eine Überschrift eingeben!');
+      return;
+    }
+    
     const newBlock: Block = {
       id: generateUUID(),
-      type: type,
-      label: `Neuer ${type} Block`,
+      type: pendingBlockType,
+      label: newBlockLabel.trim(),
       hideLabelInDiary: false,
       value: undefined
     };
     
-    if (type === 'multiselect') {
-      newBlock.multiSelectOptions = [];
-    } else if (type === 'slider') {
+    if (pendingBlockType === 'slider') {
       newBlock.min = 0;
       newBlock.max = 10;
       newBlock.step = 1;
+      newBlock.dashboard = {
+        enabled: true,
+        type: 'pain'
+      };
     }
     
     setEditingBlocks([...editingBlocks, newBlock]);
+    setShowAddBlockPopup(false);
+    setPendingBlockType(null);
+    setNewBlockLabel('');
+  }
+  
+  function handleCancelAddBlock() {
+    setShowAddBlockPopup(false);
+    setPendingBlockType(null);
+    setNewBlockLabel('');
   }
 
   function handleDeleteBlock(blockId: string) {
@@ -127,7 +196,7 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
   }
 
   function handleBlockChange(_blockId: string, _value: BlockValue) {
-    // Nichts tun - im Editor ändern wir nur die Struktur
+    // Editor ändert nur Struktur, nicht Werte
   }
 
   function handleIconChange(icon: string) {
@@ -154,46 +223,56 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
       color: selectedTemplate.color || ''
     });
     
-    alert('Template gespeichert!');
-    setHasUnsavedChanges(false);
-    setOriginalTemplate(JSON.parse(JSON.stringify(selectedTemplate)));
-    setSelectedTemplate(null);
-    loadTemplates();
+    onBack(); // Zurück zur DiaryView
   }
 
-  function handleBackToList() {
+  async function handleCreateTemplate() {
+    const name = prompt('Name des neuen Templates:');
+    if (!name) return;
+    
+    try {
+      const newTemplate = await createTemplate(name, []);
+      await loadTemplates();
+      
+      // Direkt zum neuen Template wechseln
+      const allTemplates = await getTemplates();
+      const created = allTemplates.find(t => t.id === newTemplate.id);
+      if (created) {
+        setSelectedTemplate(created);
+      }
+    } catch (error) {
+      console.error('Fehler beim Erstellen:', error);
+    }
+  }
+
+  async function handleDeleteCurrentTemplate() {
+    if (!selectedTemplate?.id) return;
+    
+    const confirmed = window.confirm(
+      `⚠️ Template "${selectedTemplate.name}" wirklich löschen?\n\nAlle zugehörigen Einträge bleiben erhalten, können aber nicht mehr diesem Template zugeordnet werden.`
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      await deleteTemplate(selectedTemplate.id);
+      setSelectedTemplate(null);
+      await loadTemplates();
+      onBack(); // Zurück zum Tagebuch
+    } catch (error) {
+      console.error('Fehler beim Löschen:', error);
+      alert('Fehler beim Löschen des Templates');
+    }
+  }
+
+  function handleBackToDiary() {
     if (hasUnsavedChanges) {
       const confirmed = window.confirm(
-        '⚠️ Du hast ungespeicherte Änderungen!\n\nMöchtest du wirklich zurück zur Liste gehen? Alle Änderungen gehen verloren.'
+        '⚠️ Du hast ungespeicherte Änderungen!\n\nMöchtest du wirklich zurück zum Tagebuch? Alle Änderungen gehen verloren.'
       );
       if (!confirmed) return;
     }
-    setSelectedTemplate(null);
-    setHasUnsavedChanges(false);
-  }
-
-  const menuItems = [
-    {
-      label: 'Zum Tagebuch',
-      icon: 'diary' as const,
-      onClick: () => onNavigate('diary')
-    },
-    {
-      label: 'Verlauf anzeigen',
-      icon: 'history' as const,
-      onClick: () => onNavigate('history')
-    }
-  ];
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="spinner"></div>
-          <p className="text-muted-foreground">Templates werden geladen...</p>
-        </div>
-      </div>
-    );
+    onBack();
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -208,49 +287,56 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
     }
   }
 
-  // function handleSaveBlockLabel(blockId: string) {
-  //   if (!tempBlockLabel.trim()) return;
-  //   
-  //   setEditingBlocks(editingBlocks.map(block =>
-  //     block.id === blockId ? { ...block, label: tempBlockLabel } : block
-  //   ));
-  //   setTempBlockLabel('');
-  // }
-
   function handleToggleHideLabel(blockId: string) {
     setEditingBlocks(editingBlocks.map(block =>
       block.id === blockId ? { ...block, hideLabelInDiary: !block.hideLabelInDiary } : block
     ));
   }
 
-  async function handleCreateTemplate() {
-    const name = prompt('Name des neuen Templates:');
-    if (!name) return;
-    
-    try {
-      await createTemplate(name, []);
-      await loadTemplates();
-    } catch (error) {
-      console.error('Fehler beim Erstellen:', error);
-    }
+  function handleToggleDashboard(blockId: string) {
+    setEditingBlocks(editingBlocks.map(block => {
+      if (block.id === blockId) {
+        const currentEnabled = block.dashboard?.enabled || false;
+        
+        if (currentEnabled) {
+          const { dashboard, ...rest } = block;
+          return rest;
+        } else {
+          return {
+            ...block,
+            dashboard: { enabled: true }
+          };
+        }
+      }
+      return block;
+    }));
   }
 
-  async function handleDeleteTemplate(templateId: number, templateName: string, e: React.MouseEvent) {
-    e.stopPropagation();
+  function handleConfigureDashboard(blockId: string) {
+    setConfiguringDashboard(blockId);
+  }
+
+  function handleSaveDashboardConfig(config: DashboardConfigState) {
+    if (!configuringDashboard) return;
     
-    const confirmed = window.confirm(
-      `⚠️ Template "${templateName}" wirklich löschen?\n\nAlle zugehörigen Einträge bleiben erhalten, können aber nicht mehr diesem Template zugeordnet werden.`
-    );
+    setEditingBlocks(editingBlocks.map(b => {
+      if (b.id === configuringDashboard) {
+        return { 
+          ...b, 
+          dashboard: { 
+            enabled: true, 
+            ...config 
+          } 
+        };
+      }
+      return b;
+    }));
     
-    if (!confirmed) return;
-    
-    try {
-      await deleteTemplate(templateId);
-      await loadTemplates();
-    } catch (error) {
-      console.error('Fehler beim Löschen:', error);
-      alert('Fehler beim Löschen des Templates');
-    }
+    setConfiguringDashboard(null);
+  }
+
+  function handleCancelDashboardConfig() {
+    setConfiguringDashboard(null);
   }
 
   function handleEditBlockOptions(blockId: string) {
@@ -258,18 +344,12 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
     if (!block) return;
     
     setEditingBlockId(blockId);
-    setTempBlockLabel(block.label); // Label in temp speichern für Edit
+    setTempBlockLabel(block.label);
     
     if (block.type === 'multiselect') {
-      if (block.multiSelectOptions) {
-        setMultiSelectButtons([...block.multiSelectOptions]);
-      } else {
-        setMultiSelectButtons([]);
-      }
+      setMultiSelectButtons(block.multiSelectOptions ? [...block.multiSelectOptions] : []);
       setNewButtonText('');
       setNewButtonColor('#007AFF');
-    } else {
-      // setBlockOptionsInput('');
     }
   }
 
@@ -300,12 +380,10 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
     const block = editingBlocks.find(b => b.id === editingBlockId);
     if (!block) return;
     
-    // Label aktualisieren
     setEditingBlocks(editingBlocks.map(b => {
       if (b.id === editingBlockId) {
         const updated = { ...b, label: tempBlockLabel };
         
-        // Zusätzlich: multiselect-Buttons aktualisieren
         if (block.type === 'multiselect') {
           updated.multiSelectOptions = multiSelectButtons;
         }
@@ -316,7 +394,6 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
     }));
     
     setEditingBlockId(null);
-    // setBlockOptionsInput('');
     setMultiSelectButtons([]);
     setNewButtonText('');
     setNewButtonColor('#007AFF');
@@ -331,160 +408,197 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
     setTempBlockLabel('');
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="spinner"></div>
+          <p className="text-muted-foreground">Templates werden geladen...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Main view - IMMER Template Editor (keine Liste mehr)
   return (
-    <div className="app-container">
-      <Header 
-        title="Template-Editor" 
-        onBack={onBack}
-        showMenu={true}
-        menuItems={menuItems}
-      />
-      
-      <div className="content-wrapper">
-        {selectedTemplate ? (
-          // TEMPLATE EDITOR
-          <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <Button
-                onClick={handleBackToList}
-                variant="outline"
-                size="sm"
-              >
-                <ArrowLeft size={16} className="mr-2" />
-                Zurück
-              </Button>
-              
-              <Button onClick={handleSave} className="relative">
-                <Save size={16} className="mr-2" />
-                Speichern
-                {hasUnsavedChanges && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-card" />
-                )}
-              </Button>
-            </div>
-
-            {/* Unsaved Changes Warning */}
-            {hasUnsavedChanges && (
-              <Card className="p-3 bg-yellow-50 border-yellow-200">
-                <p className="text-sm text-yellow-800">
-                  ⚠️ Du hast ungespeicherte Änderungen
-                </p>
-              </Card>
-            )}
-
-            {/* Template Style Picker mit Name-Edit */}
-            <TemplateStylePicker
-              templateName={selectedTemplate.name}
-              onNameChange={(newName) => {
-                if (!selectedTemplate) return;
-                const updated = { ...selectedTemplate, name: newName };
-                setSelectedTemplate(updated);
-                setTemplates(templates.map(t => t.id === selectedTemplate.id ? updated : t));
-              }}
-              currentIcon={selectedTemplate.icon || 'book'}
-              currentColor={selectedTemplate.color || ''}
-              onIconChange={handleIconChange}
-              onColorChange={handleColorChange}
-            />
-
-            {/* Block Palette */}
-            <BlockPalette onAddBlock={handleAddBlock} />
-
-            {/* Blocks List */}
-            <DndContext 
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext 
-                items={editingBlocks.map(b => b.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="space-y-4">
-                  {editingBlocks.length === 0 ? (
-                    <Card className="p-8 text-center">
-                      <p className="text-muted-foreground">
-                        Noch keine Blöcke. Wähle einen aus der Palette oben.
-                      </p>
-                    </Card>
-                  ) : (
-                    editingBlocks.map((block) => (
-                      <SortableBlock
-                        key={block.id}
-                        block={block}
-                        onEdit={() => handleEditBlockOptions(block.id)}
-                        onDelete={() => handleDeleteBlock(block.id)}
-                        onChange={(value) => handleBlockChange(block.id, value)}
-                        onToggleHideLabel={handleToggleHideLabel}
-                      />
-                    ))
-                  )}
-                </div>
-              </SortableContext>
-            </DndContext>
-          </div>
-        ) : (
-          // TEMPLATE LIST
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Templates</h2>
-              <Button onClick={handleCreateTemplate}>
-                <Plus size={16} className="mr-2" />
-                Neues Template
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              {templates.map(template => (
-                <Card
-                  key={template.id}
-                  onClick={() => setSelectedTemplate(template)}
-                  className="p-4 cursor-pointer hover:bg-accent transition-colors"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{template.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {template.blocks.length} {template.blocks.length === 1 ? 'Block' : 'Blöcke'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={(e) => template.id && handleDeleteTemplate(template.id, template.name, e)}
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 size={18} />
-                      </Button>
-                      <ChevronRight size={20} className="text-muted-foreground" />
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
+    <div className="flex flex-col h-screen">
+      {/* Floating action buttons */}
+      <div className="floating-buttons-container">
+        <button className="floating-btn-glass" onClick={handleCreateTemplate}>
+          <Plus size={20} />
+        </button>
+        
+        <button
+          className="floating-btn-glass"
+          onClick={handleDeleteCurrentTemplate}
+          disabled={!selectedTemplate}
+        >
+          <Trash2 size={20} />
+        </button>
+        
+        {hasUnsavedChanges && (
+          <button
+            className="floating-btn-glass save-btn floating-btn-enter animate-pulse-glow-green"
+            onClick={handleSave}
+          >
+            <Check size={20} />
+          </button>
         )}
       </div>
 
-      {/* Block Options Modal - wird im nächsten Teil modernisiert */}
+      {/* Breadcrumb header */}
+      <div className="fixed top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="max-w-2xl mx-auto px-5 py-2 flex items-center gap-3">
+          <Button onClick={handleBackToDiary} variant="ghost" size="sm" className="gap-2">
+            <ArrowLeft size={16} />
+            Zurück zum Tagebuch
+          </Button>
+        </div>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto pb-28 px-5 pt-20">
+        <div className="max-w-2xl mx-auto space-y-6">
+          {selectedTemplate ? (
+            <>
+              {/* Unsaved changes warning */}
+              {hasUnsavedChanges && (
+                <Card className="p-3 bg-yellow-50 border-yellow-200">
+                  <p className="text-sm text-yellow-800">
+                    ⚠️ Du hast ungespeicherte Änderungen
+                  </p>
+                </Card>
+              )}
+
+              {/* Template Style Picker */}
+              <TemplateStylePicker
+                templateName={selectedTemplate.name}
+                onNameChange={(newName) => {
+                  if (!selectedTemplate) return;
+                  const updated = { ...selectedTemplate, name: newName };
+                  setSelectedTemplate(updated);
+                  setTemplates(templates.map(t => t.id === selectedTemplate.id ? updated : t));
+                }}
+                currentIcon={selectedTemplate.icon || 'book'}
+                currentColor={selectedTemplate.color || ''}
+                onIconChange={handleIconChange}
+                onColorChange={handleColorChange}
+              />
+
+              {/* Block Palette */}
+              <BlockPalette onAddBlock={handleAddBlock} />
+
+              {/* Blocks List */}
+              <DndContext 
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext 
+                  items={editingBlocks.map(b => b.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-4">
+                    {editingBlocks.length === 0 ? (
+                      <Card className="p-8 text-center">
+                        <p className="text-muted-foreground">
+                          Noch keine Blöcke. Wähle einen aus der Palette oben.
+                        </p>
+                      </Card>
+                    ) : (
+                      editingBlocks.map((block) => (
+                        <SortableBlock
+                          key={block.id}
+                          block={block}
+                          onEdit={() => handleEditBlockOptions(block.id)}
+                          onDelete={() => handleDeleteBlock(block.id)}
+                          onChange={(value) => handleBlockChange(block.id, value)}
+                          onToggleHideLabel={handleToggleHideLabel}
+                          onToggleDashboard={handleToggleDashboard}
+                          onConfigureDashboard={handleConfigureDashboard}
+                        />
+                      ))
+                    )}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </>
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-lg font-semibold mb-2">Kein Template ausgewählt</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Erstelle ein neues Template mit dem Plus-Button oben rechts.
+              </p>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {/* Add Block Popup */}
+      {showAddBlockPopup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={handleCancelAddBlock}>
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Block hinzufügen</h3>
+              <Button onClick={handleCancelAddBlock} variant="ghost" size="icon">
+                <X size={18} />
+              </Button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div className="space-y-2">
+                <Label>Überschrift des Blocks</Label>
+                <Input
+                  value={newBlockLabel}
+                  onChange={(e) => setNewBlockLabel(e.target.value)}
+                  placeholder="z.B. Schmerzstärke, Medikamente, ..."
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleConfirmAddBlock();
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="p-4 border-t flex justify-end gap-2">
+              <Button onClick={handleCancelAddBlock} variant="outline">
+                Abbrechen
+              </Button>
+              <Button onClick={handleConfirmAddBlock}>
+                Hinzufügen
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Block Options Modal */}
       {editingBlockId && (() => {
         const block = editingBlocks.find(b => b.id === editingBlockId);
         if (!block) return null;
         
         return (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={handleCancelBlockOptions}>
-            <Card className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-              <div className="p-4 border-b flex justify-between items-center">
+          <div 
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto" 
+            onClick={handleCancelBlockOptions}
+            onTouchMove={(e) => {
+              if (e.target === e.currentTarget) {
+                e.preventDefault();
+              }
+            }}
+          >
+            <Card className="w-full max-w-lg max-h-[90vh] flex flex-col my-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
                 <h3 className="text-lg font-semibold">Block bearbeiten</h3>
                 <Button onClick={handleCancelBlockOptions} variant="ghost" size="icon">
                   <X size={18} />
                 </Button>
               </div>
 
-              <div className="p-4 space-y-4">
-                {/* Label-Edit - IMMER als Input */}
+              <div className="p-4 space-y-4 overflow-y-auto flex-1">
                 <div className="space-y-2">
                   <Label>Block-Überschrift</Label>
                   <Input
@@ -513,7 +627,6 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
                             }
                           }}
                           placeholder="Button-Text eingeben"
-                          autoFocus
                         />
                         <div className="flex items-center gap-2">
                           <Label className="min-w-[80px]">Farbe:</Label>
@@ -576,7 +689,7 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
                 )}
               </div>
 
-              <div className="p-4 border-t flex justify-end gap-2">
+              <div className="p-4 border-t flex justify-end gap-2 flex-shrink-0">
                 <Button onClick={handleCancelBlockOptions} variant="outline">
                   Abbrechen
                 </Button>
@@ -586,6 +699,20 @@ export default function EditorMode({ onBack, onNavigate }: EditorModeProps) {
               </div>
             </Card>
           </div>
+        );
+      })()}
+
+      {/* Dashboard Configuration Modal */}
+      {configuringDashboard && (() => {
+        const block = editingBlocks.find(b => b.id === configuringDashboard);
+        if (!block) return null;
+        
+        return (
+          <DashboardConfigModal
+            block={block}
+            onSave={handleSaveDashboardConfig}
+            onCancel={handleCancelDashboardConfig}
+          />
         );
       })()}
     </div>

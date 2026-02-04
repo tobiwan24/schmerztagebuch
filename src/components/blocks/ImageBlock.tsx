@@ -20,41 +20,38 @@ interface ImageBlockProps {
 }
 
 export default function ImageBlock({ block, onChange, readOnly = false, hideLabel = false }: ImageBlockProps) {
-  const [files, setFiles] = useState<UploadedFile[]>([]);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
-  const isInitialMount = useRef(true);
-  
-  // Im Editor (hideLabel=true) keine Uploads erlauben
-  const effectiveReadOnly = readOnly || hideLabel;
-
-  useEffect(() => {
+  const [files, setFiles] = useState<UploadedFile[]>(() => {
+    // Initialer State aus block.value laden
     if (block.value && typeof block.value === 'string') {
       try {
         const parsed = JSON.parse(block.value);
         if (Array.isArray(parsed)) {
-          setFiles(parsed);
+          return parsed;
         }
       } catch {
         if (block.value.startsWith('data:image')) {
-          setFiles([{
+          return [{
             id: 'legacy',
             data: block.value,
             type: 'image',
             name: 'Foto'
-          }]);
+          }];
         }
       }
     }
-  }, [block.value]);
-
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    onChange(JSON.stringify(files));
-  }, [files, onChange]);
+    return [];
+  });
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+  
+  // Im Editor (hideLabel=true) keine Uploads erlauben
+  const effectiveReadOnly = readOnly || hideLabel;
+  
+  // Funktion zum Aktualisieren der Files UND Triggern von onChange
+  function updateFiles(newFiles: UploadedFile[]) {
+    setFiles(newFiles);
+    onChange(JSON.stringify(newFiles));
+  }
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
@@ -80,7 +77,7 @@ export default function ImageBlock({ block, onChange, readOnly = false, hideLabe
           type: 'image',
           name: file.name
         };
-        setFiles(prev => [...prev, newFile]);
+        updateFiles([...files, newFile]);
       };
       reader.readAsDataURL(file);
     });
@@ -113,7 +110,7 @@ export default function ImageBlock({ block, onChange, readOnly = false, hideLabe
         type: 'pdf',
         name: file.name
       };
-      setFiles(prev => [...prev, newFile]);
+      updateFiles([...files, newFile]);
     };
     reader.readAsDataURL(file);
 
@@ -123,7 +120,7 @@ export default function ImageBlock({ block, onChange, readOnly = false, hideLabe
   };
 
   const handleDelete = (fileId: string) => {
-    setFiles(prev => prev.filter(f => f.id !== fileId));
+    updateFiles(files.filter(f => f.id !== fileId));
   };
 
   return (

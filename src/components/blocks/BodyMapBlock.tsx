@@ -160,12 +160,14 @@ export default function BodyMapBlock({ block, onChange, readOnly = false, hideLa
   useEffect(() => {
     setPresets(getPresets());
     
-    if (!data.image && !readOnly) {
+    // Nur im normalen Diary-Modus (nicht im Editor) Default-Preset laden
+    if (!data.image && !readOnly && !hideLabel) {
       const defaultPreset = getDefaultPreset();
       if (defaultPreset) {
         updateData({ image: defaultPreset.image, points: [] });
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleCanvasClick(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {

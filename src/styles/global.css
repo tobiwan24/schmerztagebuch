@@ -65,4 +65,7 @@ body {
   background-color: var(--color-bg-secondary);
   color: var(--color-text-primary);
   line-height: 1.5;
+  /* Nur vertikales Scrollen erlauben, kein horizontales Swipe */
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
 }

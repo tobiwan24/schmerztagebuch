@@ -49,7 +49,7 @@ export default function MultiSelectBlock({ block, onChange, readOnly = false, hi
   return (
     <div className="space-y-3">
       {!hideLabel && <Label>{block.label}</Label>}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" style={{ touchAction: 'pan-y' }}>
         {options.map((option, index) => {
           const isSelected = selected.includes(option.text);
           

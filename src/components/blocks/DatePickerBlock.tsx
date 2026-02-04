@@ -22,14 +22,19 @@ export default function DatePickerBlock({ block, onChange, readOnly = false, hid
   // Parse value: kann String (Legacy) oder DatePickerValue sein
   const parseValue = (): DatePickerValue => {
     if (typeof block.value === 'string' && block.value) {
-      // Legacy: nur ein Datum
-      return {
-        mode: 'single',
-        startDate: block.value,
-      };
-    }
-    if (typeof block.value === 'object' && block.value !== null && 'mode' in block.value) {
-      return block.value as unknown as DatePickerValue;
+      try {
+        // Versuche JSON zu parsen
+        const parsed = JSON.parse(block.value);
+        if (parsed.mode && parsed.startDate) {
+          return parsed;
+        }
+      } catch {
+        // Legacy: nur ein Datum
+        return {
+          mode: 'single',
+          startDate: block.value,
+        };
+      }
     }
     // Default: heute
     return {
@@ -39,6 +44,9 @@ export default function DatePickerBlock({ block, onChange, readOnly = false, hid
   };
 
   const [value, setValue] = useState<DatePickerValue>(parseValue());
+
+  // Heutiges Datum als Maximum (keine Zukunft)
+  const today = new Date().toISOString().split('T')[0];
 
   const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = { ...value, startDate: e.target.value };
@@ -67,51 +75,65 @@ export default function DatePickerBlock({ block, onChange, readOnly = false, hid
     <div className="space-y-2">
       {!hideLabel && <Label>{block.label}</Label>}
       
-      <div className="flex gap-2">
+      <div className="inline-flex gap-1 p-1 bg-muted rounded-lg">
         <Button
           onClick={toggleMode}
           disabled={readOnly}
-          variant={value.mode === 'single' ? 'default' : 'outline'}
+          variant={value.mode === 'single' ? 'default' : 'ghost'}
           size="sm"
           type="button"
+          className="h-8 px-3"
         >
-          <Calendar size={16} className="mr-2" />
-          Einzeln
+          <Calendar size={14} className="mr-1" />
+          Datum
         </Button>
         <Button
           onClick={toggleMode}
           disabled={readOnly}
-          variant={value.mode === 'range' ? 'default' : 'outline'}
+          variant={value.mode === 'range' ? 'default' : 'ghost'}
           size="sm"
           type="button"
+          className="h-8 px-3"
         >
-          <CalendarRange size={16} className="mr-2" />
+          <CalendarRange size={14} className="mr-1" />
           Zeitraum
         </Button>
       </div>
 
-      <div className="space-y-2">
+      {value.mode === 'single' ? (
         <Input
           type="date"
           value={value.startDate}
           onChange={handleStartDateChange}
           readOnly={readOnly}
           disabled={readOnly}
-          placeholder={value.mode === 'range' ? 'Von' : 'Datum'}
+          max={today}
+          className="max-w-[180px]"
         />
-        
-        {value.mode === 'range' && (
+      ) : (
+        <div className="flex gap-2 items-center">
+          <Input
+            type="date"
+            value={value.startDate}
+            onChange={handleStartDateChange}
+            readOnly={readOnly}
+            disabled={readOnly}
+            max={today}
+            className="max-w-[180px]"
+          />
+          <span className="text-muted-foreground text-sm">bis</span>
           <Input
             type="date"
             value={value.endDate || value.startDate}
             onChange={handleEndDateChange}
             readOnly={readOnly}
             disabled={readOnly}
-            placeholder="Bis"
             min={value.startDate}
+            max={today}
+            className="max-w-[180px]"
           />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

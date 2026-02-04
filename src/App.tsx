@@ -5,24 +5,24 @@ import SetupWizard from './pages/SetupWizard';
 import DiaryView from './pages/DiaryView';
 import EditorMode from './pages/EditorMode';
 import HistoryView from './pages/HistoryView';
+import DashboardView from './pages/DashboardView';
 import AuthModal from './components/AuthModal';
 import DebugPanel from './components/DebugPanel';
 import SettingsView from './pages/SettingsView';
 import InstallPrompt from './components/InstallPrompt';
 import './App.css';
 
-
 export default function App() {
-  const [currentView, setCurrentView] = useState<'setup' | 'diary' | 'editor' | 'history' | 'settings'>('setup');
+  const [currentView, setCurrentView] = useState<'setup' | 'diary' | 'editor' | 'history' | 'settings' | 'dashboard'>('setup');
   const [isLoading, setIsLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingView, setPendingView] = useState<'diary' | 'editor' | 'history' | null>(null);
   const [debugEnabled, setDebugEnabled] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     initApp();
     
-    // Debug-Modus laden
     const debugMode = localStorage.getItem('debugEnabled');
     setDebugEnabled(debugMode === 'true');
   }, []);
@@ -34,7 +34,6 @@ export default function App() {
       const mode = await getEncryptionMode();
       
       if (settings.setupCompleted) {
-        // Prüfe ob Auth für Diary erforderlich ist (nur bei 'full' mode)
         if (mode === 'full' && !isSessionValid()) {
           setPendingView('diary');
           setShowAuthModal(true);
@@ -55,8 +54,7 @@ export default function App() {
     setCurrentView('diary');
   };
 
-  const handleNavigate = async (view: 'editor' | 'history' | 'diary' | 'settings') => {
-    // Prüfe ob Auth erforderlich
+  const handleNavigate = async (view: 'editor' | 'history' | 'diary' | 'settings' | 'dashboard') => {
     const needsAuth = await requiresAuth(view as 'diary' | 'history' | 'editor');
     
     if (needsAuth && !isSessionValid()) {
@@ -67,7 +65,13 @@ export default function App() {
     }
   };
 
+  const handleEditTemplate = (templateId: number) => {
+    setEditingTemplateId(templateId);
+    setCurrentView('editor');
+  };
+
   const handleBack = () => {
+    setEditingTemplateId(undefined);
     setCurrentView('diary');
   };
 
@@ -120,7 +124,10 @@ export default function App() {
   if (currentView === 'editor') {
     return (
       <>
-        <EditorMode onBack={handleBack} onNavigate={handleNavigate} />
+        <EditorMode 
+          onBack={handleBack} 
+          initialTemplateId={editingTemplateId}
+        />
         {showAuthModal && (
           <AuthModal 
             onAuthenticate={handleAuthenticate}
@@ -148,19 +155,35 @@ export default function App() {
   }
 
   if (currentView === 'settings') {
-    // Settings view not yet implemented, redirect to diary
     return (
       <>
         <SettingsView onBack={handleBack} />
         {debugEnabled && <DebugPanel />}
       </>
     );
-  
+  }
+
+  if (currentView === 'dashboard') {
+    return (
+      <>
+        <DashboardView onBack={handleBack} onNavigate={handleNavigate} />
+        {showAuthModal && (
+          <AuthModal 
+            onAuthenticate={handleAuthenticate}
+            onCancel={handleCancelAuth}
+          />
+        )}
+        {debugEnabled && <DebugPanel />}
+      </>
+    );
   }
 
   return (
     <>
-      <DiaryView onNavigate={handleNavigate} />
+      <DiaryView 
+        onNavigate={handleNavigate}
+        onEditTemplate={handleEditTemplate}
+      />
       {showAuthModal && (
         <AuthModal 
           onAuthenticate={handleAuthenticate}

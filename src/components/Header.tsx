@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, MoreVertical, Edit, History, FileText, Settings } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Edit, History, FileText, Settings, TrendingUp } from 'lucide-react';
 
 interface HeaderProps {
   title: string;
@@ -9,7 +9,7 @@ interface HeaderProps {
   showMenu?: boolean;
   menuItems?: Array<{
     label: string;
-    icon: 'edit' | 'history' | 'diary' | 'settings';
+    icon: 'edit' | 'history' | 'diary' | 'settings' | 'dashboard';
     onClick: () => void;
   }>;
 }
@@ -21,7 +21,8 @@ export default function Header({ title, onBack, showMenu = false, menuItems = []
     edit: Edit,
     history: History,
     diary: FileText,
-    settings: Settings
+    settings: Settings,
+    dashboard: TrendingUp
   };
 
   return (

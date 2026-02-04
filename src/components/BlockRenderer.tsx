@@ -12,11 +12,18 @@ import BodyMapBlock from './blocks/BodyMapBlock';
 interface BlockRendererProps {
   block: Block;
   onChange: (value: BlockValue) => void;
+  onDashboardConfigChange?: (blockId: string, config: { eventCategory: 'event' | 'doctor'; eventTitle: string }) => void;
   readOnly?: boolean;
   hideLabel?: boolean;
 }
 
-export default function BlockRenderer({ block, onChange, readOnly = false, hideLabel = false }: BlockRendererProps) {
+export default function BlockRenderer({ 
+  block, 
+  onChange, 
+  onDashboardConfigChange,
+  readOnly = false, 
+  hideLabel = false 
+}: BlockRendererProps) {
   switch (block.type) {
     case 'text':
       return <TextBlock block={block} onChange={onChange} readOnly={readOnly} hideLabel={hideLabel} />;
@@ -28,7 +35,15 @@ export default function BlockRenderer({ block, onChange, readOnly = false, hideL
       return <SliderBlock block={block} onChange={onChange} readOnly={readOnly} hideLabel={hideLabel} />;
     
     case 'textarea':
-      return <TextAreaBlock block={block} onChange={onChange} readOnly={readOnly} hideLabel={hideLabel} />;
+      return (
+        <TextAreaBlock 
+          block={block} 
+          onChange={onChange} 
+          onDashboardConfigChange={onDashboardConfigChange ? (config) => onDashboardConfigChange(block.id, config) : undefined}
+          readOnly={readOnly} 
+          hideLabel={hideLabel} 
+        />
+      );
     
     case 'date':
       return <DatePickerBlock block={block} onChange={onChange} readOnly={readOnly} hideLabel={hideLabel} />;

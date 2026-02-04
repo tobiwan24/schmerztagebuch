@@ -8,9 +8,7 @@ interface BlockPaletteProps {
 
 export default function BlockPalette({ onAddBlock }: BlockPaletteProps) {
   const blockTypes = [
-    { type: 'text' as BlockType, label: 'Text', icon: '📝' },
     { type: 'textarea' as BlockType, label: 'Textfeld', icon: '📄' },
-    { type: 'checkbox' as BlockType, label: 'Checkbox', icon: '☑️' },
     { type: 'slider' as BlockType, label: 'Schieberegler', icon: '🎚️' },
     { type: 'date' as BlockType, label: 'Datum', icon: '📅' },
     { type: 'multiselect' as BlockType, label: 'Auswahl', icon: '🏷️' },
@@ -28,7 +26,7 @@ export default function BlockPalette({ onAddBlock }: BlockPaletteProps) {
             key={blockType.type}
             onClick={() => onAddBlock(blockType.type)}
             variant="outline"
-            className="h-auto py-3 flex-col gap-1"
+            className="h-auto py-2 px-2 flex-col gap-1 border"
           >
             <span className="text-2xl">{blockType.icon}</span>
             <span className="text-xs">{blockType.label}</span>

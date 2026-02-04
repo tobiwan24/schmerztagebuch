@@ -24,18 +24,27 @@ export interface CheckboxValue {
 // Alle möglichen Block-Werte
 export type BlockValue = string | number | boolean | File | string[] | CheckboxValue;
 
+// Dashboard-Konfiguration für Blöcke
+export interface DashboardConfig {
+  enabled: boolean;
+  type?: 'pain' | 'function';  // Für Slider/BodyMap
+  eventTitle?: string;         // Für TextArea als Event
+  eventCategory?: 'event' | 'doctor';  // Event oder Arztbesuch
+}
+
 // Basis-Interface für alle Blöcke
 export interface Block {
   id: string;
   type: BlockType;
   label: string;
-  hideLabelInDiary?: boolean;  // NEU: Flag zum Ausblenden des Labels in DiaryView
+  hideLabelInDiary?: boolean;  // Flag zum Ausblenden des Labels in DiaryView
   value?: BlockValue;
   options?: string[];  // Deprecated - alte MultiSelect
   multiSelectOptions?: MultiSelectOption[];  // Neue MultiSelect mit Farben
   min?: number;        // Für Slider
   max?: number;        // Für Slider
   step?: number;       // Für Slider
+  dashboard?: DashboardConfig;  // NEU: Dashboard-Konfiguration
 }
 
 // Type Guards für bessere Type Safety

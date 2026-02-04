@@ -5,6 +5,7 @@ import BlockRenderer from './BlockRenderer';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { GripVertical, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
+import { DashboardToggleButtons } from './dashboard';
 
 interface SortableBlockProps {
   block: Block;
@@ -12,6 +13,8 @@ interface SortableBlockProps {
   onDelete: () => void;
   onChange: (value: BlockValue) => void;
   onToggleHideLabel?: (blockId: string) => void;
+  onToggleDashboard?: (blockId: string) => void;
+  onConfigureDashboard?: (blockId: string) => void;
 }
 
 export default function SortableBlock({ 
@@ -19,7 +22,9 @@ export default function SortableBlock({
   onEdit, 
   onDelete, 
   onChange,
-  onToggleHideLabel
+  onToggleHideLabel,
+  onToggleDashboard,
+  onConfigureDashboard
 }: SortableBlockProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: block.id });
 
@@ -48,6 +53,15 @@ export default function SortableBlock({
         </span>
 
         <div className="flex items-center gap-1">
+          {/* Dashboard Toggle Buttons */}
+          {onToggleDashboard && onConfigureDashboard && (
+            <DashboardToggleButtons
+              block={block}
+              onToggle={onToggleDashboard}
+              onConfigure={onConfigureDashboard}
+            />
+          )}
+          
           <Button 
             onClick={() => onToggleHideLabel?.(block.id)} 
             variant="ghost"
