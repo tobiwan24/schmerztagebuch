@@ -18,6 +18,28 @@ import {
   type PainDataPoint
 } from '../utils/dashboardData';
 
+// Vordefinierte Farbpalette für Charts (optimiert für Light & Dark Mode)
+const CHART_COLORS = [
+  '#3B82F6', // Blau
+  '#EF4444', // Rot
+  '#10B981', // Grün
+  '#F59E0B', // Orange
+  '#8B5CF6', // Lila
+  '#EC4899', // Pink
+  '#06B6D4', // Cyan
+  '#F97316', // Orange-Rot
+];
+
+// Generiere Farbe für Template (vordefiniert oder dynamisch via HSL)
+function getTemplateColor(index: number, totalTemplates: number): string {
+  if (index < CHART_COLORS.length) {
+    return CHART_COLORS[index];
+  }
+  // Dynamische Farben mit HSL für Templates > 8
+  const hue = (index * 360 / totalTemplates) % 360;
+  return `hsl(${hue}, 70%, 50%)`;
+}
+
 interface DashboardViewProps {
   onBack: () => void;
   onNavigate: (view: 'editor' | 'history' | 'diary' | 'settings' | 'dashboard') => void;
@@ -108,14 +130,15 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
   };
 
-  // ChartConfig MUSS VOR chartData sein!
+  // ChartConfig mit vordefinierten Farben
   const chartConfig = useMemo(() => {
     const config: ChartConfig = {};
-    dashboardTemplates.forEach((template) => {
+    dashboardTemplates.forEach((template, index) => {
       const key = `template_${template.id}_avg`;
+      const color = getTemplateColor(index, dashboardTemplates.length);
       config[key] = {
         label: template.name,
-        color: template.color || '#007AFF'
+        color: color
       };
     });
     return config;
@@ -147,14 +170,32 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     return acc;
   }, new Map<string, Record<string, string | number>>());
   
-  const chartData = allDatesInRange.map(date => dataByDate.get(date) || { date });
+  // Chart-Daten: Explizit null für fehlende Werte setzen
+  const chartData = allDatesInRange.map(date => {
+    const existing = dataByDate.get(date);
+    if (existing) return existing;
+    
+    // Für Tage OHNE Daten: Explizit null setzen für alle Templates
+    const emptyDay: Record<string, string | number | null> = { date };
+    dashboardTemplates.forEach(template => {
+      emptyDay[`template_${template.id}_avg`] = null;
+    });
+    return emptyDay;
+  });
   
-  // DEBUG
+  // DEBUG: Chart-Daten prüfen
   console.log('=== CHART DATA DEBUG ===');
   console.log('dailyPainData:', dailyPainData);
   console.log('chartData:', chartData);
   console.log('dashboardTemplates:', dashboardTemplates);
   console.log('chartConfig:', chartConfig);
+  
+  // Prüfe ob null-Werte gesetzt wurden
+  if (chartData.length > 0) {
+    console.log('Beispiel chartData[0]:', chartData[0]);
+    console.log('Beispiel chartData[1]:', chartData[1]);
+    console.log('chartData Keys:', Object.keys(chartData[0]));
+  }
   
   const eventScatterData = chartData.map(point => {
     const pointDate = typeof point.date === 'string' ? point.date : String(point.date);
@@ -281,8 +322,10 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {dashboardTemplates.map(template => {
+                    {dashboardTemplates.map((template, index) => {
                       const isVisible = visibleTemplates.has(template.id!);
+                      const key = `template_${template.id}_avg`;
+                      const color = chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
                       return (
                         <Badge
                           key={template.id}
@@ -290,12 +333,12 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
                           className="cursor-pointer gap-2 px-3 py-1"
                           onClick={() => toggleTemplate(template.id!)}
                           style={isVisible ? { 
-                            backgroundColor: template.color || '#007AFF', 
-                            borderColor: template.color || '#007AFF',
+                            backgroundColor: color, 
+                            borderColor: color,
                             color: '#fff'
                           } : {}}
                         >
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: template.color || '#007AFF' }} />
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
                           <span>{template.name}</span>
                         </Badge>
                       );
@@ -351,7 +394,7 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
                             stroke={color}
                             strokeWidth={2} 
                             dot={{ r: 3, fill: color }}
-                            connectNulls
+                            connectNulls={true}
                           />
                         );
                       })}
@@ -366,11 +409,14 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
               </Card>
               
               {/* Stats */}
-              {templateStats.map(({ template, dataPoints, avgPain, minPain, maxPain }) => (
+              {templateStats.map(({ template, dataPoints, avgPain, minPain, maxPain }, index) => {
+                const key = `template_${template.id}_avg`;
+                const color = chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
+                return (
                 <Card key={template.id}>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold" style={{ backgroundColor: template.color || '#007AFF' }}>
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold" style={{ backgroundColor: color }}>
                         {template.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1">
@@ -394,7 +440,8 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              );
+              })}
             </div>
           ) : (
             <Card className="p-8 text-center">

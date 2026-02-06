@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { initializeDB, getAppSettings } from './db';
 import { getEncryptionMode, requiresAuth, checkPassword, setSession, isSessionValid } from './utils/auth';
 import SetupWizard from './pages/SetupWizard';
+import HomePage from './pages/HomePage';
 import DiaryView from './pages/DiaryView';
 import EditorMode from './pages/EditorMode';
 import HistoryView from './pages/HistoryView';
@@ -10,48 +11,70 @@ import AuthModal from './components/AuthModal';
 import DebugPanel from './components/DebugPanel';
 import SettingsView from './pages/SettingsView';
 import InstallPrompt from './components/InstallPrompt';
+import db from './db';
+import type { Template } from './types/database';
 import './App.css';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'setup' | 'diary' | 'editor' | 'history' | 'settings' | 'dashboard'>('setup');
+  const [currentView, setCurrentView] = useState<'setup' | 'home' | 'diary' | 'editor' | 'history' | 'settings' | 'dashboard'>('setup');
   const [isLoading, setIsLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [pendingView, setPendingView] = useState<'diary' | 'editor' | 'history' | null>(null);
+  const [pendingView, setPendingView] = useState<'home' | 'diary' | 'editor' | 'history' | null>(null);
   const [debugEnabled, setDebugEnabled] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<number | undefined>(undefined);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [activeTemplateId, setActiveTemplateId] = useState<number | undefined>(undefined);
 
   useEffect(() => {
-    initApp();
+    async function init() {
+      try {
+        await initializeDB();
+        const settings = await getAppSettings();
+        const mode = await getEncryptionMode();
+        
+        // Load templates
+        await loadTemplates();
+        
+        if (settings.setupCompleted) {
+          if (mode === 'full' && !isSessionValid()) {
+            setPendingView('home');
+            setShowAuthModal(true);
+          } else {
+            setCurrentView('home');
+          }
+        } else {
+          setCurrentView('setup');
+        }
+      } catch (error) {
+        console.error('Fehler beim Initialisieren:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    init();
     
     const debugMode = localStorage.getItem('debugEnabled');
     setDebugEnabled(debugMode === 'true');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function initApp() {
-    try {
-      await initializeDB();
-      const settings = await getAppSettings();
-      const mode = await getEncryptionMode();
-      
-      if (settings.setupCompleted) {
-        if (mode === 'full' && !isSessionValid()) {
-          setPendingView('diary');
-          setShowAuthModal(true);
-        } else {
-          setCurrentView('diary');
-        }
-      } else {
-        setCurrentView('setup');
-      }
-    } catch (error) {
-      console.error('Fehler beim Initialisieren:', error);
-    } finally {
-      setIsLoading(false);
+  // Reload templates when returning to home view
+  useEffect(() => {
+    if (currentView === 'home') {
+      loadTemplates();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentView]);
+
+  async function loadTemplates() {
+    const allTemplates = await db.templates.orderBy('order').toArray();
+    setTemplates(allTemplates);
   }
 
   const handleSetupComplete = () => {
-    setCurrentView('diary');
+    setCurrentView('home');
+    loadTemplates(); // Reload templates after setup
   };
 
   const handleNavigate = async (view: 'editor' | 'history' | 'diary' | 'settings' | 'dashboard') => {
@@ -65,14 +88,36 @@ export default function App() {
     }
   };
 
+  const handleNavigateToHome = async () => {
+    // Reload templates before showing HomePage
+    await loadTemplates();
+    setCurrentView('home');
+  };
+
+  const handleSelectTemplate = (templateId: number) => {
+    setActiveTemplateId(templateId);
+    setCurrentView('diary');
+  };
+
   const handleEditTemplate = (templateId: number) => {
     setEditingTemplateId(templateId);
     setCurrentView('editor');
   };
 
-  const handleBack = () => {
+  const handleBack = async (templateId?: number) => {
     setEditingTemplateId(undefined);
-    setCurrentView('diary');
+    
+    if (templateId) {
+      // Nach Speichern: Templates neu laden und zur DiaryView mit dem bearbeiteten Template
+      await loadTemplates();
+      setActiveTemplateId(templateId);
+      setCurrentView('diary');
+    } else {
+      // Normale Zurück-Navigation: Zur HomePage
+      setActiveTemplateId(undefined);
+      await loadTemplates();
+      setCurrentView('home');
+    }
   };
 
   async function handleAuthenticate(password: string): Promise<boolean> {
@@ -178,11 +223,36 @@ export default function App() {
     );
   }
 
+  // HomePage View
+  if (currentView === 'home') {
+    return (
+      <>
+        <HomePage
+          templates={templates}
+          onSelectTemplate={handleSelectTemplate}
+          onNavigate={handleNavigate}
+          isLoading={false}
+        />
+        {showAuthModal && (
+          <AuthModal 
+            onAuthenticate={handleAuthenticate}
+            onCancel={handleCancelAuth}
+          />
+        )}
+        {debugEnabled && <DebugPanel />}
+        <InstallPrompt />
+      </>
+    );
+  }
+
+  // DiaryView
   return (
     <>
       <DiaryView 
         onNavigate={handleNavigate}
         onEditTemplate={handleEditTemplate}
+        onBack={handleNavigateToHome}
+        initialActiveTemplateId={activeTemplateId}
       />
       {showAuthModal && (
         <AuthModal 

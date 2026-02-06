@@ -29,11 +29,11 @@ export default function Header({ title, onBack, showMenu = false, menuItems = []
     <div className="header">
       <div className="header-content">
         {onBack ? (
-          <Button onClick={onBack} variant="ghost" size="icon" className="min-w-10 min-h-10">
+          <button className="floating-btn-glass" onClick={onBack}>
             <ArrowLeft size={20} />
-          </Button>
+          </button>
         ) : (
-          <div className="w-10 min-w-10"></div>
+          <div className="w-10"></div>
         )}
         
         <h1 className="header-title">{title}</h1>

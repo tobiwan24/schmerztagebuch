@@ -57,18 +57,15 @@ export default function MultiSelectBlock({ block, onChange, readOnly = false, hi
             <div
               key={index}
               className="multiselect-button-wrapper"
-              style={option.color ? { '--multiselect-color': option.color } as React.CSSProperties : undefined}
+              style={{ '--multiselect-color': option.color } as React.CSSProperties}
             >
               <Button
                 type="button"
                 onClick={() => handleToggle(option.text)}
                 disabled={readOnly}
-                variant={isSelected ? "default" : "outline"}
                 className={cn(
-                  "transition-all font-medium",
-                  isSelected && option.color && "multiselect-button-selected",
-                  !isSelected && option.color && "multiselect-button-unselected",
-                  isSelected && "scale-105 shadow-md"
+                  "multiselect-button",
+                  isSelected ? "multiselect-button-selected" : "multiselect-button-unselected"
                 )}
               >
                 {option.text}

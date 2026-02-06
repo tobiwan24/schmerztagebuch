@@ -223,12 +223,13 @@ export default function HistoryView({ onBack }: HistoryViewProps) {
   return (
     <div className="min-h-screen pb-4">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b p-4">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onBack}>
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="max-w-4xl mx-auto px-5 py-2 flex items-center justify-between">
+          <button className="floating-btn-glass" onClick={onBack}>
             <ArrowLeft size={20} />
-          </Button>
-          <h1 className="text-2xl font-semibold">Verlauf</h1>
+          </button>
+          <h1 className="text-base font-semibold">Verlauf</h1>
+          <div className="w-10" />
         </div>
       </div>
       

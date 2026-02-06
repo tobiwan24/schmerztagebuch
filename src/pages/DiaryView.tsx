@@ -1,22 +1,24 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import type { Block, BlockValue } from '../types/blocks';
 import type { Template } from '../types/database';
-import db from '../db';
+import db, { createTemplate } from '../db';
 import { getEncryptionMode, getSessionPassword, refreshSession } from '../utils/auth';
 import { encryptData } from '../utils/crypto';
 import BlockRenderer from '../components/BlockRenderer';
 import { getIconComponent } from '../utils/iconUtils';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Check, Menu, History, Settings, TrendingUp, Paintbrush } from 'lucide-react';
+import { Check, Menu, History, Settings, TrendingUp, Paintbrush, Plus, ArrowLeft } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 interface DiaryViewProps {
   onNavigate: (view: 'editor' | 'history' | 'diary' | 'settings' | 'dashboard') => void;
   onEditTemplate?: (templateId: number) => void;
+  onBack?: () => void;
+  initialActiveTemplateId?: number;
 }
 
-export default function DiaryView({ onNavigate, onEditTemplate }: DiaryViewProps) {
+export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialActiveTemplateId }: DiaryViewProps) {
   // State
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
@@ -41,10 +43,24 @@ export default function DiaryView({ onNavigate, onEditTemplate }: DiaryViewProps
     showPersonalizeBtnRef.current = showPersonalizeBtn;
   }, [showPersonalizeBtn]);
 
-  // Load templates on mount
+  // Load templates on mount and when returning from editor
   useEffect(() => {
     loadTemplates();
-  }, []);
+  }, [initialActiveTemplateId]);
+
+  // Set active template from initialActiveTemplateId and scroll to top
+  useEffect(() => {
+    if (initialActiveTemplateId && templates.length > 0) {
+      const templateIndex = templates.findIndex(t => t.id === initialActiveTemplateId);
+      if (templateIndex !== -1) {
+        setActiveTabIndex(templateIndex);
+        // Scroll to top when returning from editor
+        if (contentRef.current) {
+          contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
+    }
+  }, [initialActiveTemplateId, templates]);
 
   // Reset form when template changes
   useEffect(() => {
@@ -79,14 +95,11 @@ export default function DiaryView({ onNavigate, onEditTemplate }: DiaryViewProps
     const initTimeout = setTimeout(() => {
       const container = contentRef.current;
       if (!container) {
-        console.log('🚫 Container STILL not found after timeout!');
         return;
       }
 
-      console.log('✅ Pull-to-Reveal Logic mounted!');
-
       const TOUCH_THRESHOLD = 80;
-      const WHEEL_THRESHOLD = 270; // GEÄNDERT: 1/3 von 800
+      const WHEEL_THRESHOLD = 270;
       let touchStartY = 0;
       let isPulling = false;
 
@@ -105,37 +118,71 @@ export default function DiaryView({ onNavigate, onEditTemplate }: DiaryViewProps
         }, 2000);
       };
 
-      // TOUCH EVENTS (Mobile) - RICHTUNG UMGEKEHRT!
+      // TOUCH EVENTS - passive: false für preventDefault()
       const handleTouchStart = (e: TouchEvent) => {
-        if (isAtBottom()) {
-          touchStartY = e.touches[0].clientY;
+        // Prüfe ob Touch auf Bottom Nav Bar ist - wenn ja, ignoriere
+        const target = e.target as HTMLElement;
+        if (target.closest('.bottom-nav-glass') || target.closest('.template-tabs-scroll')) {
+          return; // Lasse Bottom Nav ihr eigenes Touch-Handling machen
+        }
+        
+        const atBottom = isAtBottom();
+        const currentShowBtn = showPersonalizeBtnRef.current;
+        touchStartY = e.touches[0].clientY;
+        
+        if (atBottom || currentShowBtn) {
           isPulling = true;
         }
       };
 
       const handleTouchMove = (e: TouchEvent) => {
+        // Prüfe ob Touch auf Bottom Nav Bar ist - wenn ja, ignoriere
+        const target = e.target as HTMLElement;
+        if (target.closest('.bottom-nav-glass') || target.closest('.template-tabs-scroll')) {
+          return; // Lasse Bottom Nav ihr eigenes Touch-Handling machen
+        }
+        
         if (!isPulling) return;
         
         const currentY = e.touches[0].clientY;
         const deltaY = currentY - touchStartY;
         const currentShowBtn = showPersonalizeBtnRef.current;
+        const atBottom = isAtBottom();
 
-        // Pull UP (negativ): Button erscheinen - nach OBEN ziehen!
-        if (deltaY < -TOUCH_THRESHOLD && !currentShowBtn) {
+        // FIX 2b: Button sichtbar UND Pull DOWN → preventDefault()
+        if (currentShowBtn && deltaY > 0) {
+          e.preventDefault(); // Blockiere Browser-Scroll!
+          
+          if (deltaY > TOUCH_THRESHOLD) {
+            setIsHidingBtn(true);
+            isPulling = false;
+            setTimeout(() => {
+              setShowPersonalizeBtn(false);
+              setIsHidingBtn(false);
+            }, 400);
+            if (navigator.vibrate) navigator.vibrate(30);
+          }
+          return;
+        }
+
+        // Pull UP am Ende: Button erscheinen
+        if (deltaY < -TOUCH_THRESHOLD && !currentShowBtn && atBottom) {
           setShowPersonalizeBtn(true);
           setIsHidingBtn(false);
           isPulling = false;
           if (navigator.vibrate) navigator.vibrate(50);
-        } 
-        // Pull DOWN (positiv): Button verstecken - nach UNTEN ziehen!
-        else if (deltaY > TOUCH_THRESHOLD && currentShowBtn) {
-          setIsHidingBtn(true);
-          isPulling = false;
+          
+          // FIX 1: Auto-Scroll nach Animation (400ms)
           setTimeout(() => {
-            setShowPersonalizeBtn(false);
-            setIsHidingBtn(false);
+            if (contentRef.current) {
+              contentRef.current.scrollTo({ 
+                top: contentRef.current.scrollHeight, 
+                behavior: 'smooth' 
+              });
+            }
+            const btn = document.querySelector('.personalize-btn-revealed') as HTMLElement;
+            btn?.focus();
           }, 400);
-          if (navigator.vibrate) navigator.vibrate(30);
         }
       };
 
@@ -143,40 +190,61 @@ export default function DiaryView({ onNavigate, onEditTemplate }: DiaryViewProps
         isPulling = false;
       };
 
-      // WHEEL EVENTS (Desktop)
+      // WHEEL EVENTS - passive: false für preventDefault()
       const handleWheel = (e: WheelEvent) => {
-        if (!isAtBottom()) {
+        const atBottom = isAtBottom();
+        const currentShowBtn = showPersonalizeBtnRef.current;
+        
+        // FIX 2a: Button sichtbar UND Upscroll → preventDefault()
+        if (currentShowBtn && e.deltaY < 0) {
+          e.preventDefault(); // Blockiere Browser-Scroll!
+          accumulatedDeltaRef.current += e.deltaY;
+          
+          if (accumulatedDeltaRef.current < -WHEEL_THRESHOLD) {
+            setIsHidingBtn(true);
+            accumulatedDeltaRef.current = 0;
+            setTimeout(() => {
+              setShowPersonalizeBtn(false);
+              setIsHidingBtn(false);
+            }, 400);
+          }
+          return;
+        }
+        
+        // Normal: Akkumuliere nur wenn am Ende ODER Button sichtbar
+        if (!atBottom && !currentShowBtn) {
           accumulatedDeltaRef.current = 0;
           return;
         }
 
         accumulatedDeltaRef.current += e.deltaY;
         resetInactivityTimeout();
-        const currentShowBtn = showPersonalizeBtnRef.current;
 
-        // Scroll down: Button erscheinen
-        if (accumulatedDeltaRef.current > WHEEL_THRESHOLD && !currentShowBtn) {
+        // Scroll down am Ende: Button erscheinen
+        if (accumulatedDeltaRef.current > WHEEL_THRESHOLD && !currentShowBtn && atBottom) {
           setShowPersonalizeBtn(true);
           setIsHidingBtn(false);
           accumulatedDeltaRef.current = 0;
-        } 
-        // Scroll up: Button verstecken
-        else if (accumulatedDeltaRef.current < -WHEEL_THRESHOLD && currentShowBtn) {
-          setIsHidingBtn(true);
-          accumulatedDeltaRef.current = 0;
+          
+          // FIX 1: Auto-Scroll nach Animation (400ms)
           setTimeout(() => {
-            setShowPersonalizeBtn(false);
-            setIsHidingBtn(false);
+            if (contentRef.current) {
+              contentRef.current.scrollTo({ 
+                top: contentRef.current.scrollHeight, 
+                behavior: 'smooth' 
+              });
+            }
+            const btn = document.querySelector('.personalize-btn-revealed') as HTMLElement;
+            btn?.focus();
           }, 400);
         }
       };
 
-      container.addEventListener('touchstart', handleTouchStart, { passive: true });
-      container.addEventListener('touchmove', handleTouchMove, { passive: true });
+      // Event Listeners mit passive: false!
+      container.addEventListener('touchstart', handleTouchStart, { passive: false });
+      container.addEventListener('touchmove', handleTouchMove, { passive: false });
       container.addEventListener('touchend', handleTouchEnd, { passive: true });
-      container.addEventListener('wheel', handleWheel, { passive: true });
-
-      console.log('✅ Event listeners attached!');
+      container.addEventListener('wheel', handleWheel, { passive: false });
     }, 100);
 
     return () => {
@@ -187,6 +255,27 @@ export default function DiaryView({ onNavigate, onEditTemplate }: DiaryViewProps
   async function loadTemplates() {
     const allTemplates = await db.templates.orderBy('order').toArray();
     setTemplates(allTemplates);
+  }
+
+  async function handleCreateTemplate() {
+    const name = prompt('Name des neuen Templates:');
+    if (!name) return;
+    
+    // Prüfe ob Name bereits existiert
+    const nameExists = templates.some(t => t.name.toLowerCase() === name.toLowerCase());
+    if (nameExists) {
+      alert(`⚠️ Ein Template mit dem Namen "${name}" existiert bereits!\n\nBitte wähle einen anderen Namen.`);
+      return;
+    }
+    
+    try {
+      await createTemplate(name, []);
+      await loadTemplates();
+      onNavigate('editor');
+    } catch (error) {
+      console.error('Fehler beim Erstellen:', error);
+      alert('Fehler beim Erstellen des Templates');
+    }
   }
 
   function handleBlockChange(blockId: string, value: BlockValue) {
@@ -336,10 +425,11 @@ export default function DiaryView({ onNavigate, onEditTemplate }: DiaryViewProps
           <Card className="p-8 text-center">
             <p className="text-lg font-semibold mb-2">Keine Templates vorhanden</p>
             <p className="text-sm text-muted-foreground mb-4">
-              Erstelle zuerst ein Template im Template-Editor.
+              Erstelle dein erstes Template, um loszulegen.
             </p>
-            <Button onClick={() => onNavigate('editor')} variant="outline">
-              Zum Template-Editor
+            <Button onClick={handleCreateTemplate} className="gap-2">
+              <Plus size={18} />
+              Neues Template erstellen
             </Button>
           </Card>
         </div>
@@ -349,6 +439,9 @@ export default function DiaryView({ onNavigate, onEditTemplate }: DiaryViewProps
             <div className="fixed inset-0 bg-black/30 z-20" onClick={() => setShowMenu(false)} />
             <Card className="fixed top-16 right-4 z-40 p-2 shadow-xl min-w-[240px] border-2">
               <div className="space-y-1">
+                <Button onClick={() => { setShowMenu(false); onNavigate('editor'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+                  <Paintbrush size={18} /><span className="font-medium">Seite personalisieren</span>
+                </Button>
                 <Button onClick={() => { setShowMenu(false); onNavigate('history'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
                   <History size={18} /><span className="font-medium">Verlauf anzeigen</span>
                 </Button>
@@ -387,14 +480,18 @@ export default function DiaryView({ onNavigate, onEditTemplate }: DiaryViewProps
       </div>
 
       <div className="fixed top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="max-w-2xl mx-auto px-5 py-2 flex items-center justify-center">
+        <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
+          <button className="floating-btn-glass" onClick={() => onBack?.()}>
+            <ArrowLeft size={20} />
+          </button>
           <h1 className="text-base font-semibold">{activeTemplate?.name || 'Tagebuch'}</h1>
+          <div className="w-10" />
         </div>
       </div>
 
       <div 
         ref={contentRef}
-        className="flex-1 overflow-y-auto pb-18 px-5 pt-16"
+        className="flex-1 overflow-y-auto pb-20 px-5 pt-16"
         style={{ 
           scrollBehavior: 'smooth',
           touchAction: 'manipulation'
@@ -418,6 +515,7 @@ export default function DiaryView({ onNavigate, onEditTemplate }: DiaryViewProps
               <button
                 onClick={handlePersonalize}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 personalize-btn-revealed animate-pulse-glow"
+                tabIndex={0}
               >
                 <Paintbrush size={18} style={{ color: '#6366f1' }} />
                 <span className="font-medium">Seite personalisieren</span>
@@ -460,6 +558,9 @@ export default function DiaryView({ onNavigate, onEditTemplate }: DiaryViewProps
           <div className="fixed inset-0 bg-black/30 z-20" onClick={() => setShowMenu(false)} />
           <Card className="fixed top-16 right-4 z-40 p-2 shadow-xl min-w-[240px] border-2">
             <div className="space-y-1">
+              <Button onClick={() => { setShowMenu(false); handlePersonalize(); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+                <Paintbrush size={18} /><span className="font-medium">Seite personalisieren</span>
+              </Button>
               <Button onClick={() => { setShowMenu(false); onNavigate('history'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <History size={18} /><span className="font-medium">Verlauf anzeigen</span>
               </Button>

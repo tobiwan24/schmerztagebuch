@@ -11,8 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Save, X, Plus, Trash2, Check } from 'lucide-react';
-import { cn } from "@/lib/utils";
+import { ArrowLeft, X, Plus, Trash2, Check } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -31,7 +30,7 @@ import {
 import type { DragEndEvent } from '@dnd-kit/core';
 
 interface EditorModeProps {
-  onBack: () => void;
+  onBack: (templateId?: number) => void;
   initialTemplateId?: number;
 }
 
@@ -48,6 +47,21 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
   const [multiSelectButtons, setMultiSelectButtons] = useState<{text: string; color: string}[]>([]);
   const [newButtonText, setNewButtonText] = useState('');
   const [newButtonColor, setNewButtonColor] = useState('#007AFF');
+  
+  // Vordefinierte Farbpalette für Multiselect-Buttons
+  const PRESET_COLORS = [
+    '#007AFF', // iOS Blau
+    '#34C759', // Grün
+    '#FF9500', // Orange
+    '#FF3B30', // Rot
+    '#AF52DE', // Lila
+    '#FF2D55', // Pink
+    '#5856D6', // Indigo
+    '#32ADE6', // Hellblau
+    '#FFD60A', // Gelb
+    '#8E8E93', // Grau
+  ];
+  
   const [showAddBlockPopup, setShowAddBlockPopup] = useState(false);
   const [pendingBlockType, setPendingBlockType] = useState<BlockType | null>(null);
   const [newBlockLabel, setNewBlockLabel] = useState('');
@@ -223,20 +237,29 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
       color: selectedTemplate.color || ''
     });
     
-    onBack(); // Zurück zur DiaryView
+    // Templates neu laden und zur DiaryView mit aktuellem Template
+    await loadTemplates();
+    onBack(selectedTemplate.id);
   }
 
   async function handleCreateTemplate() {
     const name = prompt('Name des neuen Templates:');
     if (!name) return;
     
+    // Prüfe ob Name bereits existiert
+    const nameExists = templates.some(t => t.name.toLowerCase() === name.toLowerCase());
+    if (nameExists) {
+      alert(`⚠️ Ein Template mit dem Namen "${name}" existiert bereits!\n\nBitte wähle einen anderen Namen.`);
+      return;
+    }
+    
     try {
-      const newTemplate = await createTemplate(name, []);
+      const newTemplateId = await createTemplate(name, []);
       await loadTemplates();
       
       // Direkt zum neuen Template wechseln
       const allTemplates = await getTemplates();
-      const created = allTemplates.find(t => t.id === newTemplate.id);
+      const created = allTemplates.find(t => t.id === newTemplateId);
       if (created) {
         setSelectedTemplate(created);
       }
@@ -446,13 +469,14 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
         )}
       </div>
 
-      {/* Breadcrumb header */}
+      {/* Header */}
       <div className="fixed top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="max-w-2xl mx-auto px-5 py-2 flex items-center gap-3">
-          <Button onClick={handleBackToDiary} variant="ghost" size="sm" className="gap-2">
-            <ArrowLeft size={16} />
-            Zurück zum Tagebuch
-          </Button>
+        <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
+          <button className="floating-btn-glass" onClick={handleBackToDiary}>
+            <ArrowLeft size={20} />
+          </button>
+          <h1 className="text-base font-semibold">Template bearbeiten</h1>
+          <div className="w-10" />
         </div>
       </div>
 
@@ -523,14 +547,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                 </SortableContext>
               </DndContext>
             </>
-          ) : (
-            <Card className="p-8 text-center">
-              <p className="text-lg font-semibold mb-2">Kein Template ausgewählt</p>
-              <p className="text-sm text-muted-foreground mb-4">
-                Erstelle ein neues Template mit dem Plus-Button oben rechts.
-              </p>
-            </Card>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -628,17 +645,27 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                           }}
                           placeholder="Button-Text eingeben"
                         />
-                        <div className="flex items-center gap-2">
-                          <Label className="min-w-[80px]">Farbe:</Label>
-                          <input
-                            type="color"
-                            value={newButtonColor}
-                            onChange={(e) => setNewButtonColor(e.target.value)}
-                            className="w-16 h-10 rounded cursor-pointer"
-                          />
-                          <Button onClick={handleAddButton} className="ml-auto">
+                        <div className="space-y-2">
+                          <Label>Farbe wählen:</Label>
+                          <div className="grid grid-cols-5 gap-2">
+                            {PRESET_COLORS.map((color) => (
+                              <button
+                                key={color}
+                                type="button"
+                                onClick={() => setNewButtonColor(color)}
+                                className="w-full aspect-square rounded-lg border-2 transition-all"
+                                style={{
+                                  backgroundColor: color,
+                                  borderColor: newButtonColor === color ? '#000' : 'transparent',
+                                  transform: newButtonColor === color ? 'scale(1.1)' : 'scale(1)',
+                                }}
+                                title={color}
+                              />
+                            ))}
+                          </div>
+                          <Button onClick={handleAddButton} className="w-full">
                             <Plus size={16} className="mr-2" />
-                            Hinzufügen
+                            Button hinzufügen
                           </Button>
                         </div>
                       </div>
@@ -653,17 +680,40 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                           <Card key={idx} className="p-3">
                             <div className="flex items-center gap-3">
                               <span className="flex-1 font-medium">{btn.text}</span>
-                              <input
-                                type="color"
-                                value={btn.color}
-                                onChange={(e) => handleUpdateButtonColor(idx, e.target.value)}
-                                className="w-12 h-8 rounded cursor-pointer"
-                              />
-                              <div
-                                className="px-3 py-1 rounded text-white text-xs font-semibold"
-                                style={{ backgroundColor: btn.color }}
-                              >
-                                Vorschau
+                              <div className="flex items-center gap-2">
+                                <div className="relative">
+                                  <select
+                                    value={btn.color}
+                                    onChange={(e) => handleUpdateButtonColor(idx, e.target.value)}
+                                    className="appearance-none w-20 h-8 rounded cursor-pointer border-2"
+                                    style={{
+                                      backgroundColor: btn.color,
+                                      color: 'transparent',
+                                    }}
+                                  >
+                                    {PRESET_COLORS.map((color) => (
+                                      <option key={color} value={color}>
+                                        {color}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <div 
+                                    className="absolute inset-0 pointer-events-none flex items-center justify-center"
+                                  >
+                                    <div className="w-4 h-4 border-2 border-white rounded-full shadow-sm" 
+                                         style={{ backgroundColor: btn.color }} 
+                                    />
+                                  </div>
+                                </div>
+                                <div
+                                  className="px-4 py-2 rounded-lg font-medium text-sm"
+                                  style={{ 
+                                    backgroundColor: btn.color,
+                                    color: '#fff'
+                                  }}
+                                >
+                                  {btn.text}
+                                </div>
                               </div>
                               <Button
                                 onClick={() => handleRemoveButton(idx)}

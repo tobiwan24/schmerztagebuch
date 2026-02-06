@@ -38,27 +38,37 @@
 }
 
 /* ========== MULTISELECT BUTTON CUSTOM COLORS (MultiSelectBlock) ========== */
+.multiselect-button {
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
 .multiselect-button-selected {
   background-color: var(--multiselect-color) !important;
   color: white !important;
-  border-color: var(--multiselect-color) !important;
+  border-color: #000 !important;
+  border-width: 2px !important;
+  opacity: 1 !important;
+  transform: scale(1.05);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .multiselect-button-selected:hover {
   background-color: var(--multiselect-color) !important;
-  opacity: 0.9;
+  border-color: #000 !important;
+  opacity: 0.95 !important;
 }
 
 .multiselect-button-unselected {
-  background-color: transparent !important;
-  color: var(--multiselect-color) !important;
+  background-color: var(--multiselect-color) !important;
+  color: white !important;
   border-color: var(--multiselect-color) !important;
+  opacity: 0.7 !important;
 }
 
 .multiselect-button-unselected:hover {
   background-color: var(--multiselect-color) !important;
-  color: white !important;
-  opacity: 0.9;
+  opacity: 0.85 !important;
 }
 
 /* ========== GLASSMORPHISMUS BOTTOM NAV (DiaryView) ========== */
@@ -84,6 +94,7 @@
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
   
   z-index: 30;
+  touch-action: pan-x; /* Erlaubt horizontales Touch-Scrollen */
 }
 
 /* Template Icon Buttons */
@@ -140,9 +151,20 @@
   align-items: center;
   gap: 0.5rem;
   overflow-x: auto;
-  max-width: 400px;
+  max-width: calc(100vw - 3rem); /* Viewport-Breite minus Padding */
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling auf iOS */
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain; /* Verhindert Seiten-Bounce beim Scrollen */
+  touch-action: pan-x; /* Erlaubt horizontales Touch-Scrollen */
+}
+
+/* Auf größeren Screens: maximale Breite begrenzen */
+@media (min-width: 500px) {
+  .template-tabs-scroll {
+    max-width: 450px;
+  }
 }
 
 .template-tabs-scroll::-webkit-scrollbar {
@@ -152,8 +174,9 @@
 /* ========== FLOATING BUTTONS OBEN RECHTS (Menu & Save) ========== */
 .floating-buttons-container {
   position: fixed;
-  top: 1rem;
+  top: 0;
   right: 1rem;
+  height: 3.5rem; /* 56px - gleiche Höhe wie Header h-14 */
   display: flex;
   gap: 0.5rem;
   align-items: center;

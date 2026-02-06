@@ -9,8 +9,8 @@ const db = new Dexie('PainDiaryDB') as Dexie & {
   settings: EntityTable<Settings, 'key'>;
 };
 
-// Version 6: Dashboard Charts Update
-db.version(6).stores({
+// Version 7: Erweiterte Standard-Vorlage mit Dashboard-Aktivierung
+db.version(7).stores({
   templates: '++id, name, order',
   entries: '++id, templateId, timestamp, encrypted, *tags',
   settings: 'key'
@@ -278,13 +278,14 @@ export async function initializeDB(): Promise<void> {
   const count = await db.templates.count();
   
   if (count === 0) {
-    // Beispiel-Template: Tab mit Datum, Schmerzstärke und Notizen
-    await createTemplate('Beispiel-Tab', [
+    // Standard-Vorlage: Kopfschmerz-Tagebuch mit vollständiger Dashboard-Aktivierung
+    await createTemplate('Kopfschmerz-Tagebuch', [
       {
         id: generateUUID(),
         type: 'date',
         label: 'Datum',
-        value: new Date().toISOString().split('T')[0]
+        value: new Date().toISOString().split('T')[0],
+        hideLabelInDiary: true
       },
       {
         id: generateUUID(),
@@ -293,12 +294,79 @@ export async function initializeDB(): Promise<void> {
         value: 5,
         min: 0,
         max: 10,
-        step: 1
+        step: 1,
+        dashboard: {
+          enabled: true,
+          type: 'pain'
+        }
+      },
+      {
+        id: generateUUID(),
+        type: 'multiselect',
+        label: 'Schmerzart',
+        value: [],
+        multiSelectOptions: [
+          { text: 'Migräne', color: '#FF3B30' },
+          { text: 'Spannungskopfschmerz', color: '#FF9500' },
+          { text: 'Clusterkopfschmerz', color: '#5856D6' }
+        ],
+        dashboard: {
+          enabled: true
+        }
+      },
+      {
+        id: generateUUID(),
+        type: 'multiselect',
+        label: 'Begleitsymptome',
+        value: [],
+        multiSelectOptions: [
+          { text: 'Übelkeit', color: '#34C759' },
+          { text: 'Aura', color: '#5856D6' },
+          { text: 'Lichtempfindlichkeit', color: '#FF9500' },
+          { text: 'Schwindel', color: '#007AFF' }
+        ],
+        dashboard: {
+          enabled: true
+        }
+      },
+      {
+        id: generateUUID(),
+        type: 'multiselect',
+        label: 'Medikamente',
+        value: [],
+        multiSelectOptions: [
+          { text: 'IBU 400', color: '#007AFF' },
+          { text: 'IBU 600', color: '#5856D6' },
+          { text: 'Paracetamol', color: '#34C759' },
+          { text: 'Triptan', color: '#FF3B30' }
+        ],
+        dashboard: {
+          enabled: true
+        }
       },
       {
         id: generateUUID(),
         type: 'textarea',
         label: 'Notizen',
+        value: '',
+        dashboard: {
+          enabled: true
+        }
+      },
+      {
+        id: generateUUID(),
+        type: 'bodymap',
+        label: 'Körperkarte',
+        value: '',
+        dashboard: {
+          enabled: true,
+          type: 'pain'
+        }
+      },
+      {
+        id: generateUUID(),
+        type: 'image',
+        label: 'Bild',
         value: ''
       }
     ]);
