@@ -108,6 +108,7 @@ export function extractPainData(
               dates.push(current.toISOString().split('T')[0]);
               current.setDate(current.getDate() + 1);
             }
+            console.log(`[extractPainData] Range detected: ${parsed.startDate} - ${parsed.endDate}, generated ${dates.length} dates`);
           } else if (parsed.startDate) {
             // Single mode
             dates = [parsed.startDate];

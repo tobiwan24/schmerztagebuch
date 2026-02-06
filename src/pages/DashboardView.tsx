@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, TrendingUp, Activity, CalendarClock, Stethoscope } from 'lucide-react';
-import { Line, ComposedChart, LineChart, XAxis, YAxis, CartesianGrid, Scatter } from 'recharts';
+import { Line, LineChart, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { 
   extractPainData, 
@@ -188,48 +188,12 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     return dayData;
   });
   
-  // DEBUG: Chart-Daten prüfen
-  console.log('=== CHART DATA DEBUG ===');
-  console.log('dailyPainData:', dailyPainData);
-  console.log('chartData:', chartData);
-  console.log('dashboardTemplates:', dashboardTemplates);
-  console.log('chartConfig:', chartConfig);
-  
-  // Prüfe ob null-Werte gesetzt wurden
-  if (chartData.length > 0) {
-    console.log('=== ALLE CHARTDATA ===');
-    chartData.forEach((item, idx) => {
-      console.log(`chartData[${idx}]:`, item);
-    });
-    console.log('======================');
-  }
-  
-  const eventScatterData = chartData.map(point => {
-    const pointDate = typeof point.date === 'string' ? point.date : String(point.date);
-    const dateEvents = events.filter(e => {
-      const template = dashboardTemplates.find(t => t.name === e.templateName);
-      return template && visibleTemplates.has(template.id ?? 0) && e.date === pointDate;
-    });
-    
-    let maxValue = 0;
-    dashboardTemplates.forEach(template => {
-      if (!visibleTemplates.has(template.id!)) return;
-      const key = `template_${template.id}_avg`;
-      const value = point[key];
-      if (value !== undefined && typeof value === 'number') {
-        maxValue = Math.max(maxValue, value);
-      }
-    });
-    
-    const hasEvents = dateEvents.length > 0;
-    return {
-      date: pointDate,
-      value: maxValue > 0 ? maxValue : (hasEvents ? 5 : null),
-      events: dateEvents,
-      hasEvent: dateEvents.some((e: EventMarker) => e.category === 'event'),
-      hasDoctor: dateEvents.some((e: EventMarker) => e.category === 'doctor')
-    };
-  }).filter(p => p.value !== null);
+  // DEBUG: Auskommentiert - Bei Bedarf wieder aktivieren
+  // console.log('=== CHART DATA DEBUG ===');
+  // console.log('dailyPainData:', dailyPainData);
+  // console.log('chartData:', chartData);
+  // console.log('dashboardTemplates:', dashboardTemplates);
+  // console.log('chartConfig:', chartConfig);
 
   const toggleTemplate = (templateId: number) => {
     const newVisible = new Set(visibleTemplates);
@@ -238,37 +202,102 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     setVisibleTemplates(newVisible);
   };
 
-  const renderEventIcon = (props: {
-    cx?: number;
-    cy?: number;
-    payload?: {
-      events?: EventMarker[];
-      hasEvent?: boolean;
-      hasDoctor?: boolean;
-    };
-  }) => {
+  // Custom Dot-Komponente: Zeigt normalen Punkt + Event-Icons darüber
+  const renderCustomDot = (color: string) => {  
+    return (props: any) => {
     const { cx, cy, payload } = props;
-    if (!cx || !cy || !payload || !payload.events || payload.events.length === 0) return null;
-    const iconSize = 16;
-    const spacing = 18;
-    return (
-      <g>
-        {payload.hasDoctor && (
-          <foreignObject x={cx - iconSize / 2} y={cy - spacing - iconSize} width={iconSize} height={iconSize}>
-            <div style={{ width: iconSize, height: iconSize, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ef4444', borderRadius: '50%', color: 'white' }}>
-              <Stethoscope size={10} />
-            </div>
-          </foreignObject>
-        )}
-        {payload.hasEvent && (
-          <foreignObject x={cx - iconSize / 2} y={cy - (payload.hasDoctor ? spacing * 2 : spacing) - iconSize} width={iconSize} height={iconSize}>
-            <div style={{ width: iconSize, height: iconSize, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#3b82f6', borderRadius: '50%', color: 'white' }}>
-              <CalendarClock size={10} />
-            </div>
-          </foreignObject>
+    // Bei null-Werten (Tage ohne Daten) keinen Dot rendern
+    if (cx === undefined || cy === null || cy === undefined) return null;
+    
+    // Prüfe ob an diesem Datum Events existieren
+    const dateEvents = events.filter(e => {
+      const template = dashboardTemplates.find(t => t.name === e.templateName);
+      return template && visibleTemplates.has(template.id ?? 0) && e.date === payload.date;
+    });
+    
+    const hasEvent = dateEvents.some((e: EventMarker) => e.category === 'event');
+    const hasDoctor = dateEvents.some((e: EventMarker) => e.category === 'doctor');
+    const hasAnyEvent = dateEvents.length > 0;
+    
+    const iconSize = 14;
+    const spacing = 16;
+    
+    console.log('[renderCustomDot] Rendering dot:', { date: payload.date, cx, cy, hasEvent, hasDoctor });
+    
+    const dotElement = (
+      <g key={`dot-${payload.date}`}>
+        {/* Normaler Datenpunkt */}
+        <circle cx={cx} cy={cy} r={4} fill={color} stroke="none" />
+        
+        {/* Event-Icons ÜBER dem Punkt */}
+        {hasAnyEvent && (
+          <>
+            {hasDoctor && (
+              <g key={`doctor-${payload.date}`}>
+                <circle 
+                  cx={cx} 
+                  cy={cy - spacing} 
+                  r={iconSize / 2} 
+                  fill="#ef4444" 
+                  stroke="white" 
+                  strokeWidth={1.5}
+                />
+                <foreignObject 
+                  x={cx - iconSize / 2} 
+                  y={cy - spacing - iconSize / 2} 
+                  width={iconSize} 
+                  height={iconSize}
+                >
+                  <div style={{ 
+                    width: iconSize, 
+                    height: iconSize, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: 'white'
+                  }}>
+                    <Stethoscope size={8} />
+                  </div>
+                </foreignObject>
+              </g>
+            )}
+            {hasEvent && (
+              <g key={`event-${payload.date}`}>
+                <circle 
+                  cx={cx} 
+                  cy={cy - (hasDoctor ? spacing * 2 : spacing)} 
+                  r={iconSize / 2} 
+                  fill="#3b82f6" 
+                  stroke="white" 
+                  strokeWidth={1.5}
+                />
+                <foreignObject 
+                  x={cx - iconSize / 2} 
+                  y={cy - (hasDoctor ? spacing * 2 : spacing) - iconSize / 2} 
+                  width={iconSize} 
+                  height={iconSize}
+                >
+                  <div style={{ 
+                    width: iconSize, 
+                    height: iconSize, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: 'white'
+                  }}>
+                    <CalendarClock size={8} />
+                  </div>
+                </foreignObject>
+              </g>
+            )}
+          </>
         )}
       </g>
     );
+    
+    console.log('[renderCustomDot] Returning element:', dotElement);
+    return dotElement;
+    };
   };
 
   const templateStats = dashboardTemplates.map(template => {
@@ -395,12 +424,6 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
                         if (!visibleTemplates.has(template.id!)) return null;
                         const key = `template_${template.id}_avg`;
                         const color = chartConfig[key]?.color || getTemplateColor(idx, dashboardTemplates.length);
-                        console.log(`Rendering Line for ${template.name}:`, {
-                          key,
-                          color,
-                          visible: visibleTemplates.has(template.id!),
-                          dataKey: key
-                        });
                         return (
                           <Line 
                             key={template.id} 
@@ -408,7 +431,7 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
                             type="monotone" 
                             stroke={color}
                             strokeWidth={3}
-                            dot={{ r: 4, fill: color, strokeWidth: 0 }}
+                            dot={renderCustomDot(color)}
                             connectNulls={true}
                             activeDot={{ r: 6 }}
                             isAnimationActive={false}

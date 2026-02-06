@@ -287,10 +287,11 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
   }
 
   function handleDashboardConfigChange(blockId: string, config: { eventCategory: 'event' | 'doctor'; eventTitle: string }) {
-    setCurrentBlocks(prev => 
-      prev.map(block => {
+    console.log('[handleDashboardConfigChange] Called with:', { blockId, config });
+    setCurrentBlocks(prev => {
+      const updated = prev.map(block => {
         if (block.id === blockId) {
-          return {
+          const updatedBlock = {
             ...block,
             dashboard: {
               ...block.dashboard,
@@ -299,10 +300,14 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
               eventTitle: config.eventTitle
             }
           };
+          console.log('[handleDashboardConfigChange] Updated block:', updatedBlock);
+          return updatedBlock;
         }
         return block;
-      })
-    );
+      });
+      console.log('[handleDashboardConfigChange] New currentBlocks:', updated);
+      return updated;
+    });
   }
 
   function handleTemplateChange(newIndex: number) {
@@ -340,16 +345,25 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
   async function handleSave() {
     if (!templates[activeTabIndex]?.id) return;
     
+    console.log('[handleSave] Starting save with currentBlocks:', currentBlocks);
+    
     setIsSaving(true);
     try {
       const mode = await getEncryptionMode();
       
       const blocksToSave = currentBlocks.filter(block => {
+        // Event-Config vorhanden? → IMMER speichern (auch wenn value leer)
+        if (block.dashboard?.eventTitle) return true;
+        
+        // Sonst: Nur speichern wenn value nicht leer
         if (block.value === undefined || block.value === null) return false;
         if (typeof block.value === 'string' && block.value.trim() === '') return false;
         if (Array.isArray(block.value) && block.value.length === 0) return false;
         return true;
       });
+      
+      console.log('[handleSave] Filtered blocksToSave:', blocksToSave);
+      console.log('[handleSave] blocksToSave as JSON:', JSON.stringify(blocksToSave, null, 2));
       
       if (blocksToSave.length === 0) {
         alert('Bitte fülle mindestens ein Feld aus!');
@@ -385,13 +399,18 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
         }
       });
       
-      await db.entries.add({
+      const entryToSave = {
         templateId: templates[activeTabIndex].id!,
         timestamp: new Date(),
         encrypted,
         data,
         tags
-      });
+      };
+      
+      console.log('[handleSave] Saving to DB:', entryToSave);
+      console.log('[handleSave] Data content:', data);
+      
+      await db.entries.add(entryToSave);
       
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
