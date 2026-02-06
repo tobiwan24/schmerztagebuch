@@ -337,11 +337,8 @@ git branch -d feature/dashboard-v2-migration
 
 ### Weitere Features:
 - [ ] BodyMapBlock Implementation (vollständig)
-- [ ] Function Tracking (separate Charts)
-- [ ] Correlation Analysis (Events vs Pain)
 - [ ] Chart Export (Image/PDF)
 - [ ] Trend Analysis
-- [ ] Medication Tracking
 - [ ] Multi-Language Support (i18n)
 - [ ] Cloud Sync (E2E-verschlüsselt)
 - [ ] Data Import/Export (CSV, JSON)
@@ -359,6 +356,87 @@ git branch -d feature/dashboard-v2-migration
 ---> homepage: template-icons nicht automatisch mittig angeordnet,sondern links orientiert (bei z.b.2 Templates)
 ---
 
-**Letzte Aktualisierung:** 04.02.2026  
-**Aktueller Stand:** Phase 4.5 komplett ✅, Phase 5 HIGH PRIO definiert, **Git Workflow aktiv**  
-**Nächster Schritt:** Branch erstellen + Phase 5.1 - Dashboard v2 Migration (Lines-Fix KRITISCH!)
+## 📊 Phase 6: Dashboard Performance & Advanced Visualizations (NEW)
+**Branch:** TBD  
+**Status:** 📅 Geplant
+
+### 6.1 Performance & UX Fixes (KRITISCH) - Phase 1
+- [x] Event-Config wird gespeichert (auch ohne textarea value)
+- [ ] **Event-Icons Tooltip mit Überschrift**
+  - Custom Tooltip Component erstellen
+  - Event-Daten in chartData integrieren
+  - Tooltip zeigt: Event-Titel, Beschreibung (textarea value), Datum
+  - Hover über Event-Icon zeigt Tooltip
+
+- [ ] **Punkte ausblenden, nur Event-Icons zeigen**
+  - Dot-Radius auf 0 setzen ODER
+  - Conditional rendering: `dot={hasEvent ? renderCustomDot(color) : false}`
+  - Event-Icons bleiben sichtbar über unsichtbaren Dots
+
+- [ ] **Performance-Fix: Adaptive Aggregation**
+  - Problem: "Gesamt"-Ansicht bei 3 Jahren = ~1095 Datenpunkte → laggy
+  - Lösung: Zeit-basierte Aggregation
+  - `aggregateDataByWeek()` implementieren (für 3m Filter)
+  - `aggregateDataByMonth()` implementieren (für "all" Filter)
+  - `aggregateDataByTimeRange()` als Wrapper-Funktion
+  - X-Achse Labels anpassen (Woche/Monat statt Tag)
+  - Garantierte Performance: <50 Punkte bei "all"
+  - **Aggregations-Regeln:**
+    - `7d`: Täglich (7 Punkte)
+    - `1m`: Täglich (30 Punkte)
+    - `3m`: Wöchentlich (~13 Punkte)
+    - `all`: Monatlich (12-36 Punkte bei 3 Jahren)
+
+### 6.2 Funktionswerte-Visualisierung - Phase 2
+- [ ] **Funktionswerte-Extraktion**
+  - `FunctionDataPoint` Interface erstellen
+  - `extractFunctionData()` implementieren (filtert `dashboard.type === 'function'`)
+  - `aggregateFunctionByDay()` implementieren
+  - State für `dailyFunctionData` in DashboardView
+
+- [ ] **Zweiter LineChart für Funktionswerte**
+  - Separater Chart-Container unterhalb Schmerzverläufe
+  - Eigene Y-Achse (0-10 für Funktionswerte)
+  - Gleiche X-Achse wie Schmerzverläufe (Datum)
+  - Template-Filter funktioniert für beide Charts
+  - Event-Icons auch auf Funktionswerte-Chart
+  - **Unterschied Pain vs Function:**
+    - Pain: Höherer Wert = schlechter (Rot bei 10)
+    - Function: Höherer Wert = besser (Grün bei 10)
+    - → Farbkodierung invertieren oder separate Palette
+
+### 6.3 MultiSelect-Visualisierung (BarChart) - Phase 3
+- [ ] **MultiSelect-Daten-Extraktion**
+  - `MultiSelectData` Interface erstellen
+  - `extractMultiSelectData()` implementieren
+    - Extrahiert alle MultiSelect-Blocks mit `dashboard.enabled`
+    - Zählt pro Option pro Tag wie oft sie ausgewählt wurde
+    - Generiert Datenstruktur: `{ date, option1: count, option2: count, ... }`
+
+- [ ] **BarChart Component**
+  - Stacked BarChart mit Recharts
+  - Dynamische Bar-Generierung basierend auf MultiSelect-Optionen
+  - Farben aus `multiSelectOptions[].color` verwenden
+  - Template-Filter funktioniert
+  - Tooltip zeigt: Datum, Option, Count, Prozent
+  - **Beispiel-Use-Cases:**
+    - "Medikamente" → Wie oft wurde IBU 400 vs Triptan genommen?
+    - "Begleitsymptome" → Übelkeit, Aura, Lichtempfindlichkeit Häufigkeit
+    - "Schmerzart" → Migräne vs Spannungskopfschmerz vs Clusterkopfschmerz
+
+**Best Practices (Research-Ergebnisse):**
+- **Performance:** Recharts optimal <500 Punkte, laggy >5000
+- **LTTB Algorithm:** Downsampling bei Beibehaltung visueller Form (99.4% Reduktion)
+- **Adaptive Aggregation:** Zeit-basiert (Tag/Woche/Monat) - EMPFOHLEN für unser Projekt
+- **Recharts Patterns:** LineChart für Trends, BarChart für Kategorien, ComposedChart für Kombination
+
+**Offene Fragen:**
+1. Funktionswerte-Farbschema: Invertierte Skala (10 = gut, grün)?
+2. MultiSelect-BarChart: Stacked oder Grouped?
+3. Event-Icons bei aggregierten Daten: Alle Events des Monats zeigen oder nur erster/letzter?
+
+---
+
+**Letzte Aktualisierung:** 06.02.2026  
+**Aktueller Stand:** Phase 5 komplett ✅, Phase 6.1 (Dashboard Performance) in Progress  
+**Nächster Schritt:** Phase 6.1 - Event-Tooltip, Dots ausblenden, Adaptive Aggregation

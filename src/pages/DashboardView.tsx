@@ -13,6 +13,7 @@ import {
   aggregatePainByDay,
   extractEvents,
   getDashboardEnabledTemplates,
+  aggregateDataByTimeRange,
   type DailyPainData,
   type EventMarker,
   type PainDataPoint
@@ -91,7 +92,10 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
       const painData = await extractPainData(entries, templates);
       const filteredPainData = filterPainDataByTimeRange(painData, timeRange);
       const dailyData = aggregatePainByDay(filteredPainData);
-      setDailyPainData(dailyData);
+      
+      // Adaptive Aggregation: Zeit-basiert
+      const aggregatedData = aggregateDataByTimeRange(dailyData, timeRange);
+      setDailyPainData(aggregatedData);
       
       const eventData = await extractEvents(entries, templates);
       const filteredEvents = filterEventsByTimeRange(eventData, timeRange);
@@ -127,7 +131,28 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    
+    // Adaptive Formatierung basierend auf timeRange
+    if (timeRange === 'all') {
+      // Monatlich: "Jan '26"
+      return date.toLocaleDateString('de-DE', { month: 'short', year: '2-digit' });
+    } else if (timeRange === '3m') {
+      // Wöchentlich: "KW 05"
+      const weekNumber = getWeekNumber(date);
+      return `KW ${weekNumber}`;
+    } else {
+      // Täglich: "06.02.26"
+      return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    }
+  };
+  
+  // Hilfsfunktion: ISO Wochennummer
+  const getWeekNumber = (date: Date): number => {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
   };
 
   // ChartConfig mit vordefinierten Farben
@@ -170,12 +195,12 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     return acc;
   }, new Map<string, Record<string, string | number>>());
   
-  // Chart-Daten: Explizit null für fehlende Werte setzen
+  // Chart-Daten: Explizit null für fehlende Werte setzen + Event-Daten integrieren
   const chartData = allDatesInRange.map(date => {
     const existing = dataByDate.get(date);
     
     // Basisdaten: Entweder existierend oder leer
-    const dayData: Record<string, string | number | null> = existing ? { ...existing } : { date };
+    const dayData: Record<string, string | number | null | any> = existing ? { ...existing } : { date };
     
     // Sicherstellen dass ALLE Templates ein Property haben (entweder Wert oder null)
     dashboardTemplates.forEach(template => {
@@ -184,6 +209,12 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
         dayData[key] = null;
       }
     });
+    
+    // Event-Daten hinzufügen
+    const dayEvents = events.filter(e => e.date === date && visibleTemplates.has(
+      dashboardTemplates.find(t => t.name === e.templateName)?.id ?? 0
+    ));
+    dayData.events = dayEvents; // Array von EventMarker
     
     return dayData;
   });
@@ -202,7 +233,61 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     setVisibleTemplates(newVisible);
   };
 
-  // Custom Dot-Komponente: Zeigt normalen Punkt + Event-Icons darüber
+  // Custom Tooltip Component für Event-Details
+  const CustomChartTooltip = ({ active, payload }: any) => {
+    if (!active || !payload || !payload.length) return null;
+    
+    const data = payload[0].payload; // Datenpunkt mit allen Werten
+    const date = data.date;
+    const events = data.events || [];
+    
+    return (
+      <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 border rounded-lg shadow-lg p-3">
+        <p className="text-sm font-semibold mb-2">{formatDate(date)}</p>
+        
+        {/* Schmerzwerte */}
+        {payload.map((entry: any) => {
+          if (entry.dataKey === 'date' || entry.dataKey === 'events') return null;
+          if (entry.value === null) return null;
+          
+          const template = dashboardTemplates.find(t => `template_${t.id}_avg` === entry.dataKey);
+          if (!template) return null;
+          
+          return (
+            <div key={entry.dataKey} className="flex items-center gap-2 mb-1">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
+              <span className="text-sm">{template.name}:</span>
+              <span className="text-sm font-medium">{entry.value.toFixed(1)}</span>
+            </div>
+          );
+        })}
+        
+        {/* Event-Details */}
+        {events.length > 0 && (
+          <div className="mt-3 pt-2 border-t">
+            <p className="text-xs font-semibold text-muted-foreground mb-1">Events:</p>
+            {events.map((event: EventMarker, idx: number) => (
+              <div key={idx} className="flex items-start gap-2 mb-1">
+                {event.category === 'doctor' ? (
+                  <Stethoscope size={12} className="text-red-500 mt-0.5 flex-shrink-0" />
+                ) : (
+                  <CalendarClock size={12} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                )}
+                <div className="flex-1">
+                  <p className="text-xs font-medium">{event.title}</p>
+                  {event.description && (
+                    <p className="text-xs text-muted-foreground">{event.description}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Custom Dot-Komponente: NUR Event-Icons (keine sichtbaren Datenpunkte)
   const renderCustomDot = (color: string) => {  
     return (props: any) => {
     const { cx, cy, payload } = props;
@@ -219,32 +304,35 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     const hasDoctor = dateEvents.some((e: EventMarker) => e.category === 'doctor');
     const hasAnyEvent = dateEvents.length > 0;
     
-    const iconSize = 14;
-    const spacing = 16;
+    // Wenn keine Events: Keine Dots rendern (ästhetischer)
+    if (!hasAnyEvent) return null;
+    
+    const iconSize = 16; // Etwas größer für bessere Sichtbarkeit
+    const iconRadius = iconSize / 2;
     
     console.log('[renderCustomDot] Rendering dot:', { date: payload.date, cx, cy, hasEvent, hasDoctor });
     
     const dotElement = (
       <g key={`dot-${payload.date}`}>
-        {/* Normaler Datenpunkt */}
-        <circle cx={cx} cy={cy} r={4} fill={color} stroke="none" />
+        {/* Unsichtbarer Datenpunkt (r=0) für Positioning */}
+        <circle cx={cx} cy={cy} r={0} fill="none" stroke="none" />
         
-        {/* Event-Icons ÜBER dem Punkt */}
+        {/* Event-Icons DIREKT AUF der Linie (cy position) */}
         {hasAnyEvent && (
           <>
             {hasDoctor && (
               <g key={`doctor-${payload.date}`}>
                 <circle 
                   cx={cx} 
-                  cy={cy - spacing} 
-                  r={iconSize / 2} 
+                  cy={cy} 
+                  r={iconRadius} 
                   fill="#ef4444" 
                   stroke="white" 
-                  strokeWidth={1.5}
+                  strokeWidth={2}
                 />
                 <foreignObject 
-                  x={cx - iconSize / 2} 
-                  y={cy - spacing - iconSize / 2} 
+                  x={cx - iconRadius} 
+                  y={cy - iconRadius} 
                   width={iconSize} 
                   height={iconSize}
                 >
@@ -256,24 +344,24 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
                     justifyContent: 'center',
                     color: 'white'
                   }}>
-                    <Stethoscope size={8} />
+                    <Stethoscope size={10} />
                   </div>
                 </foreignObject>
               </g>
             )}
-            {hasEvent && (
+            {hasEvent && !hasDoctor && (
               <g key={`event-${payload.date}`}>
                 <circle 
                   cx={cx} 
-                  cy={cy - (hasDoctor ? spacing * 2 : spacing)} 
-                  r={iconSize / 2} 
+                  cy={cy} 
+                  r={iconRadius} 
                   fill="#3b82f6" 
                   stroke="white" 
-                  strokeWidth={1.5}
+                  strokeWidth={2}
                 />
                 <foreignObject 
-                  x={cx - iconSize / 2} 
-                  y={cy - (hasDoctor ? spacing * 2 : spacing) - iconSize / 2} 
+                  x={cx - iconRadius} 
+                  y={cy - iconRadius} 
                   width={iconSize} 
                   height={iconSize}
                 >
@@ -285,7 +373,7 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
                     justifyContent: 'center',
                     color: 'white'
                   }}>
-                    <CalendarClock size={8} />
+                    <CalendarClock size={10} />
                   </div>
                 </foreignObject>
               </g>
@@ -418,7 +506,7 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
                       />
                       <ChartTooltip 
                         cursor={false}
-                        content={<ChartTooltipContent />} 
+                        content={<CustomChartTooltip />} 
                       />
                       {dashboardTemplates.map((template, idx) => {
                         if (!visibleTemplates.has(template.id!)) return null;

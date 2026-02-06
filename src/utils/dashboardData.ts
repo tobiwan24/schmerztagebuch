@@ -285,3 +285,117 @@ export function getDashboardEnabledTemplates(templates: Template[]): Template[] 
     template.blocks.some(block => block.dashboard?.enabled)
   );
 }
+
+/**
+ * Aggregiert tägliche Daten nach Wochen
+ */
+export function aggregateByWeek(dailyData: DailyPainData[]): DailyPainData[] {
+  if (dailyData.length === 0) return [];
+  
+  const grouped = new Map<string, DailyPainData[]>();
+  
+  dailyData.forEach(point => {
+    const date = new Date(point.date);
+    // ISO Week: Monday = Start of week
+    const dayOfWeek = date.getDay();
+    const diff = date.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    const monday = new Date(date.setDate(diff));
+    const weekKey = `${point.templateId}-${monday.toISOString().split('T')[0]}`;
+    
+    if (!grouped.has(weekKey)) {
+      grouped.set(weekKey, []);
+    }
+    grouped.get(weekKey)!.push(point);
+  });
+  
+  const aggregated: DailyPainData[] = [];
+  
+  grouped.forEach(points => {
+    const allValues = points.flatMap(p => [p.min, p.max, p.avg]);
+    const min = Math.min(...allValues);
+    const max = Math.max(...allValues);
+    const totalAvg = allValues.reduce((a, b) => a + b, 0) / allValues.length;
+    const totalCount = points.reduce((sum, p) => sum + p.count, 0);
+    
+    aggregated.push({
+      date: points[0].date, // Montag als Repräsentant
+      templateId: points[0].templateId,
+      templateName: points[0].templateName,
+      templateColor: points[0].templateColor,
+      min,
+      max,
+      avg: Math.round(totalAvg * 10) / 10,
+      count: totalCount
+    });
+  });
+  
+  return aggregated.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Aggregiert tägliche Daten nach Monaten
+ */
+export function aggregateByMonth(dailyData: DailyPainData[]): DailyPainData[] {
+  if (dailyData.length === 0) return [];
+  
+  const grouped = new Map<string, DailyPainData[]>();
+  
+  dailyData.forEach(point => {
+    const date = new Date(point.date);
+    const monthKey = `${point.templateId}-${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    
+    if (!grouped.has(monthKey)) {
+      grouped.set(monthKey, []);
+    }
+    grouped.get(monthKey)!.push(point);
+  });
+  
+  const aggregated: DailyPainData[] = [];
+  
+  grouped.forEach(points => {
+    const allValues = points.flatMap(p => [p.min, p.max, p.avg]);
+    const min = Math.min(...allValues);
+    const max = Math.max(...allValues);
+    const totalAvg = allValues.reduce((a, b) => a + b, 0) / allValues.length;
+    const totalCount = points.reduce((sum, p) => sum + p.count, 0);
+    
+    // Erster Tag des Monats als Repräsentant
+    const date = new Date(points[0].date);
+    const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    
+    aggregated.push({
+      date: firstDayOfMonth.toISOString().split('T')[0],
+      templateId: points[0].templateId,
+      templateName: points[0].templateName,
+      templateColor: points[0].templateColor,
+      min,
+      max,
+      avg: Math.round(totalAvg * 10) / 10,
+      count: totalCount
+    });
+  });
+  
+  return aggregated.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Aggregiert Daten basierend auf Zeitraum-Filter
+ */
+export function aggregateDataByTimeRange(
+  dailyData: DailyPainData[],
+  timeRange: '7d' | '1m' | '3m' | 'all'
+): DailyPainData[] {
+  if (timeRange === '7d' || timeRange === '1m') {
+    return dailyData; // Täglich (max 30 Punkte)
+  }
+  
+  if (timeRange === '3m') {
+    return aggregateByWeek(dailyData); // Wöchentlich (~13 Punkte)
+  }
+  
+  if (timeRange === 'all') {
+    return aggregateByMonth(dailyData); // Monatlich (12-36 Punkte)
+  }
+  
+  return dailyData;
+}
