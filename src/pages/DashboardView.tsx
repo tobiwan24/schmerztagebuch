@@ -173,14 +173,19 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
   // Chart-Daten: Explizit null für fehlende Werte setzen
   const chartData = allDatesInRange.map(date => {
     const existing = dataByDate.get(date);
-    if (existing) return existing;
     
-    // Für Tage OHNE Daten: Explizit null setzen für alle Templates
-    const emptyDay: Record<string, string | number | null> = { date };
+    // Basisdaten: Entweder existierend oder leer
+    const dayData: Record<string, string | number | null> = existing ? { ...existing } : { date };
+    
+    // Sicherstellen dass ALLE Templates ein Property haben (entweder Wert oder null)
     dashboardTemplates.forEach(template => {
-      emptyDay[`template_${template.id}_avg`] = null;
+      const key = `template_${template.id}_avg`;
+      if (!(key in dayData)) {
+        dayData[key] = null;
+      }
     });
-    return emptyDay;
+    
+    return dayData;
   });
   
   // DEBUG: Chart-Daten prüfen
@@ -192,9 +197,11 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
   
   // Prüfe ob null-Werte gesetzt wurden
   if (chartData.length > 0) {
-    console.log('Beispiel chartData[0]:', chartData[0]);
-    console.log('Beispiel chartData[1]:', chartData[1]);
-    console.log('chartData Keys:', Object.keys(chartData[0]));
+    console.log('=== ALLE CHARTDATA ===');
+    chartData.forEach((item, idx) => {
+      console.log(`chartData[${idx}]:`, item);
+    });
+    console.log('======================');
   }
   
   const eventScatterData = chartData.map(point => {
@@ -354,7 +361,7 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
                 </CardHeader>
                 <CardContent>
                   <ChartContainer config={chartConfig}>
-                    <ComposedChart
+                    <LineChart
                       accessibilityLayer
                       data={chartData}
                       margin={{ left: 12, right: 12, top: 20, bottom: 5 }}
@@ -369,6 +376,8 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
                         textAnchor="end" 
                         height={80}
                         tickMargin={8}
+                        type="category"
+                        allowDataOverflow={false}
                       />
                       <YAxis 
                         domain={[0, 10]} 
@@ -382,28 +391,31 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
                         cursor={false}
                         content={<ChartTooltipContent />} 
                       />
-                      {dashboardTemplates.map(template => {
+                      {dashboardTemplates.map((template, idx) => {
                         if (!visibleTemplates.has(template.id!)) return null;
                         const key = `template_${template.id}_avg`;
-                        const color = chartConfig[key]?.color || template.color || '#007AFF';
+                        const color = chartConfig[key]?.color || getTemplateColor(idx, dashboardTemplates.length);
+                        console.log(`Rendering Line for ${template.name}:`, {
+                          key,
+                          color,
+                          visible: visibleTemplates.has(template.id!),
+                          dataKey: key
+                        });
                         return (
                           <Line 
                             key={template.id} 
                             dataKey={key}
                             type="monotone" 
                             stroke={color}
-                            strokeWidth={2} 
-                            dot={{ r: 3, fill: color }}
+                            strokeWidth={3}
+                            dot={{ r: 4, fill: color, strokeWidth: 0 }}
                             connectNulls={true}
+                            activeDot={{ r: 6 }}
+                            isAnimationActive={false}
                           />
                         );
                       })}
-                      <Scatter 
-                        data={eventScatterData} 
-                        dataKey="value" 
-                        shape={renderEventIcon as never}
-                      />
-                    </ComposedChart>
+                    </LineChart>
                   </ChartContainer>
                 </CardContent>
               </Card>

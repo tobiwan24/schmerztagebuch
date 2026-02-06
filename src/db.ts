@@ -9,8 +9,8 @@ const db = new Dexie('PainDiaryDB') as Dexie & {
   settings: EntityTable<Settings, 'key'>;
 };
 
-// Version 7: Erweiterte Standard-Vorlage mit Dashboard-Aktivierung
-db.version(7).stores({
+// Version 8: Dashboard Chart Fixes (explizite null-Werte, Farbpalette)
+db.version(8).stores({
   templates: '++id, name, order',
   entries: '++id, templateId, timestamp, encrypted, *tags',
   settings: 'key'
