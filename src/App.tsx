@@ -91,6 +91,7 @@ export default function App() {
   const handleNavigateToHome = async () => {
     // Reload templates before showing HomePage
     await loadTemplates();
+    setActiveTemplateId(undefined);
     setCurrentView('home');
   };
 
@@ -104,7 +105,7 @@ export default function App() {
     setCurrentView('editor');
   };
 
-  const handleBack = async (templateId?: number) => {
+  const handleBackFromEditor = async (templateId?: number) => {
     setEditingTemplateId(undefined);
     
     if (templateId) {
@@ -113,7 +114,7 @@ export default function App() {
       setActiveTemplateId(templateId);
       setCurrentView('diary');
     } else {
-      // Normale Zurück-Navigation: Zur HomePage
+      // Normale Zurück-Navigation aus Editor: Zur HomePage
       setActiveTemplateId(undefined);
       await loadTemplates();
       setCurrentView('home');
@@ -170,7 +171,7 @@ export default function App() {
     return (
       <>
         <EditorMode 
-          onBack={handleBack} 
+          onBack={handleBackFromEditor} 
           initialTemplateId={editingTemplateId}
         />
         {showAuthModal && (
@@ -187,7 +188,7 @@ export default function App() {
   if (currentView === 'history') {
     return (
       <>
-        <HistoryView onBack={handleBack} />
+        <HistoryView onBack={handleNavigateToHome} />
         {showAuthModal && (
           <AuthModal 
             onAuthenticate={handleAuthenticate}
@@ -202,7 +203,7 @@ export default function App() {
   if (currentView === 'settings') {
     return (
       <>
-        <SettingsView onBack={handleBack} />
+        <SettingsView onBack={handleNavigateToHome} />
         {debugEnabled && <DebugPanel />}
       </>
     );
@@ -211,7 +212,7 @@ export default function App() {
   if (currentView === 'dashboard') {
     return (
       <>
-        <DashboardView onBack={handleBack} onNavigate={handleNavigate} />
+        <DashboardView onBack={handleNavigateToHome} onNavigate={handleNavigate} />
         {showAuthModal && (
           <AuthModal 
             onAuthenticate={handleAuthenticate}

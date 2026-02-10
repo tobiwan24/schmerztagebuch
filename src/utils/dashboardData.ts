@@ -380,21 +380,22 @@ export function aggregateByMonth(dailyData: DailyPainData[]): DailyPainData[] {
 
 /**
  * Aggregiert Daten basierend auf Zeitraum-Filter
+ * T/W/M = exakte Tageswerte, 6M = Wochendurchschnitte, J = Monatsdurchschnitte
  */
 export function aggregateDataByTimeRange(
   dailyData: DailyPainData[],
-  timeRange: '7d' | '1m' | '3m' | 'all'
+  timeRange: 'T' | 'W' | 'M' | '6M' | 'J'
 ): DailyPainData[] {
-  if (timeRange === '7d' || timeRange === '1m') {
-    return dailyData; // Täglich (max 30 Punkte)
+  if (timeRange === 'T' || timeRange === 'W' || timeRange === 'M') {
+    return dailyData; // Exakte Tageswerte
   }
   
-  if (timeRange === '3m') {
-    return aggregateByWeek(dailyData); // Wöchentlich (~13 Punkte)
+  if (timeRange === '6M') {
+    return aggregateByWeek(dailyData); // Wöchentlich (~26 Punkte)
   }
   
-  if (timeRange === 'all') {
-    return aggregateByMonth(dailyData); // Monatlich (12-36 Punkte)
+  if (timeRange === 'J') {
+    return aggregateByMonth(dailyData); // Monatlich (12 Punkte)
   }
   
   return dailyData;

@@ -35,9 +35,20 @@ export const ICON_CATEGORIES = {
 
 export const AVAILABLE_ICONS = Object.keys(ICON_MAP);
 
-export function getIconComponent(iconName?: string) {
-  if (!iconName || !ICON_MAP[iconName]) {
-    return ICON_MAP['book'];
+// Cache für Icon-Components (Performance-Optimierung)
+const iconCache = new Map<string, React.ComponentType<{ size?: number; className?: string }>>();
+
+export function getIconComponent(iconName?: string): React.ComponentType<{ size?: number; className?: string }> {
+  const key = iconName || 'book';
+  
+  // Aus Cache zurückgeben wenn vorhanden
+  if (iconCache.has(key)) {
+    return iconCache.get(key)!;
   }
-  return ICON_MAP[iconName];
+  
+  // Component holen und cachen
+  const component = ICON_MAP[key] || ICON_MAP['book'];
+  iconCache.set(key, component);
+  
+  return component;
 }

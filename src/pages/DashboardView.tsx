@@ -4,10 +4,9 @@ import type { Entry, Template } from '../types/database';
 import Header from '../components/Header';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Calendar, TrendingUp, Activity, CalendarClock, Stethoscope } from 'lucide-react';
-import { Line, LineChart, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+import { TrendingUp, CalendarClock, Stethoscope } from 'lucide-react';
+import { Line, LineChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { ChartTooltip, type ChartConfig } from '@/components/ui/chart';
 import { 
   extractPainData, 
   aggregatePainByDay,
@@ -18,11 +17,12 @@ import {
   type EventMarker,
   type PainDataPoint
 } from '../utils/dashboardData';
+import styles from '../styles/DashboardView.module.css';
 
 // Vordefinierte Farbpalette für Charts (optimiert für Light & Dark Mode)
 const CHART_COLORS = [
+  '#FF0066', // Pink/Rot (Apple Health Style)
   '#3B82F6', // Blau
-  '#EF4444', // Rot
   '#10B981', // Grün
   '#F59E0B', // Orange
   '#8B5CF6', // Lila
@@ -36,7 +36,6 @@ function getTemplateColor(index: number, totalTemplates: number): string {
   if (index < CHART_COLORS.length) {
     return CHART_COLORS[index];
   }
-  // Dynamische Farben mit HSL für Templates > 8
   const hue = (index * 360 / totalTemplates) % 360;
   return `hsl(${hue}, 70%, 50%)`;
 }
@@ -50,7 +49,7 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
   const [entries, setEntries] = useState<Entry[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<'7d' | '1m' | '3m' | 'all'>('1m');
+  const [timeRange, setTimeRange] = useState<'T' | 'W' | 'M' | '6M' | 'J'>('M');
   const [dailyPainData, setDailyPainData] = useState<DailyPainData[]>([]);
   const [events, setEvents] = useState<EventMarker[]>([]);
   const [dashboardTemplates, setDashboardTemplates] = useState<Template[]>([]);
@@ -93,7 +92,7 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
       const filteredPainData = filterPainDataByTimeRange(painData, timeRange);
       const dailyData = aggregatePainByDay(filteredPainData);
       
-      // Adaptive Aggregation: Zeit-basiert
+      // Adaptive Aggregation basierend auf Zeitraum
       const aggregatedData = aggregateDataByTimeRange(dailyData, timeRange);
       setDailyPainData(aggregatedData);
       
@@ -105,57 +104,219 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     }
   }
   
-  function filterPainDataByTimeRange(data: PainDataPoint[], range: '7d' | '1m' | '3m' | 'all') {
-    if (range === 'all') return data;
+  function filterPainDataByTimeRange(data: PainDataPoint[], range: 'T' | 'W' | 'M' | '6M' | 'J') {
+    if (range === 'J') {
+      // Jahr: letzte 12 Monate
+      const now = new Date();
+      const cutoffDate = new Date(now);
+      cutoffDate.setFullYear(now.getFullYear() - 1);
+      return data.filter(point => new Date(point.date) >= cutoffDate);
+    }
+    
     const now = new Date();
     const cutoffDate = new Date(now);
+    
     switch (range) {
-      case '7d': cutoffDate.setDate(now.getDate() - 7); break;
-      case '1m': cutoffDate.setMonth(now.getMonth() - 1); break;
-      case '3m': cutoffDate.setMonth(now.getMonth() - 3); break;
+      case 'T': {
+        // Tag: Letzter kompletter Tag (00:00 bis 23:59)
+        cutoffDate.setDate(now.getDate() - 1);
+        cutoffDate.setHours(0, 0, 0, 0);
+        break;
+      }
+      case 'W': {
+        // Woche: Letzte komplette Woche (Mo-So)
+        const dayOfWeek = now.getDay();
+        const daysToLastMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        cutoffDate.setDate(now.getDate() - daysToLastMonday - 7);
+        cutoffDate.setHours(0, 0, 0, 0);
+        break;
+      }
+      case 'M': {
+        // Monat: Letzter kompletter Monat
+        cutoffDate.setMonth(now.getMonth() - 1);
+        cutoffDate.setDate(1);
+        cutoffDate.setHours(0, 0, 0, 0);
+        break;
+      }
+      case '6M': {
+        // 6 Monate: Letzte 6 Monate
+        cutoffDate.setMonth(now.getMonth() - 6);
+        cutoffDate.setDate(1);
+        cutoffDate.setHours(0, 0, 0, 0);
+        break;
+      }
     }
     return data.filter(point => new Date(point.date) >= cutoffDate);
   }
   
-  function filterEventsByTimeRange(data: EventMarker[], range: '7d' | '1m' | '3m' | 'all') {
-    if (range === 'all') return data;
+  function filterEventsByTimeRange(data: EventMarker[], range: 'T' | 'W' | 'M' | '6M' | 'J') {
+    if (range === 'J') {
+      const now = new Date();
+      const cutoffDate = new Date(now);
+      cutoffDate.setFullYear(now.getFullYear() - 1);
+      return data.filter(event => new Date(event.date) >= cutoffDate);
+    }
+    
     const now = new Date();
     const cutoffDate = new Date(now);
+    
     switch (range) {
-      case '7d': cutoffDate.setDate(now.getDate() - 7); break;
-      case '1m': cutoffDate.setMonth(now.getMonth() - 1); break;
-      case '3m': cutoffDate.setMonth(now.getMonth() - 3); break;
+      case 'T': {
+        cutoffDate.setDate(now.getDate() - 1);
+        cutoffDate.setHours(0, 0, 0, 0);
+        break;
+      }
+      case 'W': {
+        const dayOfWeek = now.getDay();
+        const daysToLastMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        cutoffDate.setDate(now.getDate() - daysToLastMonday - 7);
+        cutoffDate.setHours(0, 0, 0, 0);
+        break;
+      }
+      case 'M': {
+        cutoffDate.setMonth(now.getMonth() - 1);
+        cutoffDate.setDate(1);
+        cutoffDate.setHours(0, 0, 0, 0);
+        break;
+      }
+      case '6M': {
+        cutoffDate.setMonth(now.getMonth() - 6);
+        cutoffDate.setDate(1);
+        cutoffDate.setHours(0, 0, 0, 0);
+        break;
+      }
     }
     return data.filter(event => new Date(event.date) >= cutoffDate);
   }
 
-  const formatDate = (dateStr: string) => {
+  // X-Achse Formatierung (Apple Health Style)
+  const formatXAxis = (dateStr: string) => {
     const date = new Date(dateStr);
     
-    // Adaptive Formatierung basierend auf timeRange
-    if (timeRange === 'all') {
-      // Monatlich: "Jan '26"
-      return date.toLocaleDateString('de-DE', { month: 'short', year: '2-digit' });
-    } else if (timeRange === '3m') {
-      // Wöchentlich: "KW 05"
-      const weekNumber = getWeekNumber(date);
-      return `KW ${weekNumber}`;
-    } else {
-      // Täglich: "06.02.26"
-      return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    switch(timeRange) {
+      case 'T': {
+        // Tag: Uhrzeiten (0, 8, 16, 24)
+        const hour = date.getHours();
+        return `${hour}h`;
+      }
+      case 'W': {
+        // Woche: Wochentage (Mo, Di, Mi, Do, Fr, Sa, So)
+        return date.toLocaleDateString('de-DE', { weekday: 'short' });
+      }
+      case 'M': {
+        // Monat: Tage (1., 10., 20., 31.)
+        return `${date.getDate()}.`;
+      }
+      case '6M': {
+        // 6 Monate: Monatskürzel
+        return date.toLocaleDateString('de-DE', { month: 'short' });
+      }
+      case 'J': {
+        // Jahr: Alle 2 Monate
+        return date.toLocaleDateString('de-DE', { month: 'short' });
+      }
     }
   };
   
-  // Hilfsfunktion: ISO Wochennummer
-  const getWeekNumber = (date: Date): number => {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  // Tooltip Datum Formatierung
+  const formatTooltipDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    
+    switch(timeRange) {
+      case 'T':
+        return date.toLocaleDateString('de-DE', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      case 'W':
+      case 'M':
+        return date.toLocaleDateString('de-DE', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+      case '6M':
+        const weekEnd = new Date(date);
+        weekEnd.setDate(date.getDate() + 6);
+        return `${date.getDate()}.–${weekEnd.getDate()}. ${date.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' })}`;
+      case 'J':
+        return date.toLocaleDateString('de-DE', {
+          month: 'long',
+          year: 'numeric'
+        });
+    }
   };
 
-  // ChartConfig mit vordefinierten Farben
+  // Durchschnitt berechnen für Infobox
+  const calculateAverage = () => {
+    if (dailyPainData.length === 0) return 0;
+    const allValues = dailyPainData.flatMap(d => [d.avg]);
+    return Math.round((allValues.reduce((a, b) => a + b, 0) / allValues.length) * 10) / 10;
+  };
+
+  // Datumsbereich formatieren für Infobox
+  const getDateRangeLabel = () => {
+    if (dailyPainData.length === 0) return '';
+    const dates = dailyPainData.map(d => new Date(d.date)).sort((a, b) => a.getTime() - b.getTime());
+    const start = dates[0];
+    const end = dates[dates.length - 1];
+    return `${start.toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })} – ${end.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+  };
+
+  // Trend berechnen: aktuelle vs. vorherige Periode
+  const calculateTrend = (): { text: string; icon: string; diff: string } => {
+    // Bei T zu wenig Daten für Trend
+    if (timeRange === 'T') return { text: 'Ohne', icon: '', diff: '' };
+    
+    // Cutoff-Dauer für aktuelle Periode bestimmen
+    const now = new Date();
+    let periodDays = 7;
+    switch (timeRange) {
+      case 'W': periodDays = 7; break;
+      case 'M': periodDays = 30; break;
+      case '6M': periodDays = 182; break;
+      case 'J': periodDays = 365; break;
+    }
+    
+    const currentStart = new Date(now);
+    currentStart.setDate(now.getDate() - periodDays);
+    const previousStart = new Date(currentStart);
+    previousStart.setDate(currentStart.getDate() - periodDays);
+    
+    // Daten in aktuelle und vorherige Periode aufteilen
+    const currentData = dailyPainData.filter(d => {
+      const date = new Date(d.date);
+      return date >= currentStart && date <= now;
+    });
+    const previousData = dailyPainData.filter(d => {
+      const date = new Date(d.date);
+      return date >= previousStart && date < currentStart;
+    });
+    
+    // Mindestens 2 Datenpunkte in jeder Periode
+    if (currentData.length < 2 || previousData.length < 2) {
+      return { text: 'Ohne', icon: '', diff: '' };
+    }
+    
+    const currentAvg = currentData.reduce((sum, d) => sum + d.avg, 0) / currentData.length;
+    const previousAvg = previousData.reduce((sum, d) => sum + d.avg, 0) / previousData.length;
+    const diff = currentAvg - previousAvg;
+    
+    if (Math.abs(diff) < 0.3) {
+      return { text: 'Stabil', icon: '→', diff: '' };
+    }
+    if (diff > 0) {
+      return { text: 'Steigend', icon: '↗', diff: `+${diff.toFixed(1)}` };
+    }
+    return { text: 'Sinkend', icon: '↘', diff: diff.toFixed(1) };
+  };
+
+
+
+  // ChartConfig
   const chartConfig = useMemo(() => {
     const config: ChartConfig = {};
     dashboardTemplates.forEach((template, index) => {
@@ -169,62 +330,43 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     return config;
   }, [dashboardTemplates]);
 
-  // Chart-Daten vorbereiten
-  const allDates = dailyPainData.map(d => d.date).sort();
-  const minDate = allDates.length > 0 ? allDates[0] : null;
-  const maxDate = allDates.length > 0 ? allDates[allDates.length - 1] : null;
-  
-  const generateAllDates = (): string[] => {
-    if (!minDate || !maxDate) return [];
-    const dates: string[] = [];
-    const current = new Date(minDate);
-    const end = new Date(maxDate);
-    while (current <= end) {
-      dates.push(current.toISOString().split('T')[0]);
-      current.setDate(current.getDate() + 1);
-    }
-    return dates;
-  };
-  
-  const allDatesInRange = generateAllDates();
-  const dataByDate = dailyPainData.reduce((acc, point) => {
-    const key = point.date;
-    if (!acc.has(key)) acc.set(key, { date: key });
-    const entry = acc.get(key)!;
-    entry[`template_${point.templateId}_avg`] = point.avg;
-    return acc;
-  }, new Map<string, Record<string, string | number>>());
-  
-  // Chart-Daten: Explizit null für fehlende Werte setzen + Event-Daten integrieren
-  const chartData = allDatesInRange.map(date => {
-    const existing = dataByDate.get(date);
+  // Chart-Daten optimiert
+  const chartData = useMemo(() => {
+    if (dailyPainData.length === 0) return [];
     
-    // Basisdaten: Entweder existierend oder leer
-    const dayData: Record<string, string | number | null | any> = existing ? { ...existing } : { date };
-    
-    // Sicherstellen dass ALLE Templates ein Property haben (entweder Wert oder null)
-    dashboardTemplates.forEach(template => {
-      const key = `template_${template.id}_avg`;
-      if (!(key in dayData)) {
-        dayData[key] = null;
+    // Gruppiere nach Datum für schnellen Zugriff
+    const dataByDate = new Map<string, DailyPainData[]>();
+    dailyPainData.forEach(point => {
+      if (!dataByDate.has(point.date)) {
+        dataByDate.set(point.date, []);
       }
+      dataByDate.get(point.date)!.push(point);
     });
     
-    // Event-Daten hinzufügen
-    const dayEvents = events.filter(e => e.date === date && visibleTemplates.has(
-      dashboardTemplates.find(t => t.name === e.templateName)?.id ?? 0
-    ));
-    dayData.events = dayEvents; // Array von EventMarker
+    // Eindeutige Daten sortiert
+    const uniqueDates = Array.from(new Set(dailyPainData.map(d => d.date))).sort();
     
-    return dayData;
-  });
-  
-  // DEBUG: Auskommentiert - Bei Bedarf wieder aktivieren
-  // console.log('=== CHART DATA DEBUG ===');
-  // console.log('dailyPainData:', dailyPainData);
-  // console.log('chartData:', chartData);
-  // console.log('dashboardTemplates:', dashboardTemplates);
-  // console.log('chartConfig:', chartConfig);
+    return uniqueDates.map(date => {
+      const dayData: Record<string, string | number | null | EventMarker[]> = { date };
+      
+      // Template-Werte
+      dashboardTemplates.forEach(template => {
+        const key = `template_${template.id}_avg`;
+        const points = dataByDate.get(date) || [];
+        const templatePoint = points.find(d => d.templateId === template.id);
+        dayData[key] = templatePoint ? templatePoint.avg : null;
+      });
+      
+      // Event-Daten
+      const dayEvents = events.filter(e => {
+        const template = dashboardTemplates.find(t => t.name === e.templateName);
+        return template && visibleTemplates.has(template.id ?? 0) && e.date === date;
+      });
+      dayData.events = dayEvents;
+      
+      return dayData;
+    });
+  }, [dailyPainData, dashboardTemplates, events, visibleTemplates]);
 
   const toggleTemplate = (templateId: number) => {
     const newVisible = new Set(visibleTemplates);
@@ -233,20 +375,42 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     setVisibleTemplates(newVisible);
   };
 
-  // Custom Tooltip Component für Event-Details
-  const CustomChartTooltip = ({ active, payload }: any) => {
-    if (!active || !payload || !payload.length) return null;
+  // Custom Tooltip (Apple Health Style)
+  interface TooltipPayloadEntry {
+    dataKey: string;
+    value: number | null;
+    payload: Record<string, string | number | null | EventMarker[]>;
+  }
+
+  interface TooltipProps {
+    active?: boolean;
+    payload?: TooltipPayloadEntry[];
+  }
+
+  const CustomChartTooltip = ({ active, payload }: TooltipProps) => {
+    // Wenn nichts aktiv ist, zeige Durchschnitt + Datumsbereich
+    if (!active || !payload || !payload.length) {
+      return (
+        <div className={styles.infoBox}>
+          <p className={styles.infoLabel}>Durchschnitt</p>
+          <div style={{ display: 'flex', alignItems: 'baseline' }}>
+            <span className={styles.infoValue}>{calculateAverage()}</span>
+            <span className={styles.infoUnit}>Punkte</span>
+          </div>
+          <p className={styles.infoDateRange}>{getDateRangeLabel()}</p>
+        </div>
+      );
+    }
     
-    const data = payload[0].payload; // Datenpunkt mit allen Werten
+    // Wenn Werte angeklickt sind, zeige Punktwerte
+    const data = payload[0].payload;
     const date = data.date;
     const events = data.events || [];
     
     return (
-      <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 border rounded-lg shadow-lg p-3">
-        <p className="text-sm font-semibold mb-2">{formatDate(date)}</p>
-        
+      <div className={styles.tooltip}>
         {/* Schmerzwerte */}
-        {payload.map((entry: any) => {
+        {payload.map((entry) => {
           if (entry.dataKey === 'date' || entry.dataKey === 'events') return null;
           if (entry.value === null) return null;
           
@@ -254,31 +418,26 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
           if (!template) return null;
           
           return (
-            <div key={entry.dataKey} className="flex items-center gap-2 mb-1">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
-              <span className="text-sm">{template.name}:</span>
-              <span className="text-sm font-medium">{entry.value.toFixed(1)}</span>
+            <div key={entry.dataKey}>
+              <p className={styles.tooltipLabel}>{template.name}</p>
+              <div className={styles.tooltipValue}>
+                <span>{entry.value.toFixed(1)}</span>
+                <span className={styles.tooltipUnit}>Punkte</span>
+              </div>
+              <p className={styles.tooltipDate}>{formatTooltipDate(date)}</p>
             </div>
           );
         })}
         
-        {/* Event-Details */}
+        {/* Events */}
         {events.length > 0 && (
-          <div className="mt-3 pt-2 border-t">
-            <p className="text-xs font-semibold text-muted-foreground mb-1">Events:</p>
+          <div className={styles.tooltipEvents}>
             {events.map((event: EventMarker, idx: number) => (
-              <div key={idx} className="flex items-start gap-2 mb-1">
-                {event.category === 'doctor' ? (
-                  <Stethoscope size={12} className="text-red-500 mt-0.5 flex-shrink-0" />
-                ) : (
-                  <CalendarClock size={12} className="text-blue-500 mt-0.5 flex-shrink-0" />
-                )}
-                <div className="flex-1">
-                  <p className="text-xs font-medium">{event.title}</p>
-                  {event.description && (
-                    <p className="text-xs text-muted-foreground">{event.description}</p>
-                  )}
-                </div>
+              <div key={idx} className={styles.tooltipEventItem}>
+                <span className={styles.tooltipEventIcon}>
+                  {event.category === 'doctor' ? '🩺' : '📅'}
+                </span>
+                <span>{event.title}</span>
               </div>
             ))}
           </div>
@@ -287,118 +446,87 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     );
   };
 
-  // Custom Dot-Komponente: NUR Event-Icons (keine sichtbaren Datenpunkte)
+  // Custom Dot: Hohle Kreise + Event-Icons darüber
+  interface CustomDotProps {
+    cx?: number;
+    cy?: number | null;
+    payload: Record<string, string | number | null | EventMarker[]>;
+  }
+
   const renderCustomDot = (color: string) => {  
-    return (props: any) => {
-    const { cx, cy, payload } = props;
-    // Bei null-Werten (Tage ohne Daten) keinen Dot rendern
-    if (cx === undefined || cy === null || cy === undefined) return null;
-    
-    // Prüfe ob an diesem Datum Events existieren
-    const dateEvents = events.filter(e => {
-      const template = dashboardTemplates.find(t => t.name === e.templateName);
-      return template && visibleTemplates.has(template.id ?? 0) && e.date === payload.date;
-    });
-    
-    const hasEvent = dateEvents.some((e: EventMarker) => e.category === 'event');
-    const hasDoctor = dateEvents.some((e: EventMarker) => e.category === 'doctor');
-    const hasAnyEvent = dateEvents.length > 0;
-    
-    // Wenn keine Events: Keine Dots rendern (ästhetischer)
-    if (!hasAnyEvent) return null;
-    
-    const iconSize = 16; // Etwas größer für bessere Sichtbarkeit
-    const iconRadius = iconSize / 2;
-    
-    console.log('[renderCustomDot] Rendering dot:', { date: payload.date, cx, cy, hasEvent, hasDoctor });
-    
-    const dotElement = (
-      <g key={`dot-${payload.date}`}>
-        {/* Unsichtbarer Datenpunkt (r=0) für Positioning */}
-        <circle cx={cx} cy={cy} r={0} fill="none" stroke="none" />
-        
-        {/* Event-Icons DIREKT AUF der Linie (cy position) */}
-        {hasAnyEvent && (
-          <>
-            {hasDoctor && (
-              <g key={`doctor-${payload.date}`}>
-                <circle 
-                  cx={cx} 
-                  cy={cy} 
-                  r={iconRadius} 
-                  fill="#ef4444" 
-                  stroke="white" 
-                  strokeWidth={2}
-                />
-                <foreignObject 
-                  x={cx - iconRadius} 
-                  y={cy - iconRadius} 
-                  width={iconSize} 
-                  height={iconSize}
-                >
-                  <div style={{ 
-                    width: iconSize, 
-                    height: iconSize, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    color: 'white'
-                  }}>
-                    <Stethoscope size={10} />
-                  </div>
-                </foreignObject>
-              </g>
-            )}
-            {hasEvent && !hasDoctor && (
-              <g key={`event-${payload.date}`}>
-                <circle 
-                  cx={cx} 
-                  cy={cy} 
-                  r={iconRadius} 
-                  fill="#3b82f6" 
-                  stroke="white" 
-                  strokeWidth={2}
-                />
-                <foreignObject 
-                  x={cx - iconRadius} 
-                  y={cy - iconRadius} 
-                  width={iconSize} 
-                  height={iconSize}
-                >
-                  <div style={{ 
-                    width: iconSize, 
-                    height: iconSize, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    color: 'white'
-                  }}>
-                    <CalendarClock size={10} />
-                  </div>
-                </foreignObject>
-              </g>
-            )}
-          </>
-        )}
-      </g>
-    );
-    
-    console.log('[renderCustomDot] Returning element:', dotElement);
-    return dotElement;
+    return (props: CustomDotProps) => {
+      const { cx, cy, payload } = props;
+      if (cx === undefined || cy === null || cy === undefined) return null;
+      
+      // Prüfe Events
+      const dateEvents = events.filter(e => {
+        const template = dashboardTemplates.find(t => t.name === e.templateName);
+        return template && visibleTemplates.has(template.id ?? 0) && e.date === payload.date;
+      });
+      
+      const hasDoctor = dateEvents.some(e => e.category === 'doctor');
+      const hasEvent = dateEvents.some(e => e.category === 'event');
+      
+      return (
+        <g>
+          {/* Hohler Kreis (Apple Health Style) - WEIßE Füllung */}
+          <circle 
+            cx={cx} 
+            cy={cy} 
+            r={5}
+            stroke={color}
+            strokeWidth={2}
+            fill="white"
+          />
+          
+          {/* Event-Icon ÜBER dem Dot */}
+          {(hasDoctor || hasEvent) && (
+            <g>
+              <circle 
+                cx={cx} 
+                cy={cy - 16}
+                r={10}
+                fill={hasDoctor ? '#ef4444' : '#3b82f6'}
+                stroke="white"
+                strokeWidth={2}
+              />
+              <foreignObject 
+                x={cx - 8} 
+                y={cy - 24} 
+                width={16} 
+                height={16}
+              >
+                <div style={{ 
+                  width: 16, 
+                  height: 16, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '10px'
+                }}>
+                  {hasDoctor ? <Stethoscope size={10} /> : <CalendarClock size={10} />}
+                </div>
+              </foreignObject>
+            </g>
+          )}
+        </g>
+      );
     };
   };
 
-  const templateStats = dashboardTemplates.map(template => {
-    const templateData = dailyPainData.filter(d => d.templateId === template.id);
-    const allValues = templateData.flatMap(d => [d.min, d.max, d.avg]);
-    return {
-      template,
-      dataPoints: templateData.length,
-      avgPain: allValues.length > 0 ? Math.round((allValues.reduce((a, b) => a + b, 0) / allValues.length) * 10) / 10 : 0,
-      minPain: allValues.length > 0 ? Math.min(...allValues) : 0,
-      maxPain: allValues.length > 0 ? Math.max(...allValues) : 0
-    };
-  });
+  // Template-Statistiken (aktuell nicht verwendet)
+  // const templateStats = dashboardTemplates.map(template => {
+  //   const templateData = dailyPainData.filter(d => d.templateId === template.id);
+  //   const allValues = templateData.flatMap(d => [d.min, d.max, d.avg]);
+  //   return {
+  //     template,
+  //     dataPoints: templateData.length,
+  //     avgPain: allValues.length > 0 ? Math.round((allValues.reduce((a, b) => a + b, 0) / allValues.length) * 10) / 10 : 0,
+  //     minPain: allValues.length > 0 ? Math.min(...allValues) : 0,
+  //     maxPain: allValues.length > 0 ? Math.max(...allValues) : 0
+  //   };
+  // });
 
   if (isLoading) {
     return (
@@ -416,155 +544,123 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
       <Header title="Dashboard" onBack={onBack} />
       
       <div className="content-wrapper">
-        <div className="space-y-6">
-          {/* Zeitraum-Filter */}
-          <Card className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Calendar size={18} className="text-muted-foreground" />
-              <h3 className="font-semibold">Zeitraum</h3>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={() => setTimeRange('7d')} variant={timeRange === '7d' ? 'default' : 'outline'} size="sm">7 Tage</Button>
-              <Button onClick={() => setTimeRange('1m')} variant={timeRange === '1m' ? 'default' : 'outline'} size="sm">1 Monat</Button>
-              <Button onClick={() => setTimeRange('3m')} variant={timeRange === '3m' ? 'default' : 'outline'} size="sm">3 Monate</Button>
-              <Button onClick={() => setTimeRange('all')} variant={timeRange === 'all' ? 'default' : 'outline'} size="sm">Gesamt</Button>
-            </div>
-          </Card>
+        <div className="space-y-3">
+          {/* Zeitraum-Filter (Apple Health Style) */}
+          <div className={styles.timeRangeFilter}>
+            {(['T', 'W', 'M', '6M', 'J'] as const).map(range => (
+              <button
+                key={range}
+                className={`${styles.timeRangeButton} ${timeRange === range ? styles.active : ''}`}
+                onClick={() => setTimeRange(range)}
+              >
+                {range === '6M' ? '6 M.' : range}
+              </button>
+            ))}
+          </div>
 
           {/* Chart */}
           {dashboardTemplates.length > 0 && dailyPainData.length > 0 ? (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Activity size={20} />
-                Schmerzverläufe
-              </h3>
-              
-              {/* Template Legend */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Templates</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {dashboardTemplates.map((template, index) => {
-                      const isVisible = visibleTemplates.has(template.id!);
-                      const key = `template_${template.id}_avg`;
-                      const color = chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
-                      return (
-                        <Badge
-                          key={template.id}
-                          variant={isVisible ? "default" : "outline"}
-                          className="cursor-pointer gap-2 px-3 py-1"
-                          onClick={() => toggleTemplate(template.id!)}
-                          style={isVisible ? { 
-                            backgroundColor: color, 
-                            borderColor: color,
-                            color: '#fff'
-                          } : {}}
-                        >
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                          <span>{template.name}</span>
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="space-y-3">
 
               {/* Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Schmerzverläufe</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer config={chartConfig}>
-                    <LineChart
-                      accessibilityLayer
-                      data={chartData}
-                      margin={{ left: 12, right: 12, top: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid vertical={false} />
-                      <XAxis 
-                        dataKey="date" 
-                        tickFormatter={formatDate}
-                        tickLine={false}
-                        axisLine={false}
-                        angle={-45} 
-                        textAnchor="end" 
-                        height={80}
-                        tickMargin={8}
-                        type="category"
-                        allowDataOverflow={false}
-                      />
-                      <YAxis 
-                        domain={[0, 10]} 
-                        ticks={[0, 2, 4, 6, 8, 10]}
-                        tickLine={false}
-                        axisLine={false}
-                        width={40}
-                        tickMargin={8}
-                      />
-                      <ChartTooltip 
-                        cursor={false}
-                        content={<CustomChartTooltip />} 
-                      />
-                      {dashboardTemplates.map((template, idx) => {
-                        if (!visibleTemplates.has(template.id!)) return null;
-                        const key = `template_${template.id}_avg`;
-                        const color = chartConfig[key]?.color || getTemplateColor(idx, dashboardTemplates.length);
-                        return (
-                          <Line 
-                            key={template.id} 
-                            dataKey={key}
-                            type="monotone" 
-                            stroke={color}
-                            strokeWidth={3}
-                            dot={renderCustomDot(color)}
-                            connectNulls={true}
-                            activeDot={{ r: 6 }}
-                            isAnimationActive={false}
-                          />
-                        );
-                      })}
-                    </LineChart>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
-              
-              {/* Stats */}
-              {templateStats.map(({ template, dataPoints, avgPain, minPain, maxPain }, index) => {
-                const key = `template_${template.id}_avg`;
-                const color = chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
-                return (
-                <Card key={template.id}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold" style={{ backgroundColor: color }}>
+              <div className={styles.chartContainer}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={chartData}
+                    margin={{ left: 10, right: 0, top: 80, bottom: 5 }}
+                  >
+                    <CartesianGrid
+                      vertical={true}
+                      horizontal={true}
+                      stroke="hsl(var(--border))"
+                      strokeDasharray="3 3"
+                      strokeOpacity={0.5}
+                    />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={formatXAxis}
+                      tickLine={true}
+                      axisLine={true}
+                      interval="preserveStartEnd"
+                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                      stroke="hsl(var(--border))"
+                    />
+                    <YAxis
+                      orientation="right"
+                      domain={[0, 10]}
+                      ticks={[0, 5, 10]}
+                      tickLine={true}
+                      axisLine={true}
+                      width={25}
+                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                      stroke="hsl(var(--border))"
+                    />
+                    <ChartTooltip
+                      cursor={{
+                        stroke: 'hsl(var(--muted-foreground))',
+                        strokeWidth: 1,
+                        strokeDasharray: 'none'
+                      }}
+                      content={<CustomChartTooltip />}
+                      position={{ y: -110 }}
+                      wrapperStyle={{ pointerEvents: 'auto' }}
+                    />
+                    {dashboardTemplates.map((template, idx) => {
+                      if (!visibleTemplates.has(template.id!)) return null;
+                      const key = `template_${template.id}_avg`;
+                      const color = chartConfig[key]?.color || getTemplateColor(idx, dashboardTemplates.length);
+                      return (
+                        <Line
+                          key={template.id}
+                          dataKey={key}
+                          type="monotone"
+                          stroke={color}
+                          strokeWidth={2}
+                          dot={renderCustomDot(color)}
+                          activeDot={false}
+                          connectNulls={true}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Template Legend UNTER dem Chart */}
+              {dashboardTemplates.length > 1 && (
+                <div className={styles.templateLegend}>
+                  {dashboardTemplates.map((template, index) => {
+                    const isVisible = visibleTemplates.has(template.id!);
+                    const key = `template_${template.id}_avg`;
+                    const color = chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
+                    return (
+                      <div
+                        key={template.id}
+                        className={`${styles.templateIcon} ${!isVisible ? styles.inactive : ''}`}
+                        onClick={() => toggleTemplate(template.id!)}
+                        style={{ backgroundColor: color }}
+                        title={template.name}
+                      >
                         {template.name.charAt(0).toUpperCase()}
                       </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold">{template.name}</h4>
-                        <p className="text-xs text-muted-foreground">{dataPoints} Datenpunkte</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3 text-center">
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Durchschnitt</p>
-                        <p className="text-2xl font-bold">{avgPain.toFixed(1)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Minimum</p>
-                        <p className="text-2xl font-bold text-green-600">{minPain.toFixed(1)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">Maximum</p>
-                        <p className="text-2xl font-bold text-red-600">{maxPain.toFixed(1)}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-              })}
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Trend Card */}
+              {(() => {
+                const trend = calculateTrend();
+                return (
+                  <div className={styles.trendCard}>
+                    <span className={styles.trendLabel}>Trend</span>
+                    <span className={styles.trendText}>
+                      {trend.icon && `${trend.icon} `}{trend.text}{trend.diff && ` (${trend.diff})`}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           ) : (
             <Card className="p-8 text-center">
