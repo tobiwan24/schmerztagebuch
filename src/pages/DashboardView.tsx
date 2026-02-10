@@ -4,9 +4,13 @@ import type { Entry, Template } from '../types/database';
 import Header from '../components/Header';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, CalendarClock, Stethoscope } from 'lucide-react';
-import { Line, LineChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
-import { ChartTooltip, type ChartConfig } from '@/components/ui/chart';
+import { TrendingUp } from 'lucide-react';
+import { ApexLineChart } from '../components/charts/ApexLineChart';
+import { 
+  convertToApexSeries, 
+  generateCategories, 
+  type ChartConfig 
+} from '../utils/apexChartHelpers';
 import { 
   extractPainData, 
   aggregatePainByDay,
@@ -189,66 +193,7 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     return data.filter(event => new Date(event.date) >= cutoffDate);
   }
 
-  // X-Achse Formatierung (Apple Health Style)
-  const formatXAxis = (dateStr: string) => {
-    const date = new Date(dateStr);
-    
-    switch(timeRange) {
-      case 'T': {
-        // Tag: Uhrzeiten (0, 8, 16, 24)
-        const hour = date.getHours();
-        return `${hour}h`;
-      }
-      case 'W': {
-        // Woche: Wochentage (Mo, Di, Mi, Do, Fr, Sa, So)
-        return date.toLocaleDateString('de-DE', { weekday: 'short' });
-      }
-      case 'M': {
-        // Monat: Tage (1., 10., 20., 31.)
-        return `${date.getDate()}.`;
-      }
-      case '6M': {
-        // 6 Monate: Monatskürzel
-        return date.toLocaleDateString('de-DE', { month: 'short' });
-      }
-      case 'J': {
-        // Jahr: Alle 2 Monate
-        return date.toLocaleDateString('de-DE', { month: 'short' });
-      }
-    }
-  };
-  
-  // Tooltip Datum Formatierung
-  const formatTooltipDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    
-    switch(timeRange) {
-      case 'T':
-        return date.toLocaleDateString('de-DE', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-      case 'W':
-      case 'M':
-        return date.toLocaleDateString('de-DE', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric'
-        });
-      case '6M':
-        const weekEnd = new Date(date);
-        weekEnd.setDate(date.getDate() + 6);
-        return `${date.getDate()}.–${weekEnd.getDate()}. ${date.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' })}`;
-      case 'J':
-        return date.toLocaleDateString('de-DE', {
-          month: 'long',
-          year: 'numeric'
-        });
-    }
-  };
+
 
   // Durchschnitt berechnen für Infobox
   const calculateAverage = () => {
@@ -330,43 +275,24 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     return config;
   }, [dashboardTemplates]);
 
-  // Chart-Daten optimiert
-  const chartData = useMemo(() => {
-    if (dailyPainData.length === 0) return [];
-    
-    // Gruppiere nach Datum für schnellen Zugriff
-    const dataByDate = new Map<string, DailyPainData[]>();
-    dailyPainData.forEach(point => {
-      if (!dataByDate.has(point.date)) {
-        dataByDate.set(point.date, []);
-      }
-      dataByDate.get(point.date)!.push(point);
-    });
-    
-    // Eindeutige Daten sortiert
-    const uniqueDates = Array.from(new Set(dailyPainData.map(d => d.date))).sort();
-    
-    return uniqueDates.map(date => {
-      const dayData: Record<string, string | number | null | EventMarker[]> = { date };
-      
-      // Template-Werte
-      dashboardTemplates.forEach(template => {
+  // ApexCharts Series & Categories
+  const apexSeries = useMemo(() => {
+    return convertToApexSeries(dailyPainData, chartConfig, visibleTemplates);
+  }, [dailyPainData, chartConfig, visibleTemplates]);
+
+  const categories = useMemo(() => {
+    return generateCategories(timeRange, new Date());
+  }, [timeRange]);
+
+  // Template-Farben für ApexCharts
+  const chartColors = useMemo(() => {
+    return dashboardTemplates
+      .filter(t => visibleTemplates.has(t.id!))
+      .map((template, index) => {
         const key = `template_${template.id}_avg`;
-        const points = dataByDate.get(date) || [];
-        const templatePoint = points.find(d => d.templateId === template.id);
-        dayData[key] = templatePoint ? templatePoint.avg : null;
+        return chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
       });
-      
-      // Event-Daten
-      const dayEvents = events.filter(e => {
-        const template = dashboardTemplates.find(t => t.name === e.templateName);
-        return template && visibleTemplates.has(template.id ?? 0) && e.date === date;
-      });
-      dayData.events = dayEvents;
-      
-      return dayData;
-    });
-  }, [dailyPainData, dashboardTemplates, events, visibleTemplates]);
+  }, [dashboardTemplates, visibleTemplates, chartConfig]);
 
   const toggleTemplate = (templateId: number) => {
     const newVisible = new Set(visibleTemplates);
@@ -374,159 +300,6 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     else newVisible.add(templateId);
     setVisibleTemplates(newVisible);
   };
-
-  // Custom Tooltip (Apple Health Style)
-  interface TooltipPayloadEntry {
-    dataKey: string;
-    value: number | null;
-    payload: Record<string, string | number | null | EventMarker[]>;
-  }
-
-  interface TooltipProps {
-    active?: boolean;
-    payload?: TooltipPayloadEntry[];
-  }
-
-  const CustomChartTooltip = ({ active, payload }: TooltipProps) => {
-    // Wenn nichts aktiv ist, zeige Durchschnitt + Datumsbereich
-    if (!active || !payload || !payload.length) {
-      return (
-        <div className={styles.infoBox}>
-          <p className={styles.infoLabel}>Durchschnitt</p>
-          <div style={{ display: 'flex', alignItems: 'baseline' }}>
-            <span className={styles.infoValue}>{calculateAverage()}</span>
-            <span className={styles.infoUnit}>Punkte</span>
-          </div>
-          <p className={styles.infoDateRange}>{getDateRangeLabel()}</p>
-        </div>
-      );
-    }
-    
-    // Wenn Werte angeklickt sind, zeige Punktwerte
-    const data = payload[0].payload;
-    const date = data.date;
-    const events = data.events || [];
-    
-    return (
-      <div className={styles.tooltip}>
-        {/* Schmerzwerte */}
-        {payload.map((entry) => {
-          if (entry.dataKey === 'date' || entry.dataKey === 'events') return null;
-          if (entry.value === null) return null;
-          
-          const template = dashboardTemplates.find(t => `template_${t.id}_avg` === entry.dataKey);
-          if (!template) return null;
-          
-          return (
-            <div key={entry.dataKey}>
-              <p className={styles.tooltipLabel}>{template.name}</p>
-              <div className={styles.tooltipValue}>
-                <span>{entry.value.toFixed(1)}</span>
-                <span className={styles.tooltipUnit}>Punkte</span>
-              </div>
-              <p className={styles.tooltipDate}>{formatTooltipDate(date)}</p>
-            </div>
-          );
-        })}
-        
-        {/* Events */}
-        {events.length > 0 && (
-          <div className={styles.tooltipEvents}>
-            {events.map((event: EventMarker, idx: number) => (
-              <div key={idx} className={styles.tooltipEventItem}>
-                <span className={styles.tooltipEventIcon}>
-                  {event.category === 'doctor' ? '🩺' : '📅'}
-                </span>
-                <span>{event.title}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Custom Dot: Hohle Kreise + Event-Icons darüber
-  interface CustomDotProps {
-    cx?: number;
-    cy?: number | null;
-    payload: Record<string, string | number | null | EventMarker[]>;
-  }
-
-  const renderCustomDot = (color: string) => {  
-    return (props: CustomDotProps) => {
-      const { cx, cy, payload } = props;
-      if (cx === undefined || cy === null || cy === undefined) return null;
-      
-      // Prüfe Events
-      const dateEvents = events.filter(e => {
-        const template = dashboardTemplates.find(t => t.name === e.templateName);
-        return template && visibleTemplates.has(template.id ?? 0) && e.date === payload.date;
-      });
-      
-      const hasDoctor = dateEvents.some(e => e.category === 'doctor');
-      const hasEvent = dateEvents.some(e => e.category === 'event');
-      
-      return (
-        <g>
-          {/* Hohler Kreis (Apple Health Style) - WEIßE Füllung */}
-          <circle 
-            cx={cx} 
-            cy={cy} 
-            r={5}
-            stroke={color}
-            strokeWidth={2}
-            fill="white"
-          />
-          
-          {/* Event-Icon ÜBER dem Dot */}
-          {(hasDoctor || hasEvent) && (
-            <g>
-              <circle 
-                cx={cx} 
-                cy={cy - 16}
-                r={10}
-                fill={hasDoctor ? '#ef4444' : '#3b82f6'}
-                stroke="white"
-                strokeWidth={2}
-              />
-              <foreignObject 
-                x={cx - 8} 
-                y={cy - 24} 
-                width={16} 
-                height={16}
-              >
-                <div style={{ 
-                  width: 16, 
-                  height: 16, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '10px'
-                }}>
-                  {hasDoctor ? <Stethoscope size={10} /> : <CalendarClock size={10} />}
-                </div>
-              </foreignObject>
-            </g>
-          )}
-        </g>
-      );
-    };
-  };
-
-  // Template-Statistiken (aktuell nicht verwendet)
-  // const templateStats = dashboardTemplates.map(template => {
-  //   const templateData = dailyPainData.filter(d => d.templateId === template.id);
-  //   const allValues = templateData.flatMap(d => [d.min, d.max, d.avg]);
-  //   return {
-  //     template,
-  //     dataPoints: templateData.length,
-  //     avgPain: allValues.length > 0 ? Math.round((allValues.reduce((a, b) => a + b, 0) / allValues.length) * 10) / 10 : 0,
-  //     minPain: allValues.length > 0 ? Math.min(...allValues) : 0,
-  //     maxPain: allValues.length > 0 ? Math.max(...allValues) : 0
-  //   };
-  // });
 
   if (isLoading) {
     return (
@@ -562,69 +335,15 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
           {dashboardTemplates.length > 0 && dailyPainData.length > 0 ? (
             <div className="space-y-3">
 
-              {/* Chart */}
+              {/* ApexCharts */}
               <div className={styles.chartContainer}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={chartData}
-                    margin={{ left: 10, right: 0, top: 80, bottom: 5 }}
-                  >
-                    <CartesianGrid
-                      vertical={true}
-                      horizontal={true}
-                      stroke="hsl(var(--border))"
-                      strokeDasharray="3 3"
-                      strokeOpacity={0.5}
-                    />
-                    <XAxis
-                      dataKey="date"
-                      tickFormatter={formatXAxis}
-                      tickLine={true}
-                      axisLine={true}
-                      interval="preserveStartEnd"
-                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                      stroke="hsl(var(--border))"
-                    />
-                    <YAxis
-                      orientation="right"
-                      domain={[0, 10]}
-                      ticks={[0, 5, 10]}
-                      tickLine={true}
-                      axisLine={true}
-                      width={25}
-                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                      stroke="hsl(var(--border))"
-                    />
-                    <ChartTooltip
-                      cursor={{
-                        stroke: 'hsl(var(--muted-foreground))',
-                        strokeWidth: 1,
-                        strokeDasharray: 'none'
-                      }}
-                      content={<CustomChartTooltip />}
-                      position={{ y: -110 }}
-                      wrapperStyle={{ pointerEvents: 'auto' }}
-                    />
-                    {dashboardTemplates.map((template, idx) => {
-                      if (!visibleTemplates.has(template.id!)) return null;
-                      const key = `template_${template.id}_avg`;
-                      const color = chartConfig[key]?.color || getTemplateColor(idx, dashboardTemplates.length);
-                      return (
-                        <Line
-                          key={template.id}
-                          dataKey={key}
-                          type="monotone"
-                          stroke={color}
-                          strokeWidth={2}
-                          dot={renderCustomDot(color)}
-                          activeDot={false}
-                          connectNulls={true}
-                          isAnimationActive={false}
-                        />
-                      );
-                    })}
-                  </LineChart>
-                </ResponsiveContainer>
+                <ApexLineChart
+                  series={apexSeries}
+                  categories={categories}
+                  timeRange={timeRange}
+                  colors={chartColors}
+                  height={350}
+                />
               </div>
 
               {/* Template Legend UNTER dem Chart */}

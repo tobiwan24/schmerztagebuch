@@ -9,8 +9,8 @@ const db = new Dexie('PainDiaryDB') as Dexie & {
   settings: EntityTable<Settings, 'key'>;
 };
 
-// Version 9: Dashboard Chart Fixes + Custom Dots + Zeitraum-Support
-db.version(9).stores({
+// Version 10: ApexCharts Migration - Native Time-Series Support
+db.version(10).stores({
   templates: '++id, name, order',
   entries: '++id, templateId, timestamp, encrypted, *tags',
   settings: 'key'
