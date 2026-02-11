@@ -109,88 +109,92 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
   }
   
   function filterPainDataByTimeRange(data: PainDataPoint[], range: 'T' | 'W' | 'M' | '6M' | 'J') {
-    if (range === 'J') {
-      // Jahr: letzte 12 Monate
-      const now = new Date();
-      const cutoffDate = new Date(now);
-      cutoffDate.setFullYear(now.getFullYear() - 1);
-      return data.filter(point => new Date(point.date) >= cutoffDate);
-    }
-    
     const now = new Date();
     const cutoffDate = new Date(now);
+    const endDate = new Date(now);
+    endDate.setHours(23, 59, 59, 999);
     
     switch (range) {
       case 'T': {
-        // Tag: Letzter kompletter Tag (00:00 bis 23:59)
-        cutoffDate.setDate(now.getDate() - 1);
+        // Tag: Heute (00:00 bis jetzt)
         cutoffDate.setHours(0, 0, 0, 0);
         break;
       }
       case 'W': {
-        // Woche: Letzte komplette Woche (Mo-So)
+        // Woche: Diese Woche (Mo bis heute)
         const dayOfWeek = now.getDay();
-        const daysToLastMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        cutoffDate.setDate(now.getDate() - daysToLastMonday - 7);
+        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        cutoffDate.setDate(now.getDate() - daysToMonday);
         cutoffDate.setHours(0, 0, 0, 0);
         break;
       }
       case 'M': {
-        // Monat: Letzter kompletter Monat
-        cutoffDate.setMonth(now.getMonth() - 1);
+        // Monat: Aktueller Monat (1. bis heute)
         cutoffDate.setDate(1);
         cutoffDate.setHours(0, 0, 0, 0);
         break;
       }
       case '6M': {
-        // 6 Monate: Letzte 6 Monate
-        cutoffDate.setMonth(now.getMonth() - 6);
+        // 6 Monate: Letzte 6 Monate bis heute
+        cutoffDate.setMonth(now.getMonth() - 5);
+        cutoffDate.setDate(1);
+        cutoffDate.setHours(0, 0, 0, 0);
+        break;
+      }
+      case 'J': {
+        // Jahr: Letzte 12 Monate bis heute
+        cutoffDate.setMonth(now.getMonth() - 11);
         cutoffDate.setDate(1);
         cutoffDate.setHours(0, 0, 0, 0);
         break;
       }
     }
-    return data.filter(point => new Date(point.date) >= cutoffDate);
+    return data.filter(point => {
+      const pointDate = new Date(point.date);
+      return pointDate >= cutoffDate && pointDate <= endDate;
+    });
   }
   
   function filterEventsByTimeRange(data: EventMarker[], range: 'T' | 'W' | 'M' | '6M' | 'J') {
-    if (range === 'J') {
-      const now = new Date();
-      const cutoffDate = new Date(now);
-      cutoffDate.setFullYear(now.getFullYear() - 1);
-      return data.filter(event => new Date(event.date) >= cutoffDate);
-    }
-    
     const now = new Date();
     const cutoffDate = new Date(now);
+    const endDate = new Date(now);
+    endDate.setHours(23, 59, 59, 999);
     
     switch (range) {
       case 'T': {
-        cutoffDate.setDate(now.getDate() - 1);
         cutoffDate.setHours(0, 0, 0, 0);
         break;
       }
       case 'W': {
         const dayOfWeek = now.getDay();
-        const daysToLastMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        cutoffDate.setDate(now.getDate() - daysToLastMonday - 7);
+        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        cutoffDate.setDate(now.getDate() - daysToMonday);
         cutoffDate.setHours(0, 0, 0, 0);
         break;
       }
       case 'M': {
-        cutoffDate.setMonth(now.getMonth() - 1);
         cutoffDate.setDate(1);
         cutoffDate.setHours(0, 0, 0, 0);
         break;
       }
       case '6M': {
-        cutoffDate.setMonth(now.getMonth() - 6);
+        cutoffDate.setMonth(now.getMonth() - 5);
+        cutoffDate.setDate(1);
+        cutoffDate.setHours(0, 0, 0, 0);
+        break;
+      }
+      case 'J': {
+        cutoffDate.setMonth(now.getMonth() - 11);
         cutoffDate.setDate(1);
         cutoffDate.setHours(0, 0, 0, 0);
         break;
       }
     }
-    return data.filter(event => new Date(event.date) >= cutoffDate);
+    return data.filter(event => {
+      const eventDate = new Date(event.date);
+      return eventDate >= cutoffDate && eventDate <= endDate;
+    });
   }
 
 
@@ -301,6 +305,55 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     setVisibleTemplates(newVisible);
   };
 
+  // Formatiere aktuellen Zeitraum für Anzeige
+  const formatCurrentTimeRange = (): string => {
+    const now = new Date();
+    
+    switch (timeRange) {
+      case 'T': {
+        // Heute
+        return now.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+      case 'W': {
+        // Diese Woche (Montag bis heute)
+        const dayOfWeek = now.getDay();
+        const monday = new Date(now);
+        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        monday.setDate(now.getDate() - daysToMonday);
+        
+        // KW berechnen
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+        const weekNumber = Math.ceil((((now.getTime() - startOfYear.getTime()) / 86400000) + startOfYear.getDay() + 1) / 7);
+        
+        const mondayStr = monday.toLocaleDateString('de-DE', { day: '2-digit', month: 'short' });
+        const todayStr = now.toLocaleDateString('de-DE', { day: '2-digit', month: 'short' });
+        return `KW ${weekNumber} · ${mondayStr}–${todayStr}`;
+      }
+      case 'M': {
+        // Aktueller Monat
+        return now.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+      }
+      case '6M': {
+        // Letzte 6 Monate
+        const sixMonthsAgo = new Date(now);
+        sixMonthsAgo.setMonth(now.getMonth() - 5);
+        const startMonth = sixMonthsAgo.toLocaleDateString('de-DE', { month: 'short' });
+        const endMonth = now.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
+        return `${startMonth}–${endMonth}`;
+      }
+      case 'J': {
+        // Letzte 12 Monate
+        const twelveMonthsAgo = new Date(now);
+        twelveMonthsAgo.setMonth(now.getMonth() - 11);
+        const startMonth = twelveMonthsAgo.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
+        const endMonth = now.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
+        return `${startMonth}–${endMonth}`;
+      }
+      default:
+        return '';
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -319,16 +372,27 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
       <div className="content-wrapper">
         <div className="space-y-3">
           {/* Zeitraum-Filter (Apple Health Style) */}
-          <div className={styles.timeRangeFilter}>
-            {(['T', 'W', 'M', '6M', 'J'] as const).map(range => (
-              <button
-                key={range}
-                className={`${styles.timeRangeButton} ${timeRange === range ? styles.active : ''}`}
-                onClick={() => setTimeRange(range)}
-              >
-                {range === '6M' ? '6 M.' : range}
-              </button>
-            ))}
+          <div>
+            <div className={styles.timeRangeFilter}>
+              {(['T', 'W', 'M', '6M', 'J'] as const).map(range => (
+                <button
+                  key={range}
+                  className={`${styles.timeRangeButton} ${timeRange === range ? styles.active : ''}`}
+                  onClick={() => setTimeRange(range)}
+                >
+                  {range === '6M' ? '6 M.' : range}
+                </button>
+              ))}
+            </div>
+            <div style={{ 
+              textAlign: 'center', 
+              fontSize: '13px', 
+              color: 'hsl(var(--muted-foreground))', 
+              marginTop: '8px',
+              fontWeight: 500
+            }}>
+              {formatCurrentTimeRange()}
+            </div>
           </div>
 
           {/* Chart */}
@@ -343,6 +407,9 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
                   timeRange={timeRange}
                   colors={chartColors}
                   height={350}
+                  events={events}
+                  visibleTemplates={visibleTemplates}
+                  dashboardTemplates={dashboardTemplates}
                 />
               </div>
 

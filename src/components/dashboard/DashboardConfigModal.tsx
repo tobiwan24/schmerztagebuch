@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -13,14 +13,10 @@ interface DashboardConfigModalProps {
 }
 
 export default function DashboardConfigModal({ block, onSave, onCancel }: DashboardConfigModalProps) {
-  const [dashboardType, setDashboardType] = useState<DashboardDataType>('pain');
-
-  // Load existing config when modal opens
-  useEffect(() => {
-    if (block.dashboard?.type) {
-      setDashboardType(block.dashboard.type);
-    }
-  }, [block]);
+  // Initialize state directly from block prop
+  const [dashboardType, setDashboardType] = useState<DashboardDataType>(
+    block.dashboard?.type || 'pain'
+  );
 
   const handleSave = () => {
     const config: DashboardConfigState = {};

@@ -83,13 +83,12 @@ export function generateCategories(
   
   switch (timeRange) {
     case 'T': {
-      // Tag: Letzter kompletter Tag mit Stunden-Ticks (0h, 8h, 16h, 24h)
-      const yesterday = new Date(now);
-      yesterday.setDate(now.getDate() - 1);
-      yesterday.setHours(0, 0, 0, 0);
+      // Tag: Heute mit Stunden-Ticks (0h, 8h, 16h, 24h)
+      const today = new Date(now);
+      today.setHours(0, 0, 0, 0);
       
       [0, 8, 16, 24].forEach(hour => {
-        const date = new Date(yesterday);
+        const date = new Date(today);
         date.setHours(hour);
         categories.push(date.toISOString());
       });
@@ -97,15 +96,16 @@ export function generateCategories(
     }
     
     case 'W': {
-      // Woche: Letzte komplette Woche (Mo-So)
+      // Woche: Diese Woche (Mo bis heute)
       const dayOfWeek = now.getDay();
-      const daysToLastMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
       const monday = new Date(now);
-      monday.setDate(now.getDate() - daysToLastMonday - 7);
+      monday.setDate(now.getDate() - daysToMonday);
       monday.setHours(0, 0, 0, 0);
       
-      // 7 Tage (Mo-So)
-      for (let i = 0; i < 7; i++) {
+      // Von Montag bis heute
+      const daysInWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
+      for (let i = 0; i < daysInWeek; i++) {
         const date = new Date(monday);
         date.setDate(monday.getDate() + i);
         categories.push(date.toISOString().split('T')[0]);
@@ -114,21 +114,21 @@ export function generateCategories(
     }
     
     case 'M': {
-      // Monat: Letzter kompletter Monat mit 7 Ticks (1., 5., 10., 15., 20., 25., letzter Tag)
+      // Monat: Aktueller Monat (1. bis heute)
       const firstDay = new Date(now);
-      firstDay.setMonth(now.getMonth() - 1);
       firstDay.setDate(1);
       firstDay.setHours(0, 0, 0, 0);
       
-      // Letzter Tag des Monats
-      const lastDay = new Date(firstDay);
-      lastDay.setMonth(firstDay.getMonth() + 1);
-      lastDay.setDate(0);
-      const daysInMonth = lastDay.getDate();
+      const currentDay = now.getDate();
       
-      // Ticks: 1., 5., 10., 15., 20., 25., letzter Tag
-      [1, 5, 10, 15, 20, 25, daysInMonth].forEach(day => {
-        if (day <= daysInMonth) {
+      // Ticks: 1., 5., 10., 15., 20., 25., aktueller Tag (falls > 25)
+      const ticks = [1, 5, 10, 15, 20, 25];
+      if (currentDay > 25) {
+        ticks.push(currentDay);
+      }
+      
+      ticks.forEach(day => {
+        if (day <= currentDay) {
           const date = new Date(firstDay);
           date.setDate(day);
           categories.push(date.toISOString().split('T')[0]);

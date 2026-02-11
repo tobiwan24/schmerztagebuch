@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import Chart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
-import { formatXAxisLabel } from '../../utils/apexChartHelpers';
+import { formatXAxisLabel, formatTooltipDate } from '../../utils/apexChartHelpers';
+import type { EventMarker } from '../../utils/dashboardData';
 
 interface ApexLineChartProps {
   series: {
@@ -12,6 +13,9 @@ interface ApexLineChartProps {
   timeRange: 'T' | 'W' | 'M' | '6M' | 'J';
   colors?: string[];
   height?: number;
+  events?: EventMarker[];
+  visibleTemplates?: Set<number>;
+  dashboardTemplates?: Array<{ id?: number; name: string }>;
 }
 
 export const ApexLineChart: React.FC<ApexLineChartProps> = ({
@@ -20,6 +24,9 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
   timeRange,
   colors = ['#ef4444'],
   height = 350,
+  events = [],
+  visibleTemplates = new Set(),
+  dashboardTemplates = [],
 }) => {
   // Schutz vor leeren Series
   if (!series || series.length === 0) {
@@ -32,6 +39,32 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
   const chartOptions: ApexOptions = useMemo(() => {
     // Dark Mode Detection
     const isDarkMode = document.documentElement.classList.contains('dark');
+
+    // Event Annotations erstellen
+    const eventAnnotations = events
+      .filter(event => {
+        const template = dashboardTemplates.find(t => t.name === event.templateName);
+        return template && visibleTemplates.has(template.id ?? 0);
+      })
+      .map(event => ({
+        x: new Date(event.date).getTime(),
+        borderColor: event.category === 'doctor' ? '#ef4444' : '#3b82f6',
+        label: {
+          borderColor: event.category === 'doctor' ? '#ef4444' : '#3b82f6',
+          style: {
+            color: '#fff',
+            background: event.category === 'doctor' ? '#ef4444' : '#3b82f6',
+            fontSize: '10px',
+            padding: {
+              left: 5,
+              right: 5,
+              top: 2,
+              bottom: 2,
+            },
+          },
+          text: event.category === 'doctor' ? '🩺' : '📅',
+        },
+      }));
 
     return {
       chart: {
@@ -106,8 +139,53 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
       tooltip: {
         theme: isDarkMode ? 'dark' : 'light',
         x: {
-          format: 'dd.MM.yyyy',
+          formatter: (value: number) => {
+            return formatTooltipDate(new Date(value).toISOString(), timeRange);
+          },
         },
+        custom: ({ series: tooltipSeries, seriesIndex, dataPointIndex, w }) => {
+          const dataPoint = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
+          const date = dataPoint.x;
+          const value = dataPoint.y;
+          const seriesName = w.globals.seriesNames[seriesIndex];
+          
+          // Finde Events für dieses Datum
+          const dateStr = new Date(date).toISOString().split('T')[0];
+          const dayEvents = events.filter(e => {
+            const template = dashboardTemplates.find(t => t.name === e.templateName);
+            return template && visibleTemplates.has(template.id ?? 0) && e.date === dateStr;
+          });
+
+          let tooltipHTML = `
+            <div style="padding: 8px 12px; background: ${isDarkMode ? '#1f2937' : '#ffffff'}; border-radius: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <div style="font-weight: 600; margin-bottom: 4px; color: ${isDarkMode ? '#e5e7eb' : '#374151'};">${seriesName}</div>
+              <div style="display: flex; align-items: baseline; gap: 4px; margin-bottom: 4px;">
+                <span style="font-size: 18px; font-weight: 700; color: ${isDarkMode ? '#ffffff' : '#000000'};">${value.toFixed(1)}</span>
+                <span style="font-size: 12px; color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">Punkte</span>
+              </div>
+              <div style="font-size: 11px; color: ${isDarkMode ? '#9ca3af' : '#6b7280'};">${formatTooltipDate(new Date(date).toISOString(), timeRange)}</div>
+          `;
+
+          if (dayEvents.length > 0) {
+            tooltipHTML += `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid ${isDarkMode ? '#374151' : '#e5e7eb'};">`;
+            dayEvents.forEach(event => {
+              const icon = event.category === 'doctor' ? '🩺' : '📅';
+              tooltipHTML += `
+                <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+                  <span style="font-size: 14px;">${icon}</span>
+                  <span style="font-size: 12px; color: ${isDarkMode ? '#e5e7eb' : '#374151'};">${event.title}</span>
+                </div>
+              `;
+            });
+            tooltipHTML += `</div>`;
+          }
+
+          tooltipHTML += `</div>`;
+          return tooltipHTML;
+        },
+      },
+      annotations: {
+        xaxis: eventAnnotations,
       },
       legend: {
         show: false,
@@ -176,7 +254,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         },
       ],
     };
-  }, [categories, timeRange, colors, height]);
+  }, [categories, timeRange, colors, height, events, visibleTemplates, dashboardTemplates]);
 
   return (
     <Chart
