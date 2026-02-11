@@ -54,6 +54,7 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'T' | 'W' | 'M' | '6M' | 'J'>('M');
+  const [timeRangeOffset, setTimeRangeOffset] = useState(0); // 0 = aktuell, -1 = zurück, +1 = vorwärts
   const [dailyPainData, setDailyPainData] = useState<DailyPainData[]>([]);
   const [events, setEvents] = useState<EventMarker[]>([]);
   const [dashboardTemplates, setDashboardTemplates] = useState<Template[]>([]);
@@ -68,7 +69,7 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
       aggregateData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries, templates, timeRange]);
+  }, [entries, templates, timeRange, timeRangeOffset]);
 
   async function loadData() {
     try {
@@ -112,40 +113,54 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     const now = new Date();
     const cutoffDate = new Date(now);
     const endDate = new Date(now);
-    endDate.setHours(23, 59, 59, 999);
     
     switch (range) {
       case 'T': {
-        // Tag: Heute (00:00 bis jetzt)
+        // Tag: Heute + offset (00:00 bis 23:59)
+        cutoffDate.setDate(now.getDate() + timeRangeOffset);
         cutoffDate.setHours(0, 0, 0, 0);
+        endDate.setDate(now.getDate() + timeRangeOffset);
+        endDate.setHours(23, 59, 59, 999);
         break;
       }
       case 'W': {
-        // Woche: Diese Woche (Mo bis heute)
+        // Woche: Diese Woche + offset (Mo bis So)
         const dayOfWeek = now.getDay();
         const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        cutoffDate.setDate(now.getDate() - daysToMonday);
+        cutoffDate.setDate(now.getDate() - daysToMonday + (timeRangeOffset * 7));
         cutoffDate.setHours(0, 0, 0, 0);
+        endDate.setDate(cutoffDate.getDate() + 6);
+        endDate.setHours(23, 59, 59, 999);
         break;
       }
       case 'M': {
-        // Monat: Aktueller Monat (1. bis heute)
+        // Monat: Aktueller Monat + offset (1. bis letzter Tag)
+        cutoffDate.setMonth(now.getMonth() + timeRangeOffset);
         cutoffDate.setDate(1);
         cutoffDate.setHours(0, 0, 0, 0);
+        endDate.setMonth(cutoffDate.getMonth() + 1);
+        endDate.setDate(0); // Letzter Tag des Monats
+        endDate.setHours(23, 59, 59, 999);
         break;
       }
       case '6M': {
-        // 6 Monate: Letzte 6 Monate bis heute
-        cutoffDate.setMonth(now.getMonth() - 5);
+        // 6 Monate: Letzte 6 Monate + offset
+        cutoffDate.setMonth(now.getMonth() - 5 + (timeRangeOffset * 6));
         cutoffDate.setDate(1);
         cutoffDate.setHours(0, 0, 0, 0);
+        endDate.setMonth(cutoffDate.getMonth() + 6);
+        endDate.setDate(0);
+        endDate.setHours(23, 59, 59, 999);
         break;
       }
       case 'J': {
-        // Jahr: Letzte 12 Monate bis heute
-        cutoffDate.setMonth(now.getMonth() - 11);
+        // Jahr: Letzte 12 Monate + offset
+        cutoffDate.setMonth(now.getMonth() - 11 + (timeRangeOffset * 12));
         cutoffDate.setDate(1);
         cutoffDate.setHours(0, 0, 0, 0);
+        endDate.setMonth(cutoffDate.getMonth() + 12);
+        endDate.setDate(0);
+        endDate.setHours(23, 59, 59, 999);
         break;
       }
     }
@@ -159,35 +174,49 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     const now = new Date();
     const cutoffDate = new Date(now);
     const endDate = new Date(now);
-    endDate.setHours(23, 59, 59, 999);
     
     switch (range) {
       case 'T': {
+        cutoffDate.setDate(now.getDate() + timeRangeOffset);
         cutoffDate.setHours(0, 0, 0, 0);
+        endDate.setDate(now.getDate() + timeRangeOffset);
+        endDate.setHours(23, 59, 59, 999);
         break;
       }
       case 'W': {
         const dayOfWeek = now.getDay();
         const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        cutoffDate.setDate(now.getDate() - daysToMonday);
+        cutoffDate.setDate(now.getDate() - daysToMonday + (timeRangeOffset * 7));
         cutoffDate.setHours(0, 0, 0, 0);
+        endDate.setDate(cutoffDate.getDate() + 6);
+        endDate.setHours(23, 59, 59, 999);
         break;
       }
       case 'M': {
+        cutoffDate.setMonth(now.getMonth() + timeRangeOffset);
         cutoffDate.setDate(1);
         cutoffDate.setHours(0, 0, 0, 0);
+        endDate.setMonth(cutoffDate.getMonth() + 1);
+        endDate.setDate(0);
+        endDate.setHours(23, 59, 59, 999);
         break;
       }
       case '6M': {
-        cutoffDate.setMonth(now.getMonth() - 5);
+        cutoffDate.setMonth(now.getMonth() - 5 + (timeRangeOffset * 6));
         cutoffDate.setDate(1);
         cutoffDate.setHours(0, 0, 0, 0);
+        endDate.setMonth(cutoffDate.getMonth() + 6);
+        endDate.setDate(0);
+        endDate.setHours(23, 59, 59, 999);
         break;
       }
       case 'J': {
-        cutoffDate.setMonth(now.getMonth() - 11);
+        cutoffDate.setMonth(now.getMonth() - 11 + (timeRangeOffset * 12));
         cutoffDate.setDate(1);
         cutoffDate.setHours(0, 0, 0, 0);
+        endDate.setMonth(cutoffDate.getMonth() + 12);
+        endDate.setDate(0);
+        endDate.setHours(23, 59, 59, 999);
         break;
       }
     }
@@ -285,8 +314,8 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
   }, [dailyPainData, chartConfig, visibleTemplates]);
 
   const categories = useMemo(() => {
-    return generateCategories(timeRange, new Date());
-  }, [timeRange]);
+    return generateCategories(timeRange, new Date(), timeRangeOffset);
+  }, [timeRange, timeRangeOffset]);
 
   // Template-Farben für ApexCharts
   const chartColors = useMemo(() => {
@@ -305,21 +334,36 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     setVisibleTemplates(newVisible);
   };
 
+  // Zeitraum-Navigation
+  const handlePreviousTimeRange = () => {
+    setTimeRangeOffset(timeRangeOffset - 1);
+  };
+
+  const handleNextTimeRange = () => {
+    setTimeRangeOffset(timeRangeOffset + 1);
+  };
+
+  const handleResetTimeRange = () => {
+    setTimeRangeOffset(0);
+  };
+
   // Formatiere aktuellen Zeitraum für Anzeige
   const formatCurrentTimeRange = (): string => {
     const now = new Date();
     
     switch (timeRange) {
       case 'T': {
-        // Heute
-        return now.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' });
+        // Heute + offset
+        const targetDate = new Date(now);
+        targetDate.setDate(now.getDate() + timeRangeOffset);
+        return targetDate.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' });
       }
       case 'W': {
-        // Diese Woche (Montag bis heute)
+        // Diese Woche + offset (Montag bis heute)
         const dayOfWeek = now.getDay();
         const monday = new Date(now);
         const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        monday.setDate(now.getDate() - daysToMonday);
+        monday.setDate(now.getDate() - daysToMonday + (timeRangeOffset * 7));
         
         // KW berechnen
         const startOfYear = new Date(now.getFullYear(), 0, 1);
@@ -330,21 +374,23 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
         return `KW ${weekNumber} · ${mondayStr}–${todayStr}`;
       }
       case 'M': {
-        // Aktueller Monat
-        return now.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+        // Aktueller Monat + offset
+        const targetDate = new Date(now);
+        targetDate.setMonth(now.getMonth() + timeRangeOffset);
+        return targetDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
       }
       case '6M': {
-        // Letzte 6 Monate
+        // Letzte 6 Monate + offset
         const sixMonthsAgo = new Date(now);
-        sixMonthsAgo.setMonth(now.getMonth() - 5);
+        sixMonthsAgo.setMonth(now.getMonth() - 5 + (timeRangeOffset * 6));
         const startMonth = sixMonthsAgo.toLocaleDateString('de-DE', { month: 'short' });
         const endMonth = now.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
         return `${startMonth}–${endMonth}`;
       }
       case 'J': {
-        // Letzte 12 Monate
+        // Letzte 12 Monate + offset
         const twelveMonthsAgo = new Date(now);
-        twelveMonthsAgo.setMonth(now.getMonth() - 11);
+        twelveMonthsAgo.setMonth(now.getMonth() - 11 + (timeRangeOffset * 12));
         const startMonth = twelveMonthsAgo.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
         const endMonth = now.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
         return `${startMonth}–${endMonth}`;
@@ -385,19 +431,89 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
               ))}
             </div>
             <div style={{ 
-              textAlign: 'center', 
-              fontSize: '13px', 
-              color: 'hsl(var(--muted-foreground))', 
-              marginTop: '8px',
-              fontWeight: 500
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              marginTop: '8px'
             }}>
-              {formatCurrentTimeRange()}
+              <button
+                onClick={handlePreviousTimeRange}
+                style={{
+                  background: 'hsl(var(--secondary))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '6px',
+                  padding: '4px 8px',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  color: 'hsl(var(--foreground))'
+                }}
+              >
+                ‹
+              </button>
+              <button
+                onClick={handleResetTimeRange}
+                disabled={timeRangeOffset === 0}
+                style={{ 
+                  textAlign: 'center', 
+                  fontSize: '13px', 
+                  color: timeRangeOffset === 0 ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                  fontWeight: timeRangeOffset === 0 ? 600 : 500,
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: timeRangeOffset === 0 ? 'default' : 'pointer',
+                  padding: '4px 8px',
+                  textDecoration: timeRangeOffset === 0 ? 'none' : 'underline'
+                }}
+              >
+                {formatCurrentTimeRange()}
+              </button>
+              <button
+                onClick={handleNextTimeRange}
+                style={{
+                  background: 'hsl(var(--secondary))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '6px',
+                  padding: '4px 8px',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  color: 'hsl(var(--foreground))'
+                }}
+              >
+                ›
+              </button>
             </div>
           </div>
 
           {/* Chart */}
-          {dashboardTemplates.length > 0 && dailyPainData.length > 0 ? (
+          {dashboardTemplates.length > 0 ? (
             <div className="space-y-3">
+
+              {/* Info-Box OBERHALB Chart */}
+              {dailyPainData.length > 0 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  background: 'hsl(var(--secondary) / 0.5)',
+                  borderRadius: '12px',
+                  marginBottom: '8px'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      DURCHSCHNITT
+                    </div>
+                    <div style={{ fontSize: '28px', fontWeight: '700', lineHeight: '1.2' }}>
+                      {calculateAverage()}
+                      <span style={{ fontSize: '16px', fontWeight: '400', marginLeft: '4px', color: 'hsl(var(--muted-foreground))' }}>Punkte</span>
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'hsl(var(--muted-foreground))', marginTop: '2px' }}>
+                      {getDateRangeLabel()}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* ApexCharts */}
               <div className={styles.chartContainer}>
@@ -412,6 +528,24 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
                   dashboardTemplates={dashboardTemplates}
                 />
               </div>
+
+              {/* Keine Daten Message UNTER Chart */}
+              {dailyPainData.length === 0 && (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '24px',
+                  color: 'hsl(var(--muted-foreground))'
+                }}>
+                  <p style={{ fontSize: '14px', marginBottom: '8px' }}>
+                    Keine Daten für {timeRange === 'T' ? 'heute' : timeRange === 'W' ? 'diese Woche' : timeRange === 'M' ? 'diesen Monat' : 'diesen Zeitraum'}
+                  </p>
+                  {timeRangeOffset !== 0 && (
+                    <Button onClick={handleResetTimeRange} variant="outline" size="sm">
+                      Zurück zu heute
+                    </Button>
+                  )}
+                </div>
+              )}
 
               {/* Template Legend UNTER dem Chart */}
               {dashboardTemplates.length > 1 && (
@@ -434,20 +568,22 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
                   })}
                 </div>
               )}
-
-              {/* Trend Card */}
-              {(() => {
-                const trend = calculateTrend();
-                return (
-                  <div className={styles.trendCard}>
-                    <span className={styles.trendLabel}>Trend</span>
-                    <span className={styles.trendText}>
-                      {trend.icon && `${trend.icon} `}{trend.text}{trend.diff && ` (${trend.diff})`}
-                    </span>
-                  </div>
-                );
-              })()}
             </div>
+          ) : dashboardTemplates.length > 0 ? (
+            <Card className="p-8 text-center">
+              <TrendingUp size={48} className="mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">
+                Keine Daten für {timeRange === 'T' ? 'heute' : timeRange === 'W' ? 'diese Woche' : timeRange === 'M' ? 'diesen Monat' : 'diesen Zeitraum'}
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Erstelle Einträge im Tagebuch, um Daten zu sehen.
+              </p>
+              {timeRangeOffset !== 0 && (
+                <Button onClick={handleResetTimeRange} variant="outline" className="mb-4">
+                  Zurück zu heute
+                </Button>
+              )}
+            </Card>
           ) : (
             <Card className="p-8 text-center">
               <TrendingUp size={48} className="mx-auto mb-4 text-muted-foreground" />

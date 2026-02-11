@@ -40,31 +40,49 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
     // Dark Mode Detection
     const isDarkMode = document.documentElement.classList.contains('dark');
 
-    // Event Annotations erstellen
-    const eventAnnotations = events
+    // Event Annotations erstellen - als Points direkt über Datenpunkten
+    const eventPointAnnotations = events
       .filter(event => {
         const template = dashboardTemplates.find(t => t.name === event.templateName);
         return template && visibleTemplates.has(template.id ?? 0);
       })
-      .map(event => ({
-        x: new Date(event.date).getTime(),
-        borderColor: event.category === 'doctor' ? '#ef4444' : '#3b82f6',
-        label: {
-          borderColor: event.category === 'doctor' ? '#ef4444' : '#3b82f6',
-          style: {
-            color: '#fff',
-            background: event.category === 'doctor' ? '#ef4444' : '#3b82f6',
-            fontSize: '10px',
-            padding: {
-              left: 5,
-              right: 5,
-              top: 2,
-              bottom: 2,
+      .map(event => {
+        // Finde Y-Wert (Schmerzwert) für dieses Event-Datum
+        const dateStr = event.date;
+        let yValue = 5; // Fallback Mitte
+        
+        // Suche in series nach dem Datenpunkt
+        series.forEach(s => {
+          const point = s.data.find(p => p.x === dateStr);
+          if (point) {
+            yValue = point.y;
+          }
+        });
+        
+        return {
+          x: new Date(event.date).getTime(),
+          y: yValue,
+          marker: {
+            size: 0, // Kein Marker, nur Label
+          },
+          label: {
+            text: event.category === 'doctor' ? '🩺' : '📅',
+            offsetY: -20, // Über dem Punkt
+            borderWidth: 0, // Keine Umrandung
+            style: {
+              background: 'transparent',
+              fontSize: '18px',
+              cssClass: 'event-icon-label',
+              padding: {
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 0,
+              },
             },
           },
-          text: event.category === 'doctor' ? '🩺' : '📅',
-        },
-      }));
+        };
+      });
 
     return {
       chart: {
@@ -74,6 +92,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         toolbar: { show: false },
         background: 'transparent',
         foreColor: isDarkMode ? '#e5e7eb' : '#374151',
+        offsetX: -10, // Chart nach links verschieben
       },
       theme: {
         mode: isDarkMode ? 'dark' : 'light',
@@ -103,6 +122,8 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         max: 10,
         tickAmount: 5,
         labels: {
+          offsetX: -5, // Labels näher an Chart
+          minWidth: 20, // Minimale Breite für Labels
           style: {
             colors: 'hsl(var(--muted-foreground))',
             fontSize: '12px',
@@ -118,17 +139,20 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         curve: 'smooth',
       },
       markers: {
-        size: 6,
+        size: 5,
         strokeWidth: 2,
         strokeColors: '#fff',
-        fillOpacity: 0, // Hohle Kreise
+        fillOpacity: 1, // Gefüllte Kreise wie im Bild
         hover: {
-          size: 8,
+          size: 7,
         },
       },
       grid: {
         borderColor: 'hsl(var(--border))',
         strokeDashArray: 4,
+        padding: {
+          left: 5, // Reduzierter linker Padding
+        },
         xaxis: {
           lines: { show: false },
         },
@@ -185,7 +209,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         },
       },
       annotations: {
-        xaxis: eventAnnotations,
+        points: eventPointAnnotations,
       },
       legend: {
         show: false,

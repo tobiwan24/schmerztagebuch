@@ -77,14 +77,16 @@ export function convertToApexSeries(
  */
 export function generateCategories(
   timeRange: 'T' | 'W' | 'M' | '6M' | 'J',
-  now: Date = new Date()
+  now: Date = new Date(),
+  offset: number = 0
 ): string[] {
   const categories: string[] = [];
   
   switch (timeRange) {
     case 'T': {
-      // Tag: Heute mit Stunden-Ticks (0h, 8h, 16h, 24h)
+      // Tag: Heute + offset mit Stunden-Ticks (0h, 8h, 16h, 24h)
       const today = new Date(now);
+      today.setDate(now.getDate() + offset);
       today.setHours(0, 0, 0, 0);
       
       [0, 8, 16, 24].forEach(hour => {
@@ -96,11 +98,11 @@ export function generateCategories(
     }
     
     case 'W': {
-      // Woche: Diese Woche (Mo bis heute)
+      // Woche: Diese Woche + offset (Mo bis heute)
       const dayOfWeek = now.getDay();
       const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
       const monday = new Date(now);
-      monday.setDate(now.getDate() - daysToMonday);
+      monday.setDate(now.getDate() - daysToMonday + (offset * 7));
       monday.setHours(0, 0, 0, 0);
       
       // Von Montag bis heute
@@ -114,8 +116,9 @@ export function generateCategories(
     }
     
     case 'M': {
-      // Monat: Aktueller Monat (1. bis heute)
+      // Monat: Aktueller Monat + offset (1. bis heute)
       const firstDay = new Date(now);
+      firstDay.setMonth(now.getMonth() + offset);
       firstDay.setDate(1);
       firstDay.setHours(0, 0, 0, 0);
       
@@ -138,10 +141,10 @@ export function generateCategories(
     }
     
     case '6M': {
-      // 6 Monate: Erster Tag jedes Monats über 6 Monate
+      // 6 Monate: Erster Tag jedes Monats über 6 Monate + offset
       for (let i = 5; i >= 0; i--) {
         const date = new Date(now);
-        date.setMonth(now.getMonth() - i);
+        date.setMonth(now.getMonth() - i + (offset * 6));
         date.setDate(1);
         date.setHours(0, 0, 0, 0);
         categories.push(date.toISOString().split('T')[0]);
@@ -150,10 +153,10 @@ export function generateCategories(
     }
     
     case 'J': {
-      // Jahr: Jeden 2. Monat über 12 Monate
+      // Jahr: Jeden 2. Monat über 12 Monate + offset
       for (let i = 11; i >= 0; i -= 2) {
         const date = new Date(now);
-        date.setMonth(now.getMonth() - i);
+        date.setMonth(now.getMonth() - i + (offset * 12));
         date.setDate(1);
         date.setHours(0, 0, 0, 0);
         categories.push(date.toISOString().split('T')[0]);
