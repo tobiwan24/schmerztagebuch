@@ -4,7 +4,7 @@ import type { Entry, Template } from '../types/database';
 import Header from '../components/Header';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, CircleSlash2, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronLeft, ChevronRight, TrendingUpDown } from 'lucide-react';
 import { ApexLineChart } from '../components/charts/ApexLineChart';
 import { 
   convertToApexSeries, 
@@ -228,20 +228,11 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
 
 
 
-  // Durchschnitt berechnen für Infobox
+  // Durchschnitt berechnen
   const calculateAverage = () => {
     if (dailyPainData.length === 0) return 0;
     const allValues = dailyPainData.flatMap(d => [d.avg]);
     return Math.round((allValues.reduce((a, b) => a + b, 0) / allValues.length) * 10) / 10;
-  };
-
-  // Datumsbereich formatieren für Infobox
-  const getDateRangeLabel = () => {
-    if (dailyPainData.length === 0) return '';
-    const dates = dailyPainData.map(d => new Date(d.date)).sort((a, b) => a.getTime() - b.getTime());
-    const start = dates[0];
-    const end = dates[dates.length - 1];
-    return `${start.toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })} – ${end.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })}`;
   };
 
   // Trend berechnen: aktuelle vs. vorherige Periode
@@ -249,39 +240,28 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     // Bei T zu wenig Daten für Trend
     if (timeRange === 'T') return { text: 'Ohne', icon: '', diff: '' };
     
-    // Cutoff-Dauer für aktuelle Periode bestimmen
-    const now = new Date();
-    let periodDays = 7;
-    switch (timeRange) {
-      case 'W': periodDays = 7; break;
-      case 'M': periodDays = 30; break;
-      case '6M': periodDays = 182; break;
-      case 'J': periodDays = 365; break;
-    }
+    // Wenn keine Daten vorhanden
+    if (dailyPainData.length === 0) return { text: 'Ohne', icon: '', diff: '' };
     
-    const currentStart = new Date(now);
-    currentStart.setDate(now.getDate() - periodDays);
-    const previousStart = new Date(currentStart);
-    previousStart.setDate(currentStart.getDate() - periodDays);
+    // Sortiere Daten nach Datum
+    const sortedData = [...dailyPainData].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
     
-    // Daten in aktuelle und vorherige Periode aufteilen
-    const currentData = dailyPainData.filter(d => {
-      const date = new Date(d.date);
-      return date >= currentStart && date <= now;
-    });
-    const previousData = dailyPainData.filter(d => {
-      const date = new Date(d.date);
-      return date >= previousStart && date < currentStart;
-    });
+    // Teile Daten in zwei Hälften: erste Hälfte vs. zweite Hälfte
+    const halfIndex = Math.floor(sortedData.length / 2);
+    const firstHalf = sortedData.slice(0, halfIndex);
+    const secondHalf = sortedData.slice(halfIndex);
     
-    // Mindestens 2 Datenpunkte in jeder Periode
-    if (currentData.length < 2 || previousData.length < 2) {
+    // Mindestens 2 Datenpunkte in jeder Hälfte
+    if (firstHalf.length < 2 || secondHalf.length < 2) {
       return { text: 'Ohne', icon: '', diff: '' };
     }
     
-    const currentAvg = currentData.reduce((sum, d) => sum + d.avg, 0) / currentData.length;
-    const previousAvg = previousData.reduce((sum, d) => sum + d.avg, 0) / previousData.length;
-    const diff = currentAvg - previousAvg;
+    // Durchschnitt der ersten vs. zweiten Hälfte
+    const firstAvg = firstHalf.reduce((sum, d) => sum + d.avg, 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((sum, d) => sum + d.avg, 0) / secondHalf.length;
+    const diff = secondAvg - firstAvg;
     
     if (Math.abs(diff) < 0.3) {
       return { text: 'Stabil', icon: '→', diff: '' };
@@ -348,7 +328,7 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
   };
 
   // Formatiere aktuellen Zeitraum für Anzeige
-  const formatCurrentTimeRange = (): string => {
+  const formatCurrentTimeRange = (short: boolean = false): string => {
     const now = new Date();
     
     switch (timeRange) {
@@ -356,6 +336,9 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
         // Heute + offset
         const targetDate = new Date(now);
         targetDate.setDate(now.getDate() + timeRangeOffset);
+        if (short) {
+          return targetDate.toLocaleDateString('de-DE', { day: '2-digit', month: 'short' });
+        }
         return targetDate.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' });
       }
       case 'W': {
@@ -377,6 +360,10 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
         // Aktueller Monat + offset
         const targetDate = new Date(now);
         targetDate.setMonth(now.getMonth() + timeRangeOffset);
+        if (short) {
+          const year = targetDate.getFullYear().toString().slice(-2);
+          return targetDate.toLocaleDateString('de-DE', { month: 'short' }) + ' ' + year;
+        }
         return targetDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
       }
       case '6M': {
@@ -434,86 +421,108 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '12px',
+              gap: '24px',
               marginTop: '8px'
             }}>
-              <button
-                onClick={handlePreviousTimeRange}
-                style={{
-                  background: 'hsl(var(--secondary))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '6px',
-                  padding: '4px 8px',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  color: 'hsl(var(--foreground))'
-                }}
-              >
-                ‹
-              </button>
-              <button
-                onClick={handleResetTimeRange}
-                disabled={timeRangeOffset === 0}
-                style={{ 
-                  textAlign: 'center', 
-                  fontSize: '13px', 
-                  color: timeRangeOffset === 0 ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-                  fontWeight: timeRangeOffset === 0 ? 600 : 500,
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: timeRangeOffset === 0 ? 'default' : 'pointer',
-                  padding: '4px 8px',
-                  textDecoration: timeRangeOffset === 0 ? 'none' : 'underline'
-                }}
-              >
-                {formatCurrentTimeRange()}
-              </button>
-              <button
-                onClick={handleNextTimeRange}
-                style={{
-                  background: 'hsl(var(--secondary))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '6px',
-                  padding: '4px 8px',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  color: 'hsl(var(--foreground))'
-                }}
-              >
-                ›
-              </button>
+              {/* LINKS: Durchschnitt */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: 'hsl(var(--foreground))'
+              }}>
+                <CircleSlash2 size={18} strokeWidth={2.5} style={{ color: '#000000' }} />
+                <span style={{ fontSize: '17px', fontWeight: '700' }}>
+                  {dailyPainData.length > 0 ? calculateAverage() : '–'}
+                </span>
+              </div>
+
+              {/* MITTE: < Datum > Navigation */}
+              <div style={{ 
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <button
+                  onClick={handlePreviousTimeRange}
+                  style={{
+                    background: 'hsl(var(--secondary))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px',
+                    padding: '4px 8px',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    color: 'hsl(var(--foreground))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  onClick={handleResetTimeRange}
+                  disabled={timeRangeOffset === 0}
+                  className={styles.dateRangeButton}
+                >
+                  <span className={styles.dateRangeFull}>{formatCurrentTimeRange(false)}</span>
+                  <span className={styles.dateRangeShort}>{formatCurrentTimeRange(true)}</span>
+                </button>
+                <button
+                  onClick={handleNextTimeRange}
+                  style={{
+                    background: 'hsl(var(--secondary))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px',
+                    padding: '4px 8px',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    color: 'hsl(var(--foreground))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+
+              {/* RECHTS: Trend */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: 'hsl(var(--foreground))'
+              }}>
+                {dailyPainData.length > 0 && (() => {
+                  const trend = calculateTrend();
+                  if (trend.text === 'Ohne') {
+                    return (
+                      <TrendingUpDown size={18} style={{ color: '#000000' }} strokeWidth={2.5} />
+                    );
+                  }
+                  
+                  const TrendIcon = trend.icon === '↗' ? ArrowUpRight : trend.icon === '↘' ? ArrowDownRight : ArrowRight;
+                  const trendColor = trend.icon === '↗' ? '#ef4444' : trend.icon === '↘' ? '#10b981' : 'hsl(var(--muted-foreground))';
+                  
+                  return (
+                    <>
+                      <TrendIcon size={18} style={{ color: trendColor }} strokeWidth={2.5} />
+                      {trend.diff && (
+                        <span style={{ fontSize: '15px', fontWeight: '700', color: trendColor }}>
+                          {trend.diff}
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
             </div>
           </div>
 
           {/* Chart */}
           {dashboardTemplates.length > 0 ? (
             <div className="space-y-3">
-
-              {/* Info-Box OBERHALB Chart */}
-              {dailyPainData.length > 0 && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 16px',
-                  background: 'hsl(var(--secondary) / 0.5)',
-                  borderRadius: '12px',
-                  marginBottom: '8px'
-                }}>
-                  <div>
-                    <div style={{ fontSize: '11px', color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      DURCHSCHNITT
-                    </div>
-                    <div style={{ fontSize: '28px', fontWeight: '700', lineHeight: '1.2' }}>
-                      {calculateAverage()}
-                      <span style={{ fontSize: '16px', fontWeight: '400', marginLeft: '4px', color: 'hsl(var(--muted-foreground))' }}>Punkte</span>
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'hsl(var(--muted-foreground))', marginTop: '2px' }}>
-                      {getDateRangeLabel()}
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* ApexCharts */}
               <div className={styles.chartContainer}>

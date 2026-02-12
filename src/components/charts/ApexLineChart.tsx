@@ -119,7 +119,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
       },
       yaxis: {
         min: 0,
-        max: 10,
+        max: 10.5,
         tickAmount: 5,
         labels: {
           offsetX: -5, // Labels näher an Chart
@@ -161,11 +161,16 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         },
       },
       tooltip: {
+        enabled: true,
         theme: isDarkMode ? 'dark' : 'light',
+        shared: false,
+        intersect: true,
         x: {
-          formatter: (value: number) => {
-            return formatTooltipDate(new Date(value).toISOString(), timeRange);
-          },
+          show: false,  // Datums-Marker unter X-Achse ausblenden
+          format: undefined,
+        },
+        marker: {
+          show: false,  // Marker im Tooltip ausblenden
         },
         custom: ({ series: tooltipSeries, seriesIndex, dataPointIndex, w }) => {
           const dataPoint = w.globals.initialSeries[seriesIndex].data[dataPointIndex];

@@ -230,3 +230,54 @@
   font-weight: 600;
   color: var(--foreground);
 }
+
+/* ----------------------------------------
+   DATE RANGE BUTTON (Responsive)
+   ---------------------------------------- */
+
+.dateRangeButton {
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  color: var(--foreground);
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.dateRangeButton:disabled {
+  cursor: default;
+  font-weight: 600;
+}
+
+.dateRangeButton:not(:disabled) {
+  text-decoration: underline;
+  color: var(--muted-foreground);
+}
+
+.dateRangeFull {
+  display: inline;
+}
+
+.dateRangeShort {
+  display: none;
+}
+
+/* Mobile: Kurze Datumsanzeige */
+@media (max-width: 480px) {
+  .dateRangeFull {
+    display: none;
+  }
+  
+  .dateRangeShort {
+    display: inline;
+  }
+  
+  .dateRangeButton {
+    font-size: 0.75rem;
+    max-width: 100px;
+  }
+}
