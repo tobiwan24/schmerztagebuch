@@ -235,7 +235,7 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     return Math.round((allValues.reduce((a, b) => a + b, 0) / allValues.length) * 10) / 10;
   };
 
-  // Trend berechnen: aktuelle vs. vorherige Periode
+  // Trend berechnen: Period-over-Period (aktuelle vs. vorherige Periode)
   const calculateTrend = (): { text: string; icon: string; diff: string } => {
     // Bei T zu wenig Daten für Trend
     if (timeRange === 'T') return { text: 'Ohne', icon: '', diff: '' };
@@ -243,26 +243,112 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     // Wenn keine Daten vorhanden
     if (dailyPainData.length === 0) return { text: 'Ohne', icon: '', diff: '' };
     
-    // Sortiere Daten nach Datum
-    const sortedData = [...dailyPainData].sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
+    const now = new Date();
     
-    // Teile Daten in zwei Hälften: erste Hälfte vs. zweite Hälfte
-    const halfIndex = Math.floor(sortedData.length / 2);
-    const firstHalf = sortedData.slice(0, halfIndex);
-    const secondHalf = sortedData.slice(halfIndex);
+    // Berechne Zeiträume basierend auf timeRange + timeRangeOffset
+    let currentStart = new Date();
+    let currentEnd = new Date();
+    let previousStart = new Date();
+    let previousEnd = new Date();
     
-    // Mindestens 2 Datenpunkte in jeder Hälfte
-    if (firstHalf.length < 2 || secondHalf.length < 2) {
+    switch (timeRange) {
+      case 'W': {
+        // Woche: Aktuelle Woche vs. Vorherige Woche
+        const dayOfWeek = now.getDay();
+        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        
+        // Aktuelle Periode (mit offset)
+        currentStart.setDate(now.getDate() - daysToMonday + (timeRangeOffset * 7));
+        currentStart.setHours(0, 0, 0, 0);
+        currentEnd.setDate(currentStart.getDate() + 6);
+        currentEnd.setHours(23, 59, 59, 999);
+        
+        // Vorherige Periode (1 Woche früher)
+        previousStart.setDate(currentStart.getDate() - 7);
+        previousStart.setHours(0, 0, 0, 0);
+        previousEnd.setDate(currentStart.getDate() - 1);
+        previousEnd.setHours(23, 59, 59, 999);
+        break;
+      }
+      case 'M': {
+        // Monat: Aktueller Monat vs. Vorheriger Monat
+        currentStart.setMonth(now.getMonth() + timeRangeOffset);
+        currentStart.setDate(1);
+        currentStart.setHours(0, 0, 0, 0);
+        currentEnd.setMonth(currentStart.getMonth() + 1);
+        currentEnd.setDate(0); // Letzter Tag des Monats
+        currentEnd.setHours(23, 59, 59, 999);
+        
+        // Vorheriger Monat
+        previousStart.setMonth(currentStart.getMonth() - 1);
+        previousStart.setDate(1);
+        previousStart.setHours(0, 0, 0, 0);
+        previousEnd.setMonth(previousStart.getMonth() + 1);
+        previousEnd.setDate(0);
+        previousEnd.setHours(23, 59, 59, 999);
+        break;
+      }
+      case '6M': {
+        // 6 Monate: Aktuelle 6 Monate vs. Vorherige 6 Monate
+        currentStart.setMonth(now.getMonth() - 5 + (timeRangeOffset * 6));
+        currentStart.setDate(1);
+        currentStart.setHours(0, 0, 0, 0);
+        currentEnd.setMonth(currentStart.getMonth() + 6);
+        currentEnd.setDate(0);
+        currentEnd.setHours(23, 59, 59, 999);
+        
+        // Vorherige 6 Monate
+        previousStart.setMonth(currentStart.getMonth() - 6);
+        previousStart.setDate(1);
+        previousStart.setHours(0, 0, 0, 0);
+        previousEnd.setMonth(previousStart.getMonth() + 6);
+        previousEnd.setDate(0);
+        previousEnd.setHours(23, 59, 59, 999);
+        break;
+      }
+      case 'J': {
+        // Jahr: Aktuelles Jahr vs. Vorheriges Jahr
+        currentStart.setMonth(now.getMonth() - 11 + (timeRangeOffset * 12));
+        currentStart.setDate(1);
+        currentStart.setHours(0, 0, 0, 0);
+        currentEnd.setMonth(currentStart.getMonth() + 12);
+        currentEnd.setDate(0);
+        currentEnd.setHours(23, 59, 59, 999);
+        
+        // Vorheriges Jahr
+        previousStart.setMonth(currentStart.getMonth() - 12);
+        previousStart.setDate(1);
+        previousStart.setHours(0, 0, 0, 0);
+        previousEnd.setMonth(previousStart.getMonth() + 12);
+        previousEnd.setDate(0);
+        previousEnd.setHours(23, 59, 59, 999);
+        break;
+      }
+    }
+    
+    // Filtere Daten für aktuelle Periode
+    const currentPeriodData = dailyPainData.filter(d => {
+      const date = new Date(d.date);
+      return date >= currentStart && date <= currentEnd;
+    });
+    
+    // Filtere Daten für vorherige Periode
+    const previousPeriodData = dailyPainData.filter(d => {
+      const date = new Date(d.date);
+      return date >= previousStart && date <= previousEnd;
+    });
+    
+    // Mindestens 2 Datenpunkte in jeder Periode
+    if (currentPeriodData.length < 2 || previousPeriodData.length < 2) {
       return { text: 'Ohne', icon: '', diff: '' };
     }
     
-    // Durchschnitt der ersten vs. zweiten Hälfte
-    const firstAvg = firstHalf.reduce((sum, d) => sum + d.avg, 0) / firstHalf.length;
-    const secondAvg = secondHalf.reduce((sum, d) => sum + d.avg, 0) / secondHalf.length;
-    const diff = secondAvg - firstAvg;
+    // Durchschnitt berechnen
+    const currentAvg = currentPeriodData.reduce((sum, d) => sum + d.avg, 0) / currentPeriodData.length;
+    const previousAvg = previousPeriodData.reduce((sum, d) => sum + d.avg, 0) / previousPeriodData.length;
+    const diff = currentAvg - previousAvg;
     
+    // Trend bestimmen
     if (Math.abs(diff) < 0.3) {
       return { text: 'Stabil', icon: '→', diff: '' };
     }
