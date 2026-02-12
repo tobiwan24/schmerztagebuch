@@ -94,6 +94,7 @@
   padding: 0.25rem 0;
   flex-wrap: wrap;
   margin-top: 0.75rem;
+  justify-content: center;
 }
 
 .templateIcon {
@@ -122,22 +123,6 @@
 .chartContainer {
   position: relative;
   width: 100%;
-  height: min(50vh, 300px);
-  min-height: 200px;
-  padding-right: 0;
-}
-
-@media (min-width: 640px) {
-  .chartContainer {
-    height: min(60vh, 400px);
-    min-height: 250px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .chartContainer {
-    height: min(50vh, 450px);
-  }
 }
 
 /* ----------------------------------------

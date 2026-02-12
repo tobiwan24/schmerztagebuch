@@ -151,7 +151,10 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         borderColor: 'hsl(var(--border))',
         strokeDashArray: 4,
         padding: {
-          left: 5, // Reduzierter linker Padding
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
         },
         xaxis: {
           lines: { show: false },
