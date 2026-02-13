@@ -67,6 +67,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
   const [newBlockLabel, setNewBlockLabel] = useState('');
   const [pendingEditBlockId, setPendingEditBlockId] = useState<string | null>(null);
   const [configuringDashboard, setConfiguringDashboard] = useState<string | null>(null);
+  const [showBlockPalette, setShowBlockPalette] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -149,6 +150,9 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
   }
 
   function handleAddBlock(type: BlockType) {
+    // Palette schließen
+    setShowBlockPalette(false);
+    
     if (type === 'multiselect') {
       const newBlock: Block = {
         id: generateUUID(),
@@ -509,8 +513,17 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                 onColorChange={handleColorChange}
               />
 
-              {/* Block Palette */}
-              <BlockPalette onAddBlock={handleAddBlock} />
+              {/* Floating Add Block Button */}
+              <div className="flex justify-center">
+                <Button
+                  onClick={() => setShowBlockPalette(true)}
+                  className="floating-add-block-btn"
+                  size="lg"
+                >
+                  <Plus size={20} className="mr-2" />
+                  Baustein hinzufügen
+                </Button>
+              </div>
 
               {/* Blocks List */}
               <DndContext 
@@ -551,13 +564,31 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
         </div>
       </div>
 
+      {/* Block Palette Modal */}
+      {showBlockPalette && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowBlockPalette(false)}>
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Baustein wählen</h3>
+              <Button onClick={() => setShowBlockPalette(false)} variant="ghost" size="icon" className="btn-touch-target">
+                <X size={18} />
+              </Button>
+            </div>
+
+            <div className="p-4">
+              <BlockPalette onAddBlock={handleAddBlock} />
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* Add Block Popup */}
       {showAddBlockPopup && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={handleCancelAddBlock}>
           <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="text-lg font-semibold">Block hinzufügen</h3>
-              <Button onClick={handleCancelAddBlock} variant="ghost" size="icon">
+              <Button onClick={handleCancelAddBlock} variant="ghost" size="icon" className="btn-touch-target">
                 <X size={18} />
               </Button>
             </div>
@@ -610,7 +641,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
             <Card className="w-full max-w-lg max-h-[90vh] flex flex-col my-auto" onClick={(e) => e.stopPropagation()}>
               <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
                 <h3 className="text-lg font-semibold">Block bearbeiten</h3>
-                <Button onClick={handleCancelBlockOptions} variant="ghost" size="icon">
+                <Button onClick={handleCancelBlockOptions} variant="ghost" size="icon" className="btn-touch-target">
                   <X size={18} />
                 </Button>
               </div>
@@ -719,6 +750,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                                 onClick={() => handleRemoveButton(idx)}
                                 variant="ghost"
                                 size="icon"
+                                className="btn-touch-target"
                               >
                                 <Trash2 size={16} className="text-destructive" />
                               </Button>

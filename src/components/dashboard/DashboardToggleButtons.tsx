@@ -28,8 +28,8 @@ export default function DashboardToggleButtons({
         onClick={() => onToggle(block.id)} 
         variant={isDashboardEnabled ? "ghost" : "ghost"}
         size="icon"
+        className={`btn-touch-target ${isDashboardEnabled ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
         title={isDashboardEnabled ? "Im Dashboard anzeigen" : "Nicht im Dashboard"}
-        className={isDashboardEnabled ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}
       >
         <BarChart3 size={16} />
       </Button>
@@ -38,6 +38,7 @@ export default function DashboardToggleButtons({
           onClick={() => onConfigure(block.id)}
           variant="ghost"
           size="icon"
+          className="btn-touch-target"
           title="Dashboard konfigurieren"
         >
           <Settings size={14} />

@@ -8,369 +8,732 @@
 
 ### Branch-Struktur:
 - **`main`** - Produktions-Stand (stabil, nur Merges von develop)
-- **`develop`** - Haupt-Entwicklungs-Branch (bereits angelegt via `git checkout -b develop` + `git push -u origin develop`)
-- **`feature/*`** - Feature-Branches (z.B. `feature/dashboard-v2-migration`, `feature/template-editor-bulk-actions`)
-- **`bugfix/*`** - Bugfix-Branches (z.B. `bugfix/dashboard-lines-not-showing`)
-- **`hotfix/*`** - Dringende Fixes auf main (z.B. `hotfix/data-loss-ios`)
-
-### Workflow für neue Features:
-```bash
-# 1. Vom develop-Branch aus neuen Feature-Branch erstellen
-git checkout develop
-git pull origin develop
-git checkout -b feature/dashboard-v2-migration
-
-# 2. Während der Entwicklung: Oft committen!
-git add .
-git commit -m "feat: ChartContainer implementation"
-git commit -m "fix: color mapping for template lines"
-git commit -m "refactor: extract chart config to hook"
-
-# 3. Feature fertig: Push und Merge Request
-git push -u origin feature/dashboard-v2-migration
-# → Merge Request auf GitHub/GitLab erstellen: feature/* → develop
-
-# 4. Nach Merge: Branch lokal löschen
-git checkout develop
-git pull origin develop
-git branch -d feature/dashboard-v2-migration
-```
+- **`develop`** - Haupt-Entwicklungs-Branch
+- **`feature/*`** - Feature-Branches (z.B. `feature/editor-ux-improvements`)
+- **`bugfix/*`** - Bugfix-Branches (z.B. `bugfix/touch-scrolling`)
+- **`hotfix/*`** - Dringende Fixes auf main
 
 ### Commit-Konventionen (Conventional Commits):
 - `feat:` - Neues Feature
 - `fix:` - Bugfix
-- `refactor:` - Code-Umstrukturierung ohne Funktionsänderung
+- `refactor:` - Code-Umstrukturierung
 - `style:` - CSS/UI Änderungen
-- `docs:` - Dokumentation (README, Roadmap)
-- `test:` - Tests hinzufügen/ändern
+- `docs:` - Dokumentation
+- `test:` - Tests
 - `chore:` - Build, Dependencies, Config
 
-### Branch-Naming:
-- **Feature:** `feature/dashboard-v2-migration`, `feature/bulk-actions-template-editor`
-- **Bugfix:** `bugfix/dashboard-lines-color`, `bugfix/touch-scrolling-editor`
-- **Hotfix:** `hotfix/critical-data-loss`
-
-**Claude erinnert sich:** Bei jedem neuen Feature/Task wird ein neuer Branch erstellt und häufig committed!
-
 ---
 
-## ✅ Phase 1: Core Features (KOMPLETT)
+## ✅ ABGESCHLOSSENE PHASEN
+
+### Phase 1-4: Core Features & Layout (KOMPLETT)
 - [x] Database Schema (IndexedDB/Dexie)
-- [x] Template System
-- [x] Block-Komponenten (Slider, TextArea, Date, Checkbox, MultiSelect)
-- [x] Diary View mit Tab-Navigation
-- [x] Editor Mode mit Drag & Drop
-- [x] Template Style Picker (Icon + Farbe)
-- [x] History View mit Filterung
+- [x] Template System mit Blocks
+- [x] DiaryView mit Glassmorphismus
+- [x] Template-Editor mit Drag & Drop
 
-## ✅ Phase 2: Advanced Features (KOMPLETT)
-- [x] Encryption Support (AES-256)
-- [x] Session Management
-- [x] Settings Page
-- [x] Template Export/Import
-- [x] Entry Export (PDF)
-
-## ✅ Phase 3: Dashboard & Analytics (KOMPLETT - außer v2)
-- [x] Dashboard Page (Recharts Legacy)
-- [x] Pain Data Aggregation
-- [x] Line Chart mit Multi-Template Support
-- [x] Event/Arztbesuch Tracking
-- [x] Event Icons auf Chart-Datenpunkten
-- [x] Template Toggle (Sichtbarkeit)
-- [x] Zeitraum-Filter (7d/1m/3m/all)
-- [x] DatePicker Range-Support (Zeiträume)
-
-## ✅ Phase 4: Layout-Umstrukturierung & Glassmorphismus (KOMPLETT)
-
-### A) DiaryView: Glassmorphismus + Pull-to-Reveal ✅ KOMPLETT
-### B) Template-Editor: Direkter Einstieg & Glassmorphismus ✅ KOMPLETT
-
-## ✅ Phase 4.5: UI & Workflow Verbesserungen (KOMPLETT)
-- [x] Empty State konsolidieren
-- [x] Pull-to-Reveal Console Logs entfernen
-- [x] DiaryView Scrollable Layout Fix
-- [x] "Personalisieren" im Hamburger-Menü
-
----
-
-## ✅ Phase 5: Dashboard UI Improvements (KOMPLETT)
-**Branch:** `feature/dashboard-ui-improvements`  
-**Status:** ✅ ABGESCHLOSSEN (12.02.2026)
-
-- [x] Lucide Icons für Navigation (ChevronLeft/Right)
-- [x] Durchschnitt-Anzeige mit CircleSlash2 Icon (links vom Datum)
-- [x] Trend-Anzeige mit Arrow-Icons (rechts vom Datum)
-- [x] Period-over-Period Trendberechnung (aktuell vs. vorherige Periode)
-- [x] Icon strokeWidth 2.5 für bessere Sichtbarkeit
-- [x] Y-Achse max auf 10.5 für Event-Icon Spacing
-- [x] Tooltip Datumsmarker entfernt
-- [x] Responsive Datumsanzeige (kurz auf Mobile <480px)
+### Phase 5: Dashboard UI (KOMPLETT - 12.02.2026)
+- [x] ApexCharts Migration
+- [x] Period-over-Period Trendberechnung
+- [x] Responsive Datumsanzeige
+- [x] Template-Legend zentriert
+- [x] Chart-Container flexible Height
 - [x] DB Version 11
 
 ---
 
-## 🔥 Phase 6: Template-Editor Workflow & Dashboard v2 (HIGH PRIO - IN ARBEIT)
-**Priorität:** KRITISCH - Aktuelles Dashboard funktioniert nicht richtig!
+## 🔥 PHASE 6: TEMPLATE-EDITOR UX IMPROVEMENTS (HIGH PRIO)
 
-### 1. Dashboard v2: Migration zu shadcn/ui Charts ⚠️ KRITISCH
-**Branch:** `bugfix/dashboard-lines-color` oder `feature/dashboard-v2-migration`
+**Kontext:** EditorMode ist Bearbeitungsmodus (nicht regelmäßig genutzt), DiaryView ist Standard-Nutzung  
+**Basis:** UX-Analyse vom 12.02.2026 (12 Probleme identifiziert, 15 Verbesserungen erarbeitet)  
+**Prinzip:** Template-Editor hat KEINE inhaltliche Hierarchie - User bestimmt Flow durch Reihenfolge (Top → Down)
 
-**Problem:** Aktuelles Dashboard nutzt direktes Recharts OHNE shadcn/ui Patterns → **Lines werden nicht angezeigt!**
+### 6.1: Quick Wins (1h)
+**Branch:** `feature/editor-quick-wins`
 
-**Status:**
-- ✅ shadcn/ui chart Komponente installiert (`/src/components/ui/chart.tsx`)
-- ✅ Recharts 2.15.4 vorhanden
-- ❌ Dashboard verwendet NICHT shadcn/ui Patterns
-- ❌ CSS Variable Problem bei Line-Colors
+- [ ] **Touch Target Größe erhöhen (KRITISCH)**
+  - Alle Buttons: min 44x44px (Apple HIG Standard)
+  - Padding von 8px → 12px
+  - Spacing zwischen Buttons anpassen
+  - **Aufwand:** 30 Min
+  - **Commit:** `style: increase touch target sizes to 44x44px for mobile`
 
-**Was funktioniert bereits:**
-- ✅ Multi-Template Lines (Recharts-Logik)
-- ✅ Custom Event Icons mit `foreignObject`
-- ✅ Template Visibility Toggle
-- ✅ Zeitraum-Filter (7d/1m/3m/all)
+- [ ] **Collapsible Block Palette**
+  - Palette nur bei Bedarf einblenden (spart Platz)
+  - Floating "+" Button statt permanente Palette
+  - Modal mit BlockPalette beim Klick
+  - **Aufwand:** 45 Min
+  - **Commit:** `feat: make block palette collapsible with floating button`
 
-**Migration-Tasks:**
+### 6.2: Visuelle Trennung & Bulk-Actions (2.5h)
+**Branch:** `feature/editor-visual-structure`
 
-- [ ] **A) Chart-Struktur migrieren**
-  - ResponsiveContainer → ChartContainer
-  - ChartConfig dynamisch aus templates erstellen
-  - ChartTooltip mit ChartTooltipContent
-  - **Zeile:** DashboardView.tsx (~200-400)
-  - **Commit:** `feat: migrate to shadcn/ui ChartContainer`
+**WICHTIG:** Keine inhaltliche Hierarchie bei Blocks - alle Blocks gleich wichtig, User-Reihenfolge = Flow
 
-- [ ] **B) Farb-Mapping fixen** ⚠️ KRITISCH
-  - **Problem:** `var(--color-template_${template.id}_avg)` funktioniert nicht
-  - **Lösung:** Direkte Farben aus chartConfig nutzen
-  - Template.color → chartConfig → Line stroke
-  - Debug-Logging entfernen nach Fix
-  - **Zeile:** DashboardView.tsx (~295-350)
-  - **Commit:** `fix: use direct colors from chartConfig for line strokes`
+- [ ] **Template-Settings einklappbar machen**
+  - Accordion/Collapsible für Template-Einstellungen
+  - Weniger Padding (verschlanken)
+  - Klar abgegrenzt von Bausteine-Bereich
+  - **Design:**
+    ```
+    ▼ Template-Einstellungen     ← Einklappbar
+      Name: [...]
+      Icon: [...] Farbe: [...]
+    ──────────────────────────
+    Bausteine (3)               ← Section Header
+    Reihenfolge = Ausfüll-Flow ↓ ← Hint
+    [+ Hinzufügen]
+    ```
+  - **Aufwand:** 45 Min
+  - **Commit:** `feat: make template settings collapsible and slim`
 
-- [ ] **C) UI-Verbesserungen**
-  - Badge-Toggle statt große Buttons (kompakter)
-  - Dots nur bei Hover (cleaner)
-  - Nur horizontale Grid-Linien
-  - CardHeader/CardTitle Struktur
-  - **Komponenten:** Card, Badge aus shadcn/ui
-  - **Commit:** `style: improve dashboard UI with badges and cleaner grid`
+- [ ] **Section Header für Bausteine**
+  - "Bausteine (X)" mit Counter
+  - Hint: "Reihenfolge = Ausfüll-Reihenfolge im Tagebuch"
+  - Border-Bottom zur Abgrenzung
+  - **Aufwand:** 15 Min
+  - **Commit:** `feat: add section header for blocks area`
 
-- [ ] **D) Testing**
-  - Multi-Template Charts mit echten Daten
-  - Event-Icons funktionieren noch
-  - Mobile Responsiveness
-  - Performance mit 100+ Einträgen
-  - **Commit:** `test: verify dashboard functionality with real data`
+- [ ] **Spacing-Abstufung implementieren**
+  - Template-Settings: margin-bottom 32px
+  - Section Header: padding-bottom 16px
+  - Blocks: space-y-4 (16px) - ALLE GLEICH
+  - **Aufwand:** 10 Min
+  - **Commit:** `style: implement spacing hierarchy between sections`
 
-**Technische Details:**
-```tsx
-// VORHER (funktioniert nicht):
-<ResponsiveContainer>
-  <Line stroke={`var(--color-template_${id}_avg)`} />
-</ResponsiveContainer>
+- [ ] **Bulk-Actions Panel im Header**
+  - Position: Im Template-Header (über Template-Settings)
+  - Zwei Toggles:
+    - "Alle in Dashboard" (aktiviert/deaktiviert dashboard.enabled für ALLE Slider/BodyMap)
+    - "Alle Labels ausblenden" (aktiviert/deaktiviert hideLabelInDiary für ALLE Blocks)
+  - Counter: "X von Y aktiv"
+  - Indeterminate State bei teilweiser Aktivierung
+  - **Aufwand:** 1h
+  - **Commit:** `feat: add bulk actions panel in header`
 
-// NACHHER (shadcn/ui Pattern):
-<ChartContainer config={chartConfig}>
-  <Line stroke={chartConfig[key]?.color || template.color} />
-</ChartContainer>
+**WICHTIG:** Alle Blocks behalten Preview-Rendering (unterscheidbar trotz gleichem Layout)
+
+### 6.3: Block-Aktionen Vereinfachung (1.5h)
+**Branch:** `feature/block-actions-simplified`
+
+**Ziel:** Weniger permanente Buttons, schlanke PWA
+
+**VARIANTE A (PRIMÄR - BESCHLOSSEN):**
+
+- [ ] **Toggle "Erweiterte Ansicht" im Header**
+  - Button im Header: "Einfach" / "Erweitert"
+  - State: `showAdvancedActions` (boolean)
+  - **Standard (Einfach):**
+    - Nur Dashboard + Eye Toggle sichtbar
+    - Edit/Delete via Context-Menu erreichbar
+  - **Erweitert:**
+    - ALLE Buttons erscheinen am rechten Rand der Blöcke
+    - Edit + Delete Buttons zusätzlich sichtbar
+  - **Aufwand:** 30 Min
+  - **Commit:** `feat: add advanced view toggle for block actions`
+
+- [ ] **Context-Menu für Edit/Delete**
+  - Right-Click (Desktop) öffnet Context-Menu
+  - Long-Press 500ms (Mobile) öffnet Context-Menu
+  - Menu-Einträge:
+    - "Bearbeiten" (Edit)
+    - "Löschen" (Delete)
+  - shadcn/ui ContextMenu Komponente
+  - **Aufwand:** 45 Min
+  - **Commit:** `feat: add context menu for block edit and delete`
+
+- [ ] **Conditional Button Rendering**
+  - Dashboard + Eye Toggle: Immer sichtbar
+  - Edit + Delete: Nur bei `showAdvancedActions === true`
+  - Button-Position: Rechter Rand (flex justify-end)
+  - **Aufwand:** 15 Min
+  - **Commit:** `feat: implement conditional button rendering based on view mode`
+
+**VARIANTE B (FALLBACK - NOTIERT FÜR SPÄTERE ENTSCHEIDUNG):**
+
+Sollte Variante A zu komplex werden oder User bevorzugt minimalistischeren Ansatz:
+- KEINE permanenten Edit/Delete Buttons (auch nicht in Erweitert-Modus)
+- NUR Context-Menu (Right-Click/Long-Press) für Edit/Delete
+- Dashboard + Eye Toggle bleiben immer sichtbar
+- **Vorteil:** Noch schlanker, minimaler Code
+- **Nachteil:** Hidden Gesture (nicht sofort erkennbar)
+
+**Status:** Notiert, nicht implementiert (Fallback falls Variante A nicht überzeugt)
+
+### 6.4: Modal-System Vereinheitlichung (2h)
+**Branch:** `refactor/modal-components`
+
+**Problem:** 3 verschiedene Modal-Typen inkonsistent
+
+- [ ] **Brainstorming: Modal-System**
+  - Analyse aktueller Modal-Typen:
+    1. Add Block Popup (kleines Modal)
+    2. Block Options Modal (großes Modal)
+    3. Dashboard Config Modal (separate Komponente)
+  - BaseModal Komponente konzipieren
+  - Shared Props & Styling definieren
+  - Konsistente Patterns dokumentieren
+  - **Aufwand:** 30 Min
+  - **Commit:** `docs: document modal system refactoring plan`
+
+- [ ] **BaseModal Komponente implementieren**
+  - Gemeinsame BaseModal mit Props:
+    - `size`: 'sm' | 'md' | 'lg'
+    - `title`: string
+    - `onClose`: () => void
+  - Konsistente Close/Cancel Patterns
+  - Keyboard Shortcuts (Escape = Close)
+  - Konsistente Button-Positionen (rechts: Cancel, Primary)
+  - Backdrop mit onClick-Close
+  - **Aufwand:** 1h
+  - **Commit:** `refactor: create unified BaseModal component`
+
+- [ ] **Migration bestehender Modals**
+  - Add Block Modal → BaseModal
+  - Block Options Modal → BaseModal
+  - Dashboard Config Modal → BaseModal
+  - Props anpassen, Styles vereinheitlichen
+  - **Aufwand:** 30 Min
+  - **Commit:** `refactor: migrate existing modals to BaseModal`
+
+### 6.5: Template-Switcher (45 Min)
+**Branch:** `feature/template-switcher`
+
+**BESCHLOSSEN:** Buttons (keine Swipe-Geste)
+
+**Platz-Prüfung (durchgeführt):**
+- iPhone SE (375px): ✅ 335px verfügbar ≥ 282px benötigt
+- Android (360px): ✅ 320px verfügbar ≥ 282px benötigt
+- Template-Name zu lang: Text-Overflow ellipsis
+
+- [ ] **Navigation Buttons im Header**
+  - Layout: `◀ [Template-Name] ▶ [×]`
+  - Buttons nur sichtbar wenn `templates.length > 1`
+  - Previous/Next Navigation (zyklisch: letztes → erstes)
+  - Template-Name: Flexibel, text-overflow: ellipsis
+  - **Aufwand:** 30 Min
+  - **Commit:** `feat: add template navigation arrows in header`
+
+- [ ] **Template Switch Logic**
+  - State: `currentTemplateIndex`
+  - `handlePrevious()`: Index - 1 (wrap to end)
+  - `handleNext()`: Index + 1 (wrap to start)
+  - Template laden: `setSelectedTemplate(templates[newIndex])`
+  - Unsaved Changes Warning (falls aktiv)
+  - **Aufwand:** 15 Min
+  - **Commit:** `feat: implement template switch navigation logic`
+
+### 6.6: TextArea-Erweiterung (3h)
+**Branch:** `feature/textarea-file-upload`
+
+**Ziel:** Image-Block Funktionalität in TextArea integrieren
+
+**KONTEXT:**
+- Standard-Template: Datepicker (Pflicht) + TextArea (Optional)
+- TextArea als "Universal-Container" für Notizen + Events + Dateien
+- Daten-Entkopplung: Text/Events/Files alle optional
+- "Nur Foto"-Eintrag möglich (Text kann leer bleiben)
+
+**Tasks:**
+
+- [ ] **Foto & PDF Buttons hinzufügen**
+  - 4 Buttons: 📅 Event | 🩺 Doc | 📷 Foto | 📄 PDF
+  - Layout: Horizontal, nur Icons (keine Beschriftung)
+  - Touch Target: 44x44px, gap: 12px
+  - Tooltips für Klarheit
+  - Icons: Calendar, Stethoscope, Camera, FileText (lucide-react)
+  - **Aufwand:** 30 Min
+  - **Commit:** `feat: add photo and pdf buttons to textarea block`
+
+- [ ] **File-Upload Logik migrieren**
+  - Code aus ImageBlock übernehmen:
+    - File Input Handler
+    - Base64 Encoding (fileToBase64)
+    - File Types: `accept="image/*,application/pdf"`
+  - onClick Handler für Foto/PDF Buttons
+  - **Aufwand:** 45 Min
+  - **Commit:** `feat: migrate file upload logic from image block to textarea`
+
+- [ ] **File-Preview Component integrieren**
+  - Thumbnail-Grid unter TextArea
+  - Bild-Preview für Fotos (img src)
+  - PDF-Icon für PDFs (FileText Icon)
+  - Delete-Button pro Datei (× Icon)
+  - Responsive Grid: 2-3 Spalten je nach Breite
+  - **Aufwand:** 45 Min
+  - **Commit:** `feat: add file preview grid to textarea block`
+
+- [ ] **Block.value Schema erweitern**
+  ```typescript
+  interface TextAreaBlockValue {
+    text?: string;              // Optional
+    events?: EventData[];       // Bereits vorhanden
+    attachedFiles?: AttachedFile[]; // NEU
+  }
+  
+  interface AttachedFile {
+    id: string;
+    name: string;
+    type: 'image' | 'pdf';
+    data: string; // Base64
+    createdAt: string;
+  }
+  ```
+  - TypeScript Types aktualisieren in `types/blocks.ts`
+  - **Aufwand:** 15 Min
+  - **Commit:** `feat: extend textarea block value schema for attached files`
+
+- [ ] **Daten-Entkopplung implementieren**
+  - Text optional (kann leer sein)
+  - Events optional
+  - Dateien optional
+  - Alle kombinierbar
+  - Validierung: Entry ist valid auch wenn nur attachedFiles vorhanden
+  - **Aufwand:** 15 Min
+  - **Commit:** `feat: implement independent data handling in textarea`
+
+- [ ] **Image-Block aus Palette entfernen (Legacy)**
+  - BlockPalette.tsx: Image-Block Eintrag entfernen
+  - Code BEHALTEN in BlockRenderer (Legacy-Support)
+  - Kommentar hinzufügen: "// LEGACY: Image-Block für alte Templates"
+  - **Aufwand:** 10 Min
+  - **Commit:** `refactor: remove image block from palette (legacy support maintained)`
+
+- [ ] **Auto-Migration alter Templates**
+  - Migration-Funktion in `db.ts`:
+    ```typescript
+    function migrateImageBlocksToTextArea(template: Template): Template {
+      const migratedBlocks = template.blocks.map(block => {
+        if (block.type === 'image') {
+          return {
+            ...block,
+            type: 'textarea',
+            value: {
+              attachedFiles: block.value // Image-Daten übernehmen
+            }
+          };
+        }
+        return block;
+      });
+      return { ...template, blocks: migratedBlocks };
+    }
+    ```
+  - Bei `getTemplates()`: Auto-Migration durchführen
+  - Transparent für User, kein Datenverlust
+  - **Aufwand:** 20 Min
+  - **Commit:** `feat: auto-migrate image blocks to textarea on template load`
+
+**Button-Layout CSS:**
+```css
+.textarea-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  align-items: center;
+}
+
+.textarea-action-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.textarea-action-btn:hover {
+  background: var(--accent);
+  transform: translateY(-2px);
+}
 ```
 
----
+### 6.7: Standard-Template Auto-Generierung (30 Min)
+**Branch:** `feature/default-template-blocks`
 
-### 2. Template-Editor: Optimierter Block-Workflow
-**Branch:** `feature/template-editor-workflow-improvements`
+**Ziel:** Neue Templates starten mit Standard-Blöcken
 
-**A) Pflichtfeld-Workflow für neue Blöcke**
-- [ ] **Überschrift visuell als Pflichtfeld markieren**
-  - Roter Rahmen bei leerem Label
-  - Rot pulsierender Glow
-  - Visueller Hinweis "Überschrift erforderlich"
-  - **Komponente:** SortableBlock.tsx oder neues Modal
-  - **Commit:** `feat: add required field indicator for block labels`
-
-- [ ] **Auto-Focus auf Überschrift-Feld**
-  - Cursor springt direkt ins Input
-  - Keyboard öffnet sich auf Mobile
-  - **useEffect** nach Block-Erstellung
-  - **Commit:** `feat: auto-focus on label input for new blocks`
-
-- [ ] **Block-Validierung**
-  - Solange Label leer:
-    - Block kann nicht gespeichert werden
-    - Drag & Drop disabled
-    - Optional: Tooltip "Überschrift erforderlich"
-  - Sobald Label ausgefüllt:
-    - Rot-Markierung verschwindet
-    - Block vollständig editierbar
-  - **Commit:** `feat: validate block label before enabling drag/save`
-
-- [ ] **Testing**
-  - Alle Block-Typen testen (Slider, Text, MultiSelect, etc.)
-  - Mobile Touch-Optimierung
-  - Keyboard-Navigation
-  - **Commit:** `test: verify required field workflow for all block types`
-
-**B) Bulk-Actions: Global Toggles**
-**Branch:** `feature/template-editor-bulk-actions`
-
-- [ ] **UI-Komponente erstellen**
-  - Position: Unter TemplateStylePicker, vor BlockPalette
-  - Design: 2 kompakte Switches nebeneinander
-  - Icons: Activity (Dashboard) + EyeOff (Label)
-  - Labels: "Alle in Dashboard" / "Labels ausblenden"
-  - **Neue Komponente:** `BulkActionsPanel.tsx`
-  - **Commit:** `feat: create BulkActionsPanel component`
-
-- [ ] **"Alle Werte in Diagramme" Toggle**
-  - Funktion: Aktiviert/Deaktiviert `dashboard.enabled` für ALLE Slider/BodyMap Blocks
-  - Visuelles Feedback: "X von Y Blöcken Dashboard-aktiv"
-  - State: Halb-Selected wenn teilweise aktiviert
-  - onClick → alle Slider/BodyMap durchlaufen
-  - **Commit:** `feat: implement bulk toggle for dashboard.enabled`
-
-- [ ] **"Alle Überschriften ausblenden" Toggle**
-  - Funktion: Aktiviert/Deaktiviert `hideLabelInDiary` für ALLE Blocks
-  - Visuelles Feedback: "X von Y Labels ausgeblendet"
-  - Hilfreich für minimalistisches Diary-Layout
-  - onClick → alle Blocks durchlaufen
-  - **Commit:** `feat: implement bulk toggle for hideLabelInDiary`
-
-- [ ] **Integration**
-  - EditorMode.tsx: BulkActionsPanel einbinden (Zeile ~350)
-  - State-Management: editingBlocks updaten
-  - Undo/Redo (optional): Bulk-Change als eine Aktion
-  - Save-Button reagiert auf Änderungen
-  - **Commit:** `feat: integrate BulkActionsPanel into EditorMode`
-
-**C) Touch-Scrolling Fix**
-**Branch:** `bugfix/editor-touch-scrolling`
-
-- [ ] **DnD-Kit Touch-Sensor konfigurieren**
-  - Problem: Scrolling via Touch funktioniert nicht über DnD-Komponenten
-  - Lösung: `activationConstraint` in TouchSensor
-  - **Zeile:** EditorMode.tsx (~50-70)
-  - **Commit:** `fix: enable touch scrolling in editor with DnD`
-  ```tsx
-  useSensor(TouchSensor, {
-    activationConstraint: { 
-      delay: 200, 
-      tolerance: 5 
+- [ ] **Standard-Blöcke bei Template-Erstellung**
+  ```typescript
+  // EditorMode.tsx: handleCreateTemplate()
+  const defaultBlocks: Block[] = [
+    {
+      id: generateUUID(),
+      type: 'date',
+      label: 'Datum',
+      hideLabelInDiary: false,
+      value: undefined,
+      isDeletable: false, // PFLICHT - kann nicht gelöscht werden
+    },
+    {
+      id: generateUUID(),
+      type: 'textarea',
+      label: 'Notizen',
+      hideLabelInDiary: false,
+      value: undefined,
+      isDeletable: true,  // OPTIONAL - kann gelöscht werden
     }
-  })
+  ];
+  
+  await createTemplate(name, defaultBlocks);
   ```
+  - **Aufwand:** 15 Min
+  - **Commit:** `feat: add default date and textarea blocks to new templates`
+
+- [ ] **isDeletable Property implementieren**
+  - Property zu Block Interface hinzufügen
+  - SortableBlock: Delete-Button disabled wenn `isDeletable === false`
+  - UI-Feedback: Tooltip "Pflicht-Block kann nicht gelöscht werden"
+  - Oder: Delete-Button komplett ausblenden bei Pflicht-Blöcken
+  - **Aufwand:** 15 Min
+  - **Commit:** `feat: implement isDeletable property for mandatory blocks`
+
+### 6.8: Icon Picker Lucide-Integration (1.5h) 🆕
+**Branch:** `feature/lucide-icon-picker`
+
+**Ziel:** Zugriff auf alle 1,500+ Lucide Icons mit Suchfunktion
+
+**KONTEXT:**
+- Aktuell: Wenige vordefinierte Icons
+- Lucide bereits installiert (lucide-react)
+- Tree-shakeable: Nur genutzte Icons im Bundle
+- Bundle-Size Impact: +10KB (nur Icon-Namen)
+
+**Tasks:**
+
+- [ ] **Icon-Namen extrahieren**
+  ```typescript
+  import * as LucideIcons from 'lucide-react';
+  
+  const iconNames = Object.keys(LucideIcons).filter(
+    key => typeof LucideIcons[key] === 'function'
+  );
+  ```
+  - Alle verfügbaren Icon-Namen sammeln
+  - Filtern: Nur Komponenten, keine Utils
+  - **Aufwand:** 15 Min
+  - **Commit:** `feat: extract lucide icon names for picker`
+
+- [ ] **Icon-Browser UI erstellen**
+  - Modal/Popover mit Icon-Grid
+  - Search-Input oben
+  - Grid: 6-8 Icons pro Zeile (responsive)
+  - Scroll-Container für alle Icons
+  - Aktuell ausgewähltes Icon highlighten
+  - **Aufwand:** 45 Min
+  - **Commit:** `feat: create icon browser UI with grid layout`
+
+- [ ] **Search-Filter implementieren**
+  ```typescript
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  const filteredIcons = iconNames.filter(name =>
+    name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  ```
+  - Echtzeit-Suche (onChange)
+  - Case-insensitive
+  - Placeholder: "Icon suchen... (z.B. heart, star, user)"
+  - **Aufwand:** 15 Min
+  - **Commit:** `feat: implement icon search filter`
+
+- [ ] **Icon-Rendering & Selection**
+  ```tsx
+  {filteredIcons.map(iconName => {
+    const IconComponent = LucideIcons[iconName];
+    return (
+      <button 
+        key={iconName}
+        onClick={() => onIconSelect(iconName)}
+        className={selectedIcon === iconName ? 'selected' : ''}
+      >
+        <IconComponent size={24} />
+      </button>
+    );
+  })}
+  ```
+  - Dynamic Icon-Import
+  - Click-Handler für Selection
+  - Aktives Icon visuell markieren
+  - **Aufwand:** 15 Min
+  - **Commit:** `feat: implement icon rendering and selection`
+
+- [ ] **Integration in TemplateStylePicker**
+  - Aktuellen Icon-Picker ersetzen
+  - Button "Icon wählen" öffnet Lucide-Browser
+  - Selected Icon anzeigen
+  - Icon-Name speichern (z.B. "Heart" statt Emoji)
+  - **Aufwand:** 10 Min
+  - **Commit:** `feat: integrate lucide icon picker into template style picker`
+
+**WICHTIG:** Bundle-Size prüfen nach Implementierung (sollte ~10KB mehr sein)
 
 ---
 
-## 🎯 Phase 7: UX-Verbesserungen (MEDIUM PRIO)
-**Priorität:** MITTEL - Nice-to-have Features
+## 🎯 PHASE 7: PFLICHTFELD-WORKFLOW (MEDIUM PRIO)
 
-### 1. Verlauf-Page: Datenanzeige optimieren
-**Branch:** `feature/history-view-redesign`
+**Nach Phase 6 & Code Cleanup**  
+**Branch:** `feature/required-field-workflow`
 
-- [ ] **Brainstorming: Bessere User Experience**
-  - Problem analysieren: Was ist aktuell suboptimal?
-  - Darstellungsformate evaluieren: Timeline? Kalender? Liste?
-  - Filter-Optionen: Nach Template? Nach Datum? Nach Tags?
-  
-- [ ] **Design-Konzept erarbeiten**
-  - Wireframes/Mockups erstellen
-  - Performance berücksichtigen (große Datenmengen)
-  
-- [ ] **Implementierung**
-  - HistoryView.tsx überarbeiten
-  - Neue Filter-Komponenten
-  - Testing mit echten Daten
+### 7.1: Visuelle Pflichtfeld-Markierung (30 Min)
+- [ ] Roter Rahmen bei leerem Label
+- [ ] Pulsierender Glow-Effekt (CSS Animation)
+- [ ] Hint: "Überschrift erforderlich"
+- [ ] Nur bei neu erstellten Blocks (isNew Flag)
+- **Commit:** `feat: add required field indicator for empty block labels`
 
-### 2. PDF-Export: Datenpräsentation planen
-**Branch:** `feature/pdf-export-enhancement`
+### 7.2: Auto-Focus (15 Min)
+- [ ] useRef für Label-Input
+- [ ] useEffect: Focus wenn `block.isNew === true`
+- [ ] Keyboard öffnet auf Mobile (inputmode, autofocus)
+- [ ] 100ms Delay für Animation
+- **Commit:** `feat: auto-focus on label input for new blocks`
 
-- [ ] **Brainstorming: PDF-Layout & Inhalt**
-  - Welche Daten exportieren?
-  - Layout-Design (Tabelle? Diagramme?)
-  - Branding (Logo, Farben)
-  
-- [ ] **Technische Konzeption**
-  - Library evaluieren: jsPDF? pdfmake?
-  - Chart-Integration
-  
-- [ ] **Implementierung**
-  - PDF-Generator Utility
-  - Export-UI in HistoryView
+### 7.3: Validierung (30 Min)
+- [ ] Helper: `isBlockValid(block)` prüft Label nicht leer
+- [ ] Save-Button disabled wenn `hasInvalidBlocks`
+- [ ] Drag & Drop disabled für invalide Blocks
+- [ ] Visuelles Feedback: Disabled-Overlay
+- **Commit:** `feat: validate block labels before save and drag`
 
-### 3. Konsistentes UI-Design
-**Branch:** `refactor/ui-design-system`
-
-- [ ] Design-Audit durchführen
-- [ ] Inkonsistenzen identifizieren
-- [ ] Design-System definieren
-- [ ] CSS-Variablen zentralisieren
-- [ ] Testing (Mobile & Desktop)
+### 7.4: Testing (15 Min)
+- [ ] Alle Block-Typen testen
+- [ ] Mobile: Auto-Focus + Keyboard
+- [ ] Edge-Case: Label mit nur Leerzeichen
+- **Commit:** `test: verify required field workflow`
 
 ---
 
-## 🏠 Phase 8: Code Cleanup & Refactoring (BACKLOG)
-**Branch:** `chore/code-cleanup` oder einzelne Branches
+## 📚 PHASE 8: CODE CLEANUP (HIGH PRIO)
 
-### Ungenutzte Dateien entfernen:
-- [ ] `src/styles/utilities.css` (leer, nur Kommentar)
-- [ ] `src/components/TemplateEditor.tsx` (leer, nicht verwendet)
-- [ ] `filterEntriesByTimeRange` in `dashboardData.ts` (doppelt vorhanden)
+**VOR weiteren UX-Features durchführen**  
+**Branch:** `chore/code-cleanup`
 
-### CSS Konsolidierung:
-- [ ] `layout.css` prüfen (viele Klassen nicht mehr verwendet)
-- [ ] `Header.tsx` Komponente prüfen (evtl. obsolet)
-- [ ] `blocks.css` durchgehen auf ungenutzte Klassen
-
-### Code-Qualität:
-- [ ] TypeScript: Stricter types für Block.value
-- [ ] ESLint Warnings durchgehen
-- [ ] Duplicate Code refactoren
+### 8.1: Ungenutzte Dateien (30 Min)
+- [ ] `src/styles/utilities.css` löschen
+- [ ] `src/components/TemplateEditor.tsx` löschen
+- [ ] Doppelte `filterEntriesByTimeRange` in `dashboardData.ts` entfernen
 - [ ] Console.logs entfernen (außer Error-Logs)
+- [ ] Ungenutzte Imports bereinigen
+- **Commit:** `chore: remove unused files and clean up code`
+
+### 8.2: CSS Konsolidierung (1h)
+- [ ] `layout.css` prüfen: Ungenutzte Klassen entfernen
+- [ ] `blocks.css` prüfen: Ungenutzte Klassen entfernen
+- [ ] `Header.tsx` Komponente prüfen (evtl. obsolet?)
+- [ ] CSS-Variablen zentralisieren:
+  ```css
+  /* Spacing Scale */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* Touch Targets */
+  --touch-target-min: 44px;
+  --button-padding: 12px;
+  
+  /* Z-Index Layers */
+  --z-header: 10;
+  --z-floating: 20;
+  --z-modal-overlay: 50;
+  --z-modal-content: 51;
+  ```
+- **Commit:** `chore: consolidate CSS and add design tokens`
+
+### 8.3: TypeScript (45 Min)
+- [ ] Stricter types für `Block.value` (Union Types pro Block-Type)
+- [ ] ESLint Warnings beheben
+- [ ] Unused variables entfernen
+- [ ] `any` types ersetzen
+- **Commit:** `refactor: improve typescript types and fix lint warnings`
 
 ---
 
-## 🔮 Phase 9: Future Features - Datenpersistenz & mehr (BACKLOG)
-**Priorität:** NIEDRIG - Für spätere Release-Version
+## 🎨 PHASE 9: ONBOARDING (LOW PRIO)
 
-### Datenpersistenz: Cookie-Problem lösen
-**Branch:** `feature/data-persistence-solution`
+**NACH Code Cleanup**  
+**Branch:** `feature/onboarding-system`
 
-- [ ] **Problem-Analyse: IndexedDB & iOS**
-  - **Hauptproblem:** IndexedDB wird bei Browser-Cleanup gelöscht
-  - **Plattformen:** iPhone Safari, Android Chrome
-  - **Impact:** Kompletter Datenverlust möglich
+### 9.1: Template-Vorlagen (3h)
+- [ ] **Brainstorming: Welche Vorlagen?**
+  - "Kopfschmerz-Tagebuch" (Schmerzstärke, Medikamente, Trigger)
+  - "Migräne-Tracking" (Aura, Übelkeit, Dauer, Auslöser)
+  - "Chronischer Schmerz" (Schmerzskala, Aktivität, Schlaf, Stimmung)
+  - Template-JSONs vorbereiten
 
-- [ ] **Lösungsansätze evaluieren**
-  - File System Access API (nicht iOS-kompatibel)
-  - Automatischer Backup & Restore (machbar)
-  - Passwort-Manager Integration (zu prüfen)
-  - Cloud Sync (langfristig)
+- [ ] **Vorlagen-Galerie UI**
+  - Preview-Cards mit Template-Icon
+  - Kurzbeschreibung pro Vorlage
+  - "Von Vorlage starten" vs "Leer starten"
+  - Modal oder Onboarding-Screen
 
-- [ ] **Quick-Win: Export-Reminder**
-  - Nach X Einträgen: "Backup erstellen?" Notification
-  - Settings: "Backup erstellen" Button
-  - Import-Helper bei leerem DB
-  - Drag & Drop für .json Import
+- [ ] **Template-Import aus Vorlagen**
+  - Import-Funktion erweitern
+  - Vordefinierte JSONs laden
+  - Testing mit allen Vorlagen
 
-### Weitere Features:
-- [ ] BodyMapBlock Implementation (vollständig)
+### 9.2: Quick-Start Tutorial (4h)
+- [ ] **Tutorial-Konzept**
+  - Guided Tour durch Editor
+  - Interaktive Tooltips mit Highlights
+  - Step-by-Step: Template erstellen → Block hinzufügen → Speichern
+
+- [ ] **Tutorial-Implementierung**
+  - Overlay-System für Tooltips
+  - Highlight-Animation für Bereiche
+  - "Weiter" / "Überspringen" Buttons
+  - LocalStorage: Tutorial-Status speichern
+
+### 9.3: Empty States (1h)
+- [ ] **Editor Empty State**
+  - Anleitung statt "Noch keine Blöcke"
+  - Visuell ansprechende Illustration
+  - Call-to-Action: "Ersten Block hinzufügen"
+  - Hint: Reihenfolge = Ausfüll-Flow
+
+---
+
+## 🔮 PHASE 10: FUTURE FEATURES (VERY LOW PRIO)
+
+**Für spätere Versionen**
+
+### 10.1: Drag Visual Effects (1h)
+**Status:** Kosmetisch, nicht in v1.0 relevant
+
+- [ ] Dragging State: opacity 0.5, scale 1.05
+- [ ] Drop-Zone Highlight: border dashed, background tint
+- [ ] Smooth Transitions
+- **Commit:** `style: add visual feedback for drag and drop`
+
+### 10.2: Keyboard Shortcuts (1h)
+**Status:** Optional für Power-User
+
+- [ ] Ctrl+S = Save
+- [ ] Ctrl+Z = Undo (wenn Undo-System implementiert)
+- [ ] Escape = Modal schließen
+- [ ] Delete = Block löschen (wenn fokussiert)
+- **Commit:** `feat: add keyboard shortcuts for common actions`
+
+### 10.3: Undo/Redo System (2h)
+**Status:** Vorerst nicht gewünscht
+
+- [ ] History Stack implementieren
+- [ ] Undo/Redo Buttons im Header
+- [ ] Keyboard Shortcuts Integration
+- **Commit:** `feat: implement undo/redo system`
+
+### 10.4: MultiSelect Presets (Version 2.0+)
+**Status:** User schlägt konkrete Presets vor wenn gewünscht
+
+- [ ] Vordefinierte Button-Sets
+- [ ] Preset-Selector in Modal
+- [ ] Eigene Presets speichern
+
+### 10.5: Weitere Features
+- [ ] BodyMapBlock vollständig implementieren
 - [ ] Chart Export (Image/PDF)
-- [ ] Trend Analysis
 - [ ] Multi-Language Support (i18n)
 - [ ] Cloud Sync (E2E-verschlüsselt)
-- [ ] Data Import/Export (CSV, JSON)
 
 ---
 
-## 🐛 Known Issues / Tech Debt
+## 🐛 KNOWN ISSUES
+
 - [ ] **WICHTIG:** IndexedDB Datenverlust bei Cookie-Cleanup (iOS) - später lösen
 - [ ] Encryption: Event/Pain extraction in dashboardData.ts (decryptFn TODO)
-- [ ] TypeScript: Stricter types für Block.value
+- [ ] TypeScript: Stricter types für Block.value (→ Phase 8.3)
 - [ ] Performance: Große Entry-Mengen (>1000) können Charts verlangsamen
-- [ ] Homepage: Template-icons nicht automatisch mittig angeordnet, sondern links orientiert (bei z.B. 2 Templates)
-- [ ] Dashboard: Template-Legend Buttons zu weit unter Chart (Abstand reduzieren)
+- [ ] Homepage: Template-Icons nicht automatisch mittig angeordnet (bei z.B. 2 Templates)
+
+---
+
+## 📋 DESIGN-ENTSCHEIDUNGEN DOKUMENTIERT
+
+### UX-Analyse (12.02.2026)
+- **Durchgeführt:** Code-Review + Best-Practice Recherche
+- **Quellen:** Material Design, Apple HIG, Mobbin, LogRocket
+- **Ergebnis:** 12 Probleme identifiziert, 15 Verbesserungen erarbeitet
+- **Bewertung:** 6/10 (funktional, ausbaufähig)
+
+### User-Entscheidungen (12.02.2026)
+- ✅ **Drag Handle:** Behalten (sichtbar, nicht verstecken)
+- ✅ **Visuelle Trennung:** Sections (NICHT künstliche Hierarchie)
+- ✅ **Block-Aktionen:** Toggle "Einfach/Erweitert" (Variante A)
+  - Einfach: Nur Dashboard + Eye Toggle
+  - Erweitert: Alle Buttons am rechten Rand
+  - Context-Menu für Edit/Delete (immer verfügbar)
+  - Fallback (Variante B): Nur Context-Menu (notiert, nicht implementiert)
+- ✅ **Touch Targets:** 44x44px (Apple HIG)
+- ✅ **Collapsible Palette:** Floating "+" Button
+- ✅ **Modal-System:** Vereinheitlichen mit BaseModal
+- ✅ **TextArea:** Mit Foto/PDF Buttons (ersetzt Image-Block)
+- ✅ **Image-Block:** Legacy (Code behalten, aus Palette entfernt)
+- ✅ **Auto-Migration:** Alte Image-Blocks → TextArea
+- ✅ **Standard-Template:** Datepicker (Pflicht) + TextArea (Optional)
+- ✅ **Template-Switcher:** Buttons ◀ ▶ (keine Swipe-Geste)
+- ✅ **Icon Picker:** Lucide-Integration (1,500+ Icons + Suchleiste)
+- ✅ **Bulk-Actions:** In Header implementieren
+- ❌ **Block Duplication:** Nicht umsetzen
+- ❌ **Template Preview:** Nicht umsetzen
+- ❌ **Block-Numerierung:** Nicht umsetzen
+- ❌ **Keyboard Shortcuts:** Phase 10 (Optional)
+- ❌ **Undo/Redo:** Phase 10 (Vorerst nicht gewünscht)
+- 📅 **Onboarding:** Nach Cleanup (Phase 9)
+- 📅 **Drag Visual Effects:** Phase 10 (Low Prio)
+- 📅 **MultiSelect Presets:** Version 2.0+ (User schlägt vor)
+
+### Offene Design-Details
+- **Context-Menu Style:** shadcn/ui Standard oder Custom?
+- **Toggle Button Label:** "Einfach/Erweitert" oder Icons?
+- **Icon-Browser:** Modal oder Popover?
+
+---
+
+## 📊 AUFWANDS-SCHÄTZUNG PHASE 6
+
+| Sub-Phase | Aufwand | Priorität |
+|-----------|---------|-----------|
+| 6.1 Quick Wins | 1h | KRITISCH |
+| 6.2 Visuelle Trennung + Bulk-Actions | 2.5h | HOCH |
+| 6.3 Block-Aktionen | 1.5h | HOCH |
+| 6.4 Modal-System | 2h | MITTEL |
+| 6.5 Template-Switcher | 45 Min | MITTEL |
+| 6.6 TextArea-Erweiterung | 3h | HOCH |
+| 6.7 Standard-Template | 30 Min | NIEDRIG |
+| 6.8 Icon Picker Lucide | 1.5h | MITTEL |
+| **GESAMT** | **~13h** | - |
+
+---
+
+## 🎯 NÄCHSTE SCHRITTE
+
+**Phase 6 Ready to Start:**
+1. ✅ Alle Design-Entscheidungen getroffen
+2. ✅ Technische Machbarkeit geprüft
+3. ✅ Aufwand geschätzt
+4. ✅ Priorisierung klar
+
+**Empfohlene Reihenfolge:**
+1. Phase 6.1 (Quick Wins - 1h)
+2. Phase 6.2 (Struktur + Bulk-Actions - 2.5h)
+3. Phase 6.6 (TextArea-Erweiterung - 3h)
+4. Phase 6.7 (Standard-Template - 30 Min)
+5. Phase 6.3 (Block-Aktionen - 1.5h)
+6. Phase 6.8 (Icon Picker - 1.5h)
+7. Phase 6.5 (Template-Switcher - 45 Min)
+8. Phase 6.4 (Modal-System - 2h)
+
+**Dann:** Phase 8 (Code Cleanup) vor weiteren Features
 
 ---
 
 **Letzte Aktualisierung:** 12.02.2026  
-**Aktueller Stand:** Phase 5 komplett ✅  
-**Nächster Schritt:** Dashboard Template-Buttons Positionierung anpassen
+**Aktueller Stand:** Phase 5 komplett ✅, Phase 6 finalisiert und ready  
+**Nächster Schritt:** Phase 6.1 - Quick Wins implementieren  
+**Status:** ✅ ROADMAP FINALISIERT - READY FOR IMPLEMENTATION

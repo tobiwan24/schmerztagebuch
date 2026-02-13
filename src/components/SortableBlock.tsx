@@ -38,7 +38,8 @@ export default function SortableBlock({
       <div className="flex items-center gap-2 mb-3">
         {/* Drag Handle - DIV statt Button */}
         <div
-          className="flex items-center justify-center w-10 h-10 cursor-grab active:cursor-grabbing hover:bg-accent rounded-md transition-colors"
+          className="flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-accent rounded-md transition-colors"
+          style={{ minWidth: '44px', minHeight: '44px', width: '44px', height: '44px' }}
           {...attributes}
           {...listeners}
         >
@@ -52,7 +53,7 @@ export default function SortableBlock({
           {block.label}
         </span>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center button-group-touch">
           {/* Dashboard Toggle Buttons */}
           {onToggleDashboard && onConfigureDashboard && (
             <DashboardToggleButtons
@@ -66,6 +67,7 @@ export default function SortableBlock({
             onClick={() => onToggleHideLabel?.(block.id)} 
             variant="ghost"
             size="icon"
+            className="btn-touch-target"
             title={block.hideLabelInDiary ? "Label in Tagebuch anzeigen" : "Label in Tagebuch ausblenden"}
           >
             {block.hideLabelInDiary ? (
@@ -74,10 +76,10 @@ export default function SortableBlock({
               <Eye size={16} />
             )}
           </Button>
-          <Button onClick={onEdit} variant="ghost" size="icon" title="Bearbeiten">
+          <Button onClick={onEdit} variant="ghost" size="icon" className="btn-touch-target" title="Bearbeiten">
             <Edit size={16} />
           </Button>
-          <Button onClick={onDelete} variant="ghost" size="icon" title="Löschen">
+          <Button onClick={onDelete} variant="ghost" size="icon" className="btn-touch-target" title="Löschen">
             <Trash2 size={16} className="text-destructive" />
           </Button>
         </div>
