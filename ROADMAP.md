@@ -48,70 +48,72 @@
 **Basis:** UX-Analyse vom 12.02.2026 (12 Probleme identifiziert, 15 Verbesserungen erarbeitet)  
 **Prinzip:** Template-Editor hat KEINE inhaltliche Hierarchie - User bestimmt Flow durch Reihenfolge (Top → Down)
 
-### 6.1: Quick Wins (1h)
+### 6.1: Quick Wins (1h 15min) ✅ KOMPLETT
 **Branch:** `feature/editor-quick-wins`
+**Status:** Abgeschlossen (13.02.2026)
 
-- [ ] **Touch Target Größe erhöhen (KRITISCH)**
-  - Alle Buttons: min 44x44px (Apple HIG Standard)
-  - Padding von 8px → 12px
-  - Spacing zwischen Buttons anpassen
-  - **Aufwand:** 30 Min
-  - **Commit:** `style: increase touch target sizes to 44x44px for mobile`
+- [x] **Touch Target Größe erhöhen**
+  - Alle Icon-Buttons: 44x44px (Apple HIG Standard)
+  - Button-Spacing: 1px → 12px
+  - Klasse: `.btn-touch-target` in components.css
+  - **Commit:** `style: increase touch target sizes to 44x44px`
 
-- [ ] **Collapsible Block Palette**
+- [x] **Collapsible Block Palette**
   - Palette nur bei Bedarf einblenden (spart Platz)
   - Floating "+" Button statt permanente Palette
   - Modal mit BlockPalette beim Klick
-  - **Aufwand:** 45 Min
-  - **Commit:** `feat: make block palette collapsible with floating button`
+  - Grid 4→2 Spalten (optimiert für Modal-Breite)
+  - Auto-Close nach Block-Auswahl
+  - **Commit:** `feat: make block palette collapsible with modal`
 
-### 6.2: Visuelle Trennung & Bulk-Actions (2.5h)
+### 6.2: Visuelle Trennung & Bulk-Actions (2.5h) ✅ KOMPLETT
 **Branch:** `feature/editor-visual-structure`
+**Status:** Abgeschlossen (13.02.2026)
 
 **WICHTIG:** Keine inhaltliche Hierarchie bei Blocks - alle Blocks gleich wichtig, User-Reihenfolge = Flow
 
-- [ ] **Template-Settings einklappbar machen**
-  - Accordion/Collapsible für Template-Einstellungen
-  - Weniger Padding (verschlanken)
-  - Klar abgegrenzt von Bausteine-Bereich
-  - **Design:**
-    ```
-    ▼ Template-Einstellungen     ← Einklappbar
-      Name: [...]
-      Icon: [...] Farbe: [...]
-    ──────────────────────────
-    Bausteine (3)               ← Section Header
-    Reihenfolge = Ausfüll-Flow ↓ ← Hint
-    [+ Hinzufügen]
-    ```
-  - **Aufwand:** 45 Min
-  - **Commit:** `feat: make template settings collapsible and slim`
+- [x] **Template-Settings einklappbar & Bulk-Actions integriert**
+  - Collapsible Header mit Chevron-Icon
+  - Template-Name direkt editierbar (kein Label)
+  - Template-Icon: Bottom-Bar Style (3.5rem, Glassmorphismus)
+  - Bulk Actions inline: "Datenauswertung" + "Überschriften anzeigen"
+  - Checkboxen 4x4px, touch-friendly
+  - **Commit:** `feat: integrate bulk actions into collapsible template settings`
 
-- [ ] **Section Header für Bausteine**
-  - "Bausteine (X)" mit Counter
-  - Hint: "Reihenfolge = Ausfüll-Reihenfolge im Tagebuch"
-  - Border-Bottom zur Abgrenzung
-  - **Aufwand:** 15 Min
-  - **Commit:** `feat: add section header for blocks area`
+- [x] **Add-Block-Button: Personalisieren-Style**
+  - Volle Breite, 2px grüner Border (#10b981)
+  - 15% opacity Background, 25% on hover
+  - Icon 18px, text-sm, font-medium
+  - Wie "Seite personalisieren"-Button (DiaryView)
+  - **Commit:** `feat: redesign add block button in personalize style`
 
-- [ ] **Spacing-Abstufung implementieren**
-  - Template-Settings: margin-bottom 32px
-  - Section Header: padding-bottom 16px
-  - Blocks: space-y-4 (16px) - ALLE GLEICH
-  - **Aufwand:** 10 Min
-  - **Commit:** `style: implement spacing hierarchy between sections`
+- [x] **Spacing-System vereinheitlicht (16px)**
+  - Template-Settings Card: `margin-bottom: 1rem` (16px)
+  - Add-Block-Button Container: `margin-bottom + padding-bottom: 1rem` (16px)
+  - Main Container: `space-y-4` (16px)
+  - Blocks: `space-y-4` (16px)
+  - Content Padding-Top: `calc(3.5rem + 1rem)` (Header 56px + 16px)
+  - **Commit:** `style: unify spacing to 16px throughout editor`
 
-- [ ] **Bulk-Actions Panel im Header**
-  - Position: Im Template-Header (über Template-Settings)
-  - Zwei Toggles:
-    - "Alle in Dashboard" (aktiviert/deaktiviert dashboard.enabled für ALLE Slider/BodyMap)
-    - "Alle Labels ausblenden" (aktiviert/deaktiviert hideLabelInDiary für ALLE Blocks)
-  - Counter: "X von Y aktiv"
-  - Indeterminate State bei teilweiser Aktivierung
-  - **Aufwand:** 1h
-  - **Commit:** `feat: add bulk actions panel in header`
+- [x] **Border-Bottom Trennung**
+  - Subtile Linie unter Add-Block-Button
+  - Visuelle Trennung Header/Content
+  - **Commit:** `style: add border separator below add block button`
 
-**WICHTIG:** Alle Blocks behalten Preview-Rendering (unterscheidbar trotz gleichem Layout)
+- [x] **Color-Logik entfernt**
+  - `onColorChange` Prop entfernt aus TemplateStylePicker
+  - `handleColorChange` Funktion entfernt aus EditorMode
+  - Nur noch Icon-Auswahl, keine Template-Farben mehr
+  - **Commit:** `refactor: remove color logic from template settings`
+
+- [x] **CSS-Klassen statt Inline-Styles**
+  - `.template-icon-button` - Bottom-Bar Style (3.5rem, rund)
+  - `.template-icon-button-inner` - Icon Container
+  - `.add-block-button-container` - Container mit Border
+  - `.add-block-button` - Personalisieren-Style in Grün
+  - `.icon-picker-button` - Icon Picker Buttons (36x36px)
+  - Alle Inline-Styles in CSS überführt (außer dynamische Farben)
+  - **Commit:** `refactor: convert inline styles to CSS classes`
 
 ### 6.3: Block-Aktionen Vereinfachung (1.5h)
 **Branch:** `feature/block-actions-simplified`
