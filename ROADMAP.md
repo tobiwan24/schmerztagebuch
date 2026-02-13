@@ -115,41 +115,76 @@
   - Alle Inline-Styles in CSS überführt (außer dynamische Farben)
   - **Commit:** `refactor: convert inline styles to CSS classes`
 
-### 6.3: Block-Aktionen Vereinfachung (1.5h)
+### 6.3: Block-Aktionen Vereinfachung (3h) ✅ KOMPLETT
 **Branch:** `feature/block-actions-simplified`
-**Status:** In Bearbeitung (13.02.2026)
+**Status:** Abgeschlossen (13.02.2026)
 
 **Ziel:** Weniger permanente Buttons, schlanke PWA
-
-**VARIANTE A (PRIMÄR - BESCHLOSSEN):**
 
 - [x] **Toggle "Erweiterte Ansicht" im Header** ✅
   - 3. Checkbox in TemplateStylePicker: "Erweiterte Ansicht"
   - State: `showAdvancedActions` (boolean, default: false)
-  - **Standard (Checkbox aus):**
-    - ALLE Buttons ausgeblendet (saubere Ansicht)
-  - **Erweitert (Checkbox an):**
-    - ALLE Buttons sichtbar (Dashboard + Eye + Edit + Delete)
+  - **Standard (Checkbox aus):** ALLE Buttons ausgeblendet
+  - **Erweitert (Checkbox an):** Dashboard + Eye Toggle sichtbar
   - Conditional Rendering in SortableBlock implementiert
-  - **Aufwand:** 30 Min
   - **Commit:** `feat: add advanced view toggle for block actions`
 
-- [ ] **Context-Menu für Edit/Delete**
-  - Right-Click (Desktop) öffnet Context-Menu
-  - Long-Press 500ms (Mobile) öffnet Context-Menu
-  - Menu-Einträge:
-    - "Bearbeiten" (Edit)
-    - "Löschen" (Delete)
-  - shadcn/ui ContextMenu Komponente
-  - **Aufwand:** 45 Min
-  - **Commit:** `feat: add context menu for block edit and delete`
+- [x] **Dropdown-Menu für Edit/Delete** ✅
+  - ChevronDown Button rechts oben (immer sichtbar)
+  - Dropdown-Menu mit "Bearbeiten" + "Löschen"
+  - Edit/Delete Buttons komplett entfernt
+  - Konsistent mit Header-Pattern
+  - **Commit:** `feat: replace edit/delete buttons with dropdown menu`
 
-- [ ] **Conditional Button Rendering**
-  - Dashboard + Eye Toggle: Immer sichtbar
-  - Edit + Delete: Nur bei `showAdvancedActions === true`
-  - Button-Position: Rechter Rand (flex justify-end)
+### 6.3b: Inline-Edit & Collapsible Settings (2h)
+**Branch:** `feature/inline-edit-blocks`
+**Status:** Geplant (13.02.2026)
+
+**Ziel:** Block-Labels inline editierbar, Settings in Collapsible Containern
+
+- [ ] **Inline-Edit Labels (alle Block-Typen)**
+  - Label → Input Component (wie Template-Name)
+  - Variable Breite basierend auf Text-Länge
+  - onChange Handler → editingBlocks updaten
+  - **Aufwand:** 45 Min
+  - **Commit:** `feat: make block labels inline editable`
+
+- [ ] **Slider: Collapsible Edit-Container**
+  - Dropdown-Item "Bearbeiten" öffnet Container unter Label
+  - Chevron-Icon (auf/zu)
+  - Container: Min/Max/Step Inputs + Dashboard Toggle
+  - "Dashboard konfigurieren" Button entfernen
+  - **Aufwand:** 30 Min
+  - **Commit:** `feat: add collapsible settings container for slider block`
+
+- [ ] **BodyMap: Collapsible Edit-Container**
+  - Dropdown-Item "Bearbeiten" öffnet Container unter Label
+  - Container: Type-Selector (Schmerzwert/Funktionswert) + Dashboard Toggle
+  - "Dashboard konfigurieren" Button entfernen
+  - **Aufwand:** 30 Min
+  - **Commit:** `feat: add collapsible settings container for bodymap block`
+
+- [ ] **Date + TextArea: Dropdown conditional**
+  - Dropdown-Item "Bearbeiten" NICHT anzeigen (gibt es nichts zu bearbeiten)
+  - Nur "Löschen" im Dropdown
   - **Aufwand:** 15 Min
-  - **Commit:** `feat: implement conditional button rendering based on view mode`
+  - **Commit:** `feat: hide edit menu item for date and textarea blocks`
+
+### 6.3c: Lösch-Bestätigung & Image-Block Cleanup (30 Min)
+**Branch:** `feature/delete-confirmation`
+**Status:** Geplant (13.02.2026)
+
+- [ ] **Lösch-Bestätigung**
+  - Confirmation-Dialog bei "Löschen" Click
+  - Verhindert versehentliches Löschen
+  - **Aufwand:** 15 Min
+  - **Commit:** `feat: add confirmation dialog for block deletion`
+
+- [ ] **Image-Block aus Palette entfernen**
+  - Baustein "Bild" komplett aus BlockPalette entfernen
+  - Legacy-Support bereits vorhanden in BlockRenderer
+  - **Aufwand:** 15 Min
+  - **Commit:** `refactor: remove image block from palette`
 
 **VARIANTE B (FALLBACK - NOTIERT FÜR SPÄTERE ENTSCHEIDUNG):**
 

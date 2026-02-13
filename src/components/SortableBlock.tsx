@@ -4,7 +4,10 @@ import type { Block, BlockValue } from '../types/blocks';
 import BlockRenderer from './BlockRenderer';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { GripVertical, Edit, Trash2, Eye, EyeOff, ChevronDown } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { GripVertical, Edit, Trash2, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { DashboardToggleButtons } from './dashboard';
 import {
   DropdownMenu,
@@ -18,10 +21,14 @@ interface SortableBlockProps {
   onEdit: () => void;
   onDelete: () => void;
   onChange: (value: BlockValue) => void;
+  onLabelChange?: (blockId: string, newLabel: string) => void;
   onToggleHideLabel?: (blockId: string) => void;
   onToggleDashboard?: (blockId: string) => void;
   onConfigureDashboard?: (blockId: string) => void;
   showAdvancedActions?: boolean;
+  isExpanded?: boolean;
+  onSliderSettingsChange?: (blockId: string, settings: { min?: number; max?: number; step?: number }) => void;
+  onBodyMapTypeChange?: (blockId: string, type: 'pain' | 'function') => void;
 }
 
 export default function SortableBlock({ 
@@ -29,10 +36,14 @@ export default function SortableBlock({
   onEdit, 
   onDelete, 
   onChange,
+  onLabelChange,
   onToggleHideLabel,
   onToggleDashboard,
   onConfigureDashboard,
-  showAdvancedActions = false
+  showAdvancedActions = false,
+  isExpanded = false,
+  onSliderSettingsChange,
+  onBodyMapTypeChange
 }: SortableBlockProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: block.id });
 
@@ -54,12 +65,18 @@ export default function SortableBlock({
           <GripVertical size={18} className="text-muted-foreground" />
         </div>
 
-        <span 
-          className={`flex-1 text-sm font-medium ${block.hideLabelInDiary ? 'line-through opacity-50' : ''}`}
+        <Input
+          value={block.label}
+          onChange={(e) => onLabelChange?.(block.id, e.target.value)}
+          className={`text-sm font-medium flex-1 ${block.hideLabelInDiary ? 'line-through opacity-50' : ''}`}
+          placeholder="Block-Überschrift..."
           title={block.hideLabelInDiary ? "Label ausgeblendet in Tagebuch" : ""}
-        >
-          {block.label}
-        </span>
+          style={{ 
+            width: `${Math.max(block.label.length * 8 + 40, 100)}px`,
+            minWidth: '100px',
+            maxWidth: '100%'
+          }}
+        />
 
         {showAdvancedActions && (
           <div className="flex items-center button-group-touch">
@@ -100,10 +117,13 @@ export default function SortableBlock({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onEdit}>
-              <Edit size={16} className="mr-2" />
-              Bearbeiten
-            </DropdownMenuItem>
+            {/* Bearbeiten nur für Slider, BodyMap, MultiSelect */}
+            {['slider', 'bodymap', 'multiselect'].includes(block.type) && (
+              <DropdownMenuItem onClick={onEdit}>
+                <Edit size={16} className="mr-2" />
+                Bearbeiten
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={onDelete} className="text-destructive">
               <Trash2 size={16} className="mr-2" />
               Löschen
@@ -120,6 +140,94 @@ export default function SortableBlock({
           hideLabel={true}
         />
       </div>
+
+      {/* Collapsible Settings Container - nur für Slider & BodyMap */}
+      {isExpanded && block.type === 'slider' && (
+        <div className="mt-4 p-3 bg-secondary/20 rounded-lg space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <Label className="text-xs">Min</Label>
+              <Input
+                type="number"
+                value={block.min ?? 0}
+                onChange={(e) => onSliderSettingsChange?.(block.id, { min: Number(e.target.value) })}
+                className="mt-1"
+              />
+            </div>
+            <div className="flex-1">
+              <Label className="text-xs">Max</Label>
+              <Input
+                type="number"
+                value={block.max ?? 10}
+                onChange={(e) => onSliderSettingsChange?.(block.id, { max: Number(e.target.value) })}
+                className="mt-1"
+              />
+            </div>
+            <div className="flex-1">
+              <Label className="text-xs">Schritt</Label>
+              <Input
+                type="number"
+                value={block.step ?? 1}
+                onChange={(e) => onSliderSettingsChange?.(block.id, { step: Number(e.target.value) })}
+                className="mt-1"
+                step="0.1"
+              />
+            </div>
+          </div>
+          <Separator />
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id={`dashboard-${block.id}`}
+              checked={block.dashboard?.enabled ?? false}
+              onChange={() => onToggleDashboard?.(block.id)}
+              className="w-4 h-4 cursor-pointer"
+            />
+            <Label htmlFor={`dashboard-${block.id}`} className="text-sm cursor-pointer select-none">
+              Datenauswertung aktivieren
+            </Label>
+          </div>
+        </div>
+      )}
+
+      {isExpanded && block.type === 'bodymap' && (
+        <div className="mt-4 p-3 bg-secondary/20 rounded-lg space-y-3">
+          <div>
+            <Label className="text-sm mb-2 block">Dashboard-Typ</Label>
+            <div className="flex gap-2">
+              <Button
+                variant={block.dashboard?.type === 'pain' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => onBodyMapTypeChange?.(block.id, 'pain')}
+                className="flex-1"
+              >
+                Schmerzwert
+              </Button>
+              <Button
+                variant={block.dashboard?.type === 'function' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => onBodyMapTypeChange?.(block.id, 'function')}
+                className="flex-1"
+              >
+                Funktionswert
+              </Button>
+            </div>
+          </div>
+          <Separator />
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id={`dashboard-${block.id}`}
+              checked={block.dashboard?.enabled ?? false}
+              onChange={() => onToggleDashboard?.(block.id)}
+              className="w-4 h-4 cursor-pointer"
+            />
+            <Label htmlFor={`dashboard-${block.id}`} className="text-sm cursor-pointer select-none">
+              Datenauswertung aktivieren
+            </Label>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

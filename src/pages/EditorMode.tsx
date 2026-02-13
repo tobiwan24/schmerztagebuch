@@ -69,6 +69,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
   const [configuringDashboard, setConfiguringDashboard] = useState<string | null>(null);
   const [showBlockPalette, setShowBlockPalette] = useState(false);
   const [showAdvancedActions, setShowAdvancedActions] = useState(false);
+  const [expandedBlockIds, setExpandedBlockIds] = useState<Set<string>>(new Set());
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -364,10 +365,16 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
     const block = editingBlocks.find(b => b.id === blockId);
     if (!block) return;
     
-    setEditingBlockId(blockId);
-    setTempBlockLabel(block.label);
+    // Slider/BodyMap: Toggle collapsible container
+    if (block.type === 'slider' || block.type === 'bodymap') {
+      handleToggleBlockExpanded(blockId);
+      return;
+    }
     
+    // MultiSelect: Modal öffnen
     if (block.type === 'multiselect') {
+      setEditingBlockId(blockId);
+      setTempBlockLabel(block.label);
       setMultiSelectButtons(block.multiSelectOptions ? [...block.multiSelectOptions] : []);
       setNewButtonText('');
       setNewButtonColor('#007AFF');
@@ -466,6 +473,49 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
 
   function handleToggleAdvancedActions() {
     setShowAdvancedActions(!showAdvancedActions);
+  }
+
+  function handleLabelChange(blockId: string, newLabel: string) {
+    setEditingBlocks(editingBlocks.map(block =>
+      block.id === blockId ? { ...block, label: newLabel } : block
+    ));
+  }
+
+  function handleToggleBlockExpanded(blockId: string) {
+    setExpandedBlockIds(prev => {
+      const next = new Set(prev);
+      if (next.has(blockId)) {
+        next.delete(blockId);
+      } else {
+        next.add(blockId);
+      }
+      return next;
+    });
+  }
+
+  function handleSliderSettingsChange(blockId: string, settings: { min?: number; max?: number; step?: number }) {
+    setEditingBlocks(editingBlocks.map(block => {
+      if (block.id === blockId && block.type === 'slider') {
+        return { ...block, ...settings };
+      }
+      return block;
+    }));
+  }
+
+  function handleBodyMapTypeChange(blockId: string, dashboardType: 'pain' | 'function') {
+    setEditingBlocks(editingBlocks.map(block => {
+      if (block.id === blockId && block.type === 'bodymap') {
+        return {
+          ...block,
+          dashboard: {
+            ...block.dashboard,
+            enabled: true,
+            type: dashboardType
+          }
+        };
+      }
+      return block;
+    }));
   }
 
   if (isLoading) {
@@ -588,10 +638,14 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                           onEdit={() => handleEditBlockOptions(block.id)}
                           onDelete={() => handleDeleteBlock(block.id)}
                           onChange={(value) => handleBlockChange(block.id, value)}
+                          onLabelChange={handleLabelChange}
                           onToggleHideLabel={handleToggleHideLabel}
                           onToggleDashboard={handleToggleDashboard}
                           onConfigureDashboard={handleConfigureDashboard}
                           showAdvancedActions={showAdvancedActions}
+                          isExpanded={expandedBlockIds.has(block.id)}
+                          onSliderSettingsChange={handleSliderSettingsChange}
+                          onBodyMapTypeChange={handleBodyMapTypeChange}
                         />
                       ))
                     )}
