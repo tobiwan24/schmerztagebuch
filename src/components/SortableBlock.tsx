@@ -4,8 +4,14 @@ import type { Block, BlockValue } from '../types/blocks';
 import BlockRenderer from './BlockRenderer';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { GripVertical, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
+import { GripVertical, Edit, Trash2, Eye, EyeOff, ChevronDown } from 'lucide-react';
 import { DashboardToggleButtons } from './dashboard';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface SortableBlockProps {
   block: Block;
@@ -79,14 +85,31 @@ export default function SortableBlock({
                 <Eye size={16} />
               )}
             </Button>
-            <Button onClick={onEdit} variant="ghost" size="icon" className="btn-touch-target" title="Bearbeiten">
-              <Edit size={16} />
-            </Button>
-            <Button onClick={onDelete} variant="ghost" size="icon" className="btn-touch-target" title="Löschen">
-              <Trash2 size={16} className="text-destructive" />
-            </Button>
           </div>
         )}
+
+        {/* Dropdown Menu - immer sichtbar */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="btn-touch-target"
+            >
+              <ChevronDown size={16} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onEdit}>
+              <Edit size={16} className="mr-2" />
+              Bearbeiten
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onDelete} className="text-destructive">
+              <Trash2 size={16} className="mr-2" />
+              Löschen
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div>

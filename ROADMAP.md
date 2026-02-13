@@ -117,20 +117,20 @@
 
 ### 6.3: Block-Aktionen Vereinfachung (1.5h)
 **Branch:** `feature/block-actions-simplified`
+**Status:** In Bearbeitung (13.02.2026)
 
 **Ziel:** Weniger permanente Buttons, schlanke PWA
 
 **VARIANTE A (PRIMÄR - BESCHLOSSEN):**
 
-- [ ] **Toggle "Erweiterte Ansicht" im Header**
-  - Button im Header: "Einfach" / "Erweitert"
-  - State: `showAdvancedActions` (boolean)
-  - **Standard (Einfach):**
-    - Nur Dashboard + Eye Toggle sichtbar
-    - Edit/Delete via Context-Menu erreichbar
-  - **Erweitert:**
-    - ALLE Buttons erscheinen am rechten Rand der Blöcke
-    - Edit + Delete Buttons zusätzlich sichtbar
+- [x] **Toggle "Erweiterte Ansicht" im Header** ✅
+  - 3. Checkbox in TemplateStylePicker: "Erweiterte Ansicht"
+  - State: `showAdvancedActions` (boolean, default: false)
+  - **Standard (Checkbox aus):**
+    - ALLE Buttons ausgeblendet (saubere Ansicht)
+  - **Erweitert (Checkbox an):**
+    - ALLE Buttons sichtbar (Dashboard + Eye + Edit + Delete)
+  - Conditional Rendering in SortableBlock implementiert
   - **Aufwand:** 30 Min
   - **Commit:** `feat: add advanced view toggle for block actions`
 
