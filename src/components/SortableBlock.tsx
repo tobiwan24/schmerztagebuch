@@ -15,6 +15,7 @@ interface SortableBlockProps {
   onToggleHideLabel?: (blockId: string) => void;
   onToggleDashboard?: (blockId: string) => void;
   onConfigureDashboard?: (blockId: string) => void;
+  showAdvancedActions?: boolean;
 }
 
 export default function SortableBlock({ 
@@ -24,7 +25,8 @@ export default function SortableBlock({
   onChange,
   onToggleHideLabel,
   onToggleDashboard,
-  onConfigureDashboard
+  onConfigureDashboard,
+  showAdvancedActions = false
 }: SortableBlockProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: block.id });
 
@@ -53,36 +55,38 @@ export default function SortableBlock({
           {block.label}
         </span>
 
-        <div className="flex items-center button-group-touch">
-          {/* Dashboard Toggle Buttons */}
-          {onToggleDashboard && onConfigureDashboard && (
-            <DashboardToggleButtons
-              block={block}
-              onToggle={onToggleDashboard}
-              onConfigure={onConfigureDashboard}
-            />
-          )}
-          
-          <Button 
-            onClick={() => onToggleHideLabel?.(block.id)} 
-            variant="ghost"
-            size="icon"
-            className="btn-touch-target"
-            title={block.hideLabelInDiary ? "Label in Tagebuch anzeigen" : "Label in Tagebuch ausblenden"}
-          >
-            {block.hideLabelInDiary ? (
-              <EyeOff size={16} className="text-destructive" />
-            ) : (
-              <Eye size={16} />
+        {showAdvancedActions && (
+          <div className="flex items-center button-group-touch">
+            {/* Dashboard Toggle Buttons */}
+            {onToggleDashboard && onConfigureDashboard && (
+              <DashboardToggleButtons
+                block={block}
+                onToggle={onToggleDashboard}
+                onConfigure={onConfigureDashboard}
+              />
             )}
-          </Button>
-          <Button onClick={onEdit} variant="ghost" size="icon" className="btn-touch-target" title="Bearbeiten">
-            <Edit size={16} />
-          </Button>
-          <Button onClick={onDelete} variant="ghost" size="icon" className="btn-touch-target" title="Löschen">
-            <Trash2 size={16} className="text-destructive" />
-          </Button>
-        </div>
+            
+            <Button 
+              onClick={() => onToggleHideLabel?.(block.id)} 
+              variant="ghost"
+              size="icon"
+              className="btn-touch-target"
+              title={block.hideLabelInDiary ? "Label in Tagebuch anzeigen" : "Label in Tagebuch ausblenden"}
+            >
+              {block.hideLabelInDiary ? (
+                <EyeOff size={16} className="text-destructive" />
+              ) : (
+                <Eye size={16} />
+              )}
+            </Button>
+            <Button onClick={onEdit} variant="ghost" size="icon" className="btn-touch-target" title="Bearbeiten">
+              <Edit size={16} />
+            </Button>
+            <Button onClick={onDelete} variant="ghost" size="icon" className="btn-touch-target" title="Löschen">
+              <Trash2 size={16} className="text-destructive" />
+            </Button>
+          </div>
+        )}
       </div>
 
       <div>

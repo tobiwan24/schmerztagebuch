@@ -68,6 +68,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
   const [pendingEditBlockId, setPendingEditBlockId] = useState<string | null>(null);
   const [configuringDashboard, setConfiguringDashboard] = useState<string | null>(null);
   const [showBlockPalette, setShowBlockPalette] = useState(false);
+  const [showAdvancedActions, setShowAdvancedActions] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -463,6 +464,10 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
     })));
   }
 
+  function handleToggleAdvancedActions() {
+    setShowAdvancedActions(!showAdvancedActions);
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -541,6 +546,8 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                 blocks={editingBlocks}
                 onToggleAllDashboard={handleToggleAllDashboard}
                 onToggleAllLabels={handleToggleAllLabels}
+                showAdvancedActions={showAdvancedActions}
+                onToggleAdvancedActions={handleToggleAdvancedActions}
               />
 
               {/* Add Block Button */}
@@ -584,6 +591,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                           onToggleHideLabel={handleToggleHideLabel}
                           onToggleDashboard={handleToggleDashboard}
                           onConfigureDashboard={handleConfigureDashboard}
+                          showAdvancedActions={showAdvancedActions}
                         />
                       ))
                     )}

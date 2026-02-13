@@ -17,6 +17,9 @@ interface TemplateStylePickerProps {
   blocks: any[];
   onToggleAllDashboard: () => void;
   onToggleAllLabels: () => void;
+  // Advanced Actions Toggle
+  showAdvancedActions: boolean;
+  onToggleAdvancedActions: () => void;
 }
 
 export default function TemplateStylePicker({
@@ -28,6 +31,8 @@ export default function TemplateStylePicker({
   blocks,
   onToggleAllDashboard,
   onToggleAllLabels,
+  showAdvancedActions,
+  onToggleAdvancedActions,
 }: TemplateStylePickerProps) {
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('Schmerz & Symptome');
@@ -116,6 +121,21 @@ export default function TemplateStylePicker({
                 className="text-sm cursor-pointer select-none"
               >
                 Überschriften anzeigen
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input 
+                type="checkbox" 
+                id="advanced-actions"
+                checked={showAdvancedActions}
+                onChange={onToggleAdvancedActions}
+                className="w-4 h-4 cursor-pointer"
+              />
+              <Label 
+                htmlFor="advanced-actions" 
+                className="text-sm cursor-pointer select-none"
+              >
+                Erweiterte Ansicht
               </Label>
             </div>
           </div>
