@@ -224,13 +224,6 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
     setTemplates(templates.map(t => t.id === selectedTemplate.id ? updated : t));
   }
 
-  function handleColorChange(color: string) {
-    if (!selectedTemplate) return;
-    const updated = { ...selectedTemplate, color };
-    setSelectedTemplate(updated);
-    setTemplates(templates.map(t => t.id === selectedTemplate.id ? updated : t));
-  }
-
   async function handleSave() {
     if (!selectedTemplate?.id) return;
     
@@ -435,6 +428,41 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
     setTempBlockLabel('');
   }
 
+  function handleToggleAllDashboard() {
+    const dashboardCapableBlocks = editingBlocks.filter(b => 
+      ['slider', 'bodymap', 'textarea', 'multiselect'].includes(b.type)
+    );
+    
+    const allEnabled = dashboardCapableBlocks.every(b => b.dashboard?.enabled);
+    
+    setEditingBlocks(editingBlocks.map(block => {
+      if (!['slider', 'bodymap', 'textarea', 'multiselect'].includes(block.type)) {
+        return block;
+      }
+      
+      if (allEnabled) {
+        // Alle deaktivieren
+        const { dashboard, ...rest } = block;
+        return rest;
+      } else {
+        // Alle aktivieren
+        return {
+          ...block,
+          dashboard: { enabled: true }
+        };
+      }
+    }));
+  }
+
+  function handleToggleAllLabels() {
+    const allHidden = editingBlocks.every(b => b.hideLabelInDiary);
+    
+    setEditingBlocks(editingBlocks.map(block => ({
+      ...block,
+      hideLabelInDiary: !allHidden
+    })));
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -485,8 +513,8 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto pb-28 px-5 pt-20">
-        <div className="max-w-2xl mx-auto space-y-6">
+      <div className="flex-1 overflow-y-auto pb-28 px-5" style={{ paddingTop: 'calc(3.5rem + 1rem)' }}>
+        <div className="max-w-2xl mx-auto space-y-4">
           {selectedTemplate ? (
             <>
               {/* Unsaved changes warning */}
@@ -510,17 +538,20 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                 currentIcon={selectedTemplate.icon || 'book'}
                 currentColor={selectedTemplate.color || ''}
                 onIconChange={handleIconChange}
-                onColorChange={handleColorChange}
+                blocks={editingBlocks}
+                onToggleAllDashboard={handleToggleAllDashboard}
+                onToggleAllLabels={handleToggleAllLabels}
               />
 
-              {/* Floating Add Block Button */}
-              <div className="flex justify-center">
+              {/* Add Block Button */}
+              <div className="add-block-button-container">
                 <Button
                   onClick={() => setShowBlockPalette(true)}
-                  className="floating-add-block-btn"
-                  size="lg"
+                  variant="outline"
+                  size="sm"
+                  className="btn-touch-target add-block-button"
                 >
-                  <Plus size={20} className="mr-2" />
+                  <Plus size={16} className="mr-1" />
                   Baustein hinzufügen
                 </Button>
               </div>
