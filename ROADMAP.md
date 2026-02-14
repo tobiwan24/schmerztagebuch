@@ -195,21 +195,20 @@
   - DB Version 12
   - **Commit:** `feat: add multiselect button preview in collapsed editor state`
 
-### 6.3c: Lösch-Bestätigung & Image-Block Cleanup (30 Min)
+### 6.3c: Lösch-Bestätigung & Image-Block Cleanup (30 Min) ✅ KOMPLETT
 **Branch:** `feature/delete-confirmation`
-**Status:** Geplant (14.02.2026)
+**Status:** Abgeschlossen (14.02.2026)
 
-- [ ] **Lösch-Bestätigung**
+- [x] **Lösch-Bestätigung**
   - Confirmation-Dialog bei "Löschen" Click
   - Verhindert versehentliches Löschen
-  - **Aufwand:** 15 Min
+  - Dialog zeigt Block-Label zur Bestätigung
   - **Commit:** `feat: add confirmation dialog for block deletion`
 
 - [ ] **Image-Block aus Palette entfernen**
-  - Baustein "Bild" komplett aus BlockPalette entfernen
-  - Legacy-Support bereits vorhanden in BlockRenderer
-  - **Aufwand:** 15 Min
-  - **Commit:** `refactor: remove image block from palette`
+  - Bereits in Phase 6.7 umgesetzt ✅
+  - Image-Block aus BlockPalette entfernt
+  - Legacy-Support in BlockRenderer vorhanden
 
 ### 6.4: Global DnD Modus (2h) 🆕
 **Branch:** `feature/global-dnd-mode`
@@ -355,11 +354,51 @@
   - **Aufwand:** 15 Min
   - **Commit:** `style: remove template bearbeiten text from header`
 
-### 6.7: TextArea-Erweiterung (3h)
+### 6.7: TextArea-Erweiterung (3h) ✅ KOMPLETT
 **Branch:** `feature/textarea-file-upload`
-**Status:** Geplant
+**Status:** Abgeschlossen (14.02.2026)
+**Commits:** 2 Commits vorbereitet
 
-**Ziel:** Image-Block Funktionalität in TextArea integrieren
+### 6.7b: Icon-Größen iOS-konform (30 Min) ✅ KOMPLETT
+**Branch:** `feature/textarea-file-upload`
+**Status:** Abgeschlossen (14.02.2026)
+
+**Ziel:** Icon-Größen auf iOS-Standards anpassen (44px Buttons, 22px Icons)
+
+**Kontext:**
+- Apple HIG empfiehlt: 44pt Touch-Targets, 22-24pt Icons
+- Vorher: 44px Buttons mit 16-18px Icons = ~30% Padding (zu viel)
+- Nachher: 44px Buttons mit 20-22px Icons = ~25% Padding (iOS-konform)
+
+**Tasks:**
+
+- [x] **TextAreaBlock.tsx**
+  - Event, Doctor, Photo, PDF Buttons: 18px → 22px
+  - **Commit:** `style: increase icon sizes to 22px for iOS conformity`
+
+- [x] **SortableBlock.tsx**
+  - GripVertical: 18px → 22px
+  - Eye/EyeOff: 16px → 20px
+  - ChevronDown, Edit, Trash2: 16px → 20px
+
+- [x] **DashboardToggleButtons.tsx**
+  - BarChart3: 16px → 20px
+  - Settings: 14px → 18px
+
+- [x] **DiaryView.tsx**
+  - Alle Menu Icons: 18/20px → 22px
+  - Template Icons: 20px → 22px
+  - Floating Buttons: 20px → 22px
+
+**Ergebnis:**
+- Primäre Icons: 22px
+- Sekundäre Icons: 20px
+- Kleine Icons: 18px
+- Padding-Verhältnis: ~25% (iOS-Standard)
+
+---
+
+**Ziel (Phase 6.7):** Image-Block Funktionalität in TextArea integrieren
 
 **KONTEXT:**
 - Standard-Template: Datepicker (Pflicht) + TextArea (Optional)
@@ -367,38 +406,33 @@
 - Daten-Entkopplung: Text/Events/Files alle optional
 - "Nur Foto"-Eintrag möglich (Text kann leer bleiben)
 
-**WICHTIG:** Buttons aktuell zu klein & nicht integriert - muss nachgebessert werden!
-
 **Tasks:**
 
-- [ ] **Foto & PDF Buttons hinzufügen**
+- [x] **Foto & PDF Buttons hinzufügen**
   - 4 Buttons: 📅 Event | 🩺 Doc | 📷 Foto | 📄 PDF
   - Layout: Horizontal, nur Icons (keine Beschriftung)
-  - Touch Target: 44x44px, gap: 12px (KRITISCH - aktuell zu klein!)
+  - Touch Target: 44x44px, gap: 12px
   - Tooltips für Klarheit
   - Icons: Calendar, Stethoscope, Camera, FileText (lucide-react)
-  - **Aufwand:** 30 Min
   - **Commit:** `feat: add photo and pdf buttons to textarea block`
 
-- [ ] **File-Upload Logik migrieren**
-  - Code aus ImageBlock übernehmen:
-    - File Input Handler
-    - Base64 Encoding (fileToBase64)
-    - File Types: `accept="image/*,application/pdf"`
+- [x] **File-Upload Logik implementiert**
+  - File Input Handler mit useRef
+  - Base64 Encoding (fileToBase64)
+  - File Types: `accept="image/*,application/pdf"`
   - onClick Handler für Foto/PDF Buttons
-  - **Aufwand:** 45 Min
-  - **Commit:** `feat: migrate file upload logic from image block to textarea`
+  - Validierung für File-Types
+  - **Commit:** `feat: implement file upload logic in textarea`
 
-- [ ] **File-Preview Component integrieren**
-  - Thumbnail-Grid unter TextArea
+- [x] **File-Preview Component integriert**
+  - Thumbnail-Grid unter TextArea (2 Spalten)
   - Bild-Preview für Fotos (img src)
   - PDF-Icon für PDFs (FileText Icon)
-  - Delete-Button pro Datei (× Icon)
-  - Responsive Grid: 2-3 Spalten je nach Breite
-  - **Aufwand:** 45 Min
+  - Delete-Button pro Datei (X Icon, destructive)
+  - Responsive Grid: grid-cols-2 gap-2
   - **Commit:** `feat: add file preview grid to textarea block`
 
-- [ ] **Block.value Schema erweitern**
+- [x] **Block.value Schema erweitert**
   ```typescript
   interface TextAreaBlockValue {
     text?: string;              // Optional
@@ -414,24 +448,23 @@
     createdAt: string;
   }
   ```
-  - TypeScript Types aktualisieren in `types/blocks.ts`
-  - **Aufwand:** 15 Min
+  - TypeScript Types aktualisiert in `types/blocks.ts`
+  - BlockValue Type erweitert
+  - Type Guard angepasst
   - **Commit:** `feat: extend textarea block value schema for attached files`
 
-- [ ] **Daten-Entkopplung implementieren**
+- [x] **Daten-Entkopplung implementiert**
   - Text optional (kann leer sein)
   - Events optional
   - Dateien optional
   - Alle kombinierbar
-  - Validierung: Entry ist valid auch wenn nur attachedFiles vorhanden
-  - **Aufwand:** 15 Min
+  - Backward-Kompatibilität mit string-values
   - **Commit:** `feat: implement independent data handling in textarea`
 
-- [ ] **Image-Block aus Palette entfernen (Legacy)**
-  - BlockPalette.tsx: Image-Block Eintrag entfernen
+- [x] **Image-Block aus Palette entfernt**
+  - BlockPalette.tsx: Image-Block auskommentiert
   - Code BEHALTEN in BlockRenderer (Legacy-Support)
-  - Kommentar hinzufügen: "// LEGACY: Image-Block für alte Templates"
-  - **Aufwand:** 10 Min
+  - Kommentar: "// LEGACY: Image-Block aus Palette entfernt - Funktionalität in TextArea integriert"
   - **Commit:** `refactor: remove image block from palette (legacy support maintained)`
 
 - [ ] **Auto-Migration alter Templates**
@@ -813,6 +846,30 @@
 - [ ] Multi-Language Support (i18n)
 - [ ] Cloud Sync (E2E-verschlüsselt)
 
+### 10.6: Lösch-Bestätigungen vereinheitlichen (LOW PRIO)
+**Status:** Konsistenz-Task für spätere Version
+
+- [ ] **Audit aller Lösch-Funktionen**
+  - SortableBlock (Block löschen) ✅ bereits implementiert
+  - EditorMode (Template löschen)
+  - DiaryView (Entry löschen)
+  - HomePage (Template löschen)
+  - Weitere Lösch-Stellen identifizieren
+  - **Aufwand:** 30 Min
+
+- [ ] **Confirmation-Dialog vereinheitlichen**
+  - Gemeinsame ConfirmDialog Komponente erstellen
+  - Props: title, message, confirmText, cancelText, onConfirm, variant
+  - Wiederverwendbar für alle Lösch-Aktionen
+  - Konsistente Texte & Button-Styles
+  - **Aufwand:** 1h
+
+- [ ] **Migration bestehender Lösch-Funktionen**
+  - Alle window.confirm() durch ConfirmDialog ersetzen
+  - Konsistente UX über gesamte App
+  - Testing auf Mobile
+  - **Aufwand:** 1.5h
+
 ---
 
 ## 🐛 KNOWN ISSUES
@@ -913,21 +970,23 @@
 
 **Aktuelle Priorisierung (14.02.2026):**
 1. ✅ Phase 6.3d: MultiSelect Collapsible (KOMPLETT)
-2. 🚀 Phase 6.4: Global DnD Modus (NEXT)
-3. 🚀 Phase 6.5: Dropdown-Redesign (NEXT)
-4. Phase 8.4: Package Size Optimierung
-5. Phase 6.3c: Lösch-Bestätigung
-6. Phase 6.8: TextArea-Erweiterung
-7. Phase 6.9: Standard-Template
-8. Phase 6.10: Icon Picker Lucide
-9. Phase 6.7: Template-Switcher
-10. Phase 6.6: Modal-System
+2. ✅ Phase 6.3c: Lösch-Bestätigung (KOMPLETT)
+3. ✅ Phase 6.7: TextArea-Erweiterung (KOMPLETT)
+4. ✅ Phase 6.7b: Icon-Größen iOS-konform (KOMPLETT)
+5. 🚀 Phase 6.4: Global DnD Modus (NEXT)
+6. 🚀 Phase 6.5: Dropdown-Redesign (NEXT)
+7. Phase 8.4: Package Size Optimierung
+8. Phase 6.9: Standard-Template (6.8 umbenannt)
+9. Phase 6.10: Icon Picker Lucide (6.9 umbenannt)
+10. Phase 6.6: Template-Switcher (6.7 umbenannt)
+11. Phase 6.6: Modal-System
 
 **Dann:** Phase 8 (Code Cleanup) vor weiteren Features
 
 ---
 
 **Letzte Aktualisierung:** 14.02.2026  
-**Aktueller Stand:** Phase 6.3d komplett ✅ (inkl. Preview & DB v12)  
+**Aktueller Stand:** Phase 6.7b komplett ✅ (Icon-Größen iOS-konform)  
 **Nächster Schritt:** Phase 6.4 - Global DnD Modus  
-**Status:** ✅ ROADMAP AKTUALISIERT - READY FOR NEXT PHASE
+**Commits bereit:** 2 Commits (Phase 6.7 + 6.7b)  
+**Status:** ✅ ROADMAP AKTUALISIERT - READY FOR COMMIT

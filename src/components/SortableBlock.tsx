@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Block, BlockValue } from '../types/blocks';
@@ -15,6 +16,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { MultiSelectEditor } from './multiselect';
 import './multiselect/MultiSelectEditor.css';
 
@@ -49,7 +58,21 @@ export default function SortableBlock({
   onBodyMapTypeChange,
   onMultiSelectButtonsChange
 }: SortableBlockProps) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: block.id });
+
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setShowDeleteDialog(false);
+    onDelete();
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteDialog(false);
+  };
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -66,7 +89,7 @@ export default function SortableBlock({
           {...attributes}
           {...listeners}
         >
-          <GripVertical size={18} className="text-muted-foreground" />
+          <GripVertical size={22} className="text-muted-foreground" />
         </div>
 
         <Input
@@ -101,9 +124,9 @@ export default function SortableBlock({
               title={block.hideLabelInDiary ? "Label in Tagebuch anzeigen" : "Label in Tagebuch ausblenden"}
             >
               {block.hideLabelInDiary ? (
-                <EyeOff size={16} className="text-destructive" />
+                <EyeOff size={20} className="text-destructive" />
               ) : (
-                <Eye size={16} />
+                <Eye size={20} />
               )}
             </Button>
           </div>
@@ -117,19 +140,19 @@ export default function SortableBlock({
               size="icon" 
               className="btn-touch-target"
             >
-              <ChevronDown size={16} />
+              <ChevronDown size={20} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {/* Bearbeiten nur für Slider, BodyMap, MultiSelect */}
             {['slider', 'bodymap', 'multiselect'].includes(block.type) && (
               <DropdownMenuItem onClick={onEdit}>
-                <Edit size={16} className="mr-2" />
+                <Edit size={20} className="mr-2" />
                 Bearbeiten
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onClick={onDelete} className="text-destructive">
-              <Trash2 size={16} className="mr-2" />
+            <DropdownMenuItem onClick={handleDeleteClick} className="text-destructive">
+              <Trash2 size={20} className="mr-2" />
               Löschen
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -257,6 +280,26 @@ export default function SortableBlock({
           />
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Block löschen?</DialogTitle>
+            <DialogDescription>
+              Möchtest du den Block "{block.label}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelDelete}>
+              Abbrechen
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              Löschen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

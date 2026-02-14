@@ -436,7 +436,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
       <div className="min-h-screen pb-18 px-5 pt-16">
         <div className="floating-buttons-container">
           <button className="floating-btn-glass" onClick={() => setShowMenu(!showMenu)}>
-            <Menu size={18} />
+            <Menu size={22} />
           </button>
         </div>
 
@@ -447,7 +447,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
               Erstelle dein erstes Template, um loszulegen.
             </p>
             <Button onClick={handleCreateTemplate} className="gap-2">
-              <Plus size={18} />
+              <Plus size={22} />
               Neues Template erstellen
             </Button>
           </Card>
@@ -459,16 +459,16 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
             <Card className="fixed top-16 right-4 z-40 p-2 shadow-xl min-w-[240px] border-2">
               <div className="space-y-1">
                 <Button onClick={() => { setShowMenu(false); onNavigate('editor'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
-                  <Paintbrush size={18} /><span className="font-medium">Seite personalisieren</span>
+                  <Paintbrush size={22} /><span className="font-medium">Seite personalisieren</span>
                 </Button>
                 <Button onClick={() => { setShowMenu(false); onNavigate('history'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
-                  <History size={18} /><span className="font-medium">Verlauf anzeigen</span>
+                  <History size={22} /><span className="font-medium">Verlauf anzeigen</span>
                 </Button>
                 <Button onClick={() => { setShowMenu(false); onNavigate('dashboard'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
-                  <TrendingUp size={18} /><span className="font-medium">Dashboard</span>
+                  <TrendingUp size={22} /><span className="font-medium">Dashboard</span>
                 </Button>
                 <Button onClick={() => { setShowMenu(false); onNavigate('settings'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
-                  <Settings size={18} /><span className="font-medium">Einstellungen</span>
+                  <Settings size={22} /><span className="font-medium">Einstellungen</span>
                 </Button>
               </div>
             </Card>
@@ -484,7 +484,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
     <div className="flex flex-col h-screen">
       <div className={cn("floating-buttons-container", hasUnsavedChanges && "has-save")}>
         <button className="floating-btn-glass" onClick={() => setShowMenu(!showMenu)}>
-          <Menu size={20} />
+          <Menu size={22} />
         </button>
         
         {hasUnsavedChanges && (
@@ -493,7 +493,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
             onClick={handleSave}
             disabled={isSaving}
           >
-            <Check size={20} />
+            <Check size={22} />
           </button>
         )}
       </div>
@@ -501,7 +501,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
       <div className="fixed top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
           <button className="floating-btn-glass" onClick={() => onBack?.()}>
-            <ArrowLeft size={20} />
+            <ArrowLeft size={22} />
           </button>
           <h1 className="text-base font-semibold">{activeTemplate?.name || 'Tagebuch'}</h1>
           <div className="w-10" />
@@ -536,7 +536,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 personalize-btn-revealed animate-pulse-glow"
                 tabIndex={0}
               >
-                <Paintbrush size={18} style={{ color: '#6366f1' }} />
+                <Paintbrush size={22} style={{ color: '#6366f1' }} />
                 <span className="font-medium">Seite personalisieren</span>
               </button>
             </div>
@@ -565,7 +565,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
                 className={cn("template-icon-btn", isActive && "template-icon-btn-active")}
                 onClick={() => handleTemplateChange(index)}
               >
-                <IconComponent size={20} />
+                <IconComponent size={22} />
               </button>
             );
           })}
@@ -578,16 +578,16 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
           <Card className="fixed top-16 right-4 z-40 p-2 shadow-xl min-w-[240px] border-2">
             <div className="space-y-1">
               <Button onClick={() => { setShowMenu(false); handlePersonalize(); }} variant="ghost" className="w-full justify-start gap-3 h-11">
-                <Paintbrush size={18} /><span className="font-medium">Seite personalisieren</span>
+                <Paintbrush size={22} /><span className="font-medium">Seite personalisieren</span>
               </Button>
               <Button onClick={() => { setShowMenu(false); onNavigate('history'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
-                <History size={18} /><span className="font-medium">Verlauf anzeigen</span>
+                <History size={22} /><span className="font-medium">Verlauf anzeigen</span>
               </Button>
               <Button onClick={() => { setShowMenu(false); onNavigate('dashboard'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
-                <TrendingUp size={18} /><span className="font-medium">Dashboard</span>
+                <TrendingUp size={22} /><span className="font-medium">Dashboard</span>
               </Button>
               <Button onClick={() => { setShowMenu(false); onNavigate('settings'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
-                <Settings size={18} /><span className="font-medium">Einstellungen</span>
+                <Settings size={22} /><span className="font-medium">Einstellungen</span>
               </Button>
             </div>
           </Card>

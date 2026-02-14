@@ -15,6 +15,22 @@ export interface MultiSelectOption {
   color: string;
 }
 
+// AttachedFile für TextArea-Block
+export interface AttachedFile {
+  id: string;
+  name: string;
+  type: 'image' | 'pdf';
+  data: string; // Base64
+  createdAt: string;
+}
+
+// TextArea Block Value (erweitert)
+export interface TextAreaBlockValue {
+  text?: string;
+  events?: { eventCategory: 'event' | 'doctor'; eventTitle: string }[];
+  attachedFiles?: AttachedFile[];
+}
+
 // CheckboxValue für erweiterte Checkbox-Funktionalität
 export interface CheckboxValue {
   checked: boolean;
@@ -22,7 +38,7 @@ export interface CheckboxValue {
 }
 
 // Alle möglichen Block-Werte
-export type BlockValue = string | number | boolean | File | string[] | CheckboxValue;
+export type BlockValue = string | number | boolean | File | string[] | CheckboxValue | TextAreaBlockValue;
 
 // Dashboard-Konfiguration für Blöcke
 export interface DashboardConfig {
@@ -72,7 +88,7 @@ export function isMultiSelectBlock(block: Block): block is Block & { type: 'mult
   return block.type === 'multiselect';
 }
 
-export function isTextAreaBlock(block: Block): block is Block & { type: 'textarea'; value?: string } {
+export function isTextAreaBlock(block: Block): block is Block & { type: 'textarea'; value?: string | TextAreaBlockValue } {
   return block.type === 'textarea';
 }
 

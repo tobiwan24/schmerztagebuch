@@ -11,7 +11,8 @@ export default function BlockPalette({ onAddBlock }: BlockPaletteProps) {
     { type: 'slider' as BlockType, label: 'Schieberegler', icon: '🎚️' },
     { type: 'date' as BlockType, label: 'Datum', icon: '📅' },
     { type: 'multiselect' as BlockType, label: 'Auswahl', icon: '🏷️' },
-    { type: 'image' as BlockType, label: 'Bild', icon: '🖼️' },
+    // LEGACY: Image-Block aus Palette entfernt - Funktionalität in TextArea integriert
+    // { type: 'image' as BlockType, label: 'Bild', icon: '🖼️' },
     { type: 'bodymap' as BlockType, label: 'Körperkarte', icon: '🧍' }
   ];
 

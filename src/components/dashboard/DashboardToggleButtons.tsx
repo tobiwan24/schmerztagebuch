@@ -31,7 +31,7 @@ export default function DashboardToggleButtons({
         className={`btn-touch-target ${isDashboardEnabled ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
         title={isDashboardEnabled ? "Im Dashboard anzeigen" : "Nicht im Dashboard"}
       >
-        <BarChart3 size={16} />
+        <BarChart3 size={20} />
       </Button>
       {isDashboardEnabled && needsConfig && (
         <Button 
@@ -41,7 +41,7 @@ export default function DashboardToggleButtons({
           className="btn-touch-target"
           title="Dashboard konfigurieren"
         >
-          <Settings size={14} />
+          <Settings size={18} />
         </Button>
       )}
     </>
