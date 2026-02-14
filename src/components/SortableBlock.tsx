@@ -136,14 +136,28 @@ export default function SortableBlock({
         </DropdownMenu>
       </div>
 
-      <div>
-        <BlockRenderer
-          block={block}
-          onChange={onChange}
-          readOnly={false}
-          hideLabel={true}
-        />
-      </div>
+      {/* Block Renderer - MultiSelect nur wenn NICHT expanded */}
+      {block.type === 'multiselect' ? (
+        !isExpanded && (
+          <div>
+            <BlockRenderer
+              block={block}
+              onChange={onChange}
+              readOnly={true}
+              hideLabel={true}
+            />
+          </div>
+        )
+      ) : (
+        <div>
+          <BlockRenderer
+            block={block}
+            onChange={onChange}
+            readOnly={false}
+            hideLabel={true}
+          />
+        </div>
+      )}
 
       {/* Collapsible Settings Container - Slider */}
       {isExpanded && block.type === 'slider' && (

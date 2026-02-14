@@ -165,35 +165,39 @@
   - Nur "Löschen" im Dropdown
   - **Commit:** `feat: make block labels inline editable with collapsible settings`
 
-### 6.3d: MultiSelect Collapsible Settings (1.5h)
+### 6.3d: MultiSelect Collapsible Settings (3h) ✅ KOMPLETT
 **Branch:** `feature/multiselect-collapsible`
-**Status:** Geplant (13.02.2026)
+**Status:** Abgeschlossen (14.02.2026)
 
 **Ziel:** MultiSelect-Modal in Collapsible Container umwandeln
 
-- [ ] **Brainstorming: Modal → Container Konzept**
-  - Aktuelles Modal analysieren
-  - Collapsible Container Pattern anpassen
-  - Button-Management im Container
-  - **Aufwand:** 15 Min
-
-- [ ] **MultiSelect Settings Container**
-  - Container mit Button-Liste
-  - Add-Button Inputs (Text + Farbe)
-  - Delete-Buttons pro Button
-  - Color-Picker inline
-  - **Aufwand:** 1h
+- [x] **MultiSelect Settings Container**
+  - Container mit Button-Liste + DnD-Modus
+  - ArrowDownUp Icon als Toggle
+  - Expandierbar mit "Ziehe Buttons zum Sortieren"
+  - Gelber Container + Pulse-Animation
+  - Palette-Icon für Farbauswahl (20% opacity)
+  - Add-Input versteckt im DnD-Modus
+  - Click außerhalb deaktiviert DnD
   - **Commit:** `feat: convert multiselect modal to collapsible container`
 
-- [ ] **Modal Code entfernen**
-  - Block Options Modal Code für MultiSelect entfernen
-  - Nur noch Container-basierte Bearbeitung
-  - **Aufwand:** 15 Min
-  - **Commit:** `refactor: remove multiselect modal code`
+- [x] **UI Corrections & Refinements**
+  - Button-Sizing auf Input-Höhe (40px)
+  - Palette-Icon statt runder Button
+  - BlockRenderer für Preview entfernt
+  - **Commit:** `fix: multiselect editor corrections per user feedback`
+
+- [x] **Button Preview in Collapsed State**
+  - MultiSelect-Buttons anzeigen wenn Container collapsed
+  - Preview mit BlockRenderer (readOnly=true)
+  - Button-Row Höhe: 57.6px → 36px
+  - Margins entfernt für tightere Spacing
+  - DB Version 12
+  - **Commit:** `feat: add multiselect button preview in collapsed editor state`
 
 ### 6.3c: Lösch-Bestätigung & Image-Block Cleanup (30 Min)
 **Branch:** `feature/delete-confirmation`
-**Status:** Geplant (13.02.2026)
+**Status:** Geplant (14.02.2026)
 
 - [ ] **Lösch-Bestätigung**
   - Confirmation-Dialog bei "Löschen" Click
@@ -207,19 +211,81 @@
   - **Aufwand:** 15 Min
   - **Commit:** `refactor: remove image block from palette`
 
-**VARIANTE B (FALLBACK - NOTIERT FÜR SPÄTERE ENTSCHEIDUNG):**
+### 6.4: Global DnD Modus (2h) 🆕
+**Branch:** `feature/global-dnd-mode`
+**Status:** Geplant (14.02.2026)
 
-Sollte Variante A zu komplex werden oder User bevorzugt minimalistischeren Ansatz:
-- KEINE permanenten Edit/Delete Buttons (auch nicht in Erweitert-Modus)
-- NUR Context-Menu (Right-Click/Long-Press) für Edit/Delete
-- Dashboard + Eye Toggle bleiben immer sichtbar
-- **Vorteil:** Noch schlanker, minimaler Code
-- **Nachteil:** Hidden Gesture (nicht sofort erkennbar)
+**Ziel:** DnD-Toggle-System aus MultiSelect auf gesamten Editor anwenden
 
-**Status:** Notiert, nicht implementiert (Fallback falls Variante A nicht überzeugt)
+- [ ] **DnD-Toggle-Button im Template-Header**
+  - Button im TemplateStylePicker (neben Bulk-Actions)
+  - ArrowDownUp Icon (wie MultiSelect)
+  - State: `isDndMode` (boolean, default: false)
+  - Text: "Sortier-Modus" wenn aktiviert
+  - **Aufwand:** 30 Min
+  - **Commit:** `feat: add global dnd toggle in template header`
+
+- [ ] **Global DnD State Management**
+  - State in EditorMode: `[isDndMode, setIsDndMode]`
+  - Prop zu SortableBlock: `isDndMode`
+  - Drag Handle nur aktiv wenn `isDndMode === true`
+  - Visuelle Anzeige: Gelber Hintergrund auf allen Blocks
+  - **Aufwand:** 45 Min
+  - **Commit:** `feat: implement global dnd state management`
+
+- [ ] **UI-Feedback im DnD-Modus**
+  - Blocks: Border gelb + dashed
+  - Cursor: grab/grabbing
+  - Edit-Controls disabled (Labels readonly)
+  - Dropdown-Menu disabled
+  - **Aufwand:** 30 Min
+  - **Commit:** `style: add visual feedback for global dnd mode`
+
+- [ ] **Click-außerhalb deaktiviert DnD**
+  - Event-Listener auf document
+  - Prüft ob Click außerhalb Block-Container
+  - Setzt `isDndMode = false`
+  - **Aufwand:** 15 Min
+  - **Commit:** `feat: disable dnd mode on click outside blocks`
+
+### 6.5: Collapsible-Dropdown-Redesign (1.5h) 🆕
+**Branch:** `feature/collapsible-dropdown-redesign`
+**Status:** Geplant (14.02.2026)
+
+**Ziel:** Dropdown-Pfeil öffnet sofort Edit-Container, Delete als roter Button unten
+
+- [ ] **ChevronDown = Instant Edit-Toggle**
+  - Click auf ChevronDown → `handleToggleBlockExpanded(block.id)`
+  - KEIN Dropdown-Menu mehr
+  - Sofortiges Öffnen/Schließen des Containers
+  - Icon rotiert: ChevronDown ↔ ChevronUp
+  - **Aufwand:** 30 Min
+  - **Commit:** `feat: replace dropdown with instant collapsible toggle`
+
+- [ ] **Delete-Button in Edit-Container**
+  - Roter Button am Ende des Containers
+  - Layout: Volle Breite, outlined, destructive
+  - Text: "Block löschen" + Trash Icon
+  - Touch-Target: 44px min-height
+  - **Aufwand:** 30 Min
+  - **Commit:** `feat: move delete button into edit container`
+
+- [ ] **Container-Styling anpassen**
+  - Delete-Button: `mt-4`, `w-full`, red border
+  - Separator vor Delete-Button
+  - Consistent padding (12px)
+  - **Aufwand:** 15 Min
+  - **Commit:** `style: improve edit container layout with delete button`
+
+- [ ] **Dropdown-Menu Code entfernen**
+  - DropdownMenu Komponente aus SortableBlock entfernen
+  - Imports bereinigen
+  - **Aufwand:** 15 Min
+  - **Commit:** `refactor: remove dropdown menu component`
 
 ### 6.4: Modal-System Vereinheitlichung (2h)
 **Branch:** `refactor/modal-components`
+**Status:** Verschoben (nach Global DnD & Dropdown-Redesign)
 
 **Problem:** 3 verschiedene Modal-Typen inkonsistent
 
@@ -254,8 +320,9 @@ Sollte Variante A zu komplex werden oder User bevorzugt minimalistischeren Ansat
   - **Aufwand:** 30 Min
   - **Commit:** `refactor: migrate existing modals to BaseModal`
 
-### 6.5: Template-Switcher & Header UX (1.5h)
+### 6.6: Template-Switcher & Header UX (1.5h)
 **Branch:** `feature/template-switcher`
+**Status:** Verschoben (nach Dropdown-Redesign)
 
 **BESCHLOSSEN:** Buttons (keine Swipe-Geste)
 
@@ -288,8 +355,9 @@ Sollte Variante A zu komplex werden oder User bevorzugt minimalistischeren Ansat
   - **Aufwand:** 15 Min
   - **Commit:** `style: remove template bearbeiten text from header`
 
-### 6.6: TextArea-Erweiterung (3h)
+### 6.7: TextArea-Erweiterung (3h)
 **Branch:** `feature/textarea-file-upload`
+**Status:** Geplant
 
 **Ziel:** Image-Block Funktionalität in TextArea integrieren
 
@@ -419,8 +487,9 @@ Sollte Variante A zu komplex werden oder User bevorzugt minimalistischeren Ansat
 }
 ```
 
-### 6.7: Standard-Template Auto-Generierung (30 Min)
+### 6.8: Standard-Template Auto-Generierung (30 Min)
 **Branch:** `feature/default-template-blocks`
+**Status:** Geplant
 
 **Ziel:** Neue Templates starten mit Standard-Blöcken
 
@@ -459,8 +528,9 @@ Sollte Variante A zu komplex werden oder User bevorzugt minimalistischeren Ansat
   - **Aufwand:** 15 Min
   - **Commit:** `feat: implement isDeletable property for mandatory blocks`
 
-### 6.8: Icon Picker Lucide-Integration (1.5h) 🆕
+### 6.9: Icon Picker Lucide-Integration (1.5h) 🆕
 **Branch:** `feature/lucide-icon-picker`
+**Status:** Geplant
 
 **Ziel:** Zugriff auf alle 1,500+ Lucide Icons mit Suchfunktion
 
@@ -620,6 +690,41 @@ Sollte Variante A zu komplex werden oder User bevorzugt minimalistischeren Ansat
 - [ ] `any` types ersetzen
 - **Commit:** `refactor: improve typescript types and fix lint warnings`
 
+### 8.4: Package Size Optimierung (1h) 🆕
+**Status:** Geplant (nach shadcn/ui Popover-Umstellung)
+
+**Ziel:** Radix-UI Abhängigkeiten reduzieren, auf shadcn/ui konsolidieren
+
+- [ ] **Analyse aktuelle Dependencies**
+  - Alle @radix-ui/* packages auflisten
+  - Prüfen welche über shadcn/ui Komponenten laufen
+  - Bundle-Size Impact messen (bundlephobia.com)
+  - **Aufwand:** 15 Min
+  - **Commit:** `docs: analyze radix-ui dependencies and bundle impact`
+
+- [ ] **shadcn/ui Popover Component**
+  - Prüfen ob @radix-ui/react-popover direkt genutzt wird
+  - Oder ob alle Popovers über src/components/ui/popover.tsx laufen
+  - Falls direkt: Migration zu shadcn/ui Pattern
+  - **Aufwand:** 15 Min
+  - **Commit:** `refactor: migrate to shadcn/ui popover pattern`
+
+- [ ] **Ungenutzte @radix-ui packages entfernen**
+  - `npm uninstall @radix-ui/react-popover` (falls über shadcn/ui)
+  - Prüfen ob andere @radix-ui/* packages ungenutzt
+  - package.json bereinigen
+  - **Aufwand:** 15 Min
+  - **Commit:** `chore: remove unused radix-ui packages`
+
+- [ ] **Bundle-Size Verifikation**
+  - Build durchführen: `npm run build`
+  - Bundle-Size prüfen: dist/assets/*.js Größe
+  - Vergleich vorher/nachher dokumentieren
+  - **Aufwand:** 15 Min
+  - **Commit:** `chore: verify bundle size reduction`
+
+**WICHTIG:** shadcn/ui nutzt @radix-ui als Peer-Dependencies - nur wirklich ungenutzte entfernen!
+
 ---
 
 ## 🎨 PHASE 9: ONBOARDING (LOW PRIO)
@@ -747,7 +852,7 @@ Sollte Variante A zu komplex werden oder User bevorzugt minimalistischeren Ansat
 - **Ergebnis:** 12 Probleme identifiziert, 15 Verbesserungen erarbeitet
 - **Bewertung:** 6/10 (funktional, ausbaufähig)
 
-### User-Entscheidungen (12.02.2026)
+### User-Entscheidungen (12.02.2026 + 14.02.2026)
 - ✅ **Drag Handle:** Behalten (sichtbar, nicht verstecken)
 - ✅ **Visuelle Trennung:** Sections (NICHT künstliche Hierarchie)
 - ✅ **Block-Aktionen:** Toggle "Einfach/Erweitert" (Variante A)
@@ -765,6 +870,10 @@ Sollte Variante A zu komplex werden oder User bevorzugt minimalistischeren Ansat
 - ✅ **Template-Switcher:** Buttons ◀ ▶ (keine Swipe-Geste)
 - ✅ **Icon Picker:** Lucide-Integration (1,500+ Icons + Suchleiste)
 - ✅ **Bulk-Actions:** In Header implementieren
+- ✅ **MultiSelect:** Collapsible Container mit DnD-Toggle (14.02.2026)
+- ✅ **Global DnD:** System aus MultiSelect auf ganzen Editor anwenden (14.02.2026)
+- ✅ **Dropdown-Redesign:** ChevronDown = Instant Edit-Toggle, Delete-Button in Container (14.02.2026)
+- ✅ **Package Size:** shadcn/ui bevorzugen, Radix-UI reduzieren (14.02.2026)
 - ❌ **Block Duplication:** Nicht umsetzen
 - ❌ **Template Preview:** Nicht umsetzen
 - ❌ **Block-Numerierung:** Nicht umsetzen
@@ -775,8 +884,6 @@ Sollte Variante A zu komplex werden oder User bevorzugt minimalistischeren Ansat
 - 📅 **MultiSelect Presets:** Version 2.0+ (User schlägt vor)
 
 ### Offene Design-Details
-- **Context-Menu Style:** shadcn/ui Standard oder Custom?
-- **Toggle Button Label:** "Einfach/Erweitert" oder Icons?
 - **Icon-Browser:** Modal oder Popover?
 
 ---
@@ -785,41 +892,42 @@ Sollte Variante A zu komplex werden oder User bevorzugt minimalistischeren Ansat
 
 | Sub-Phase | Aufwand | Priorität |
 |-----------|---------|-----------|
-| 6.1 Quick Wins | 1h | KRITISCH |
-| 6.2 Visuelle Trennung + Bulk-Actions | 2.5h | HOCH |
-| 6.3 Block-Aktionen | 1.5h | HOCH |
-| 6.4 Modal-System | 2h | MITTEL |
-| 6.5 Template-Switcher | 45 Min | MITTEL |
-| 6.6 TextArea-Erweiterung | 3h | HOCH |
-| 6.7 Standard-Template | 30 Min | NIEDRIG |
-| 6.8 Icon Picker Lucide | 1.5h | MITTEL |
-| **GESAMT** | **~13h** | - |
+| 6.1 Quick Wins | 1h | KRITISCH ✅ |
+| 6.2 Visuelle Trennung + Bulk-Actions | 2.5h | HOCH ✅ |
+| 6.3 Block-Aktionen | 1.5h | HOCH ✅ |
+| 6.3b Inline-Edit & Collapsible | 2h | HOCH ✅ |
+| 6.3d MultiSelect Collapsible | 3h | HOCH ✅ |
+| 6.3c Lösch-Bestätigung | 30 Min | MITTEL |
+| 6.4 Global DnD Modus | 2h | HOCH 🆕 |
+| 6.5 Dropdown-Redesign | 1.5h | HOCH 🆕 |
+| 6.6 Modal-System | 2h | MITTEL |
+| 6.7 Template-Switcher | 1.5h | MITTEL |
+| 6.8 TextArea-Erweiterung | 3h | HOCH |
+| 6.9 Standard-Template | 30 Min | NIEDRIG |
+| 6.10 Icon Picker Lucide | 1.5h | MITTEL |
+| **GESAMT** | **~22h** | - |
 
 ---
 
 ## 🎯 NÄCHSTE SCHRITTE
 
-**Phase 6 Ready to Start:**
-1. ✅ Alle Design-Entscheidungen getroffen
-2. ✅ Technische Machbarkeit geprüft
-3. ✅ Aufwand geschätzt
-4. ✅ Priorisierung klar
-
-**Empfohlene Reihenfolge:**
-1. Phase 6.1 (Quick Wins - 1h)
-2. Phase 6.2 (Struktur + Bulk-Actions - 2.5h)
-3. Phase 6.6 (TextArea-Erweiterung - 3h)
-4. Phase 6.7 (Standard-Template - 30 Min)
-5. Phase 6.3 (Block-Aktionen - 1.5h)
-6. Phase 6.8 (Icon Picker - 1.5h)
-7. Phase 6.5 (Template-Switcher - 45 Min)
-8. Phase 6.4 (Modal-System - 2h)
+**Aktuelle Priorisierung (14.02.2026):**
+1. ✅ Phase 6.3d: MultiSelect Collapsible (KOMPLETT)
+2. 🚀 Phase 6.4: Global DnD Modus (NEXT)
+3. 🚀 Phase 6.5: Dropdown-Redesign (NEXT)
+4. Phase 8.4: Package Size Optimierung
+5. Phase 6.3c: Lösch-Bestätigung
+6. Phase 6.8: TextArea-Erweiterung
+7. Phase 6.9: Standard-Template
+8. Phase 6.10: Icon Picker Lucide
+9. Phase 6.7: Template-Switcher
+10. Phase 6.6: Modal-System
 
 **Dann:** Phase 8 (Code Cleanup) vor weiteren Features
 
 ---
 
-**Letzte Aktualisierung:** 12.02.2026  
-**Aktueller Stand:** Phase 5 komplett ✅, Phase 6 finalisiert und ready  
-**Nächster Schritt:** Phase 6.1 - Quick Wins implementieren  
-**Status:** ✅ ROADMAP FINALISIERT - READY FOR IMPLEMENTATION
+**Letzte Aktualisierung:** 14.02.2026  
+**Aktueller Stand:** Phase 6.3d komplett ✅ (inkl. Preview & DB v12)  
+**Nächster Schritt:** Phase 6.4 - Global DnD Modus  
+**Status:** ✅ ROADMAP AKTUALISIERT - READY FOR NEXT PHASE

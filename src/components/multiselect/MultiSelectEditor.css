@@ -37,8 +37,7 @@
   transition: all 0.3s ease;
   cursor: pointer;
   overflow: hidden;
-  min-height: 44px;
-  min-width: 44px;
+  height: 2.5rem; /* h-10 = 40px wie Input */
 }
 
 .dnd-toggle-button:hover {
@@ -47,14 +46,16 @@
 
 /* Nur Icon - OFF-Modus */
 .dnd-toggle-button[data-active="false"] {
-  width: 44px;
+  width: 2.5rem; /* 40px Quadrat */
   justify-content: center;
+  padding: 0.5rem;
 }
 
 /* Expandiert - ON-Modus */
 .dnd-toggle-button[data-active="true"] {
   width: 100%;
   justify-content: space-between;
+  padding: 0.5rem 0.75rem;
   background: rgba(255, 193, 7, 0.2);
   border-color: #ffc107;
   color: #f59e0b;
@@ -83,12 +84,11 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem;
+  padding: 0.25rem 0.75rem;
   background: white;
   border: 1px solid hsl(var(--border));
   border-radius: 0.5rem;
-  min-height: 44px;
-  margin-bottom: 0.5rem;
+  min-height: 2.25rem; /* 36px */
   transition: all 0.2s ease;
 }
 
@@ -120,6 +120,7 @@
   padding: 0.25rem;
   border-radius: 0.25rem;
   transition: all 0.2s;
+  line-height: 1.25rem; /* Textbox line-height */
 }
 
 .button-text:hover {
@@ -132,13 +133,11 @@
   pointer-events: none;
 }
 
-/* ========== COLOR PALETTE BUTTON (Icon statt runder Button) ========== */
+/* ========== COLOR PALETTE BUTTON (Icon) ========== */
 .color-palette-btn {
-  min-width: 44px;
-  min-height: 44px;
-  width: 44px;
-  height: 44px;
-  border-radius: 0.5rem;
+  height: 2.5rem; /* 40px wie Input */
+  width: 2.5rem;
+  border-radius: 0.375rem;
   border: 1px solid rgba(0, 0, 0, 0.1);
   transition: all 0.2s;
   cursor: pointer;
@@ -162,14 +161,12 @@
 
 /* ========== DELETE BUTTON ========== */
 .delete-btn {
-  min-width: 44px;
-  min-height: 44px;
-  width: 44px;
-  height: 44px;
+  height: 2.5rem; /* 40px wie Input */
+  width: 2.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.5rem;
+  border-radius: 0.375rem;
   transition: all 0.2s;
   background: transparent;
   border: none;

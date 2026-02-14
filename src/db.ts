@@ -9,8 +9,8 @@ const db = new Dexie('PainDiaryDB') as Dexie & {
   settings: EntityTable<Settings, 'key'>;
 };
 
-// Version 11: Dashboard UI Update - Lucide Icons + Trend Display
-db.version(11).stores({
+// Version 12: MultiSelect Editor UI Update - Collapsible Container with Preview
+db.version(12).stores({
   templates: '++id, name, order',
   entries: '++id, templateId, timestamp, encrypted, *tags',
   settings: 'key'
