@@ -127,14 +127,15 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
       const block = editingBlocks.find(b => b.id === pendingEditBlockId);
       if (!block) return;
       
+      // For MultiSelect: Auto-expand collapsible container instead of modal
+      if (block.type === 'multiselect') {
+        handleToggleBlockExpanded(pendingEditBlockId);
+        setPendingEditBlockId(null);
+        return;
+      }
+      
       setEditingBlockId(pendingEditBlockId);
       setTempBlockLabel(block.label);
-      
-      if (block.type === 'multiselect') {
-        setMultiSelectButtons(block.multiSelectOptions ? [...block.multiSelectOptions] : []);
-        setNewButtonText('');
-        setNewButtonColor('#007AFF');
-      }
       
       setPendingEditBlockId(null);
     }
@@ -365,19 +366,10 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
     const block = editingBlocks.find(b => b.id === blockId);
     if (!block) return;
     
-    // Slider/BodyMap: Toggle collapsible container
-    if (block.type === 'slider' || block.type === 'bodymap') {
+    // Slider/BodyMap/MultiSelect: Toggle collapsible container
+    if (block.type === 'slider' || block.type === 'bodymap' || block.type === 'multiselect') {
       handleToggleBlockExpanded(blockId);
       return;
-    }
-    
-    // MultiSelect: Modal öffnen
-    if (block.type === 'multiselect') {
-      setEditingBlockId(blockId);
-      setTempBlockLabel(block.label);
-      setMultiSelectButtons(block.multiSelectOptions ? [...block.multiSelectOptions] : []);
-      setNewButtonText('');
-      setNewButtonColor('#007AFF');
     }
   }
 
@@ -518,6 +510,19 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
     }));
   }
 
+  // NEW: MultiSelect Buttons Handler
+  function handleMultiSelectButtonsChange(blockId: string, buttons: { text: string; color: string }[]) {
+    setEditingBlocks(editingBlocks.map(block => {
+      if (block.id === blockId && block.type === 'multiselect') {
+        return {
+          ...block,
+          multiSelectOptions: buttons
+        };
+      }
+      return block;
+    }));
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -646,6 +651,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                           isExpanded={expandedBlockIds.has(block.id)}
                           onSliderSettingsChange={handleSliderSettingsChange}
                           onBodyMapTypeChange={handleBodyMapTypeChange}
+                          onMultiSelectButtonsChange={handleMultiSelectButtonsChange}
                         />
                       ))
                     )}
@@ -715,167 +721,6 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
           </Card>
         </div>
       )}
-
-      {/* Block Options Modal */}
-      {editingBlockId && (() => {
-        const block = editingBlocks.find(b => b.id === editingBlockId);
-        if (!block) return null;
-        
-        return (
-          <div 
-            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto" 
-            onClick={handleCancelBlockOptions}
-            onTouchMove={(e) => {
-              if (e.target === e.currentTarget) {
-                e.preventDefault();
-              }
-            }}
-          >
-            <Card className="w-full max-w-lg max-h-[90vh] flex flex-col my-auto" onClick={(e) => e.stopPropagation()}>
-              <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
-                <h3 className="text-lg font-semibold">Block bearbeiten</h3>
-                <Button onClick={handleCancelBlockOptions} variant="ghost" size="icon" className="btn-touch-target">
-                  <X size={18} />
-                </Button>
-              </div>
-
-              <div className="p-4 space-y-4 overflow-y-auto flex-1">
-                <div className="space-y-2">
-                  <Label>Block-Überschrift</Label>
-                  <Input
-                    value={tempBlockLabel}
-                    onChange={(e) => setTempBlockLabel(e.target.value)}
-                    placeholder="Überschrift eingeben..."
-                    autoFocus
-                  />
-                </div>
-                
-                {block.type === 'multiselect' && (
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Erstelle Buttons mit Text und Farbe.
-                    </p>
-                    
-                    <Card className="p-4 bg-secondary/30">
-                      <div className="space-y-3">
-                        <Input
-                          value={newButtonText}
-                          onChange={(e) => setNewButtonText(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleAddButton();
-                            }
-                          }}
-                          placeholder="Button-Text eingeben"
-                        />
-                        <div className="space-y-2">
-                          <Label>Farbe wählen:</Label>
-                          <div className="grid grid-cols-5 gap-2">
-                            {PRESET_COLORS.map((color) => (
-                              <button
-                                key={color}
-                                type="button"
-                                onClick={() => setNewButtonColor(color)}
-                                className="w-full aspect-square rounded-lg border-2 transition-all"
-                                style={{
-                                  backgroundColor: color,
-                                  borderColor: newButtonColor === color ? '#000' : 'transparent',
-                                  transform: newButtonColor === color ? 'scale(1.1)' : 'scale(1)',
-                                }}
-                                title={color}
-                              />
-                            ))}
-                          </div>
-                          <Button onClick={handleAddButton} className="w-full">
-                            <Plus size={16} className="mr-2" />
-                            Button hinzufügen
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                    
-                    {multiSelectButtons.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-semibold">
-                          Buttons ({multiSelectButtons.length}):
-                        </p>
-                        {multiSelectButtons.map((btn, idx) => (
-                          <Card key={idx} className="p-3">
-                            <div className="flex items-center gap-3">
-                              <span className="flex-1 font-medium">{btn.text}</span>
-                              <div className="flex items-center gap-2">
-                                <div className="relative">
-                                  <select
-                                    value={btn.color}
-                                    onChange={(e) => handleUpdateButtonColor(idx, e.target.value)}
-                                    className="appearance-none w-20 h-8 rounded cursor-pointer border-2"
-                                    style={{
-                                      backgroundColor: btn.color,
-                                      color: 'transparent',
-                                    }}
-                                  >
-                                    {PRESET_COLORS.map((color) => (
-                                      <option key={color} value={color}>
-                                        {color}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <div 
-                                    className="absolute inset-0 pointer-events-none flex items-center justify-center"
-                                  >
-                                    <div className="w-4 h-4 border-2 border-white rounded-full shadow-sm" 
-                                         style={{ backgroundColor: btn.color }} 
-                                    />
-                                  </div>
-                                </div>
-                                <div
-                                  className="px-4 py-2 rounded-lg font-medium text-sm"
-                                  style={{ 
-                                    backgroundColor: btn.color,
-                                    color: '#fff'
-                                  }}
-                                >
-                                  {btn.text}
-                                </div>
-                              </div>
-                              <Button
-                                onClick={() => handleRemoveButton(idx)}
-                                variant="ghost"
-                                size="icon"
-                                className="btn-touch-target"
-                              >
-                                <Trash2 size={16} className="text-destructive" />
-                              </Button>
-                            </div>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {multiSelectButtons.length === 0 && (
-                      <Card className="p-8 text-center bg-secondary/20">
-                        <p className="text-sm text-muted-foreground">
-                          Noch keine Buttons. Füge oben Buttons hinzu.
-                        </p>
-                      </Card>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="p-4 border-t flex justify-end gap-2 flex-shrink-0">
-                <Button onClick={handleCancelBlockOptions} variant="outline">
-                  Abbrechen
-                </Button>
-                <Button onClick={handleSaveBlockOptions}>
-                  Speichern
-                </Button>
-              </div>
-            </Card>
-          </div>
-        );
-      })()}
 
       {/* Dashboard Configuration Modal */}
       {configuringDashboard && (() => {

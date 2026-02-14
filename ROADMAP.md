@@ -136,39 +136,60 @@
   - Konsistent mit Header-Pattern
   - **Commit:** `feat: replace edit/delete buttons with dropdown menu`
 
-### 6.3b: Inline-Edit & Collapsible Settings (2h)
+### 6.3b: Inline-Edit & Collapsible Settings (2h) ✅ KOMPLETT
 **Branch:** `feature/inline-edit-blocks`
-**Status:** Geplant (13.02.2026)
+**Status:** Abgeschlossen (13.02.2026)
 
 **Ziel:** Block-Labels inline editierbar, Settings in Collapsible Containern
 
-- [ ] **Inline-Edit Labels (alle Block-Typen)**
+- [x] **Inline-Edit Labels (alle Block-Typen)** ✅
   - Label → Input Component (wie Template-Name)
   - Variable Breite basierend auf Text-Länge
   - onChange Handler → editingBlocks updaten
-  - **Aufwand:** 45 Min
-  - **Commit:** `feat: make block labels inline editable`
+  - **Commit:** `feat: make block labels inline editable with collapsible settings`
 
-- [ ] **Slider: Collapsible Edit-Container**
+- [x] **Slider: Collapsible Edit-Container** ✅
   - Dropdown-Item "Bearbeiten" öffnet Container unter Label
-  - Chevron-Icon (auf/zu)
   - Container: Min/Max/Step Inputs + Dashboard Toggle
-  - "Dashboard konfigurieren" Button entfernen
-  - **Aufwand:** 30 Min
-  - **Commit:** `feat: add collapsible settings container for slider block`
+  - "Dashboard konfigurieren" Button entfernt
+  - **Commit:** `feat: make block labels inline editable with collapsible settings`
 
-- [ ] **BodyMap: Collapsible Edit-Container**
+- [x] **BodyMap: Collapsible Edit-Container** ✅
   - Dropdown-Item "Bearbeiten" öffnet Container unter Label
   - Container: Type-Selector (Schmerzwert/Funktionswert) + Dashboard Toggle
-  - "Dashboard konfigurieren" Button entfernen
-  - **Aufwand:** 30 Min
-  - **Commit:** `feat: add collapsible settings container for bodymap block`
+  - "Dashboard konfigurieren" Button entfernt
+  - **Commit:** `feat: make block labels inline editable with collapsible settings`
 
-- [ ] **Date + TextArea: Dropdown conditional**
-  - Dropdown-Item "Bearbeiten" NICHT anzeigen (gibt es nichts zu bearbeiten)
+- [x] **Date + TextArea: Dropdown conditional** ✅
+  - Dropdown-Item "Bearbeiten" NICHT angezeigt (gibt es nichts zu bearbeiten)
   - Nur "Löschen" im Dropdown
+  - **Commit:** `feat: make block labels inline editable with collapsible settings`
+
+### 6.3d: MultiSelect Collapsible Settings (1.5h)
+**Branch:** `feature/multiselect-collapsible`
+**Status:** Geplant (13.02.2026)
+
+**Ziel:** MultiSelect-Modal in Collapsible Container umwandeln
+
+- [ ] **Brainstorming: Modal → Container Konzept**
+  - Aktuelles Modal analysieren
+  - Collapsible Container Pattern anpassen
+  - Button-Management im Container
   - **Aufwand:** 15 Min
-  - **Commit:** `feat: hide edit menu item for date and textarea blocks`
+
+- [ ] **MultiSelect Settings Container**
+  - Container mit Button-Liste
+  - Add-Button Inputs (Text + Farbe)
+  - Delete-Buttons pro Button
+  - Color-Picker inline
+  - **Aufwand:** 1h
+  - **Commit:** `feat: convert multiselect modal to collapsible container`
+
+- [ ] **Modal Code entfernen**
+  - Block Options Modal Code für MultiSelect entfernen
+  - Nur noch Container-basierte Bearbeitung
+  - **Aufwand:** 15 Min
+  - **Commit:** `refactor: remove multiselect modal code`
 
 ### 6.3c: Lösch-Bestätigung & Image-Block Cleanup (30 Min)
 **Branch:** `feature/delete-confirmation`
@@ -233,7 +254,7 @@ Sollte Variante A zu komplex werden oder User bevorzugt minimalistischeren Ansat
   - **Aufwand:** 30 Min
   - **Commit:** `refactor: migrate existing modals to BaseModal`
 
-### 6.5: Template-Switcher (45 Min)
+### 6.5: Template-Switcher & Header UX (1.5h)
 **Branch:** `feature/template-switcher`
 
 **BESCHLOSSEN:** Buttons (keine Swipe-Geste)
@@ -244,7 +265,7 @@ Sollte Variante A zu komplex werden oder User bevorzugt minimalistischeren Ansat
 - Template-Name zu lang: Text-Overflow ellipsis
 
 - [ ] **Navigation Buttons im Header**
-  - Layout: `◀ [Template-Name] ▶ [×]`
+  - Layout: `◀ [Template-Name] ▶`
   - Buttons nur sichtbar wenn `templates.length > 1`
   - Previous/Next Navigation (zyklisch: letztes → erstes)
   - Template-Name: Flexibel, text-overflow: ellipsis
@@ -260,6 +281,13 @@ Sollte Variante A zu komplex werden oder User bevorzugt minimalistischeren Ansat
   - **Aufwand:** 15 Min
   - **Commit:** `feat: implement template switch navigation logic`
 
+- [ ] **Header Layout Cleanup**
+  - "Template bearbeiten" Text entfernen (kollidiert mit Floating Buttons)
+  - Nur Navigation Buttons + Template-Name im Header
+  - Floating Buttons bleiben unberührt
+  - **Aufwand:** 15 Min
+  - **Commit:** `style: remove template bearbeiten text from header`
+
 ### 6.6: TextArea-Erweiterung (3h)
 **Branch:** `feature/textarea-file-upload`
 
@@ -271,12 +299,14 @@ Sollte Variante A zu komplex werden oder User bevorzugt minimalistischeren Ansat
 - Daten-Entkopplung: Text/Events/Files alle optional
 - "Nur Foto"-Eintrag möglich (Text kann leer bleiben)
 
+**WICHTIG:** Buttons aktuell zu klein & nicht integriert - muss nachgebessert werden!
+
 **Tasks:**
 
 - [ ] **Foto & PDF Buttons hinzufügen**
   - 4 Buttons: 📅 Event | 🩺 Doc | 📷 Foto | 📄 PDF
   - Layout: Horizontal, nur Icons (keine Beschriftung)
-  - Touch Target: 44x44px, gap: 12px
+  - Touch Target: 44x44px, gap: 12px (KRITISCH - aktuell zu klein!)
   - Tooltips für Klarheit
   - Icons: Calendar, Stethoscope, Camera, FileText (lucide-react)
   - **Aufwand:** 30 Min
@@ -682,6 +712,25 @@ Sollte Variante A zu komplex werden oder User bevorzugt minimalistischeren Ansat
 
 ## 🐛 KNOWN ISSUES
 
+### Editor UX
+- [ ] **Drag & Drop: Vertikales Scrollen auf iPhone schwierig**
+  - Problem: Scrollen funktioniert nur am rechten Rand gut
+  - Mögliche Lösung: Alternative Drag-Logik? Scroll-Bereich vergrößern?
+  - **Priorität:** HOCH (Mobile UX)
+
+### Dashboard
+- [ ] **Template-Icons werden nicht konsistent gerendert**
+  - Problem: Bei Toggle der Template-Buttons manchmal Icons, manchmal Buchstaben
+  - Inkonsistenz beim Wechseln zwischen Time-Filtern
+  - **Priorität:** MITTEL
+
+- [ ] **Touch-Support auf Charts verbesserungswürdig**
+  - Problem: Touch+Hold markiert Bereich statt Punkt
+  - Genaues Markieren eines Datenpunkts sehr schwierig
+  - Lösung: Magnetisches Snapping? Horizontal-Drag für X-Achse?
+  - **Priorität:** MITTEL
+
+### System
 - [ ] **WICHTIG:** IndexedDB Datenverlust bei Cookie-Cleanup (iOS) - später lösen
 - [ ] Encryption: Event/Pain extraction in dashboardData.ts (decryptFn TODO)
 - [ ] TypeScript: Stricter types für Block.value (→ Phase 8.3)

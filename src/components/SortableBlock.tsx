@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { GripVertical, Edit, Trash2, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
+import { GripVertical, Edit, Trash2, Eye, EyeOff, ChevronDown } from 'lucide-react';
 import { DashboardToggleButtons } from './dashboard';
 import {
   DropdownMenu,
@@ -15,6 +15,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MultiSelectEditor } from './multiselect';
+import './multiselect/MultiSelectEditor.css';
 
 interface SortableBlockProps {
   block: Block;
@@ -29,6 +31,7 @@ interface SortableBlockProps {
   isExpanded?: boolean;
   onSliderSettingsChange?: (blockId: string, settings: { min?: number; max?: number; step?: number }) => void;
   onBodyMapTypeChange?: (blockId: string, type: 'pain' | 'function') => void;
+  onMultiSelectButtonsChange?: (blockId: string, buttons: { text: string; color: string }[]) => void;
 }
 
 export default function SortableBlock({ 
@@ -43,7 +46,8 @@ export default function SortableBlock({
   showAdvancedActions = false,
   isExpanded = false,
   onSliderSettingsChange,
-  onBodyMapTypeChange
+  onBodyMapTypeChange,
+  onMultiSelectButtonsChange
 }: SortableBlockProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: block.id });
 
@@ -141,7 +145,7 @@ export default function SortableBlock({
         />
       </div>
 
-      {/* Collapsible Settings Container - nur für Slider & BodyMap */}
+      {/* Collapsible Settings Container - Slider */}
       {isExpanded && block.type === 'slider' && (
         <div className="mt-4 p-3 bg-secondary/20 rounded-lg space-y-3">
           <div className="flex items-center gap-2">
@@ -190,6 +194,7 @@ export default function SortableBlock({
         </div>
       )}
 
+      {/* Collapsible Settings Container - BodyMap */}
       {isExpanded && block.type === 'bodymap' && (
         <div className="mt-4 p-3 bg-secondary/20 rounded-lg space-y-3">
           <div>
@@ -226,6 +231,16 @@ export default function SortableBlock({
               Datenauswertung aktivieren
             </Label>
           </div>
+        </div>
+      )}
+
+      {/* Collapsible Settings Container - MultiSelect */}
+      {isExpanded && block.type === 'multiselect' && (
+        <div className="mt-4">
+          <MultiSelectEditor
+            buttons={block.multiSelectOptions || []}
+            onChange={(newButtons) => onMultiSelectButtonsChange?.(block.id, newButtons)}
+          />
         </div>
       )}
     </Card>

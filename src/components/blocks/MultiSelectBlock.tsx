@@ -35,15 +35,9 @@ export default function MultiSelectBlock({ block, onChange, readOnly = false, hi
 
   const options = block.multiSelectOptions || [];
 
+  // Keine Nachricht mehr wenn keine Buttons - einfach nichts anzeigen
   if (options.length === 0) {
-    return (
-      <div className="space-y-2">
-        {!hideLabel && <Label>{block.label}</Label>}
-        <p className="text-sm text-muted-foreground">
-          Keine Buttons konfiguriert. Bitte im Editor Buttons hinzufügen.
-        </p>
-      </div>
-    );
+    return null;
   }
 
   return (

@@ -1,0 +1,255 @@
+/* ========== MULTISELECT EDITOR CONTAINER ========== */
+.multiselect-editor-container {
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 0.5rem;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.multiselect-editor-container.dnd-active {
+  background: rgba(255, 193, 7, 0.1);
+  border-color: #ffc107;
+  border-style: dashed;
+  animation: dnd-pulse 2s ease-in-out infinite;
+}
+
+@keyframes dnd-pulse {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); 
+  }
+  50% { 
+    box-shadow: 0 0 0 8px rgba(255, 193, 7, 0); 
+  }
+}
+
+/* ========== DND TOGGLE BUTTON ========== */
+.dnd-toggle-button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
+  border-radius: 0.5rem;
+  background: rgba(0, 0, 0, 0.05);
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  overflow: hidden;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.dnd-toggle-button:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* Nur Icon - OFF-Modus */
+.dnd-toggle-button[data-active="false"] {
+  width: 44px;
+  justify-content: center;
+}
+
+/* Expandiert - ON-Modus */
+.dnd-toggle-button[data-active="true"] {
+  width: 100%;
+  justify-content: space-between;
+  background: rgba(255, 193, 7, 0.2);
+  border-color: #ffc107;
+  color: #f59e0b;
+}
+
+.dnd-toggle-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  animation: slideInLeft 0.3s ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ========== BUTTON ROW ========== */
+.button-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  min-height: 44px;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+/* DnD-Modus: Ganze Row = Handle */
+.button-row-draggable {
+  cursor: grab;
+  border-color: rgba(255, 193, 7, 0.5);
+}
+
+.button-row-draggable:hover {
+  background: rgba(255, 193, 7, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.button-row-draggable:active {
+  cursor: grabbing;
+  transform: scale(1.02);
+}
+
+/* ========== BUTTON TEXT ========== */
+.button-text {
+  flex: 1;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s;
+}
+
+.button-text:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: hsl(var(--primary));
+}
+
+.button-row-draggable .button-text {
+  cursor: inherit;
+  pointer-events: none;
+}
+
+/* ========== COLOR PALETTE BUTTON (Icon statt runder Button) ========== */
+.color-palette-btn {
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.color-palette-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+.color-palette-btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ========== DELETE BUTTON ========== */
+.delete-btn {
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  color: hsl(var(--foreground));
+}
+
+.delete-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+  color: rgb(239, 68, 68);
+}
+
+.delete-btn-disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ========== ADD BUTTON ROW ========== */
+.add-button-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid hsl(var(--border));
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ========== COLOR PALETTE ========== */
+.color-palette {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.color-swatch {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+  cursor: pointer;
+  background: none;
+  padding: 0;
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+}
+
+.color-swatch.selected {
+  border-color: #000;
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .button-row {
+    background: hsl(var(--card));
+  }
+  
+  .color-swatch.selected {
+    border-color: #fff;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+  }
+  
+  .color-palette-btn {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .color-palette-btn:hover:not(:disabled) {
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+}
