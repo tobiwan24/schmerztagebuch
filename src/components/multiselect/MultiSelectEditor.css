@@ -1,7 +1,6 @@
 /* ========== MULTISELECT EDITOR CONTAINER ========== */
 .multiselect-editor-container {
-  padding: 0.75rem;
-  background: rgba(0, 0, 0, 0.02);
+  /* Padding entfernt - wird vom außeren Container gehandhabt */
   border-radius: 0.5rem;
   border: 2px solid transparent;
   transition: all 0.3s ease;

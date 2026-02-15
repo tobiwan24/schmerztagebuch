@@ -380,14 +380,8 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
   }
 
   function handleEditBlockOptions(blockId: string) {
-    const block = editingBlocks.find(b => b.id === blockId);
-    if (!block) return;
-    
-    // Slider/BodyMap/MultiSelect: Toggle collapsible container
-    if (block.type === 'slider' || block.type === 'bodymap' || block.type === 'multiselect') {
-      handleToggleBlockExpanded(blockId);
-      return;
-    }
+    // ALLE Block-Typen: Toggle collapsible container
+    handleToggleBlockExpanded(blockId);
   }
 
   function handleAddButton() {
@@ -576,14 +570,13 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
           <Trash2 size={20} />
         </button>
         
-        {hasUnsavedChanges && (
-          <button
-            className="floating-btn-glass save-btn floating-btn-enter animate-pulse-glow-green"
-            onClick={handleSave}
-          >
-            <Check size={20} />
-          </button>
-        )}
+        <button
+          className={`floating-btn-glass ${hasUnsavedChanges ? 'save-btn animate-pulse-glow-green' : ''}`}
+          onClick={handleSave}
+          disabled={!hasUnsavedChanges}
+        >
+          <Check size={20} />
+        </button>
       </div>
 
       {/* Header */}

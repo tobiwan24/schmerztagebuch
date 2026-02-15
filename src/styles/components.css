@@ -352,14 +352,21 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Save Button - grüner Haken */
+/* Save Button - grüner Haken nur wenn active */
 .floating-btn-glass.save-btn {
-  background: rgba(22, 163, 74, 0.05) !important;
+  background: rgba(22, 163, 74, 0.1) !important;
 }
 
 .floating-btn-glass.save-btn svg {
   color: #16a34a;
   stroke-width: 2.5;
+}
+
+/* Save Button disabled state - weiß mit schwarzem Icon */
+.floating-btn-glass:disabled svg {
+  color: #000;
+  stroke-width: 2;
+  opacity: 0.5;
 }
 
 /* Animation für Save Button erscheinen */

@@ -8,14 +8,9 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Edit, Trash2, Eye, EyeOff, ChevronDown } from 'lucide-react';
+import { Trash2, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { DashboardToggleButtons } from './dashboard';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import {
   Dialog,
   DialogContent,
@@ -131,32 +126,17 @@ export default function SortableBlock({
           </div>
         )}
 
-        {/* Dropdown Menu - disabled im DnD-Modus */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="btn-touch-target"
-              disabled={isDndMode}
-            >
-              <ChevronDown size={20} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {/* Bearbeiten nur für Slider, BodyMap, MultiSelect */}
-            {['slider', 'bodymap', 'multiselect'].includes(block.type) && (
-              <DropdownMenuItem onClick={onEdit}>
-                <Edit size={20} className="mr-2" />
-                Bearbeiten
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onClick={handleDeleteClick} className="text-destructive">
-              <Trash2 size={20} className="mr-2" />
-              Löschen
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Toggle Button für Edit-Container - für ALLE Block-Typen */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="btn-touch-target"
+          disabled={isDndMode}
+          onClick={onEdit}
+          title={isExpanded ? "Bearbeitung schließen" : "Bearbeiten"}
+        >
+          {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </Button>
       </div>
 
       {/* Block Renderer - MultiSelect nur wenn NICHT expanded */}
@@ -228,6 +208,15 @@ export default function SortableBlock({
               Datenauswertung aktivieren
             </Label>
           </div>
+          <Separator />
+          <Button
+            variant="outline"
+            className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+            onClick={handleDeleteClick}
+          >
+            <Trash2 size={20} className="mr-2" />
+            Block löschen
+          </Button>
         </div>
       )}
 
@@ -268,16 +257,70 @@ export default function SortableBlock({
               Datenauswertung aktivieren
             </Label>
           </div>
+          <Separator />
+          <Button
+            variant="outline"
+            className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+            onClick={handleDeleteClick}
+          >
+            <Trash2 size={20} className="mr-2" />
+            Block löschen
+          </Button>
         </div>
       )}
 
       {/* Collapsible Settings Container - MultiSelect */}
       {isExpanded && block.type === 'multiselect' && (
-        <div className="mt-4">
+        <div className="mt-4 p-3 bg-secondary/20 rounded-lg space-y-3">
           <MultiSelectEditor
             buttons={block.multiSelectOptions || []}
             onChange={(newButtons) => onMultiSelectButtonsChange?.(block.id, newButtons)}
           />
+          <Separator />
+          <Button
+            variant="outline"
+            className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+            onClick={handleDeleteClick}
+          >
+            <Trash2 size={20} className="mr-2" />
+            Block löschen
+          </Button>
+        </div>
+      )}
+
+      {/* Collapsible Settings Container - Date */}
+      {isExpanded && block.type === 'date' && (
+        <div className="mt-4 p-3 bg-secondary/20 rounded-lg space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Datumsblock hat keine zusätzlichen Einstellungen.
+          </p>
+          <Separator />
+          <Button
+            variant="outline"
+            className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+            onClick={handleDeleteClick}
+          >
+            <Trash2 size={20} className="mr-2" />
+            Block löschen
+          </Button>
+        </div>
+      )}
+
+      {/* Collapsible Settings Container - TextArea */}
+      {isExpanded && block.type === 'textarea' && (
+        <div className="mt-4 p-3 bg-secondary/20 rounded-lg space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Textfeld hat keine zusätzlichen Einstellungen.
+          </p>
+          <Separator />
+          <Button
+            variant="outline"
+            className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+            onClick={handleDeleteClick}
+          >
+            <Trash2 size={20} className="mr-2" />
+            Block löschen
+          </Button>
         </div>
       )}
 
