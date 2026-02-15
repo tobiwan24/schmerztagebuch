@@ -942,6 +942,15 @@
 - [ ] Performance: Große Entry-Mengen (>1000) können Charts verlangsamen
 - [ ] Homepage: Template-Icons nicht automatisch mittig angeordnet (bei z.B. 2 Templates)
 
+### CSS / Browser
+- [ ] **CSS Hyphens: Silbentrennung nicht konsistent**
+  - Problem: `hyphens: auto` ist korrekt implementiert, aber Browser wenden Silbentrennung nur bei sehr langen Wörtern an (≥13 Zeichen)
+  - Aktuelle Texte ("Schmerzlokalisierung", "Mehrfachauswahl") passen meist ohne Trennung auf neue Zeile
+  - Zeilenumbruch funktioniert korrekt mit `word-wrap: break-word`
+  - Browser-abhängig: Silbentrennung greift nur wenn Wort ~60-70% der Container-Breite einnimmt
+  - Location: `.block-palette-description` in `components.css`
+  - **Priorität:** SEHR NIEDRIG (Kosmetisch, funktioniert wie vorgesehen)
+
 ---
 
 ## 📋 DESIGN-ENTSCHEIDUNGEN DOKUMENTIERT

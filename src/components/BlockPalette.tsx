@@ -32,7 +32,7 @@ export default function BlockPalette({ onAddBlock }: BlockPaletteProps) {
       type: 'date', 
       label: 'Datum', 
       icon: CalendarDays,
-      description: 'Datumsauswahl'
+      description: '' // Kein Infotext
     },
     { 
       type: 'multiselect', 
@@ -65,7 +65,9 @@ export default function BlockPalette({ onAddBlock }: BlockPaletteProps) {
             </div>
             <div className="block-palette-text">
               <span className="block-palette-label">{blockType.label}</span>
-              <span className="block-palette-description">{blockType.description}</span>
+              {blockType.description && (
+                <span className="block-palette-description">{blockType.description}</span>
+              )}
             </div>
           </Button>
         );
