@@ -205,82 +205,125 @@
   - Dialog zeigt Block-Label zur Bestätigung
   - **Commit:** `feat: add confirmation dialog for block deletion`
 
-- [ ] **Image-Block aus Palette entfernen**
-  - Bereits in Phase 6.7 umgesetzt ✅
-  - Image-Block aus BlockPalette entfernt
+- [x] **Image-Block aus Palette entfernen**
+  - Image-Block aus BlockPalette entfernt (Phase 6.7)
+  - Image-Block aus Standard-Template entfernt (15.02.2026)
+  - DB Version 13
   - Legacy-Support in BlockRenderer vorhanden
+  - **Commit:** `chore: remove image block from standard template`
 
-### 6.4: Global DnD Modus (2h) 🆕
+### 6.4: Global DnD Modus (2h) ✅ KOMPLETT
 **Branch:** `feature/global-dnd-mode`
-**Status:** Geplant (14.02.2026)
+**Status:** Abgeschlossen (15.02.2026)
 
 **Ziel:** DnD-Toggle-System aus MultiSelect auf gesamten Editor anwenden
 
-- [ ] **DnD-Toggle-Button im Template-Header**
-  - Button im TemplateStylePicker (neben Bulk-Actions)
-  - ArrowDownUp Icon (wie MultiSelect)
+- [x] **"Template bearbeiten" Header-Text entfernt**
+  - Header bereinigt, nur Zurück-Button
+  - **Commit:** `feat: add global dnd mode with full block dragging`
+
+- [x] **DnD-Toggle als Floating Button**
+  - Position: Links neben Template-Hinzufügen (+)
+  - ArrowDownUp Icon (gelb im aktiven Zustand)
+  - Kein Text, nur Icon mit Tooltip
   - State: `isDndMode` (boolean, default: false)
-  - Text: "Sortier-Modus" wenn aktiviert
-  - **Aufwand:** 30 Min
-  - **Commit:** `feat: add global dnd toggle in template header`
+  - **Commit:** `feat: add global dnd mode with full block dragging`
 
-- [ ] **Global DnD State Management**
-  - State in EditorMode: `[isDndMode, setIsDndMode]`
-  - Prop zu SortableBlock: `isDndMode`
-  - Drag Handle nur aktiv wenn `isDndMode === true`
-  - Visuelle Anzeige: Gelber Hintergrund auf allen Blocks
-  - **Aufwand:** 45 Min
-  - **Commit:** `feat: implement global dnd state management`
+- [x] **Drag-Handles komplett entfernt**
+  - Keine Drag-Handles mehr sichtbar (weder aktiv noch inaktiv)
+  - Gesamter Block wird drag-bar im DnD-Modus
+  - **Commit:** `feat: add global dnd mode with full block dragging`
 
-- [ ] **UI-Feedback im DnD-Modus**
-  - Blocks: Border gelb + dashed
-  - Cursor: grab/grabbing
-  - Edit-Controls disabled (Labels readonly)
+- [x] **Global DnD State Management**
+  - State in EditorMode: `isDndMode`
+  - Prop an SortableBlock weitergegeben
+  - Drag-Attribute auf Card statt Handle
+  - Gesamter Block ist drag-bar wenn `isDndMode === true`
+  - **Commit:** `feat: add global dnd mode with full block dragging`
+
+- [x] **UI-Feedback im DnD-Modus**
+  - Blocks: Gelber dashed Border (#eab308)
+  - Hintergrund: rgba(234, 179, 8, 0.05)
+  - Cursor: grab → grabbing für gesamten Block
+  - Alle Inputs/Controls gesperrt (pointer-events: none)
+  - Labels readonly/disabled
   - Dropdown-Menu disabled
-  - **Aufwand:** 30 Min
-  - **Commit:** `style: add visual feedback for global dnd mode`
+  - **Commit:** `feat: add global dnd mode with full block dragging`
 
-- [ ] **Click-außerhalb deaktiviert DnD**
+- [x] **Click-außerhalb deaktiviert DnD**
   - Event-Listener auf document
-  - Prüft ob Click außerhalb Block-Container
-  - Setzt `isDndMode = false`
-  - **Aufwand:** 15 Min
-  - **Commit:** `feat: disable dnd mode on click outside blocks`
+  - Prüft Click außerhalb `.sortable-block` und `.floating-btn-glass`
+  - Automatisches Deaktivieren des DnD-Modus
+  - **Commit:** `feat: add global dnd mode with full block dragging`
 
-### 6.5: Collapsible-Dropdown-Redesign (1.5h) 🆕
-**Branch:** `feature/collapsible-dropdown-redesign`
-**Status:** Geplant (14.02.2026)
+- [x] **DnD Toggle Button Styling**
+  - Gelber Hintergrund + Border im aktiven Zustand
+  - Pulse-Glow Animation (gelb)
+  - Icon stroke-width: 2.5
+  - **Commit:** `feat: add global dnd mode with full block dragging`
 
-**Ziel:** Dropdown-Pfeil öffnet sofort Edit-Container, Delete als roter Button unten
+### 6.4b: Save-Button dauerhaft sichtbar (15 Min) ✅ KOMPLETT
+**Branch:** `feature/editor-save-button`
+**Status:** Abgeschlossen (15.02.2026)
 
-- [ ] **ChevronDown = Instant Edit-Toggle**
-  - Click auf ChevronDown → `handleToggleBlockExpanded(block.id)`
+**Ziel:** Save-Button immer im Header sichtbar (nicht nur bei Änderungen)
+
+- [x] **Save-Button dauerhaft sichtbar**
+  - Immer in Floating Buttons sichtbar
+  - Normal: Weißer Hintergrund, schwarzes Icon (opacity 50%)
+  - Mit Änderungen: Grüner Hintergrund, grünes Icon, pulse-glow
+  - Disabled wenn keine Änderungen (`!hasUnsavedChanges`)
+  - **Commit:** `feat: make save button permanently visible in editor`
+
+### 6.5: Collapsible-Dropdown-Redesign (1.5h) ✅ KOMPLETT
+**Branch:** `feature/editor-unified-containers`
+**Status:** Abgeschlossen (15.02.2026)
+
+**Ziel:** Einheitliche Edit-Container für ALLE Block-Typen
+
+- [x] **ChevronDown/Up Toggle für alle Blocks**
+  - Slider, BodyMap, MultiSelect, Date, TextArea
   - KEIN Dropdown-Menu mehr
   - Sofortiges Öffnen/Schließen des Containers
-  - Icon rotiert: ChevronDown ↔ ChevronUp
-  - **Aufwand:** 30 Min
-  - **Commit:** `feat: replace dropdown with instant collapsible toggle`
+  - Icon wechselt: ChevronDown ↔ ChevronUp
+  - **Commit:** `feat: unify all blocks with collapsible edit containers`
 
-- [ ] **Delete-Button in Edit-Container**
-  - Roter Button am Ende des Containers
+- [x] **Delete-Button in allen Edit-Containern**
+  - Roter Button am Ende jedes Containers
   - Layout: Volle Breite, outlined, destructive
   - Text: "Block löschen" + Trash Icon
-  - Touch-Target: 44px min-height
-  - **Aufwand:** 30 Min
-  - **Commit:** `feat: move delete button into edit container`
+  - Touch-Target: min-height 44px
+  - **Commit:** `feat: unify all blocks with collapsible edit containers`
 
-- [ ] **Container-Styling anpassen**
-  - Delete-Button: `mt-4`, `w-full`, red border
+- [x] **Date & TextArea Edit-Container**
+  - Neue Container mit Info-Text
+  - "Datumsblock hat keine zusätzlichen Einstellungen."
+  - "Textfeld hat keine zusätzlichen Einstellungen."
+  - Delete-Button auch hier unten
+  - **Commit:** `feat: unify all blocks with collapsible edit containers`
+
+- [x] **Container-Styling vereinheitlicht**
+  - Alle Container: `mt-4 p-3 bg-secondary/20 rounded-lg space-y-3`
   - Separator vor Delete-Button
-  - Consistent padding (12px)
-  - **Aufwand:** 15 Min
-  - **Commit:** `style: improve edit container layout with delete button`
+  - Consistent spacing (12px padding)
+  - **Commit:** `feat: unify all blocks with collapsible edit containers`
 
-- [ ] **Dropdown-Menu Code entfernen**
-  - DropdownMenu Komponente aus SortableBlock entfernen
-  - Imports bereinigen
-  - **Aufwand:** 15 Min
-  - **Commit:** `refactor: remove dropdown menu component`
+- [x] **Dropdown-Menu komplett entfernt**
+  - DropdownMenu Imports entfernt
+  - Edit Icon entfernt (ChevronDown/Up zeigt State)
+  - Code bereinigt
+  - **Commit:** `feat: unify all blocks with collapsible edit containers`
+
+- [x] **Bug Fix: handleEditBlockOptions**
+  - Funktion funktioniert jetzt für ALLE Block-Typen
+  - Vorher: Nur Slider/BodyMap/MultiSelect
+  - Nachher: Alle 5 Block-Typen inkl. Date/TextArea
+  - **Commit:** `feat: unify all blocks with collapsible edit containers`
+
+- [x] **MultiSelectEditor Padding entfernt**
+  - Padding wird vom äußeren Container gehandhabt
+  - Konsistente Spacing-Hierarchie
+  - **Commit:** `feat: unify all blocks with collapsible edit containers`
 
 ### 6.4: Modal-System Vereinheitlichung (2h)
 **Branch:** `refactor/modal-components`
@@ -968,25 +1011,26 @@
 
 ## 🎯 NÄCHSTE SCHRITTE
 
-**Aktuelle Priorisierung (14.02.2026):**
+**Aktuelle Priorisierung (15.02.2026):**
 1. ✅ Phase 6.3d: MultiSelect Collapsible (KOMPLETT)
 2. ✅ Phase 6.3c: Lösch-Bestätigung (KOMPLETT)
 3. ✅ Phase 6.7: TextArea-Erweiterung (KOMPLETT)
 4. ✅ Phase 6.7b: Icon-Größen iOS-konform (KOMPLETT)
-5. 🚀 Phase 6.4: Global DnD Modus (NEXT)
-6. 🚀 Phase 6.5: Dropdown-Redesign (NEXT)
-7. Phase 8.4: Package Size Optimierung
-8. Phase 6.9: Standard-Template (6.8 umbenannt)
-9. Phase 6.10: Icon Picker Lucide (6.9 umbenannt)
-10. Phase 6.6: Template-Switcher (6.7 umbenannt)
-11. Phase 6.6: Modal-System
+5. ✅ Phase 6.4: Global DnD Modus (KOMPLETT)
+6. ✅ Phase 6.5: Dropdown-Redesign/Unified Containers (KOMPLETT)
+7. ✅ DB Version 13: Image-Block aus Standard-Template entfernt
+8. 🚀 Phase 6.8: Standard-Template Auto-Generierung (NEXT)
+9. Phase 6.9: Icon Picker Lucide
+10. Phase 6.6: Template-Switcher
+11. Phase 6.4: Modal-System
+12. Phase 8: Code Cleanup
 
 **Dann:** Phase 8 (Code Cleanup) vor weiteren Features
 
 ---
 
-**Letzte Aktualisierung:** 14.02.2026  
-**Aktueller Stand:** Phase 6.7b komplett ✅ (Icon-Größen iOS-konform)  
-**Nächster Schritt:** Phase 6.4 - Global DnD Modus  
-**Commits bereit:** 2 Commits (Phase 6.7 + 6.7b)  
-**Status:** ✅ ROADMAP AKTUALISIERT - READY FOR COMMIT
+**Letzte Aktualisierung:** 15.02.2026  
+**Aktueller Stand:** Phase 6.5 komplett ✅ (Unified Edit Containers)  
+**Nächster Schritt:** Phase 6.8 - Standard-Template Auto-Generierung  
+**DB Version:** 13 (Image-Block aus Standard-Template entfernt)  
+**Status:** ✅ ALLE COMMITS DURCHGEFÜHRT - ROADMAP AKTUALISIERT

@@ -685,9 +685,9 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
       {showBlockPalette && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowBlockPalette(false)}>
           <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="p-4 border-b flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Baustein wählen</h3>
-              <Button onClick={() => setShowBlockPalette(false)} variant="ghost" size="icon" className="btn-touch-target">
+            <div className="px-4 py-3 border-b flex justify-between items-center">
+              <h3 className="text-base font-semibold">Baustein wählen</h3>
+              <Button onClick={() => setShowBlockPalette(false)} variant="ghost" size="icon" className="h-9 w-9">
                 <X size={18} />
               </Button>
             </div>

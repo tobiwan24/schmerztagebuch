@@ -363,6 +363,11 @@
 }
 
 /* Save Button disabled state - weiß mit schwarzem Icon */
+.floating-btn-glass:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .floating-btn-glass:disabled svg {
   color: #000;
   stroke-width: 2;
@@ -525,4 +530,58 @@
 
 .sortable-block.dnd-mode-active:active * {
   cursor: grabbing !important;
+}
+
+/* ========== BLOCK PALETTE CARDS ========== */
+.block-palette-card {
+  height: auto !important;
+  min-height: 80px;
+  padding: 16px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px !important;
+  text-align: left !important;
+  border: 1px solid hsl(var(--border)) !important;
+  background: hsl(var(--background)) !important;
+  transition: all 0.2s ease !important;
+}
+
+.block-palette-card:hover {
+  border-color: hsl(var(--primary) / 0.5) !important;
+  background: hsl(var(--accent)) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.block-palette-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: hsl(var(--secondary));
+  color: hsl(var(--foreground));
+}
+
+.block-palette-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.block-palette-label {
+  font-size: 0.875rem; /* 14px */
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  line-height: 1.2;
+}
+
+.block-palette-description {
+  font-size: 0.75rem; /* 12px */
+  color: hsl(var(--muted-foreground));
+  line-height: 1.3;
 }

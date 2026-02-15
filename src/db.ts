@@ -9,8 +9,8 @@ const db = new Dexie('PainDiaryDB') as Dexie & {
   settings: EntityTable<Settings, 'key'>;
 };
 
-// Version 12: MultiSelect Editor UI Update - Collapsible Container with Preview
-db.version(12).stores({
+// Version 13: Remove Image Block from Standard Template
+db.version(13).stores({
   templates: '++id, name, order',
   entries: '++id, templateId, timestamp, encrypted, *tags',
   settings: 'key'
@@ -362,12 +362,6 @@ export async function initializeDB(): Promise<void> {
           enabled: true,
           type: 'pain'
         }
-      },
-      {
-        id: generateUUID(),
-        type: 'image',
-        label: 'Bild',
-        value: ''
       }
     ]);
   }
