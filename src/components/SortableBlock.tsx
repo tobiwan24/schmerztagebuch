@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { GripVertical, Edit, Trash2, Eye, EyeOff, ChevronDown } from 'lucide-react';
+import { Edit, Trash2, Eye, EyeOff, ChevronDown } from 'lucide-react';
 import { DashboardToggleButtons } from './dashboard';
 import {
   DropdownMenu,
@@ -41,6 +41,7 @@ interface SortableBlockProps {
   onSliderSettingsChange?: (blockId: string, settings: { min?: number; max?: number; step?: number }) => void;
   onBodyMapTypeChange?: (blockId: string, type: 'pain' | 'function') => void;
   onMultiSelectButtonsChange?: (blockId: string, buttons: { text: string; color: string }[]) => void;
+  isDndMode?: boolean;
 }
 
 export default function SortableBlock({ 
@@ -56,7 +57,8 @@ export default function SortableBlock({
   isExpanded = false,
   onSliderSettingsChange,
   onBodyMapTypeChange,
-  onMultiSelectButtonsChange
+  onMultiSelectButtonsChange,
+  isDndMode = false
 }: SortableBlockProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: block.id });
@@ -80,24 +82,21 @@ export default function SortableBlock({
   };
 
   return (
-    <Card ref={setNodeRef} style={style} className="p-4 touch-none">
+    <Card 
+      ref={setNodeRef} 
+      style={style} 
+      className={`p-4 touch-none sortable-block ${isDndMode ? 'dnd-mode-active' : ''}`}
+      {...(isDndMode ? { ...attributes, ...listeners } : {})}
+    >
       <div className="flex items-center gap-2 mb-3">
-        {/* Drag Handle - DIV statt Button */}
-        <div
-          className="flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-accent rounded-md transition-colors"
-          style={{ minWidth: '44px', minHeight: '44px', width: '44px', height: '44px' }}
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical size={22} className="text-muted-foreground" />
-        </div>
-
         <Input
           value={block.label}
           onChange={(e) => onLabelChange?.(block.id, e.target.value)}
           className={`text-sm font-medium flex-1 ${block.hideLabelInDiary ? 'line-through opacity-50' : ''}`}
           placeholder="Block-Überschrift..."
           title={block.hideLabelInDiary ? "Label ausgeblendet in Tagebuch" : ""}
+          readOnly={isDndMode}
+          disabled={isDndMode}
           style={{ 
             width: `${Math.max(block.label.length * 8 + 40, 100)}px`,
             minWidth: '100px',
@@ -132,13 +131,14 @@ export default function SortableBlock({
           </div>
         )}
 
-        {/* Dropdown Menu - immer sichtbar */}
+        {/* Dropdown Menu - disabled im DnD-Modus */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
               variant="ghost" 
               size="icon" 
               className="btn-touch-target"
+              disabled={isDndMode}
             >
               <ChevronDown size={20} />
             </Button>

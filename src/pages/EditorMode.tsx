@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, X, Plus, Trash2, Check } from 'lucide-react';
+import { ArrowLeft, X, Plus, Trash2, Check, ArrowDownUp } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -70,6 +70,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
   const [showBlockPalette, setShowBlockPalette] = useState(false);
   const [showAdvancedActions, setShowAdvancedActions] = useState(false);
   const [expandedBlockIds, setExpandedBlockIds] = useState<Set<string>>(new Set());
+  const [isDndMode, setIsDndMode] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -106,6 +107,22 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
       setHasUnsavedChanges(false);
     }
   }, [selectedTemplate, originalTemplate]);
+
+  // Click outside blocks deactivates DnD mode
+  useEffect(() => {
+    if (!isDndMode) return;
+
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as HTMLElement;
+      // Check if click is outside block container
+      if (!target.closest('.sortable-block') && !target.closest('.floating-btn-glass')) {
+        setIsDndMode(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isDndMode]);
 
   // Detect unsaved changes
   useEffect(() => {
@@ -539,6 +556,14 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
     <div className="flex flex-col h-screen">
       {/* Floating action buttons */}
       <div className="floating-buttons-container">
+        <button 
+          className={`floating-btn-glass ${isDndMode ? 'dnd-mode-active' : ''}`}
+          onClick={() => setIsDndMode(!isDndMode)}
+          title={isDndMode ? "Sortier-Modus beenden" : "Sortier-Modus aktivieren"}
+        >
+          <ArrowDownUp size={20} />
+        </button>
+        
         <button className="floating-btn-glass" onClick={handleCreateTemplate}>
           <Plus size={20} />
         </button>
@@ -567,7 +592,6 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
           <button className="floating-btn-glass" onClick={handleBackToDiary}>
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-base font-semibold">Template bearbeiten</h1>
           <div className="w-10" />
         </div>
       </div>
@@ -652,6 +676,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                           onSliderSettingsChange={handleSliderSettingsChange}
                           onBodyMapTypeChange={handleBodyMapTypeChange}
                           onMultiSelectButtonsChange={handleMultiSelectButtonsChange}
+                          isDndMode={isDndMode}
                         />
                       ))
                     )}

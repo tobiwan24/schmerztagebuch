@@ -471,3 +471,51 @@
 .animate-pulse-glow-green {
   animation: pulse-glow-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
 }
+
+/* ========== DND MODE STYLES ========== */
+/* DnD Mode Active Button */
+.floating-btn-glass.dnd-mode-active {
+  background: rgba(234, 179, 8, 0.15) !important;
+  border-color: rgba(234, 179, 8, 0.3) !important;
+}
+
+.floating-btn-glass.dnd-mode-active svg {
+  color: #eab308;
+  stroke-width: 2.5;
+}
+
+/* Yellow Glow Animation für DnD Button */
+@keyframes pulse-glow-yellow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(234, 179, 8, 0);
+  }
+}
+
+.floating-btn-glass.dnd-mode-active {
+  animation: pulse-glow-yellow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+}
+
+/* Block im DnD-Modus */
+.sortable-block.dnd-mode-active {
+  background: rgba(234, 179, 8, 0.05) !important;
+  border: 2px dashed #eab308 !important;
+  cursor: grab !important;
+  user-select: none;
+}
+
+.sortable-block.dnd-mode-active:active {
+  cursor: grabbing !important;
+}
+
+/* Alle Elemente im Block nicht interaktiv im DnD-Modus */
+.sortable-block.dnd-mode-active * {
+  cursor: grab !important;
+  pointer-events: none;
+}
+
+.sortable-block.dnd-mode-active:active * {
+  cursor: grabbing !important;
+}
