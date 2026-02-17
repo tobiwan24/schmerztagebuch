@@ -6,7 +6,7 @@ import type { Block, BlockType, BlockValue } from '../types/blocks';
 import BlockPalette from '../components/BlockPalette';
 import SortableBlock from '../components/SortableBlock';
 import TemplateStylePicker from '../components/TemplateStylePicker';
-import { DashboardConfigModal, type DashboardConfigState } from '../components/dashboard';
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -66,7 +66,6 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
   const [pendingBlockType, setPendingBlockType] = useState<BlockType | null>(null);
   const [newBlockLabel, setNewBlockLabel] = useState('');
   const [pendingEditBlockId, setPendingEditBlockId] = useState<string | null>(null);
-  const [configuringDashboard, setConfiguringDashboard] = useState<string | null>(null);
   const [showBlockPalette, setShowBlockPalette] = useState(false);
   const [showAdvancedActions, setShowAdvancedActions] = useState(false);
   const [expandedBlockIds, setExpandedBlockIds] = useState<Set<string>>(new Set());
@@ -350,33 +349,6 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
       }
       return block;
     }));
-  }
-
-  function handleConfigureDashboard(blockId: string) {
-    setConfiguringDashboard(blockId);
-  }
-
-  function handleSaveDashboardConfig(config: DashboardConfigState) {
-    if (!configuringDashboard) return;
-    
-    setEditingBlocks(editingBlocks.map(b => {
-      if (b.id === configuringDashboard) {
-        return { 
-          ...b, 
-          dashboard: { 
-            enabled: true, 
-            ...config 
-          } 
-        };
-      }
-      return b;
-    }));
-    
-    setConfiguringDashboard(null);
-  }
-
-  function handleCancelDashboardConfig() {
-    setConfiguringDashboard(null);
   }
 
   function handleEditBlockOptions(blockId: string) {
@@ -663,7 +635,6 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                           onLabelChange={handleLabelChange}
                           onToggleHideLabel={handleToggleHideLabel}
                           onToggleDashboard={handleToggleDashboard}
-                          onConfigureDashboard={handleConfigureDashboard}
                           showAdvancedActions={showAdvancedActions}
                           isExpanded={expandedBlockIds.has(block.id)}
                           onSliderSettingsChange={handleSliderSettingsChange}
@@ -740,19 +711,6 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
         </div>
       )}
 
-      {/* Dashboard Configuration Modal */}
-      {configuringDashboard && (() => {
-        const block = editingBlocks.find(b => b.id === configuringDashboard);
-        if (!block) return null;
-        
-        return (
-          <DashboardConfigModal
-            block={block}
-            onSave={handleSaveDashboardConfig}
-            onCancel={handleCancelDashboardConfig}
-          />
-        );
-      })()}
     </div>
   );
 }

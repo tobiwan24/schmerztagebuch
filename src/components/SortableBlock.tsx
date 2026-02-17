@@ -30,7 +30,6 @@ interface SortableBlockProps {
   onLabelChange?: (blockId: string, newLabel: string) => void;
   onToggleHideLabel?: (blockId: string) => void;
   onToggleDashboard?: (blockId: string) => void;
-  onConfigureDashboard?: (blockId: string) => void;
   showAdvancedActions?: boolean;
   isExpanded?: boolean;
   onSliderSettingsChange?: (blockId: string, settings: { min?: number; max?: number; step?: number }) => void;
@@ -47,7 +46,6 @@ export default function SortableBlock({
   onLabelChange,
   onToggleHideLabel,
   onToggleDashboard,
-  onConfigureDashboard,
   showAdvancedActions = false,
   isExpanded = false,
   onSliderSettingsChange,
@@ -102,11 +100,10 @@ export default function SortableBlock({
         {showAdvancedActions && (
           <div className="flex items-center button-group-touch">
             {/* Dashboard Toggle Buttons */}
-            {onToggleDashboard && onConfigureDashboard && (
+            {onToggleDashboard && (
               <DashboardToggleButtons
                 block={block}
                 onToggle={onToggleDashboard}
-                onConfigure={onConfigureDashboard}
               />
             )}
             
