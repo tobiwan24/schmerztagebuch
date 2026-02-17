@@ -504,7 +504,7 @@
   - Kommentar: "// LEGACY: Image-Block aus Palette entfernt - Funktionalität in TextArea integriert"
   - **Commit:** `refactor: remove image block from palette (legacy support maintained)`
 
-- [ ] **Auto-Migration alter Templates**
+- [x] **Auto-Migration alter Templates**
   - Migration-Funktion in `db.ts`:
     ```typescript
     function migrateImageBlocksToTextArea(template: Template): Template {

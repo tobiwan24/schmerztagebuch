@@ -133,8 +133,57 @@ export async function createTemplate(name: string, blocks: Block[] = []): Promis
   return id as number;
 }
 
+// Migration: Image-Blocks zu TextArea-Blocks konvertieren (transparente Auto-Migration)
+function migrateImageBlocksToTextArea(template: Template): Template {
+  const hasImageBlock = template.blocks.some(b => b.type === 'image');
+  if (!hasImageBlock) return template;
+
+  const migratedBlocks = template.blocks.map(block => {
+    if (block.type !== 'image') return block;
+
+    // Image-Block-Daten (JSON-Array oder Legacy-Base64) in AttachedFile[] überführen
+    let attachedFiles: { id: string; name: string; type: 'image' | 'pdf'; data: string; createdAt: string }[] = [];
+
+    if (block.value && typeof block.value === 'string') {
+      try {
+        const parsed = JSON.parse(block.value);
+        if (Array.isArray(parsed)) {
+          // Normales Image-Block-Format: { id, data, type, name }
+          attachedFiles = parsed.map((f: { id?: string; data: string; type?: string; name?: string }) => ({
+            id: f.id ?? generateUUID(),
+            name: f.name ?? 'Datei',
+            type: (f.type === 'pdf' ? 'pdf' : 'image') as 'image' | 'pdf',
+            data: f.data,
+            createdAt: new Date().toISOString(),
+          }));
+        }
+      } catch {
+        // Legacy: einzelner Base64-String
+        if (typeof block.value === 'string' && block.value.startsWith('data:image')) {
+          attachedFiles = [{
+            id: generateUUID(),
+            name: 'Foto',
+            type: 'image',
+            data: block.value,
+            createdAt: new Date().toISOString(),
+          }];
+        }
+      }
+    }
+
+    return {
+      ...block,
+      type: 'textarea' as const,
+      value: attachedFiles.length > 0 ? { attachedFiles } : undefined,
+    };
+  });
+
+  return { ...template, blocks: migratedBlocks };
+}
+
 export async function getTemplates(): Promise<Template[]> {
-  return await db.templates.orderBy('order').toArray();
+  const templates = await db.templates.orderBy('order').toArray();
+  return templates.map(migrateImageBlocksToTextArea);
 }
 
 export async function getTemplate(id: number): Promise<Template | undefined> {
