@@ -19,7 +19,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Check, ArrowDownUp } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Check, ArrowDownUp, ChevronRight } from 'lucide-react';
+import { TEMPLATE_CATALOG } from '../data/templateCatalog';
+import { getIconComponent } from '../utils/iconUtils';
 import {
   DndContext,
   closestCenter,
@@ -56,7 +58,8 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
     | { type: 'block-palette' }
     | { type: 'delete-template' }
     | { type: 'unsaved-changes' }
-    | { type: 'create-template'; name: string };
+    | { type: 'create-template'; name: string }
+    | { type: 'template-catalog'; name: string };
 
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' });
   const [createTemplateName, setCreateTemplateName] = useState('');
@@ -232,8 +235,43 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
       setCreateTemplateError(`Ein Template mit dem Namen "${name}" existiert bereits.`);
       return;
     }
+    // Weiter zum Vorlagen-Katalog-Schritt
+    setDialog({ type: 'template-catalog', name });
+  }
+
+  async function handleSelectCatalogEntry(catalogId: string | null) {
+    const name = dialog.type === 'template-catalog' ? dialog.name : '';
+    if (!name) return;
+
+    let blocks: Block[] = [];
+
+    if (catalogId === null) {
+      // Leer starten: nur Datum (Pflicht) + Notizen (optional)
+      blocks = [
+        {
+          id: generateUUID(),
+          type: 'date',
+          label: 'Datum',
+          hideLabelInDiary: false,
+          isDeletable: false,
+          value: undefined,
+        },
+        {
+          id: generateUUID(),
+          type: 'textarea',
+          label: 'Notizen',
+          hideLabelInDiary: false,
+          isDeletable: true,
+          value: undefined,
+        },
+      ];
+    } else {
+      const entry = TEMPLATE_CATALOG.find(e => e.id === catalogId);
+      blocks = entry ? entry.createBlocks() : [];
+    }
+
     try {
-      const newTemplateId = await createTemplate(name, []);
+      const newTemplateId = await createTemplate(name, blocks);
       setDialog({ type: 'none' });
       await loadTemplates();
       const allTemplates = await getTemplates();
@@ -546,6 +584,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                           onMultiSelectButtonsChange={handleMultiSelectButtonsChange}
                           isDndMode={isDndMode}
                           isNew={block.id === newBlockId}
+                          isDeletable={block.isDeletable !== false}
                         />
                         </div>
                       ))
@@ -560,7 +599,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
 
       {/* Dialog: Block Palette */}
       <Dialog open={dialog.type === 'block-palette'} onOpenChange={(open) => !open && setDialog({ type: 'none' })}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Baustein wählen</DialogTitle>
           </DialogHeader>
@@ -623,6 +662,55 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialog({ type: 'none' })}>Zurück zum Editor</Button>
             <Button variant="destructive" onClick={() => { setDialog({ type: 'none' }); onBack(); }}>Ohne Speichern verlassen</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Vorlagen-Katalog (Schritt 2 nach Name-Eingabe) */}
+      <Dialog open={dialog.type === 'template-catalog'} onOpenChange={(open) => !open && setDialog({ type: 'none' })}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vorlage wählen</DialogTitle>
+            <DialogDescription>
+              Mit welcher Vorlage möchtest du starten?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            {/* Leer starten */}
+            <button
+              className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-secondary/40 transition-colors text-left"
+              onClick={() => handleSelectCatalogEntry(null)}
+            >
+              <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+                <Plus size={20} className="text-muted-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Leer starten</p>
+                <p className="text-xs text-muted-foreground">Datum + Notizen</p>
+              </div>
+              <ChevronRight size={16} className="text-muted-foreground flex-shrink-0" />
+            </button>
+
+            {/* Vorlagen */}
+            {TEMPLATE_CATALOG.map((entry) => (
+              <button
+                key={entry.id}
+                className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-secondary/40 transition-colors text-left"
+                onClick={() => handleSelectCatalogEntry(entry.id)}
+              >
+                <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+                  {(() => { const Icon = getIconComponent(entry.icon); return <Icon size={20} className="text-muted-foreground" />; })()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{entry.name}</p>
+                  <p className="text-xs text-muted-foreground">{entry.description}</p>
+                </div>
+                <ChevronRight size={16} className="text-muted-foreground flex-shrink-0" />
+              </button>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialog({ type: 'none' })}>Abbrechen</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

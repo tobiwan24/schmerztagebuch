@@ -54,6 +54,7 @@ export interface Block {
   type: BlockType;
   label: string;
   hideLabelInDiary?: boolean;  // Flag zum Ausblenden des Labels in DiaryView
+  isDeletable?: boolean;       // false = Pflicht-Block, Delete-Button ausgeblendet
   value?: BlockValue;
   options?: string[];  // Deprecated - alte MultiSelect
   multiSelectOptions?: MultiSelectOption[];  // Neue MultiSelect mit Farben

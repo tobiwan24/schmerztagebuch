@@ -325,42 +325,36 @@
   - Konsistente Spacing-Hierarchie
   - **Commit:** `feat: unify all blocks with collapsible edit containers`
 
-### 6.4: Modal-System Vereinheitlichung (2h)
-**Branch:** `refactor/modal-components`
-**Status:** Verschoben (nach Global DnD & Dropdown-Redesign)
+### 6.4: Modal-System Vereinheitlichung (2h) ✅ KOMPLETT
+**Branch:** `refactor/modal-system-unified`
+**Status:** Abgeschlossen (17.02.2026)
 
-**Problem:** 3 verschiedene Modal-Typen inkonsistent
+- [x] **Alle window.prompt/confirm/alert ersetzt**
+  - Template erstellen: `window.prompt` → shadcn Dialog mit Input + Inline-Fehler
+  - Template löschen: `window.confirm` → shadcn Dialog (destructive)
+  - Ungespeicherte Änderungen: `window.confirm` → shadcn Dialog (destructive)
+  - **Commit:** `refactor: unify modal system and streamline block creation workflow`
 
-- [ ] **Brainstorming: Modal-System**
-  - Analyse aktueller Modal-Typen:
-    1. Add Block Popup (kleines Modal)
-    2. Block Options Modal (großes Modal)
-    3. Dashboard Config Modal (separate Komponente)
-  - BaseModal Komponente konzipieren
-  - Shared Props & Styling definieren
-  - Konsistente Patterns dokumentieren
-  - **Aufwand:** 30 Min
-  - **Commit:** `docs: document modal system refactoring plan`
+- [x] **5 Modal-States → 1 DialogState Union Type**
+  - `showBlockPalette`, `showAddBlockPopup`, `pendingBlockType`, `pendingEditBlockId`, `newBlockLabel` entfernt
+  - Ersetzt durch: `dialog: { type: 'none' | 'block-palette' | 'create-template' | 'delete-template' | 'unsaved-changes' }`
+  - **Commit:** `refactor: unify modal system and streamline block creation workflow`
 
-- [ ] **BaseModal Komponente implementieren**
-  - Gemeinsame BaseModal mit Props:
-    - `size`: 'sm' | 'md' | 'lg'
-    - `title`: string
-    - `onClose`: () => void
-  - Konsistente Close/Cancel Patterns
-  - Keyboard Shortcuts (Escape = Close)
-  - Konsistente Button-Positionen (rechts: Cancel, Primary)
-  - Backdrop mit onClick-Close
-  - **Aufwand:** 1h
-  - **Commit:** `refactor: create unified BaseModal component`
+- [x] **Add Block Popup Modal-Layer entfernt**
+  - Blöcke werden direkt nach Palette-Auswahl angelegt (kein zweites Modal)
+  - Collapsible Container öffnet automatisch
+  - Einheitlicher Flow für alle Block-Typen (MultiSelect-Sonderfall entfernt)
+  - **Commit:** `refactor: unify modal system and streamline block creation workflow`
 
-- [ ] **Migration bestehender Modals**
-  - Add Block Modal → BaseModal
-  - Block Options Modal → BaseModal
-  - Dashboard Config Modal → BaseModal
-  - Props anpassen, Styles vereinheitlichen
-  - **Aufwand:** 30 Min
-  - **Commit:** `refactor: migrate existing modals to BaseModal`
+- [x] **Orange Pulse-Glow Highlight für neue Blöcke**
+  - `.block-new-highlight` auf Card, `.block-label-new` auf Label-Input
+  - Auto-Dismiss nach erstem Label-Edit
+  - Scroll-into-view (50ms Delay nach Render)
+  - **Commit:** `refactor: unify modal system and streamline block creation workflow`
+
+- [x] **Block Palette Dialog: aria-describedby={undefined}**
+  - Radix UI Warning behoben (kein Description-Element nötig)
+  - **Commit:** `fix: suppress aria-describedby warning on block palette dialog`
 
 ### 6.6: Template-Switcher & Header UX (1.5h)
 **Branch:** `feature/template-switcher`
@@ -563,15 +557,15 @@
 }
 ```
 
-### 6.8: Standard-Template Auto-Generierung (30 Min)
+### 6.8: Standard-Template Auto-Generierung + Vorlagen-Katalog (1.5h)
 **Branch:** `feature/default-template-blocks`
-**Status:** Geplant
+**Status:** ✅ KOMPLETT (17.02.2026)
 
-**Ziel:** Neue Templates starten mit Standard-Blöcken
+**Ziel:** Neue Templates starten mit Standard-Blöcken; Vorlagen-Katalog im Create-Dialog
 
-- [ ] **Standard-Blöcke bei Template-Erstellung**
+- [x] **Standard-Blöcke bei Template-Erstellung**
   ```typescript
-  // EditorMode.tsx: handleCreateTemplate()
+  // EditorMode.tsx: handleConfirmCreateTemplate()
   const defaultBlocks: Block[] = [
     {
       id: generateUUID(),
@@ -590,19 +584,42 @@
       isDeletable: true,  // OPTIONAL - kann gelöscht werden
     }
   ];
-  
   await createTemplate(name, defaultBlocks);
   ```
   - **Aufwand:** 15 Min
   - **Commit:** `feat: add default date and textarea blocks to new templates`
 
-- [ ] **isDeletable Property implementieren**
+- [x] **isDeletable Property implementieren**
   - Property zu Block Interface hinzufügen
-  - SortableBlock: Delete-Button disabled wenn `isDeletable === false`
-  - UI-Feedback: Tooltip "Pflicht-Block kann nicht gelöscht werden"
-  - Oder: Delete-Button komplett ausblenden bei Pflicht-Blöcken
+  - SortableBlock: Delete-Button ausgeblendet wenn `isDeletable === false`
   - **Aufwand:** 15 Min
   - **Commit:** `feat: implement isDeletable property for mandatory blocks`
+
+- [x] **Vorlagen-Katalog im Create-Dialog (Schritt 2)**
+  - Nach Name-Eingabe + Bestätigung: zweiter Schritt im selben Dialog
+  - Auswahl: "Leer starten" oder Vorlage aus Katalog
+  - Vorlagen-Auswahl legt Template direkt an (Name = Vorlagenname, editierbar)
+  - Vorlagen-Name wird als Template-Name vorausgefüllt
+  - **Aufwand:** 30 Min
+  - **Commit:** `feat: add template catalog step to create dialog`
+
+- [x] **Vorlagen-Definitionen anlegen**
+  - Datei: `src/data/templateCatalog.ts`
+  - 4 Vorlagen mit vordefinierten Blöcken:
+    1. **Allgemeines Schmerz-Tagebuch** – Datum, Schmerzstärke (Slider 0–10), Notizen
+    2. **Chronischer Schmerz** – Datum, Schmerzstärke, Funktionsfähigkeit (Slider), Schlaf (Slider), Stimmung (Slider), Notizen
+    3. **Migräne-Tracking** – Datum, Schmerzstärke, Begleitsymptome (MultiSelect: Übelkeit/Aura/Lichtempfindlichkeit/Lärmempfindlichkeit), Dauer (Slider), Auslöser (MultiSelect), Notizen
+    4. **Kopfschmerz-Tagebuch** – Datum, Schmerzstärke, Schmerzart (MultiSelect: Dumpf/Pochend/Stechend/Drückend), Medikamente (MultiSelect), Auslöser (MultiSelect), Notizen
+  - Jede Vorlage mit: `name`, `icon`, `blocks[]`
+  - **Aufwand:** 20 Min
+  - **Commit:** `feat: define template catalog with 4 presets`
+
+- [x] **Vorlagen-Auswahl UI**
+  - Grid mit Vorlagen-Cards (Icon + Name + kurze Beschreibung)
+  - Plus: "Leer starten"-Card als erste Option
+  - Klick → direkt anlegen, Editor öffnet sich mit Vorlage
+  - **Aufwand:** 20 Min
+  - **Commit:** `feat: add template catalog UI to create dialog`
 
 ### 6.9: Icon Picker Lucide-Integration (1.5h) ✅ KOMPLETT
 **Branch:** `feature/lucide-icon-picker`
@@ -993,9 +1010,9 @@
 6. ✅ Phase 6.5: Dropdown-Redesign/Unified Containers (KOMPLETT)
 7. ✅ DB Version 13: Image-Block aus Standard-Template entfernt
 8. ✅ Phase 6.9: Icon Picker Lucide (KOMPLETT)
-9. 🚀 Phase 6.8: Standard-Template Auto-Generierung (NEXT)
-10. Phase 6.6: Template-Switcher
-11. Phase 6.4: Modal-System
+9. ✅ Phase 6.4: Modal-System Vereinheitlichung (KOMPLETT)
+10. ✅ Phase 6.8: Standard-Template Auto-Generierung + Vorlagen-Katalog (KOMPLETT)
+11. 🚀 Phase 6.6: Template-Switcher (NEXT)
 12. Phase 8: Code Cleanup
 
 **Dann:** Phase 8 (Code Cleanup) vor weiteren Features
@@ -1003,7 +1020,7 @@
 ---
 
 **Letzte Aktualisierung:** 17.02.2026  
-**Aktueller Stand:** Phase 6.9 komplett ✅ (Lucide Icon Picker)  
-**Nächster Schritt:** Phase 6.8 - Standard-Template Auto-Generierung  
-**DB Version:** 14 (Lucide Icon System Integration)  
+**Aktueller Stand:** Phase 6.8 komplett ✅ (Standard-Template Auto-Generierung + Vorlagen-Katalog + isDeletable)  
+**Nächster Schritt:** Phase 6.6 - Template-Switcher  
+**DB Version:** 14  
 **Status:** ✅ ALLE COMMITS DURCHGEFÜHRT - ROADMAP AKTUALISIERT

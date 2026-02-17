@@ -37,6 +37,7 @@ interface SortableBlockProps {
   onMultiSelectButtonsChange?: (blockId: string, buttons: { text: string; color: string }[]) => void;
   isDndMode?: boolean;
   isNew?: boolean;
+  isDeletable?: boolean;
 }
 
 export default function SortableBlock({ 
@@ -53,7 +54,8 @@ export default function SortableBlock({
   onBodyMapTypeChange,
   onMultiSelectButtonsChange,
   isDndMode = false,
-  isNew = false
+  isNew = false,
+  isDeletable = true
 }: SortableBlockProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: block.id });
@@ -207,15 +209,19 @@ export default function SortableBlock({
               Datenauswertung aktivieren
             </Label>
           </div>
-          <Separator />
-          <Button
-            variant="outline"
-            className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-            onClick={handleDeleteClick}
-          >
-            <Trash2 size={20} className="mr-2" />
-            Block löschen
-          </Button>
+          {isDeletable !== false && (
+            <>
+              <Separator />
+              <Button
+                variant="outline"
+                className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                onClick={handleDeleteClick}
+              >
+                <Trash2 size={20} className="mr-2" />
+                Block löschen
+              </Button>
+            </>
+          )}
         </div>
       )}
 
@@ -256,15 +262,19 @@ export default function SortableBlock({
               Datenauswertung aktivieren
             </Label>
           </div>
-          <Separator />
-          <Button
-            variant="outline"
-            className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-            onClick={handleDeleteClick}
-          >
-            <Trash2 size={20} className="mr-2" />
-            Block löschen
-          </Button>
+          {isDeletable !== false && (
+            <>
+              <Separator />
+              <Button
+                variant="outline"
+                className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                onClick={handleDeleteClick}
+              >
+                <Trash2 size={20} className="mr-2" />
+                Block löschen
+              </Button>
+            </>
+          )}
         </div>
       )}
 
@@ -275,15 +285,19 @@ export default function SortableBlock({
             buttons={block.multiSelectOptions || []}
             onChange={(newButtons) => onMultiSelectButtonsChange?.(block.id, newButtons)}
           />
-          <Separator />
-          <Button
-            variant="outline"
-            className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-            onClick={handleDeleteClick}
-          >
-            <Trash2 size={20} className="mr-2" />
-            Block löschen
-          </Button>
+          {isDeletable !== false && (
+            <>
+              <Separator />
+              <Button
+                variant="outline"
+                className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                onClick={handleDeleteClick}
+              >
+                <Trash2 size={20} className="mr-2" />
+                Block löschen
+              </Button>
+            </>
+          )}
         </div>
       )}
 
@@ -293,15 +307,19 @@ export default function SortableBlock({
           <p className="text-sm text-muted-foreground">
             Datumsblock hat keine zusätzlichen Einstellungen.
           </p>
-          <Separator />
-          <Button
-            variant="outline"
-            className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-            onClick={handleDeleteClick}
-          >
-            <Trash2 size={20} className="mr-2" />
-            Block löschen
-          </Button>
+          {isDeletable !== false && (
+            <>
+              <Separator />
+              <Button
+                variant="outline"
+                className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                onClick={handleDeleteClick}
+              >
+                <Trash2 size={20} className="mr-2" />
+                Block löschen
+              </Button>
+            </>
+          )}
         </div>
       )}
 
@@ -311,15 +329,19 @@ export default function SortableBlock({
           <p className="text-sm text-muted-foreground">
             Textfeld hat keine zusätzlichen Einstellungen.
           </p>
-          <Separator />
-          <Button
-            variant="outline"
-            className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-            onClick={handleDeleteClick}
-          >
-            <Trash2 size={20} className="mr-2" />
-            Block löschen
-          </Button>
+          {isDeletable !== false && (
+            <>
+              <Separator />
+              <Button
+                variant="outline"
+                className="w-full text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                onClick={handleDeleteClick}
+              >
+                <Trash2 size={20} className="mr-2" />
+                Block löschen
+              </Button>
+            </>
+          )}
         </div>
       )}
 
