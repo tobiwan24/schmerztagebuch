@@ -526,6 +526,22 @@
   animation: pulse-glow-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
 }
 
+/* ========== NEW BLOCK HIGHLIGHT ========== */
+@keyframes pulse-glow-orange {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(249, 115, 22, 0); }
+}
+
+.block-new-highlight {
+  border: 2px solid #f97316 !important;
+  animation: pulse-glow-orange 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.block-label-new {
+  border-color: #f97316 !important;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
+}
+
 /* ========== DND MODE STYLES ========== */
 /* DnD Mode Active Button */
 .floating-btn-glass.dnd-mode-active {

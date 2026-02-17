@@ -11,7 +11,15 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, X, Plus, Trash2, Check, ArrowDownUp } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ArrowLeft, Plus, Trash2, Check, ArrowDownUp } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -42,31 +50,20 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
   const [editingBlocks, setEditingBlocks] = useState<Block[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [originalTemplate, setOriginalTemplate] = useState<Template | null>(null);
-  const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
-  const [tempBlockLabel, setTempBlockLabel] = useState('');
-  const [multiSelectButtons, setMultiSelectButtons] = useState<{text: string; color: string}[]>([]);
-  const [newButtonText, setNewButtonText] = useState('');
-  const [newButtonColor, setNewButtonColor] = useState('#007AFF');
-  
-  // Vordefinierte Farbpalette für Multiselect-Buttons
-  const PRESET_COLORS = [
-    '#007AFF', // iOS Blau
-    '#34C759', // Grün
-    '#FF9500', // Orange
-    '#FF3B30', // Rot
-    '#AF52DE', // Lila
-    '#FF2D55', // Pink
-    '#5856D6', // Indigo
-    '#32ADE6', // Hellblau
-    '#FFD60A', // Gelb
-    '#8E8E93', // Grau
-  ];
-  
-  const [showAddBlockPopup, setShowAddBlockPopup] = useState(false);
-  const [pendingBlockType, setPendingBlockType] = useState<BlockType | null>(null);
-  const [newBlockLabel, setNewBlockLabel] = useState('');
-  const [pendingEditBlockId, setPendingEditBlockId] = useState<string | null>(null);
-  const [showBlockPalette, setShowBlockPalette] = useState(false);
+  // Dialog State - vereinheitlicht
+  type DialogState =
+    | { type: 'none' }
+    | { type: 'block-palette' }
+    | { type: 'delete-template' }
+    | { type: 'unsaved-changes' }
+    | { type: 'create-template'; name: string };
+
+  const [dialog, setDialog] = useState<DialogState>({ type: 'none' });
+  const [createTemplateName, setCreateTemplateName] = useState('');
+  const [createTemplateError, setCreateTemplateError] = useState('');
+
+  // Block states
+  const [newBlockId, setNewBlockId] = useState<string | null>(null);
   const [showAdvancedActions, setShowAdvancedActions] = useState(false);
   const [expandedBlockIds, setExpandedBlockIds] = useState<Set<string>>(new Set());
   const [isDndMode, setIsDndMode] = useState(false);
@@ -137,25 +134,16 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
     setHasUnsavedChanges(templateChanged || blocksChanged);
   }, [selectedTemplate, editingBlocks, originalTemplate]);
   
-  // Open edit modal after block creation
+  // Scroll to new block after it's rendered
   useEffect(() => {
-    if (pendingEditBlockId && editingBlocks.find(b => b.id === pendingEditBlockId)) {
-      const block = editingBlocks.find(b => b.id === pendingEditBlockId);
-      if (!block) return;
-      
-      // For MultiSelect: Auto-expand collapsible container instead of modal
-      if (block.type === 'multiselect') {
-        handleToggleBlockExpanded(pendingEditBlockId);
-        setPendingEditBlockId(null);
-        return;
-      }
-      
-      setEditingBlockId(pendingEditBlockId);
-      setTempBlockLabel(block.label);
-      
-      setPendingEditBlockId(null);
+    if (!newBlockId) return;
+    const el = document.getElementById(`block-${newBlockId}`);
+    if (el) {
+      setTimeout(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
     }
-  }, [pendingEditBlockId, editingBlocks]);
+  }, [newBlockId, editingBlocks]);
 
   async function loadTemplates() {
     try {
@@ -169,63 +157,32 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
   }
 
   function handleAddBlock(type: BlockType) {
-    // Palette schließen
-    setShowBlockPalette(false);
-    
-    if (type === 'multiselect') {
-      const newBlock: Block = {
-        id: generateUUID(),
-        type: type,
-        label: 'Neue Auswahl',
-        hideLabelInDiary: false,
-        value: undefined,
-        multiSelectOptions: []
-      };
-      
-      setEditingBlocks([...editingBlocks, newBlock]);
-      setPendingEditBlockId(newBlock.id);
-      return;
-    }
-    
-    setPendingBlockType(type);
-    setNewBlockLabel('');
-    setShowAddBlockPopup(true);
-  }
-  
-  function handleConfirmAddBlock() {
-    if (!pendingBlockType || !newBlockLabel.trim()) {
-      alert('Bitte eine Überschrift eingeben!');
-      return;
-    }
-    
+    setDialog({ type: 'none' });
+
+    const defaultLabels: Record<BlockType, string> = {
+      slider: 'Neuer Schieberegler',
+      textarea: 'Neues Textfeld',
+      date: 'Datum',
+      multiselect: 'Neue Auswahl',
+      bodymap: 'Neue Körperkarte',
+      image: 'Neues Bild',
+      checkbox: 'Neue Checkbox',
+      text: 'Neuer Text',
+    };
+
     const newBlock: Block = {
       id: generateUUID(),
-      type: pendingBlockType,
-      label: newBlockLabel.trim(),
+      type,
+      label: defaultLabels[type] ?? 'Neuer Block',
       hideLabelInDiary: false,
-      value: undefined
+      value: undefined,
+      ...(type === 'multiselect' && { multiSelectOptions: [] }),
+      ...(type === 'slider' && { min: 0, max: 10, step: 1, dashboard: { enabled: true, type: 'pain' } }),
     };
-    
-    if (pendingBlockType === 'slider') {
-      newBlock.min = 0;
-      newBlock.max = 10;
-      newBlock.step = 1;
-      newBlock.dashboard = {
-        enabled: true,
-        type: 'pain'
-      };
-    }
-    
-    setEditingBlocks([...editingBlocks, newBlock]);
-    setShowAddBlockPopup(false);
-    setPendingBlockType(null);
-    setNewBlockLabel('');
-  }
-  
-  function handleCancelAddBlock() {
-    setShowAddBlockPopup(false);
-    setPendingBlockType(null);
-    setNewBlockLabel('');
+
+    setEditingBlocks(prev => [...prev, newBlock]);
+    setExpandedBlockIds(prev => new Set(prev).add(newBlock.id));
+    setNewBlockId(newBlock.id);
   }
 
   function handleDeleteBlock(blockId: string) {
@@ -259,26 +216,29 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
   }
 
   async function handleCreateTemplate() {
-    const name = prompt('Name des neuen Templates:');
-    if (!name) return;
-    
-    // Prüfe ob Name bereits existiert
-    const nameExists = templates.some(t => t.name.toLowerCase() === name.toLowerCase());
-    if (nameExists) {
-      alert(`⚠️ Ein Template mit dem Namen "${name}" existiert bereits!\n\nBitte wähle einen anderen Namen.`);
+    setCreateTemplateName('');
+    setCreateTemplateError('');
+    setDialog({ type: 'create-template', name: '' });
+  }
+
+  async function handleConfirmCreateTemplate() {
+    const name = createTemplateName.trim();
+    if (!name) {
+      setCreateTemplateError('Bitte einen Namen eingeben.');
       return;
     }
-    
+    const nameExists = templates.some(t => t.name.toLowerCase() === name.toLowerCase());
+    if (nameExists) {
+      setCreateTemplateError(`Ein Template mit dem Namen "${name}" existiert bereits.`);
+      return;
+    }
     try {
       const newTemplateId = await createTemplate(name, []);
+      setDialog({ type: 'none' });
       await loadTemplates();
-      
-      // Direkt zum neuen Template wechseln
       const allTemplates = await getTemplates();
       const created = allTemplates.find(t => t.id === newTemplateId);
-      if (created) {
-        setSelectedTemplate(created);
-      }
+      if (created) setSelectedTemplate(created);
     } catch (error) {
       console.error('Fehler beim Erstellen:', error);
     }
@@ -286,30 +246,26 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
 
   async function handleDeleteCurrentTemplate() {
     if (!selectedTemplate?.id) return;
-    
-    const confirmed = window.confirm(
-      `⚠️ Template "${selectedTemplate.name}" wirklich löschen?\n\nAlle zugehörigen Einträge bleiben erhalten, können aber nicht mehr diesem Template zugeordnet werden.`
-    );
-    
-    if (!confirmed) return;
-    
+    setDialog({ type: 'delete-template' });
+  }
+
+  async function handleConfirmDeleteTemplate() {
+    if (!selectedTemplate?.id) return;
     try {
       await deleteTemplate(selectedTemplate.id);
+      setDialog({ type: 'none' });
       setSelectedTemplate(null);
       await loadTemplates();
-      onBack(); // Zurück zum Tagebuch
+      onBack();
     } catch (error) {
       console.error('Fehler beim Löschen:', error);
-      alert('Fehler beim Löschen des Templates');
     }
   }
 
   function handleBackToDiary() {
     if (hasUnsavedChanges) {
-      const confirmed = window.confirm(
-        '⚠️ Du hast ungespeicherte Änderungen!\n\nMöchtest du wirklich zurück zum Tagebuch? Alle Änderungen gehen verloren.'
-      );
-      if (!confirmed) return;
+      setDialog({ type: 'unsaved-changes' });
+      return;
     }
     onBack();
   }
@@ -352,63 +308,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
   }
 
   function handleEditBlockOptions(blockId: string) {
-    // ALLE Block-Typen: Toggle collapsible container
     handleToggleBlockExpanded(blockId);
-  }
-
-  function handleAddButton() {
-    if (!newButtonText.trim()) return;
-    
-    setMultiSelectButtons([...multiSelectButtons, {
-      text: newButtonText.trim(),
-      color: newButtonColor
-    }]);
-    setNewButtonText('');
-    setNewButtonColor('#007AFF');
-  }
-
-  function handleRemoveButton(index: number) {
-    setMultiSelectButtons(multiSelectButtons.filter((_, i) => i !== index));
-  }
-
-  function handleUpdateButtonColor(index: number, color: string) {
-    const updated = [...multiSelectButtons];
-    updated[index].color = color;
-    setMultiSelectButtons(updated);
-  }
-
-  function handleSaveBlockOptions() {
-    if (!editingBlockId) return;
-    
-    const block = editingBlocks.find(b => b.id === editingBlockId);
-    if (!block) return;
-    
-    setEditingBlocks(editingBlocks.map(b => {
-      if (b.id === editingBlockId) {
-        const updated = { ...b, label: tempBlockLabel };
-        
-        if (block.type === 'multiselect') {
-          updated.multiSelectOptions = multiSelectButtons;
-        }
-        
-        return updated;
-      }
-      return b;
-    }));
-    
-    setEditingBlockId(null);
-    setMultiSelectButtons([]);
-    setNewButtonText('');
-    setNewButtonColor('#007AFF');
-    setTempBlockLabel('');
-  }
-
-  function handleCancelBlockOptions() {
-    setEditingBlockId(null);
-    setMultiSelectButtons([]);
-    setNewButtonText('');
-    setNewButtonColor('#007AFF');
-    setTempBlockLabel('');
   }
 
   function handleToggleAllDashboard() {
@@ -454,6 +354,10 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
     setEditingBlocks(editingBlocks.map(block =>
       block.id === blockId ? { ...block, label: newLabel } : block
     ));
+    // Highlight entfernen sobald User das Label bearbeitet
+    if (blockId === newBlockId && newLabel.trim()) {
+      setNewBlockId(null);
+    }
   }
 
   function handleToggleBlockExpanded(blockId: string) {
@@ -597,7 +501,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
               {/* Add Block Button */}
               <div className="add-block-button-container">
                 <Button
-                  onClick={() => setShowBlockPalette(true)}
+                  onClick={() => setDialog({ type: 'block-palette' })}
                   variant="outline"
                   size="sm"
                   className="btn-touch-target add-block-button"
@@ -626,8 +530,8 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                       </Card>
                     ) : (
                       editingBlocks.map((block) => (
+                        <div id={`block-${block.id}`} key={block.id}>
                         <SortableBlock
-                          key={block.id}
                           block={block}
                           onEdit={() => handleEditBlockOptions(block.id)}
                           onDelete={() => handleDeleteBlock(block.id)}
@@ -641,7 +545,9 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                           onBodyMapTypeChange={handleBodyMapTypeChange}
                           onMultiSelectButtonsChange={handleMultiSelectButtonsChange}
                           isDndMode={isDndMode}
+                          isNew={block.id === newBlockId}
                         />
+                        </div>
                       ))
                     )}
                   </div>
@@ -652,64 +558,74 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
         </div>
       </div>
 
-      {/* Block Palette Modal */}
-      {showBlockPalette && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowBlockPalette(false)}>
-          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="px-4 py-3 border-b flex justify-between items-center">
-              <h3 className="text-base font-semibold">Baustein wählen</h3>
-              <Button onClick={() => setShowBlockPalette(false)} variant="ghost" size="icon" className="h-9 w-9">
-                <X size={18} />
-              </Button>
-            </div>
+      {/* Dialog: Block Palette */}
+      <Dialog open={dialog.type === 'block-palette'} onOpenChange={(open) => !open && setDialog({ type: 'none' })}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Baustein wählen</DialogTitle>
+          </DialogHeader>
+          <BlockPalette onAddBlock={handleAddBlock} />
+        </DialogContent>
+      </Dialog>
 
-            <div className="p-4">
-              <BlockPalette onAddBlock={handleAddBlock} />
-            </div>
-          </Card>
-        </div>
-      )}
+      {/* Dialog: Template erstellen */}
+      <Dialog open={dialog.type === 'create-template'} onOpenChange={(open) => !open && setDialog({ type: 'none' })}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Neues Template</DialogTitle>
+            <DialogDescription>Gib einen Namen für das neue Template ein.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label>Name</Label>
+            <Input
+              value={createTemplateName}
+              onChange={(e) => { setCreateTemplateName(e.target.value); setCreateTemplateError(''); }}
+              placeholder="z.B. Kopfschmerz-Tagebuch"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleConfirmCreateTemplate(); } }}
+            />
+            {createTemplateError && (
+              <p className="text-sm text-destructive">{createTemplateError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialog({ type: 'none' })}>Abbrechen</Button>
+            <Button onClick={handleConfirmCreateTemplate}>Erstellen</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* Add Block Popup */}
-      {showAddBlockPopup && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={handleCancelAddBlock}>
-          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="p-4 border-b flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Block hinzufügen</h3>
-              <Button onClick={handleCancelAddBlock} variant="ghost" size="icon" className="btn-touch-target">
-                <X size={18} />
-              </Button>
-            </div>
+      {/* Dialog: Template löschen */}
+      <Dialog open={dialog.type === 'delete-template'} onOpenChange={(open) => !open && setDialog({ type: 'none' })}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Template löschen?</DialogTitle>
+            <DialogDescription>
+              Möchtest du <strong>{selectedTemplate?.name}</strong> wirklich löschen? Alle zugehörigen Einträge bleiben erhalten.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialog({ type: 'none' })}>Abbrechen</Button>
+            <Button variant="destructive" onClick={handleConfirmDeleteTemplate}>Löschen</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-            <div className="p-4 space-y-4">
-              <div className="space-y-2">
-                <Label>Überschrift des Blocks</Label>
-                <Input
-                  value={newBlockLabel}
-                  onChange={(e) => setNewBlockLabel(e.target.value)}
-                  placeholder="z.B. Schmerzstärke, Medikamente, ..."
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleConfirmAddBlock();
-                    }
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="p-4 border-t flex justify-end gap-2">
-              <Button onClick={handleCancelAddBlock} variant="outline">
-                Abbrechen
-              </Button>
-              <Button onClick={handleConfirmAddBlock}>
-                Hinzufügen
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+      {/* Dialog: Ungespeicherte Änderungen */}
+      <Dialog open={dialog.type === 'unsaved-changes'} onOpenChange={(open) => !open && setDialog({ type: 'none' })}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ungespeicherte Änderungen</DialogTitle>
+            <DialogDescription>
+              Du hast ungespeicherte Änderungen. Wenn du zurückgehst, gehen alle Änderungen verloren.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialog({ type: 'none' })}>Zurück zum Editor</Button>
+            <Button variant="destructive" onClick={() => { setDialog({ type: 'none' }); onBack(); }}>Ohne Speichern verlassen</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

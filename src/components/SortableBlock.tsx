@@ -36,6 +36,7 @@ interface SortableBlockProps {
   onBodyMapTypeChange?: (blockId: string, type: 'pain' | 'function') => void;
   onMultiSelectButtonsChange?: (blockId: string, buttons: { text: string; color: string }[]) => void;
   isDndMode?: boolean;
+  isNew?: boolean;
 }
 
 export default function SortableBlock({ 
@@ -51,7 +52,8 @@ export default function SortableBlock({
   onSliderSettingsChange,
   onBodyMapTypeChange,
   onMultiSelectButtonsChange,
-  isDndMode = false
+  isDndMode = false,
+  isNew = false
 }: SortableBlockProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: block.id });
@@ -78,14 +80,14 @@ export default function SortableBlock({
     <Card 
       ref={setNodeRef} 
       style={style} 
-      className={`p-4 touch-none sortable-block ${isDndMode ? 'dnd-mode-active' : ''}`}
+      className={`p-4 touch-none sortable-block ${isDndMode ? 'dnd-mode-active' : ''} ${isNew ? 'block-new-highlight' : ''}`}
       {...(isDndMode ? { ...attributes, ...listeners } : {})}
     >
       <div className="flex items-center gap-2 mb-3">
         <Input
           value={block.label}
           onChange={(e) => onLabelChange?.(block.id, e.target.value)}
-          className={`text-sm font-medium flex-1 ${block.hideLabelInDiary ? 'line-through opacity-50' : ''}`}
+          className={`text-sm font-medium flex-1 ${block.hideLabelInDiary ? 'line-through opacity-50' : ''} ${isNew ? 'block-label-new' : ''}`}
           placeholder="Block-Überschrift..."
           title={block.hideLabelInDiary ? "Label ausgeblendet in Tagebuch" : ""}
           readOnly={isDndMode}
