@@ -1,54 +1,70 @@
-import { 
-  Save, Heart, Calendar, Star, Sun, Moon, 
-  Zap, Coffee, Book, Music, Camera, Smile,
-  Activity, Briefcase, Home, Mail, Phone, MapPin,
-  Clock, Cloud, Droplet, Wind, Thermometer, Umbrella,
-  HeartPulse, Pill, Syringe, Stethoscope, 
-  Brain, Eye, Ear, Hand, Footprints,
-  User, UserCircle, Baby, BedDouble, AlertCircle,
-  CircleDot, Target, Zap as Lightning, Flame,
-  TrendingDown, TrendingUp, Minus, Plus
-} from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import type React from 'react';
 
-export const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  'save': Save, 'heart': Heart, 'calendar': Calendar, 'star': Star, 'sun': Sun, 'moon': Moon,
-  'zap': Zap, 'coffee': Coffee, 'book': Book, 'music': Music, 'camera': Camera, 'smile': Smile,
-  'activity': Activity, 'briefcase': Briefcase, 'home': Home, 'mail': Mail, 'phone': Phone,
-  'mappin': MapPin, 'clock': Clock, 'cloud': Cloud, 'droplet': Droplet, 'wind': Wind,
-  'thermometer': Thermometer, 'umbrella': Umbrella, 'heartpulse': HeartPulse, 'pill': Pill,
-  'syringe': Syringe, 'stethoscope': Stethoscope, 'flame': Flame, 'lightning': Lightning,
-  'target': Target, 'circledot': CircleDot, 'trendingup': TrendingUp, 'trendingdown': TrendingDown,
-  'alertcircle': AlertCircle, 'minus': Minus, 'plus': Plus, 'brain': Brain, 'eye': Eye,
-  'ear': Ear, 'hand': Hand, 'footprints': Footprints, 'user': User, 'usercircle': UserCircle,
-  'baby': Baby, 'bed': BedDouble,
-};
+type IconComponent = React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
 
-export const ICON_CATEGORIES = {
-  'Schmerz & Symptome': ['heartpulse', 'flame', 'lightning', 'target', 'circledot', 'trendingup', 'trendingdown', 'alertcircle', 'plus', 'minus'],
-  'Medizin': ['pill', 'syringe', 'stethoscope', 'thermometer', 'activity'],
-  'Körperteile': ['brain', 'eye', 'ear', 'hand', 'footprints', 'user', 'usercircle', 'baby'],
-  'Alltag': ['calendar', 'clock', 'bed', 'coffee', 'home', 'book', 'music', 'camera', 'phone'],
-  'Stimmung & Wetter': ['smile', 'heart', 'star', 'sun', 'moon', 'cloud', 'droplet', 'wind', 'umbrella'],
-  'Sonstiges': ['save', 'zap', 'briefcase', 'mail', 'mappin']
-};
-
-export const AVAILABLE_ICONS = Object.keys(ICON_MAP);
-
-// Cache für Icon-Components (Performance-Optimierung)
-const iconCache = new Map<string, React.ComponentType<{ size?: number; className?: string }>>();
-
-export function getIconComponent(iconName?: string): React.ComponentType<{ size?: number; className?: string }> {
-  const key = iconName || 'book';
-  
-  // Aus Cache zurückgeben wenn vorhanden
-  if (iconCache.has(key)) {
-    return iconCache.get(key)!;
+// Prüft ob ein Wert eine renderfähige React-Komponente ist
+function isRenderableComponent(val: unknown): val is IconComponent {
+  if (!val) return false;
+  const t = typeof val;
+  // React-Komponenten sind functions (oder forwardRef-Objekte mit $$typeof)
+  if (t === 'function') return true;
+  if (t === 'object' && val !== null) {
+    // forwardRef hat $$typeof Symbol
+    const obj = val as Record<string, unknown>;
+    if (obj['$$typeof'] !== undefined) return true;
+    if (typeof obj['render'] === 'function') return true;
   }
-  
-  // Component holen und cachen
-  const component = ICON_MAP[key] || ICON_MAP['book'];
-  iconCache.set(key, component);
-  
-  return component;
+  return false;
+}
+
+// Alle Icon-Namen für den Picker (ohne Duplikate, ohne Nicht-Komponenten)
+export const AVAILABLE_ICON_NAMES: string[] = Object.keys(LucideIcons).filter(key => {
+  // Utilities und Namespace-Exporte entfernen
+  if (key === 'createLucideIcon' || key === 'Icon' || key === 'icons') return false;
+  // Nur den "Haupt-Namen" behalten (kein "Icon"-Suffix, kein "Lucide"-Prefix)
+  if (key.endsWith('Icon')) return false;
+  if (key.startsWith('Lucide')) return false;
+  // Muss eine renderfähige Komponente sein
+  const val = (LucideIcons as Record<string, unknown>)[key];
+  return isRenderableComponent(val);
+});
+
+// Cache für bereits aufgelöste Icons
+const iconCache = new Map<string, IconComponent>();
+
+// Hard-Fallback direkt referenziert
+const FALLBACK_ICON = LucideIcons.BookOpen as unknown as IconComponent;
+
+/**
+ * Gibt die Icon-Komponente für einen gegebenen Namen zurück.
+ * Unterstützt: "Flame", "flame", "FLAME" → Flame-Komponente
+ */
+export function getIconComponent(iconName?: string): IconComponent {
+  if (!iconName) return FALLBACK_ICON;
+
+  // Cache-Hit
+  if (iconCache.has(iconName)) return iconCache.get(iconName)!;
+
+  // 1) Exakter Treffer
+  const exact = (LucideIcons as Record<string, unknown>)[iconName];
+  if (isRenderableComponent(exact)) {
+    iconCache.set(iconName, exact);
+    return exact;
+  }
+
+  // 2) Case-insensitiver Treffer
+  const lower = iconName.toLowerCase();
+  const matchKey = AVAILABLE_ICON_NAMES.find(k => k.toLowerCase() === lower);
+  if (matchKey) {
+    const matched = (LucideIcons as Record<string, unknown>)[matchKey];
+    if (isRenderableComponent(matched)) {
+      iconCache.set(iconName, matched);
+      return matched;
+    }
+  }
+
+  // Fallback
+  iconCache.set(iconName, FALLBACK_ICON);
+  return FALLBACK_ICON;
 }

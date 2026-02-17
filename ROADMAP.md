@@ -604,86 +604,50 @@
   - **Aufwand:** 15 Min
   - **Commit:** `feat: implement isDeletable property for mandatory blocks`
 
-### 6.9: Icon Picker Lucide-Integration (1.5h) 🆕
+### 6.9: Icon Picker Lucide-Integration (1.5h) ✅ KOMPLETT
 **Branch:** `feature/lucide-icon-picker`
-**Status:** Geplant
+**Status:** Abgeschlossen (17.02.2026)
 
 **Ziel:** Zugriff auf alle 1,500+ Lucide Icons mit Suchfunktion
 
-**KONTEXT:**
-- Aktuell: Wenige vordefinierte Icons
-- Lucide bereits installiert (lucide-react)
-- Tree-shakeable: Nur genutzte Icons im Bundle
-- Bundle-Size Impact: +10KB (nur Icon-Namen)
-
 **Tasks:**
 
-- [ ] **Icon-Namen extrahieren**
-  ```typescript
-  import * as LucideIcons from 'lucide-react';
-  
-  const iconNames = Object.keys(LucideIcons).filter(
-    key => typeof LucideIcons[key] === 'function'
-  );
-  ```
-  - Alle verfügbaren Icon-Namen sammeln
-  - Filtern: Nur Komponenten, keine Utils
-  - **Aufwand:** 15 Min
+- [x] **Icon-Namen extrahieren & Rendering-Guard**
+  - `iconUtils.ts` neu erstellt
+  - `isRenderableComponent()`: filtert forwardRef-Objekte korrekt von Nicht-Komponenten
+  - `AVAILABLE_ICON_NAMES`: CamelCase-Namen ohne `Icon`-Suffix, ohne `Lucide`-Prefix
   - **Commit:** `feat: extract lucide icon names for picker`
 
-- [ ] **Icon-Browser UI erstellen**
-  - Modal/Popover mit Icon-Grid
-  - Search-Input oben
-  - Grid: 6-8 Icons pro Zeile (responsive)
-  - Scroll-Container für alle Icons
-  - Aktuell ausgewähltes Icon highlighten
-  - **Aufwand:** 45 Min
+- [x] **Icon-Browser UI in TemplateStylePicker**
+  - Collapsible Panel mit Search-Input
+  - Grid: responsive, `.icon-picker-grid` CSS-Klasse
+  - Aktuell ausgewähltes Icon farbig highlighten (Template-Farbe)
   - **Commit:** `feat: create icon browser UI with grid layout`
 
-- [ ] **Search-Filter implementieren**
-  ```typescript
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  const filteredIcons = iconNames.filter(name =>
-    name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  ```
-  - Echtzeit-Suche (onChange)
-  - Case-insensitive
-  - Placeholder: "Icon suchen... (z.B. heart, star, user)"
-  - **Aufwand:** 15 Min
+- [x] **Search-Filter implementiert**
+  - Echtzeit-Suche (onChange), case-insensitiv
+  - Ohne Suche: max. 120 Icons (Performance-Limit)
+  - Mit Suche: alle Treffer aus ~1500 Icons
+  - Hinweis-Text: "120 von X Icons — suche nach Name für mehr"
   - **Commit:** `feat: implement icon search filter`
 
-- [ ] **Icon-Rendering & Selection**
-  ```tsx
-  {filteredIcons.map(iconName => {
-    const IconComponent = LucideIcons[iconName];
-    return (
-      <button 
-        key={iconName}
-        onClick={() => onIconSelect(iconName)}
-        className={selectedIcon === iconName ? 'selected' : ''}
-      >
-        <IconComponent size={24} />
-      </button>
-    );
-  })}
-  ```
-  - Dynamic Icon-Import
-  - Click-Handler für Selection
-  - Aktives Icon visuell markieren
-  - **Aufwand:** 15 Min
+- [x] **Icon-Rendering & Selection**
+  - `getIconComponent(name)`: exakter Treffer → case-insensitiver Fallback → BookOpen
+  - `React.createElement` statt JSX (sicherer bei dynamischen Komponenten)
+  - Icon-Name (CamelCase) wird in DB gespeichert
   - **Commit:** `feat: implement icon rendering and selection`
 
-- [ ] **Integration in TemplateStylePicker**
-  - Aktuellen Icon-Picker ersetzen
-  - Button "Icon wählen" öffnet Lucide-Browser
-  - Selected Icon anzeigen
-  - Icon-Name speichern (z.B. "Heart" statt Emoji)
-  - **Aufwand:** 10 Min
+- [x] **Integration in TemplateStylePicker + db.ts**
+  - Icon-Button öffnet Picker, zeigt aktuelles Icon (28px)
+  - Default-Icons in `db.ts` auf CamelCase migriert (z.B. `'Flame'`, `'Brain'`)
   - **Commit:** `feat: integrate lucide icon picker into template style picker`
 
-**WICHTIG:** Bundle-Size prüfen nach Implementierung (sollte ~10KB mehr sein)
+- [x] **Bugfixes: Vite lazy-getter & Performance**
+  - Root Cause: Vite bundelt lucide-react mit `__export()` lazy getters → vorab kopierte Map enthielt `undefined`-Einträge
+  - Fix: `getIconComponent` schlägt Icons direkt zur Laufzeit nach (kein Vorab-Kopieren in Map)
+  - Fix: `isRenderableComponent()` prüft `$typeof` für forwardRef-Objekte
+  - Fix: Performance-Limit 120 Icons initial verhindert 579ms Click-Lag
+  - **Commit:** `fix: resolve vite lazy-getter issue and icon render crash`
 
 ---
 
@@ -1020,7 +984,7 @@
 
 ## 🎯 NÄCHSTE SCHRITTE
 
-**Aktuelle Priorisierung (15.02.2026):**
+**Aktuelle Priorisierung (17.02.2026):**
 1. ✅ Phase 6.3d: MultiSelect Collapsible (KOMPLETT)
 2. ✅ Phase 6.3c: Lösch-Bestätigung (KOMPLETT)
 3. ✅ Phase 6.7: TextArea-Erweiterung (KOMPLETT)
@@ -1028,8 +992,8 @@
 5. ✅ Phase 6.4: Global DnD Modus (KOMPLETT)
 6. ✅ Phase 6.5: Dropdown-Redesign/Unified Containers (KOMPLETT)
 7. ✅ DB Version 13: Image-Block aus Standard-Template entfernt
-8. 🚀 Phase 6.8: Standard-Template Auto-Generierung (NEXT)
-9. Phase 6.9: Icon Picker Lucide
+8. ✅ Phase 6.9: Icon Picker Lucide (KOMPLETT)
+9. 🚀 Phase 6.8: Standard-Template Auto-Generierung (NEXT)
 10. Phase 6.6: Template-Switcher
 11. Phase 6.4: Modal-System
 12. Phase 8: Code Cleanup
@@ -1038,8 +1002,8 @@
 
 ---
 
-**Letzte Aktualisierung:** 15.02.2026  
-**Aktueller Stand:** Phase 6.5 komplett ✅ (Unified Edit Containers)  
+**Letzte Aktualisierung:** 17.02.2026  
+**Aktueller Stand:** Phase 6.9 komplett ✅ (Lucide Icon Picker)  
 **Nächster Schritt:** Phase 6.8 - Standard-Template Auto-Generierung  
-**DB Version:** 13 (Image-Block aus Standard-Template entfernt)  
+**DB Version:** 14 (Lucide Icon System Integration)  
 **Status:** ✅ ALLE COMMITS DURCHGEFÜHRT - ROADMAP AKTUALISIERT

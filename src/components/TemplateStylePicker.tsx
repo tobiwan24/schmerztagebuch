@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { ICON_MAP, ICON_CATEGORIES, getIconComponent } from '../utils/iconUtils';
+import { AVAILABLE_ICON_NAMES, getIconComponent } from '../utils/iconUtils';
 
 interface TemplateStylePickerProps {
   templateName: string;
@@ -35,12 +35,27 @@ export default function TemplateStylePicker({
   onToggleAdvancedActions,
 }: TemplateStylePickerProps) {
   const [showIconPicker, setShowIconPicker] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('Schmerz & Symptome');
+  const [iconSearchTerm, setIconSearchTerm] = useState('');
   const [isExpanded, setIsExpanded] = useState(true);
 
   function handleNameChange(e: React.ChangeEvent<HTMLInputElement>) {
     onNameChange(e.target.value);
   }
+
+  // Max Icons ohne Suche (Performance: 1500 Icons auf einmal crasht/laggt)
+  const MAX_ICONS_WITHOUT_SEARCH = 120;
+
+  // Gefilterte Icons basierend auf Suchbegriff
+  const filteredIcons = useMemo(() => {
+    if (!iconSearchTerm.trim()) {
+      // Ohne Suche: nur erste 120 Icons zeigen
+      return AVAILABLE_ICON_NAMES.slice(0, MAX_ICONS_WITHOUT_SEARCH);
+    }
+    const search = iconSearchTerm.toLowerCase();
+    return AVAILABLE_ICON_NAMES.filter(iconName =>
+      iconName.toLowerCase().includes(search)
+    );
+  }, [iconSearchTerm]);
 
   // Bulk Actions States
   const dashboardCapableBlocks = blocks.filter(b => 
@@ -144,47 +159,58 @@ export default function TemplateStylePicker({
 
       {/* Icon Picker */}
       {showIconPicker && (
-        <Card className="p-4 space-y-4 mt-4">
-          <div className="flex flex-wrap gap-2 pb-3 border-b">
-            {Object.keys(ICON_CATEGORIES).map((category) => (
-              <Button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                variant={selectedCategory === category ? 'default' : 'outline'}
-                size="sm"
-                className="text-xs"
-              >
-                {category}
-              </Button>
-            ))}
+        <Card className="p-4 space-y-3 mt-4">
+          {/* Search Input */}
+          <div>
+            <Input
+              type="text"
+              placeholder="Icon suchen... (z.B. heart, star, user)"
+              value={iconSearchTerm}
+              onChange={(e) => setIconSearchTerm(e.target.value)}
+              className="text-sm"
+            />
           </div>
 
-          <div className="grid grid-cols-8 gap-2">
-            {ICON_CATEGORIES[selectedCategory as keyof typeof ICON_CATEGORIES].map((iconName) => {
-              const IconComponent = ICON_MAP[iconName];
-              const isSelected = currentIcon === iconName;
-              return (
-                <button
-                  key={iconName}
-                  onClick={() => {
-                    onIconChange(iconName);
-                    setShowIconPicker(false);
-                  }}
-                  className={cn(
-                    "icon-picker-button",
-                    isSelected && "icon-picker-button-selected"
-                  )}
-                  style={isSelected ? { backgroundColor: currentColor } : undefined}
-                  title={iconName}
-                >
-                  <IconComponent 
-                    size={16} 
-                    className={isSelected ? "text-white" : "text-muted-foreground"}
-                  />
-                </button>
-              );
-            })}
+          {/* Icon Grid */}
+          <div className="icon-picker-grid">
+            {filteredIcons.length > 0 ? (
+              filteredIcons.map((iconName) => {
+                const IconComponent = getIconComponent(iconName);
+                const isSelected = currentIcon.toLowerCase() === iconName.toLowerCase();
+                return (
+                  <button
+                    key={iconName}
+                    onClick={() => {
+                      onIconChange(iconName);
+                      setShowIconPicker(false);
+                      setIconSearchTerm('');
+                    }}
+                    className={cn(
+                      "icon-picker-button",
+                      isSelected && "icon-picker-button-selected"
+                    )}
+                    style={isSelected ? { backgroundColor: currentColor } : undefined}
+                    title={iconName}
+                  >
+                    {React.createElement(IconComponent, {
+                      size: 20,
+                      className: isSelected ? 'text-white' : 'text-muted-foreground'
+                    })}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="col-span-full text-center text-sm text-muted-foreground py-8">
+                Keine Icons gefunden für "{iconSearchTerm}"
+              </div>
+            )}
           </div>
+          {/* Hinweis wenn ohne Suche limitiert */}
+          {!iconSearchTerm.trim() && AVAILABLE_ICON_NAMES.length > MAX_ICONS_WITHOUT_SEARCH && (
+            <p className="text-xs text-muted-foreground text-center">
+              {MAX_ICONS_WITHOUT_SEARCH} von {AVAILABLE_ICON_NAMES.length} Icons — suche nach Name für mehr
+            </p>
+          )}
         </Card>
       )}
     </Card>

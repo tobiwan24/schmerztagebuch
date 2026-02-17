@@ -9,8 +9,8 @@ const db = new Dexie('PainDiaryDB') as Dexie & {
   settings: EntityTable<Settings, 'key'>;
 };
 
-// Version 13: Remove Image Block from Standard Template
-db.version(13).stores({
+// Version 14: Lucide Icon System Integration
+db.version(14).stores({
   templates: '++id, name, order',
   entries: '++id, templateId, timestamp, encrypted, *tags',
   settings: 'key'
@@ -18,57 +18,57 @@ db.version(13).stores({
 
 // ========== MIGRATIONS ==========
 
-// Standard-Icons basierend auf Template-Namen - ERWEITERT mit medizinischen Icons
+// Standard-Icons basierend auf Template-Namen - Lucide Icon Names (CamelCase)
 const DEFAULT_ICONS: Record<string, string> = {
   // Schmerz-bezogen
-  'schmerz': 'flame',
-  'pain': 'flame',
-  'weh': 'alertcircle',
-  'kopf': 'brain',
-  'kopfschmerz': 'brain',
-  'migräne': 'brain',
-  'rücken': 'user',
-  'bauch': 'user',
-  'brust': 'heartpulse',
-  'herz': 'heartpulse',
-  'gelenk': 'hand',
-  'knie': 'footprints',
-  'fuß': 'footprints',
-  'bein': 'footprints',
-  'hand': 'hand',
-  'arm': 'hand',
-  'auge': 'eye',
-  'ohr': 'ear',
-  'akut': 'alertcircle',
-  'stark': 'trendingup',
-  'chronisch': 'target',
+  'schmerz': 'Flame',
+  'pain': 'Flame',
+  'weh': 'AlertCircle',
+  'kopf': 'Brain',
+  'kopfschmerz': 'Brain',
+  'migräne': 'Brain',
+  'rücken': 'User',
+  'bauch': 'User',
+  'brust': 'HeartPulse',
+  'herz': 'HeartPulse',
+  'gelenk': 'Hand',
+  'knie': 'Footprints',
+  'fuß': 'Footprints',
+  'bein': 'Footprints',
+  'hand': 'Hand',
+  'arm': 'Hand',
+  'auge': 'Eye',
+  'ohr': 'Ear',
+  'akut': 'AlertCircle',
+  'stark': 'TrendingUp',
+  'chronisch': 'Target',
   
   // Medizin & Behandlung
-  'medikament': 'pill',
-  'tablette': 'pill',
-  'pille': 'pill',
-  'spritze': 'syringe',
-  'injektion': 'syringe',
-  'arzt': 'stethoscope',
-  'behandlung': 'stethoscope',
-  'therapie': 'activity',
-  'vitals': 'heartpulse',
-  'temperatur': 'thermometer',
-  'fieber': 'thermometer',
+  'medikament': 'Pill',
+  'tablette': 'Pill',
+  'pille': 'Pill',
+  'spritze': 'Syringe',
+  'injektion': 'Syringe',
+  'arzt': 'Stethoscope',
+  'behandlung': 'Stethoscope',
+  'therapie': 'Activity',
+  'vitals': 'HeartPulse',
+  'temperatur': 'Thermometer',
+  'fieber': 'Thermometer',
   
   // Allgemein
-  'beispiel': 'book',
-  'tagebuch': 'book',
-  'notiz': 'book',
-  'schlaf': 'bed',
-  'ruhe': 'bed',
-  'essen': 'coffee',
-  'nahrung': 'coffee',
-  'stimmung': 'smile',
-  'gefühl': 'smile',
-  'termin': 'calendar',
-  'datum': 'calendar',
-  'tag': 'calendar',
+  'beispiel': 'Book',
+  'tagebuch': 'Book',
+  'notiz': 'Book',
+  'schlaf': 'BedDouble',
+  'ruhe': 'BedDouble',
+  'essen': 'Coffee',
+  'nahrung': 'Coffee',
+  'stimmung': 'Smile',
+  'gefühl': 'Smile',
+  'termin': 'Calendar',
+  'datum': 'Calendar',
+  'tag': 'Calendar',
 };
 
 // Standard-Farben
@@ -87,7 +87,7 @@ function getDefaultIconForTemplate(name: string): string {
       return icon;
     }
   }
-  return 'book'; // Fallback
+  return 'Book'; // Fallback
 }
 
 // Migration: Templates ohne icon/color mit Defaults versehen
