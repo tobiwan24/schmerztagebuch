@@ -32,6 +32,12 @@
 - ✅ Phase 6.6: Template-Switcher ✅ KOMPLETT (18.02.2026)
 - ✅ Phase 6.7-6.11: TextArea-Erweiterung, Icon Picker, Standard-Template, BodyMap Features
 
+### Phase 11.6: Tutorial-Guide System (IN ARBEIT)
+- ✅ TutorialContext + PageTutorial-Komponente (spotlightExcludeTop, spotlightFullBottom, spotlightToggle, extraDelay)
+- ✅ DiaryView Tutorial: 5 Steps (Bottombar, Content, Save, Menü, Personalisieren-Scroll)
+- ✅ EditorMode Tutorial: 9 Steps (Header, Collapsible, Nav-Pfeile, Baustein hinzufügen, Baustein, Collapsible, DnD, Neue Vorlage, Löschen)
+- ✅ Template-Katalog: BodyMap-Block in Allgemeines Schmerz-Tagebuch (19.02.2026)
+
 ---
 
 ## 🔥 PHASE 11: CRITICAL FEATURES (HIGH PRIO - NEXT)
@@ -915,11 +921,11 @@ function renderHeatmap(canvas: HTMLCanvasElement, points: HeatmapPoint[]) {
 
 ## 🎯 NÄCHSTE SCHRITTE (AKTUALISIERT)
 
-**Neue Priorisierung (18.02.2026):**
+**Neue Priorisierung (19.02.2026):**
 1. ✅ **Phase 6.6:** Template-Switcher (KOMPLETT!) ✅
 2. ✅ **Phase 11.3:** HomePage UI Überarbeitung (KOMPLETT!) ✅
-3. 🔴 **Phase 11.4:** Datenpersistenz & Backup (NEXT - KRITISCH!)
-4. 🟡 **Phase 11.6:** Tutorial-Guide System (Onboarding)
+3. 🟡 **Phase 11.6:** Tutorial-Guide System – DiaryView ✅ + EditorMode ✅ (in Arbeit)
+4. 🔴 **Phase 11.4:** Datenpersistenz & Backup (NEXT - KRITISCH!)
 5. 🟡 **Phase 11.2:** Dashboard Export
 6. 🟡 **Phase 11.1:** Verlauf-Page Optimierung
 7. 🟡 **Phase 11.5:** BodyMap Bildgrößen-Optimierung
@@ -935,8 +941,8 @@ function renderHeatmap(canvas: HTMLCanvasElement, points: HeatmapPoint[]) {
 
 ---
 
-**Letzte Aktualisierung:** 18.02.2026  
-**Aktueller Stand:** Phase 6 komplett ✅, Phase 6.6 & 11.3 komplett ✅  
+**Letzte Aktualisierung:** 19.02.2026  
+**Aktueller Stand:** Phase 6 komplett ✅, Phase 11.3 komplett ✅, Phase 11.6 (Tutorial-System) in Arbeit  
 **Nächster Schritt:** Phase 11.4 - Datenpersistenz & Backup-System (KRITISCH!)  
 **DB Version:** 14  
-**Status:** ✅ Branches `feature/template-switcher` und `HomePageUI-Refactoring` merged
+**Status:** Tutorial-System für DiaryView (5 Steps) + EditorMode (9 Steps) implementiert ✅, spotlightToggle-Feature für alternierende Spotlights ✅
