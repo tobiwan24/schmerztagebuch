@@ -29,11 +29,12 @@ interface BodyMapData {
 interface BodyMapBlockProps {
   block: Block;
   onChange: (value: string) => void;
+  onPresetSaved?: () => void;
   readOnly?: boolean;
   hideLabel?: boolean;
 }
 
-export default function BodyMapBlock({ block, onChange, readOnly = false, hideLabel = false }: BodyMapBlockProps) {
+export default function BodyMapBlock({ block, onChange, onPresetSaved, readOnly = false, hideLabel = false }: BodyMapBlockProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -379,7 +380,10 @@ export default function BodyMapBlock({ block, onChange, readOnly = false, hideLa
       setPresets(getPresets());
       setPresetName('');
       setShowPresetModal(false);
-      alert('Preset gespeichert!');
+      // Trigger DiaryView Reset
+      if (onPresetSaved) {
+        onPresetSaved();
+      }
     }
   }
 
@@ -674,7 +678,7 @@ export default function BodyMapBlock({ block, onChange, readOnly = false, hideLa
               <Button variant="outline" onClick={() => setShowPresetModal(false)}>
                 Abbrechen
               </Button>
-              <Button onClick={confirmSavePreset}>
+              <Button onClick={confirmSavePreset} type="button">
                 Speichern
               </Button>
             </div>

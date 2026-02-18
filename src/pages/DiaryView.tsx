@@ -310,6 +310,18 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
     });
   }
 
+  function handlePresetSaved() {
+    // Reset DiaryView nach Preset-Speichern
+    setFormKey(prev => prev + 1);
+    setCurrentBlocks(JSON.parse(JSON.stringify(templates[activeTabIndex].blocks)));
+    setOriginalBlocks(JSON.parse(JSON.stringify(templates[activeTabIndex].blocks)));
+    setHasUnsavedChanges(false);
+    
+    if (contentRef.current) {
+      contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
   function handleTemplateChange(newIndex: number) {
     if (hasUnsavedChanges) {
       const confirmed = window.confirm(
@@ -524,6 +536,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
                 block={block}
                 onChange={(value) => handleBlockChange(block.id, value)}
                 onDashboardConfigChange={handleDashboardConfigChange}
+                onPresetSaved={handlePresetSaved}
                 hideLabel={block.hideLabelInDiary}
               />
             ))}
