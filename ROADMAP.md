@@ -871,9 +871,9 @@
 **Aufwandsschätzung:** ~4h
 **DB-Migration:** KEINE (nur Block-Schema erweitert, keine DB-Änderung nötig)
 
-### 6.11: BodyMap Bild-Zuschneidetool (2.5h) 🆕
+### 6.11: BodyMap Bild-Zuschneidetool (2.5h) ✅ KOMPLETT
 **Branch:** `feature/bodymap-image-crop`
-**Status:** In Arbeit (18.02.2026)
+**Status:** Abgeschlossen (18.02.2026)
 **Dependency:** `react-easy-crop` (bereits installiert)
 
 **Ziel:** Bild-Zuschneidetool für BodyMapBlock mit Touch-optimierter UI
@@ -886,15 +886,18 @@
 
 **Tasks:**
 
-- [ ] **Crop-Button UI (15 Min)**
+- [x] **Crop-Button in "Bild ändern" Dropdown integriert (20 Min)**
   - Icon: Scissors (lucide-react)
-  - Position: Nach "Als Standardvorlage", vor "Alles löschen"
-  - Nur sichtbar wenn `data.image` vorhanden
-  - Größe: 44x44px (wie TextArea Event-Button)
-  - Nur Icon, kein Text
-  - **Commit:** `feat: add crop button to bodymap block`
+  - Position: Im Dropdown zwischen "Neues Bild hochladen" und "Bild löschen"
+  - **Dropdown-Struktur:**
+    - Neues Bild hochladen
+    - Bild zuschneiden
+    - Bild löschen (destructive)
+    - ──────────────── (Separator)
+    - Vorlagen (Label + Liste)
+  - **Commit:** `feat: integrate crop into image dropdown menu`
 
-- [ ] **Crop-Modal State Management (15 Min)**
+- [x] **Crop-Modal State Management (15 Min)**
   ```typescript
   const [showCropModal, setShowCropModal] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -903,7 +906,7 @@
   ```
   - **Commit:** `feat: add crop modal state management`
 
-- [ ] **Crop-Modal UI mit react-easy-crop (45 Min)**
+- [x] **Crop-Modal UI mit react-easy-crop + Aspect Ratio Selector (60 Min)**
   ```tsx
   import Cropper from 'react-easy-crop'
   
@@ -932,11 +935,15 @@
   )}
   ```
   - Fullscreen Modal (Mobile-optimiert)
-  - Cropper Component mit Zoom-Slider
-  - Abbrechen / Übernehmen Buttons
-  - **Commit:** `feat: implement crop modal ui with react-easy-crop`
+  - **Aspect Ratio Selector:** 3 Buttons (1:1, 4:3, 16:9)
+  - Cropper Component mit dynamischem Aspect Ratio
+  - Zoom-Slider (1x - 3x)
+  - Header mit X-Button + Seitenverhältnis-Auswahl
+  - Single "Zuschnitt übernehmen" Button (full width)
+  - **Touch-Fix:** `touchAction: 'none'` + `zIndex: 99999` + `pointerEvents: 'auto'`
+  - **Commit:** `feat: implement crop modal with aspect ratio selector`
 
-- [ ] **getCroppedImg Utility-Funktion (30 Min)**
+- [x] **getCroppedImg Utility-Funktion (30 Min)**
   ```typescript
   async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<string> {
     const image = await createImage(imageSrc);
@@ -975,7 +982,7 @@
   - Promise-basiert
   - **Commit:** `feat: implement getCroppedImg utility function`
 
-- [ ] **handleApplyCrop mit Warnung (20 Min)**
+- [x] **handleApplyCrop mit Warnung (20 Min)**
   ```typescript
   async function handleApplyCrop() {
     if (!croppedAreaPixels || !data.image) return;
@@ -997,7 +1004,7 @@
   - Modal schließen nach Crop
   - **Commit:** `feat: implement crop apply handler with point warning`
 
-- [ ] **handleCropComplete Callback (10 Min)**
+- [x] **handleCropComplete Callback (10 Min)**
   ```typescript
   function handleCropComplete(croppedArea: Area, croppedAreaPixels: Area) {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -1006,19 +1013,23 @@
   - Speichert Crop-Koordinaten
   - **Commit:** `feat: add crop complete callback`
 
-- [ ] **Icon Import + Button Integration (15 Min)**
+- [x] **"Vorlagen verwalten" Dropdown erstellt (20 Min)**
   ```typescript
-  import { Scissors } from 'lucide-react';
-  
-  <Button variant="outline" onClick={() => setShowCropModal(true)} type="button">
-    <Scissors size={16} />
-  </Button>
+  <DropdownMenu>
+    <DropdownMenuTrigger>
+      Vorlagen verwalten ▼
+    </DropdownMenuTrigger>
+    <DropdownMenuContent>
+      - Als Vorlage speichern
+      - Als Standardvorlage (mit gelbem Highlight wenn aktiv)
+    </DropdownMenuContent>
+  </DropdownMenu>
   ```
-  - Scissors Icon importieren
-  - Button ohne Text (nur Icon)
-  - **Commit:** `feat: integrate crop button with scissors icon`
+  - Ersetzt einzelne "Als Vorlage" und "Als Standardvorlage" Buttons
+  - Kompaktere UI mit Dropdown-Pattern
+  - **Commit:** `feat: create preset management dropdown menu`
 
-- [ ] **Testing & Mobile UX (30 Min)**
+- [x] **Testing & Mobile UX (30 Min)**
   - Touch-Zoom testen
   - Pan-Gesten testen
   - Crop-Ergebnis Qualität prüfen
@@ -1044,6 +1055,48 @@
 
 **Dependencies:**
 - ✅ `react-easy-crop` bereits installiert
+
+**Crop-Modal UI:**
+```
+┌────────────────────────────────┐
+│ Bild zuschneiden          [X]  │
+│                              │
+│ Seitenverhältnis:              │
+│ [1:1] [4:3] [16:9]           │
+├────────────────────────────────┤
+│                              │
+│     [Cropper Component]      │
+│     (Gelber Crop-Rahmen)     │
+│                              │
+├────────────────────────────────┤
+│ Zoom: [========= ] 2.1x     │
+│                              │
+│ [Zuschnitt übernehmen]      │
+└────────────────────────────────┘
+```
+
+**Aspect Ratio Verhalten:**
+- **1:1** - Quadratisch (Instagram)
+- **4:3** - Standard Körperkarte Querformat (Default)
+- **16:9** - Widescreen
+
+**Button-Reihe:**
+1. 📷 **Bild ändern** ▼ (Dropdown)
+   - Neues Bild hochladen
+   - ✂️ Bild zuschneiden
+   - 🗑️ Bild löschen (rot)
+   - ────────────────
+   - Vorlagen (Label)
+     - Liste aller Presets mit ⭐ für Standard
+
+2. 💾 **Vorlagen verwalten** ▼ (Dropdown)
+   - Als Vorlage speichern
+   - Als Standardvorlage (⭐ gelb wenn aktiv)
+
+**Commits:**
+- `feat: integrate crop and delete into image dropdown`
+- `feat: create preset management dropdown menu`
+- `fix: improve crop modal touch handling with z-index`
 
 ---
 
@@ -1391,16 +1444,17 @@
 8. ✅ Phase 6.9: Icon Picker Lucide (KOMPLETT)
 9. ✅ Phase 6.4: Modal-System Vereinheitlichung (KOMPLETT)
 10. ✅ Phase 6.8: Standard-Template Auto-Generierung + Vorlagen-Katalog (KOMPLETT)
-11. 🚀 Phase 6.10: BodyMap Block-spezifische Presets (IN ARBEIT)
-12. Phase 6.6: Template-Switcher
-13. Phase 8: Code Cleanup
+11. ✅ Phase 6.10: BodyMap Block-spezifische Presets (KOMPLETT)
+12. ✅ Phase 6.11: BodyMap Bild-Zuschneidetool (KOMPLETT)
+13. 🚀 Phase 6.6: Template-Switcher (NEXT)
+14. Phase 8: Code Cleanup
 
 **Dann:** Phase 8 (Code Cleanup) vor weiteren Features
 
 ---
 
 **Letzte Aktualisierung:** 18.02.2026  
-**Aktueller Stand:** Phase 6.10 in Arbeit (BodyMap Block-spezifische Presets & Default-Vorlagen)  
-**Nächster Schritt:** Task 1 - Block-Interface erweitern  
+**Aktueller Stand:** Phase 6.11 komplett ✅ (BodyMap Bild-Zuschneidetool + Dropdown-Optimierungen)  
+**Nächster Schritt:** Phase 6.6 - Template-Switcher  
 **DB Version:** 14  
-**Status:** 🚀 ROADMAP AKTUALISIERT - BEREIT FÜR UMSETZUNG
+**Status:** ✅ PHASE 6.11 KOMPLETT - BEREIT FÜR TESTING

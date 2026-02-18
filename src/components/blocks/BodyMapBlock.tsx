@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Camera, Trash2, Save, X, Star, ChevronDown, Scissors } from 'lucide-react';
+import { ImagePlus, ImageUp, Trash2, Save, X, Star, ChevronDown, Scissors } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -85,6 +85,7 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [selectedAspect, setSelectedAspect] = useState<number | undefined>(4 / 3); // Default: 4:3
 
   function updateData(newData: BodyMapData) {
     setData(newData);
@@ -621,15 +622,23 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
             <div className="flex flex-wrap gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" type="button">
-                    <Camera size={16} className="mr-2" />
-                    Bild ändern
+                  <Button variant="outline" type="button" className="min-w-[44px] min-h-[44px] px-3">
+                    <ImagePlus size={18} />
                     <ChevronDown size={14} className="ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
                   <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                    <ImageUp size={16} className="mr-2" />
                     Neues Bild hochladen
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowCropModal(true)}>
+                    <Scissors size={16} className="mr-2" />
+                    Bild zuschneiden
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDeleteImage} className="text-destructive">
+                    <Trash2 size={16} className="mr-2" />
+                    Bild löschen
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel>Vorlagen</DropdownMenuLabel>
@@ -649,35 +658,31 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="outline" onClick={handleSaveAsPreset} type="button">
-                <Save size={16} className="mr-2" />
-                Als Vorlage
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={handleSetAsDefault} 
-                type="button"
-                className={cn(
-                  block.bodyMapConfig?.defaultPresetId && 
-                  presets.find(p => p.id === block.bodyMapConfig?.defaultPresetId && p.image === data.image) &&
-                  "bg-yellow-50 border-yellow-400 text-yellow-700"
-                )}
-              >
-                <Star size={16} className="mr-2" />
-                Als Standardvorlage
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setShowCropModal(true)} 
-                type="button"
-                className="min-w-[44px] min-h-[44px] p-0"
-              >
-                <Scissors size={16} />
-              </Button>
-              <Button variant="outline" onClick={handleDeleteImage} type="button">
-                <Trash2 size={16} className="mr-2" />
-                Alles löschen
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" type="button" className="min-w-[44px] min-h-[44px] px-3">
+                    <Save size={18} />
+                    <ChevronDown size={14} className="ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={handleSaveAsPreset}>
+                    <Save size={16} className="mr-2" />
+                    Als Vorlage speichern
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={handleSetAsDefault}
+                    className={cn(
+                      block.bodyMapConfig?.defaultPresetId && 
+                      presets.find(p => p.id === block.bodyMapConfig?.defaultPresetId && p.image === data.image) &&
+                      "bg-yellow-50 text-yellow-700"
+                    )}
+                  >
+                    <Star size={16} className="mr-2" />
+                    Als Standardvorlage speichern
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
 
@@ -774,7 +779,7 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
               disabled={readOnly}
               type="button"
             >
-              <Camera size={18} className="mr-2" />
+              <ImagePlus size={18} className="mr-2" />
               Körperkarte hochladen
             </Button>
             <p className="text-sm text-muted-foreground">
@@ -863,19 +868,99 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
       )}
 
       {showCropModal && data.image && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col">
-          <div className="flex-1 relative">
+        <div 
+          className="fixed inset-0 bg-black/95 flex flex-col" 
+          style={{ 
+            zIndex: 99999,
+            pointerEvents: 'auto'
+          }}
+        >
+          {/* Header mit Anleitung + Close */}
+          <div className="p-4 bg-black/50">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-white text-sm font-medium">Bild zuschneiden</p>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => {
+                  setShowCropModal(false);
+                  setCrop({ x: 0, y: 0 });
+                  setZoom(1);
+                  setCroppedAreaPixels(null);
+                  setSelectedAspect(4 / 3);
+                }}
+                className="text-white hover:bg-white/10"
+              >
+                <X size={24} />
+              </Button>
+            </div>
+            <div>
+              <p className="text-white/70 text-xs mb-2">Seitenverhältnis:</p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={selectedAspect === 1 ? 'default' : 'outline'}
+                  onClick={() => setSelectedAspect(1)}
+                  className={selectedAspect === 1 ? '' : 'bg-white/10 text-white border-white/20 hover:bg-white/20'}
+                >
+                  1:1
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={selectedAspect === 4/3 ? 'default' : 'outline'}
+                  onClick={() => setSelectedAspect(4/3)}
+                  className={selectedAspect === 4/3 ? '' : 'bg-white/10 text-white border-white/20 hover:bg-white/20'}
+                >
+                  4:3
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={selectedAspect === 16/9 ? 'default' : 'outline'}
+                  onClick={() => setSelectedAspect(16/9)}
+                  className={selectedAspect === 16/9 ? '' : 'bg-white/10 text-white border-white/20 hover:bg-white/20'}
+                >
+                  16:9
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Cropper Area */}
+          <div 
+            className="flex-1 relative" 
+            style={{ 
+              touchAction: 'none',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              minHeight: '300px'
+            }}
+          >
             <Cropper
               image={data.image}
               crop={crop}
               zoom={zoom}
-              aspect={4/3}
+              aspect={selectedAspect}
               onCropChange={setCrop}
               onZoomChange={setZoom}
               onCropComplete={handleCropComplete}
+              showGrid={false}
+              style={{
+                containerStyle: {
+                  backgroundColor: 'transparent'
+                },
+                cropAreaStyle: {
+                  border: '2px solid #fbbf24',
+                  borderRadius: '8px'
+                }
+              }}
             />
           </div>
-          <div className="p-4 bg-background space-y-4">
+
+          {/* Controls */}
+          <div className="p-4 bg-background space-y-4" style={{ pointerEvents: 'auto' }}>
             <div className="space-y-2">
               <Label>Zoom</Label>
               <Slider 
@@ -886,23 +971,9 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
                 step={0.1} 
               />
             </div>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setShowCropModal(false);
-                  setCrop({ x: 0, y: 0 });
-                  setZoom(1);
-                  setCroppedAreaPixels(null);
-                }}
-                className="flex-1"
-              >
-                Abbrechen
-              </Button>
-              <Button onClick={handleApplyCrop} className="flex-1">
-                Übernehmen
-              </Button>
-            </div>
+            <Button onClick={handleApplyCrop} className="w-full">
+              Zuschnitt übernehmen
+            </Button>
           </div>
         </div>
       )}
