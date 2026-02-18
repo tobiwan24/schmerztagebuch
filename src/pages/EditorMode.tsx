@@ -516,19 +516,19 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
       {/* Floating action buttons */}
       <div className="floating-buttons-container">
         <button 
-          className={`floating-btn-glass ${isDndMode ? 'dnd-mode-active' : ''}`}
+          className={`floating-btn-glass editor-dnd-btn ${isDndMode ? 'dnd-mode-active' : ''}`}
           onClick={() => setIsDndMode(!isDndMode)}
           title={isDndMode ? "Sortier-Modus beenden" : "Sortier-Modus aktivieren"}
         >
           <ArrowDownUp size={20} />
         </button>
         
-        <button className="floating-btn-glass" onClick={handleCreateTemplate}>
+        <button className="floating-btn-glass editor-add-template-btn" onClick={handleCreateTemplate}>
           <Plus size={20} />
         </button>
         
         <button
-          className="floating-btn-glass"
+          className="floating-btn-glass editor-delete-btn"
           onClick={handleDeleteCurrentTemplate}
           disabled={!selectedTemplate}
         >
@@ -737,29 +737,81 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
         page="editor"
         steps={[
           {
-            spotlight: null,
-            text: 'Im Editor baust du deine persönliche Vorlage aus verschiedenen Bausteinen zusammen.',
-            cardPosition: 'center',
+            // Step 0: Header-Card + Collapsible-Pfeil + Nav-Pfeile
+            spotlight: '.template-settings-card',
+            spotlightExcludeTop: 56,
+            title: 'Vorlagen-Einstellungen',
+            text: 'Hier kannst du Einstellungen für deine ganze Vorlage vornehmen, wie Überschrift und Icon.',
+            cardPosition: 'bottom',
           },
           {
+            // Step 1: Collapsible-Pfeil
+            spotlight: '.template-collapse-btn',
+            title: 'Erweiterte Einstellungen',
+            text: 'Erweiterte globale Funktionen findest du hier: Blende z.B. alle Überschriften aus oder aktiviere die Datenauswertung für alle verfügbaren Bausteine.',
+            cardPosition: 'bottom',
+          },
+          {
+            // Step 2: Nav-Pfeile (Spotlight wechselt zwischen links und rechts)
+            spotlight: null,
+            spotlightToggle: ['.template-nav-prev', '.template-nav-next'],
+            title: 'Vorlagen wechseln',
+            text: 'Tausche schnell zwischen deinen vorhandenen Vorlagen hin und her.',
+            cardPosition: 'bottom',
+          },
+          {
+            // Step 3: Baustein hinzufügen
             spotlight: '.add-block-button-container',
             title: 'Bausteine hinzufügen',
-            text: 'Tippe hier, um einen neuen Baustein (Schieberegler, Text, Auswahl …) zur Vorlage hinzuzufügen.',
+            text: 'Füge neue Bausteine hinzu…',
+            cardPosition: 'bottom',
+          },
+          {
+            // Step 4: Erster Baustein
+            spotlight: '.sortable-block',
+            title: 'Bausteine personalisieren',
+            text: '…und personalisiere sie nach deinen Wünschen.',
             cardPosition: 'auto',
           },
           {
-            spotlight: '.floating-buttons-container',
+            // Step 5: Collapsible im Baustein (aufklappen via onStepChange)
+            spotlight: '.block-collapse-btn',
+            title: 'Erweiterte Bausteineinstellungen',
+            text: 'Erweiterte Einstellungen findest du immer hier.',
+            cardPosition: 'auto',
+          },
+          {
+            // Step 6: DnD-Button
+            spotlight: '.editor-dnd-btn',
             title: 'Reihenfolge ändern',
-            text: 'Mit dem Pfeil-Button oben kannst du den Sortier-Modus aktivieren und Bausteine per Drag & Drop neu anordnen.',
+            text: 'Ändere deine Bausteinreihenfolge.',
             cardPosition: 'bottom',
           },
           {
-            spotlight: '.floating-buttons-container',
-            title: 'Speichern',
-            text: 'Wenn du fertig bist, leuchtet der Haken-Button grün. Tippe darauf, um die Vorlage zu speichern.',
+            // Step 7: Plus-Button (neue Vorlage)
+            spotlight: '.editor-add-template-btn',
+            title: 'Neue Vorlage',
+            text: 'Füge eine weitere neue Vorlage hinzu.',
+            cardPosition: 'bottom',
+          },
+          {
+            // Step 8: Delete-Button
+            spotlight: '.editor-delete-btn',
+            title: 'Vorlage löschen',
+            text: 'Lösche deine ganze Vorlage.',
             cardPosition: 'bottom',
           },
         ]}
+        onStepChange={(index) => {
+          // Step 5: ersten Baustein aufklappen damit Collapsible sichtbar
+          if (index === 5 && editingBlocks.length > 0) {
+            setExpandedBlockIds(new Set([editingBlocks[0].id]));
+          }
+          // Step 6+: wieder einklappen
+          if (index === 6) {
+            setExpandedBlockIds(new Set());
+          }
+        }}
       />
 
       {/* Dialog: Vorlagen-Katalog (Schritt 2 nach Name-Eingabe) */}

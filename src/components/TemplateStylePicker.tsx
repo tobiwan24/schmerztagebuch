@@ -99,14 +99,16 @@ export default function TemplateStylePicker({
     <Card className="p-3 template-settings-card">
       {/* Header: Template Name + Switcher + Collapse */}
       <div className="flex items-center gap-1 mb-3">
-        <button
-          onClick={handlePrev}
-          disabled={!hasPrev}
-          className="btn-touch-target flex items-center justify-center hover:bg-accent rounded transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
-          title="Vorherige Vorlage"
-        >
-          <ChevronLeft size={18} />
-        </button>
+        <div className="template-nav-arrows template-nav-prev flex items-center gap-0">
+          <button
+            onClick={handlePrev}
+            disabled={!hasPrev}
+            className="btn-touch-target flex items-center justify-center hover:bg-accent rounded transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Vorherige Vorlage"
+          >
+            <ChevronLeft size={18} />
+          </button>
+        </div>
 
         <Input
           value={templateName}
@@ -115,18 +117,20 @@ export default function TemplateStylePicker({
           placeholder="Vorlagen-Name eingeben..."
         />
 
-        <button
-          onClick={handleNext}
-          disabled={!hasNext}
-          className="btn-touch-target flex items-center justify-center hover:bg-accent rounded transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
-          title="Nächste Vorlage"
-        >
-          <ChevronRight size={18} />
-        </button>
+        <div className="template-nav-arrows template-nav-next flex items-center gap-0">
+          <button
+            onClick={handleNext}
+            disabled={!hasNext}
+            className="btn-touch-target flex items-center justify-center hover:bg-accent rounded transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Nächste Vorlage"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
 
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="btn-touch-target flex items-center justify-center hover:bg-accent rounded transition-colors flex-shrink-0"
+          className="template-collapse-btn btn-touch-target flex items-center justify-center hover:bg-accent rounded transition-colors flex-shrink-0"
           title={isExpanded ? 'Einklappen' : 'Ausklappen'}
         >
           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}

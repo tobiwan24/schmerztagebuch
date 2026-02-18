@@ -17,6 +17,11 @@ export interface TutorialStep {
    * Ignoriert spotlight-Selector für die Loch-Geometrie.
    */
   spotlightFullBottom?: boolean;
+  /**
+   * Zwei Selektoren: Spotlight springt im Wechsel zwischen beiden hin und her.
+   * Überschreibt spotlight wenn gesetzt.
+   */
+  spotlightToggle?: [string, string];
   /** Titel in der Karte (optional) */
   title?: string;
   /** Beschreibungstext */
@@ -95,11 +100,9 @@ function resolveCardPlacement(
   spotlight: SpotlightRect | null,
 ): 'top' | 'bottom' | 'center' {
   if (step.cardPosition === 'center') return 'center';
-  // 'top' und 'bottom' sind harte Vorgaben – keine Kollisionsprüfung
   if (step.cardPosition === 'top') return 'top';
   if (step.cardPosition === 'bottom') return 'bottom';
 
-  // Ab hier nur noch 'auto' oder undefined
   if (!spotlight) return 'center';
 
   const spotlightBottom = spotlight.top + spotlight.height;
@@ -130,7 +133,17 @@ export default function PageTutorial({ page, steps, onStepChange }: PageTutorial
   const [showMenu, setShowMenu] = useState(false);
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toggleIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const toggleIndexRef = useRef(0);
   const done = isPageTutorialDone(page);
+
+  // Toggle-Interval aufräumen
+  function clearToggleInterval() {
+    if (toggleIntervalRef.current) {
+      clearInterval(toggleIntervalRef.current);
+      toggleIntervalRef.current = null;
+    }
+  }
 
   // ── Step positionieren ───────────────────────────────────────────────────
   const positionStep = useCallback(
@@ -143,8 +156,9 @@ export default function PageTutorial({ page, steps, onStepChange }: PageTutorial
       onStepChange?.(index);
 
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      clearToggleInterval();
+      toggleIndexRef.current = 0;
 
-      // Spotlight-Element in View scrollen (außer bei fullBottom)
       if (step.spotlight && !step.spotlightFullBottom) {
         const el = document.querySelector(step.spotlight);
         el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -153,7 +167,30 @@ export default function PageTutorial({ page, steps, onStepChange }: PageTutorial
       const totalDelay = 350 + (step.extraDelay ?? 0);
 
       timeoutRef.current = setTimeout(() => {
-        // Spotlight berechnen
+        // spotlightToggle: Spotlight wechselt per Interval zwischen zwei Selektoren
+        if (step.spotlightToggle) {
+          const [selA, selB] = step.spotlightToggle;
+          const selectors = [selA, selB];
+
+          // Kartenposition anhand des ersten Elements berechnen
+          const firstSp = computeSpotlight(selA, 8);
+          setCardBetweenTopPx(null);
+          setCardPlacement(resolveCardPlacement(step, firstSp));
+
+          // Sofort ersten Selector anzeigen
+          setSpotlight(computeSpotlight(selectors[0], 8));
+          setVisible(true);
+
+          // Dann im Wechsel
+          toggleIntervalRef.current = setInterval(() => {
+            toggleIndexRef.current = (toggleIndexRef.current + 1) % 2;
+            setSpotlight(computeSpotlight(selectors[toggleIndexRef.current], 8));
+          }, 700);
+
+          return;
+        }
+
+        // Normales einzelnes Spotlight
         const sp = step.spotlightFullBottom
           ? computeSpotlightFullBottom()
           : step.spotlight
@@ -162,7 +199,6 @@ export default function PageTutorial({ page, steps, onStepChange }: PageTutorial
 
         setSpotlight(sp);
 
-        // Kartenposition berechnen
         if (step.cardPosition === 'between' && step.betweenSelectors) {
           const [topSel, botSel] = step.betweenSelectors;
           const topEl = document.querySelector(topSel);
@@ -199,6 +235,7 @@ export default function PageTutorial({ page, steps, onStepChange }: PageTutorial
     positionStep(0);
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      clearToggleInterval();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done]);
@@ -213,6 +250,7 @@ export default function PageTutorial({ page, steps, onStepChange }: PageTutorial
     if (isLast) {
       onStepChange?.(-1);
       setVisible(false);
+      clearToggleInterval();
       setTimeout(() => markPageTutorialDone(page), 200);
     } else {
       const next = currentIndex + 1;
@@ -225,6 +263,7 @@ export default function PageTutorial({ page, steps, onStepChange }: PageTutorial
     onStepChange?.(-1);
     setVisible(false);
     setShowMenu(false);
+    clearToggleInterval();
     setTimeout(() => dismissPage(page), 200);
   }
 
@@ -232,6 +271,7 @@ export default function PageTutorial({ page, steps, onStepChange }: PageTutorial
     onStepChange?.(-1);
     setVisible(false);
     setShowMenu(false);
+    clearToggleInterval();
     setTimeout(() => dismissGlobally(), 200);
   }
 

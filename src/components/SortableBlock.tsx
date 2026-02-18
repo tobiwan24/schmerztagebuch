@@ -143,7 +143,7 @@ export default function SortableBlock({
         <Button 
           variant="ghost" 
           size="icon" 
-          className="btn-touch-target"
+          className="btn-touch-target block-collapse-btn"
           disabled={isDndMode}
           onClick={onEdit}
           title={isExpanded ? "Bearbeitung schließen" : "Bearbeiten"}
