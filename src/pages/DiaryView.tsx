@@ -32,6 +32,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
   const [formKey, setFormKey] = useState(0);
   const [showPersonalizeBtn, setShowPersonalizeBtn] = useState(false);
   const [isHidingBtn, setIsHidingBtn] = useState(false);
+  const [forceTutorialSaveBtn, setForceTutorialSaveBtn] = useState(false);
   
   // Refs
   const contentRef = useRef<HTMLDivElement>(null);
@@ -371,6 +372,45 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
     }
   }
 
+  function triggerPersonalizeReveal() {
+    const container = contentRef.current;
+    if (!container) return;
+
+    // Phase 1: nach ganz oben scrollen damit der Scroll nach unten sichtbar ist
+    container.scrollTo({ top: 0, behavior: 'smooth' });
+
+    setTimeout(() => {
+      // Phase 2: Button einblenden BEVOR wir scrollen
+      // → scrollHeight enthält dann bereits die Button-Höhe
+      setShowPersonalizeBtn(true);
+      setIsHidingBtn(false);
+
+      // Phase 3: Einen Frame warten damit React den Button gerendert hat,
+      // dann animierten Scroll nach unten starten
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const maxScroll = container.scrollHeight - container.clientHeight;
+          const duration = 1200;
+          const start = performance.now();
+          const startScroll = container.scrollTop;
+
+          function easeInOut(t: number) {
+            return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+          }
+
+          function animStep(now: number) {
+            const elapsed = now - start;
+            const progress = Math.min(elapsed / duration, 1);
+            container.scrollTop = startScroll + (maxScroll - startScroll) * easeInOut(progress);
+            if (progress < 1) requestAnimationFrame(animStep);
+          }
+
+          requestAnimationFrame(animStep);
+        });
+      });
+    }, 600); // kurze Pause damit scroll-to-top abgeschlossen ist
+  }
+
   async function handleSave() {
     if (!templates[activeTabIndex]?.id) return;
     
@@ -516,11 +556,11 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
           <Menu size={22} />
         </button>
         
-        {hasUnsavedChanges && (
+        {(hasUnsavedChanges || forceTutorialSaveBtn) && (
           <button
             className="floating-btn-glass save-btn floating-btn-enter animate-pulse-glow-green"
-            onClick={handleSave}
-            disabled={isSaving}
+            onClick={hasUnsavedChanges ? handleSave : undefined}
+            disabled={isSaving || (!hasUnsavedChanges && forceTutorialSaveBtn)}
           >
             <Check size={22} />
           </button>
@@ -608,29 +648,62 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
         page="diary"
         steps={[
           {
-            spotlight: null,
-            text: 'Hier trägst du täglich deine Schmerzwerte und Beobachtungen ein.',
-            cardPosition: 'center',
+            // Step 0: Bottombar
+            spotlight: '.bottom-nav-glass',
+            title: 'Vorlagen-Navigation',
+            text: 'Tausche schnell zwischen deinen verschiedenen Vorlagen hin und her.',
+            cardPosition: 'between',
+            betweenSelectors: ['.diary-content', '.bottom-nav-glass'],
           },
           {
+            // Step 1: Content (Header ausschließen, 56px = h-14)
             spotlight: '.diary-content',
-            title: 'Eintrag ausfüllen',
-            text: 'Fülle die Felder deiner Vorlage aus. Alle Felder sind optional.',
+            spotlightExcludeTop: 56,
+            title: 'Tagebucheintrag',
+            text: 'Hier kannst du deinen Tagebucheintrag vornehmen.',
             cardPosition: 'auto',
           },
           {
+            // Step 2: Save-Button (Karte obere Hälfte)
             spotlight: '.floating-buttons-container',
             title: 'Speichern',
-            text: 'Nach dem Ausfüllen erscheint oben rechts ein grüner Haken. Tippe darauf, um den Eintrag zu speichern.',
-            cardPosition: 'bottom',
-          },
-          {
-            spotlight: '.bottom-nav-glass',
-            title: 'Vorlage anpassen',
-            text: 'Am unteren Rand befindet sich die Vorlagen-Navigation. Ganz nach unten scrollen und nach oben ziehen, um die Seite zu personalisieren.',
+            text: 'Sobald du etwas eingetragen hast, erscheint ein Speichern-Button.',
             cardPosition: 'top',
           },
+          {
+            // Step 3: Menü-Button, Karte wie Step 2 (top)
+            spotlight: '.floating-buttons-container',
+            title: 'Vorlage personalisieren',
+            text: 'Um diese Vorlage zu personalisieren, nutze das Menü oben.',
+            cardPosition: 'top',
+          },
+          {
+            // Step 4: Viewport-Mitte bis unten, 300ms delay, dann Scroll-Animation
+            // Karte wie Step 2 (top)
+            spotlight: null,
+            spotlightFullBottom: true,
+            title: 'Oder scrolle nach unten',
+            text: '... oder scrolle ganz nach unten und drücke auf den Button.',
+            cardPosition: 'top',
+            extraDelay: 300,
+          },
         ]}
+        onStepChange={(index) => {
+          // Step 2: Save-Button erzwingen
+          if (index === 2) {
+            setForceTutorialSaveBtn(true);
+          } else {
+            setForceTutorialSaveBtn(false);
+          }
+          // Step 4: Scroll-Animation triggern
+          if (index === 4) {
+            triggerPersonalizeReveal();
+          }
+          // Fertig/Dismiss: aufräumen
+          if (index === -1) {
+            setForceTutorialSaveBtn(false);
+          }
+        }}
       />
 
       {showMenu && (
