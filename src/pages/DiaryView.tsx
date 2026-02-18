@@ -389,8 +389,10 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
       // dann animierten Scroll nach unten starten
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          const c = contentRef.current;
-          if (!c) return;
+          if (!contentRef.current) return;
+          // Non-null assertion: direkt als HTMLDivElement typisieren
+          // damit TypeScript das Narrowing auch in animStep (Closure) beibehält
+          const c = contentRef.current as HTMLDivElement;
           const maxScroll = c.scrollHeight - c.clientHeight;
           const duration = 1200;
           const start = performance.now();
