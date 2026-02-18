@@ -389,11 +389,12 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
       // dann animierten Scroll nach unten starten
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          if (!contentRef.current) return;
-          const maxScroll = container.scrollHeight - container.clientHeight;
+          const c = contentRef.current;
+          if (!c) return;
+          const maxScroll = c.scrollHeight - c.clientHeight;
           const duration = 1200;
           const start = performance.now();
-          const startScroll = container.scrollTop;
+          const startScroll = c.scrollTop;
 
           function easeInOut(t: number) {
             return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
@@ -402,7 +403,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
           function animStep(now: number) {
             const elapsed = now - start;
             const progress = Math.min(elapsed / duration, 1);
-            container.scrollTop = startScroll + (maxScroll - startScroll) * easeInOut(progress);
+            c.scrollTop = startScroll + (maxScroll - startScroll) * easeInOut(progress);
             if (progress < 1) requestAnimationFrame(animStep);
           }
 
