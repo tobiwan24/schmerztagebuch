@@ -421,7 +421,7 @@ const BODYMAP_STANDARD_SIZE = {
 - [ ] **Container Layout-Fix (30 Min)**
   - BodyMap Container: `max-height: calc(100vh - 200px)`
   - Tools oben fixiert (Sticky)
-  - Buttons unten fixiert (Sticky)
+  - Buttons unten fixiert (Sticky) 
   - Bild scrollbar falls nötig
   - **Commit:** `fix: ensure bodymap fits viewport with visible tools`
 
