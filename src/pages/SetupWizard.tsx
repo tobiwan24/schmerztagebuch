@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { setSetting } from '../db';
+import { setSetting, createTemplate } from '../db';
 import { setPassword, setEncryptionMode, validatePassword, isBiometricAvailable, registerBiometric } from '../utils/auth';
 import type { EncryptionMode } from '../utils/auth';
+import { TEMPLATE_CATALOG } from '../data/templateCatalog';
+import TemplateCatalogPicker from '../components/TemplateCatalogPicker';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Check, RefreshCw, BookOpen, Shield, Fingerprint, Key, AlertCircle } from 'lucide-react';
+import { Check, RefreshCw, BookOpen, Shield, Fingerprint, Key, AlertCircle, LayoutTemplate } from 'lucide-react';
 
 function isCryptoAvailable(): boolean {
   return !!(window.crypto && window.crypto.subtle);
@@ -29,7 +31,7 @@ interface SetupWizardProps {
 }
 
 export default function SetupWizard({ onComplete }: SetupWizardProps) {
-  const [step, setStep] = useState<'welcome' | 'updates' | 'encryption' | 'password' | 'biometric'>('welcome');
+  const [step, setStep] = useState<'welcome' | 'updates' | 'encryption' | 'password' | 'biometric' | 'templates'>('welcome');
   const [selectedMode, setSelectedMode] = useState<EncryptionMode>('none');
   const [autoUpdate, setAutoUpdate] = useState(true);
   const [password, setPasswordInput] = useState('');
@@ -49,7 +51,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
 
   async function handleEncryptionContinue() {
     if (selectedMode === 'none') {
-      await completeSetup();
+      setStep('templates');
     } else {
       setStep('password');
     }
@@ -83,7 +85,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
       if (isBiometricAvailable()) {
         setStep('biometric');
       } else {
-        await completeSetup();
+        setStep('templates');
       }
     } catch (error) {
       setPasswordError('Fehler beim Speichern: ' + (error instanceof Error ? error.message : 'Unbekannter Fehler'));
@@ -97,7 +99,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
     try {
       const success = await registerBiometric(savedPassword);
       if (success) {
-        await completeSetup();
+        setStep('templates');
       } else {
         alert('Biometrie-Registrierung fehlgeschlagen');
       }
@@ -109,6 +111,32 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
   }
 
   async function handleBiometricSkip() {
+    setStep('templates');
+  }
+
+  async function handleTemplatesSelected(catalogIds: string[]) {
+    setIsLoading(true);
+    try {
+      if (catalogIds.length === 0) {
+        // Keine Vorlage gewählt: leere Vorlage "Mein Tagebuch" anlegen
+        const { generateUUID } = await import('../utils/uuid');
+        await createTemplate('Mein Tagebuch', [
+          { id: generateUUID(), type: 'date', label: 'Datum', hideLabelInDiary: false, isDeletable: false, value: undefined },
+          { id: generateUUID(), type: 'textarea', label: 'Notizen', hideLabelInDiary: false, isDeletable: true, value: undefined },
+        ]);
+      } else {
+        for (const catalogId of catalogIds) {
+          const entry = TEMPLATE_CATALOG.find(e => e.id === catalogId);
+          if (entry) {
+            await createTemplate(entry.name, entry.createBlocks());
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Fehler beim Anlegen der Vorlagen:', error);
+    } finally {
+      setIsLoading(false);
+    }
     await completeSetup();
   }
 
@@ -452,6 +480,29 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               Überspringen
             </Button>
           </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  if (step === 'templates') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <LayoutTemplate className="w-8 h-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">Startvorlagen wählen</CardTitle>
+            <CardDescription>Welche Vorlagen sollen direkt angelegt werden?</CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <TemplateCatalogPicker
+              mode="multi"
+              onSelectMulti={handleTemplatesSelected}
+            />
+          </CardContent>
         </Card>
       </div>
     );
