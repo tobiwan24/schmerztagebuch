@@ -871,6 +871,180 @@
 **Aufwandsschätzung:** ~4h
 **DB-Migration:** KEINE (nur Block-Schema erweitert, keine DB-Änderung nötig)
 
+### 6.11: BodyMap Bild-Zuschneidetool (2.5h) 🆕
+**Branch:** `feature/bodymap-image-crop`
+**Status:** In Arbeit (18.02.2026)
+**Dependency:** `react-easy-crop` (bereits installiert)
+
+**Ziel:** Bild-Zuschneidetool für BodyMapBlock mit Touch-optimierter UI
+
+**KONTEXT:**
+- User kann hochgeladene Bilder direkt im BodyMapBlock zuschneiden
+- Touch-optimiert für Mobile (Zoom + Pan)
+- Beim Zuschneiden werden ALLE Schmerzpunkte gelöscht (Koordinaten ungültig)
+- Button-Größe: wie TextArea Event-Button (44x44px, nur Icon)
+
+**Tasks:**
+
+- [ ] **Crop-Button UI (15 Min)**
+  - Icon: Scissors (lucide-react)
+  - Position: Nach "Als Standardvorlage", vor "Alles löschen"
+  - Nur sichtbar wenn `data.image` vorhanden
+  - Größe: 44x44px (wie TextArea Event-Button)
+  - Nur Icon, kein Text
+  - **Commit:** `feat: add crop button to bodymap block`
+
+- [ ] **Crop-Modal State Management (15 Min)**
+  ```typescript
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  ```
+  - **Commit:** `feat: add crop modal state management`
+
+- [ ] **Crop-Modal UI mit react-easy-crop (45 Min)**
+  ```tsx
+  import Cropper from 'react-easy-crop'
+  
+  {showCropModal && (
+    <div className="fixed inset-0 bg-black/90 z-50 flex flex-col">
+      <div className="flex-1 relative">
+        <Cropper
+          image={data.image}
+          crop={crop}
+          zoom={zoom}
+          aspect={4/3}
+          onCropChange={setCrop}
+          onZoomChange={setZoom}
+          onCropComplete={handleCropComplete}
+        />
+      </div>
+      <div className="p-4 bg-background">
+        <Label>Zoom</Label>
+        <Slider value={[zoom]} onValueChange={(val) => setZoom(val[0])} min={1} max={3} step={0.1} />
+        <div className="flex gap-2 mt-4">
+          <Button variant="outline" onClick={() => setShowCropModal(false)}>Abbrechen</Button>
+          <Button onClick={handleApplyCrop}>Übernehmen</Button>
+        </div>
+      </div>
+    </div>
+  )}
+  ```
+  - Fullscreen Modal (Mobile-optimiert)
+  - Cropper Component mit Zoom-Slider
+  - Abbrechen / Übernehmen Buttons
+  - **Commit:** `feat: implement crop modal ui with react-easy-crop`
+
+- [ ] **getCroppedImg Utility-Funktion (30 Min)**
+  ```typescript
+  async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<string> {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+    
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      pixelCrop.width,
+      pixelCrop.height
+    );
+    
+    return canvas.toDataURL('image/jpeg', 0.85);
+  }
+  
+  function createImage(url: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.addEventListener('load', () => resolve(image));
+      image.addEventListener('error', error => reject(error));
+      image.src = url;
+    });
+  }
+  ```
+  - Canvas-basierte Crop-Logic
+  - JPEG Kompression (quality: 0.85)
+  - Promise-basiert
+  - **Commit:** `feat: implement getCroppedImg utility function`
+
+- [ ] **handleApplyCrop mit Warnung (20 Min)**
+  ```typescript
+  async function handleApplyCrop() {
+    if (!croppedAreaPixels || !data.image) return;
+    
+    // Warnung wenn Schmerzpunkte vorhanden
+    if (data.points.length > 0) {
+      if (!confirm('⚠️ Beim Zuschneiden gehen alle Markierungen verloren!\n\nMöchtest du fortfahren?')) {
+        return;
+      }
+    }
+    
+    const croppedImage = await getCroppedImg(data.image, croppedAreaPixels);
+    updateData({ image: croppedImage, points: [] });
+    setShowCropModal(false);
+  }
+  ```
+  - Confirmation-Dialog wenn Schmerzpunkte existieren
+  - Schmerzpunkte werden gelöscht (Koordinaten ungültig)
+  - Modal schließen nach Crop
+  - **Commit:** `feat: implement crop apply handler with point warning`
+
+- [ ] **handleCropComplete Callback (10 Min)**
+  ```typescript
+  function handleCropComplete(croppedArea: Area, croppedAreaPixels: Area) {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }
+  ```
+  - Speichert Crop-Koordinaten
+  - **Commit:** `feat: add crop complete callback`
+
+- [ ] **Icon Import + Button Integration (15 Min)**
+  ```typescript
+  import { Scissors } from 'lucide-react';
+  
+  <Button variant="outline" onClick={() => setShowCropModal(true)} type="button">
+    <Scissors size={16} />
+  </Button>
+  ```
+  - Scissors Icon importieren
+  - Button ohne Text (nur Icon)
+  - **Commit:** `feat: integrate crop button with scissors icon`
+
+- [ ] **Testing & Mobile UX (30 Min)**
+  - Touch-Zoom testen
+  - Pan-Gesten testen
+  - Crop-Ergebnis Qualität prüfen
+  - Confirmation-Dialog auf Mobile testen
+  - Performance bei großen Bildern
+  - **Commit:** `test: verify crop tool mobile ux and performance`
+
+**Edge Cases:**
+- ✅ **Keine Schmerzpunkte:** Direktes Zuschneiden ohne Warnung
+- ✅ **Schmerzpunkte vorhanden:** Confirmation-Dialog mit expliziter Warnung
+- ✅ **Crop abbrechen:** Modal schließen, Bild bleibt unverändert
+- ✅ **Große Bilder:** JPEG Kompression verhindert zu große Base64-Strings
+
+**Aufwandsschätzung:** ~2.5h
+- Button UI: 15 Min
+- State Management: 15 Min
+- Modal UI: 45 Min
+- getCroppedImg: 30 Min
+- Apply Handler: 20 Min
+- Crop Complete: 10 Min
+- Icon Integration: 15 Min
+- Testing: 30 Min
+
+**Dependencies:**
+- ✅ `react-easy-crop` bereits installiert
+
 ---
 
 ## 🎯 PHASE 7: PFLICHTFELD-WORKFLOW (MEDIUM PRIO)

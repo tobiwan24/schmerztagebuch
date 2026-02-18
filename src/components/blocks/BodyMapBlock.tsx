@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Camera, Trash2, Save, X, Star, ChevronDown } from 'lucide-react';
+import { Camera, Trash2, Save, X, Star, ChevronDown, Scissors } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -17,6 +17,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import Cropper from 'react-easy-crop';
+import type { Area } from 'react-easy-crop';
 
 interface PainPoint {
   x: number;
@@ -77,6 +79,12 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
   const [showPresetModal, setShowPresetModal] = useState(false);
   const [presets, setPresets] = useState<BodyMapPreset[]>([]);
   const [presetName, setPresetName] = useState('');
+  
+  // Crop Tool State
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
   function updateData(newData: BodyMapData) {
     setData(newData);
@@ -450,6 +458,68 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
     setPresets(getPresets());
   }
 
+  // Crop Tool Functions
+  function createImage(url: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.addEventListener('load', () => resolve(image));
+      image.addEventListener('error', error => reject(error));
+      image.src = url;
+    });
+  }
+
+  async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<string> {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) throw new Error('Canvas context not available');
+    
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+    
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      pixelCrop.width,
+      pixelCrop.height
+    );
+    
+    return canvas.toDataURL('image/jpeg', 0.85);
+  }
+
+  function handleCropComplete(_croppedArea: Area, croppedAreaPixels: Area) {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }
+
+  async function handleApplyCrop() {
+    if (!croppedAreaPixels || !data.image) return;
+    
+    // Warnung wenn Schmerzpunkte vorhanden
+    if (data.points.length > 0) {
+      if (!confirm('⚠️ Beim Zuschneiden gehen alle Markierungen verloren!\n\nMöchtest du fortfahren?')) {
+        return;
+      }
+    }
+    
+    try {
+      const croppedImage = await getCroppedImg(data.image, croppedAreaPixels);
+      updateData({ image: croppedImage, points: [] });
+      setShowCropModal(false);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setCroppedAreaPixels(null);
+    } catch (error) {
+      console.error('Fehler beim Zuschneiden:', error);
+      alert('Fehler beim Zuschneiden des Bildes');
+    }
+  }
+
   return (
     <div className="space-y-4">
       {!hideLabel && <Label>{block.label}</Label>}
@@ -595,6 +665,14 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
               >
                 <Star size={16} className="mr-2" />
                 Als Standardvorlage
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowCropModal(true)} 
+                type="button"
+                className="min-w-[44px] min-h-[44px] p-0"
+              >
+                <Scissors size={16} />
               </Button>
               <Button variant="outline" onClick={handleDeleteImage} type="button">
                 <Trash2 size={16} className="mr-2" />
@@ -781,6 +859,51 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
               </Button>
             </div>
           </Card>
+        </div>
+      )}
+
+      {showCropModal && data.image && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col">
+          <div className="flex-1 relative">
+            <Cropper
+              image={data.image}
+              crop={crop}
+              zoom={zoom}
+              aspect={4/3}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={handleCropComplete}
+            />
+          </div>
+          <div className="p-4 bg-background space-y-4">
+            <div className="space-y-2">
+              <Label>Zoom</Label>
+              <Slider 
+                value={[zoom]} 
+                onValueChange={(val) => setZoom(val[0])} 
+                min={1} 
+                max={3} 
+                step={0.1} 
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowCropModal(false);
+                  setCrop({ x: 0, y: 0 });
+                  setZoom(1);
+                  setCroppedAreaPixels(null);
+                }}
+                className="flex-1"
+              >
+                Abbrechen
+              </Button>
+              <Button onClick={handleApplyCrop} className="flex-1">
+                Übernehmen
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
