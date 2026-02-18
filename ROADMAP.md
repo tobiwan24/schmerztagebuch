@@ -27,7 +27,10 @@
 ## ✅ ABGESCHLOSSENE PHASEN
 
 ### Phase 1-5: Core Features, Dashboard UI, Template-Editor Basis (KOMPLETT)
-### Phase 6.1-6.11: Editor UX Improvements (KOMPLETT)
+### Phase 6: Editor UX Improvements (KOMPLETT)
+- ✅ Phase 6.1-6.5: Quick Wins, Visuelle Trennung, Block-Aktionen, Global DnD
+- ✅ Phase 6.6: Template-Switcher ✅ KOMPLETT (18.02.2026)
+- ✅ Phase 6.7-6.11: TextArea-Erweiterung, Icon Picker, Standard-Template, BodyMap Features
 
 ---
 
@@ -577,9 +580,9 @@ function renderHeatmap(canvas: HTMLCanvasElement, points: HeatmapPoint[]) {
 ## 🎯 NÄCHSTE SCHRITTE (AKTUALISIERT)
 
 **Neue Priorisierung (18.02.2026):**
-1. 🎨 **Phase 6.6:** Template-Switcher (NEXT - Quick Win!)
-2. 🟡 **Phase 11.3:** HomePage UI Überarbeitung (Responsive-Fix!)
-3. 🔴 **Phase 11.4:** Datenpersistenz & Backup (KRITISCH!)
+1. ✅ **Phase 6.6:** Template-Switcher (KOMPLETT!) ✅
+2. ✅ **Phase 11.3:** HomePage UI Überarbeitung (KOMPLETT!) ✅
+3. 🔴 **Phase 11.4:** Datenpersistenz & Backup (NEXT - KRITISCH!)
 4. 🟡 **Phase 11.2:** Dashboard Export
 5. 🟡 **Phase 11.1:** Verlauf-Page Optimierung
 6. 🟡 **Phase 11.5:** BodyMap Bildgrößen-Optimierung
@@ -596,7 +599,7 @@ function renderHeatmap(canvas: HTMLCanvasElement, points: HeatmapPoint[]) {
 ---
 
 **Letzte Aktualisierung:** 18.02.2026  
-**Aktueller Stand:** Phase 6.11 komplett ✅, Phase 11.3 (teilweise) committed  
-**Nächster Schritt:** Phase 6.6 - Template-Switcher (START HIER!)  
+**Aktueller Stand:** Phase 6 komplett ✅, Phase 6.6 & 11.3 komplett ✅  
+**Nächster Schritt:** Phase 11.4 - Datenpersistenz & Backup-System (KRITISCH!)  
 **DB Version:** 14  
-**Status:** ✅ Branch `HomePageUI-Refactoring` aktiv
+**Status:** ✅ Branches `feature/template-switcher` und `HomePageUI-Refactoring` merged
