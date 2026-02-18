@@ -114,7 +114,7 @@ chart.dataURI().then(({ imgURI }) => {
 ---
 
 ### 11.3: HomePage UI Überarbeitung (3-4h)
-**Branch:** `feature/homepage-ui-redesign`
+**Branch:** `HomePageUI-Refactoring`
 **Priorität:** HOCH
 
 **Ziel:** HomePage aufräumen und visuell ansprechender machen
@@ -596,7 +596,7 @@ function renderHeatmap(canvas: HTMLCanvasElement, points: HeatmapPoint[]) {
 ---
 
 **Letzte Aktualisierung:** 18.02.2026  
-**Aktueller Stand:** Phase 6.11 komplett ✅, Neue Priorisierung definiert  
+**Aktueller Stand:** Phase 6.11 komplett ✅, Phase 11.3 (teilweise) committed  
 **Nächster Schritt:** Phase 6.6 - Template-Switcher (START HIER!)  
 **DB Version:** 14  
-**Status:** ✅ BEREIT FÜR PHASE 6.6
+**Status:** ✅ Branch `HomePageUI-Refactoring` aktiv
