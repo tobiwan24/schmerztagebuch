@@ -577,19 +577,26 @@ function renderHeatmap(canvas: HTMLCanvasElement, points: HeatmapPoint[]) {
 ## 🎯 NÄCHSTE SCHRITTE (AKTUALISIERT)
 
 **Neue Priorisierung (18.02.2026):**
-1. 🔴 **Phase 11.4:** Datenpersistenz & Backup (KRITISCH!)
-2. 🟡 **Phase 11.5:** BodyMap Bildgrößen-Optimierung
-3. 🟡 **Phase 11.1:** Verlauf-Page Optimierung
+1. 🎨 **Phase 6.6:** Template-Switcher (NEXT - Quick Win!)
+2. 🟡 **Phase 11.3:** HomePage UI Überarbeitung (Responsive-Fix!)
+3. 🔴 **Phase 11.4:** Datenpersistenz & Backup (KRITISCH!)
 4. 🟡 **Phase 11.2:** Dashboard Export
-5. 🟡 **Phase 11.3:** HomePage UI Überarbeitung
-6. **Phase 6.6:** Template-Switcher (nach Phase 11)
-7. **Phase 8:** Code Cleanup
+5. 🟡 **Phase 11.1:** Verlauf-Page Optimierung
+6. 🟡 **Phase 11.5:** BodyMap Bildgrößen-Optimierung
+7. 🟢 **Phase 8:** Code Cleanup
 8. 🔮 **Phase 12.1:** BodyMap Heatmap (v2.0+)
+
+**Rationale für neue Reihenfolge:**
+- Template-Switcher = Quick Win (1.5h), verbessert Editor-UX sofort
+- HomePage Responsive-Fix = Kritischer Bug, betrifft alle User
+- Datenpersistenz = Verhindert Datenverlust (kritisch, aber aufwändiger)
+- Export-Features = Wichtig für Arztgespräche
+- Code Cleanup = Vor v1.0 Release durchführen
 
 ---
 
 **Letzte Aktualisierung:** 18.02.2026  
-**Aktueller Stand:** Phase 6.11 komplett ✅, Phase 11 (5 Tasks) + Phase 12 (Heatmap v2.0) definiert  
-**Nächster Schritt:** Phase 11.4 - Datenpersistenz (KRITISCH) oder Phase 11.5 - BodyMap Bildgrößen  
+**Aktueller Stand:** Phase 6.11 komplett ✅, Neue Priorisierung definiert  
+**Nächster Schritt:** Phase 6.6 - Template-Switcher (START HIER!)  
 **DB Version:** 14  
-**Status:** ✅ BEREIT FÜR PHASE 11
+**Status:** ✅ BEREIT FÜR PHASE 6.6
