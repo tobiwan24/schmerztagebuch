@@ -22,6 +22,12 @@ import {
 import { MultiSelectEditor } from './multiselect';
 import './multiselect/MultiSelectEditor.css';
 
+interface BodyMapPreset {
+  id: string;
+  name: string;
+  image: string;
+}
+
 interface SortableBlockProps {
   block: Block;
   onEdit: () => void;
@@ -36,6 +42,8 @@ interface SortableBlockProps {
   onBodyMapTypeChange?: (blockId: string, type: 'pain' | 'function') => void;
   onMultiSelectButtonsChange?: (blockId: string, buttons: { text: string; color: string }[]) => void;
   onConfigChange?: (blockId: string, config: { defaultPresetId?: string }) => void;
+  bodyMapPresets?: BodyMapPreset[];
+  onDeleteBodyMapPreset?: (blockId: string, presetId: string) => void;
   isDndMode?: boolean;
   isNew?: boolean;
   isDeletable?: boolean;
@@ -55,6 +63,8 @@ export default function SortableBlock({
   onBodyMapTypeChange,
   onMultiSelectButtonsChange,
   onConfigChange,
+  bodyMapPresets = [],
+  onDeleteBodyMapPreset,
   isDndMode = false,
   isNew = false,
   isDeletable = true
@@ -232,6 +242,35 @@ export default function SortableBlock({
       {/* Collapsible Settings Container - BodyMap */}
       {isExpanded && block.type === 'bodymap' && (
         <div className="mt-4 p-3 bg-secondary/20 rounded-lg space-y-3">
+          {bodyMapPresets.length > 0 && (
+            <>
+              <div>
+                <Label className="text-sm mb-2 block">Gespeicherte Vorlagen</Label>
+                <div className="space-y-2">
+                  {bodyMapPresets.map(preset => (
+                    <div key={preset.id} className="flex items-center justify-between p-2 bg-background rounded border">
+                      <span className="text-sm flex-1">
+                        {preset.name}
+                        {block.bodyMapConfig?.defaultPresetId === preset.id && (
+                          <span className="ml-2 text-xs text-yellow-600">⭐ Standard</span>
+                        )}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDeleteBodyMapPreset?.(block.id, preset.id)}
+                        className="text-destructive hover:text-destructive"
+                        type="button"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Separator />
+            </>
+          )}
           <div>
             <Label className="text-sm mb-2 block">Dashboard-Typ</Label>
             <div className="flex gap-2">

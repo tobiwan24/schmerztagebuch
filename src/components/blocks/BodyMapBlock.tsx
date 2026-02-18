@@ -7,8 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Camera, Trash2, Save, X, Star } from 'lucide-react';
+import { Camera, Trash2, Save, X, Star, ChevronDown } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface PainPoint {
   x: number;
@@ -541,10 +549,36 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
 
           {!readOnly && (
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => fileInputRef.current?.click()} type="button">
-                <Camera size={16} className="mr-2" />
-                Bild ändern
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" type="button">
+                    <Camera size={16} className="mr-2" />
+                    Bild ändern
+                    <ChevronDown size={14} className="ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                    Neues Bild hochladen
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Vorlagen</DropdownMenuLabel>
+                  {presets.length > 0 ? (
+                    presets.map(preset => (
+                      <DropdownMenuItem key={preset.id} onClick={() => handleLoadPreset(preset)}>
+                        {preset.name}
+                        {block.bodyMapConfig?.defaultPresetId === preset.id && (
+                          <span className="ml-2 text-xs text-yellow-600">⭐</span>
+                        )}
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <DropdownMenuItem disabled>
+                      Keine Presets angelegt
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button variant="outline" onClick={handleSaveAsPreset} type="button">
                 <Save size={16} className="mr-2" />
                 Als Vorlage
@@ -567,33 +601,6 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
                 Alles löschen
               </Button>
             </div>
-          )}
-
-          {hideLabel && presets.length > 0 && (
-            <Card className="p-3 bg-secondary/30">
-              <Label className="text-sm mb-2 block">Gespeicherte Vorlagen</Label>
-              <div className="space-y-2">
-                {presets.map(preset => (
-                  <div key={preset.id} className="flex items-center justify-between p-2 bg-background rounded border">
-                    <span className="text-sm flex-1">
-                      {preset.name}
-                      {block.bodyMapConfig?.defaultPresetId === preset.id && (
-                        <span className="ml-2 text-xs text-yellow-600">⭐ Standard</span>
-                      )}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeletePreset(preset.id)}
-                      className="text-destructive hover:text-destructive"
-                      type="button"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </Card>
           )}
 
           <Card className="p-3 bg-secondary/30">

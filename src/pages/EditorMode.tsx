@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { getPresets, deletePreset } from '../utils/bodymapPresets';
+import type { BodyMapPreset } from '../utils/bodymapPresets';
 import { getTemplates, updateTemplate, createTemplate, deleteTemplate } from '../db';
 import { generateUUID } from '../utils/uuid';
 import type { Template } from '../types/database';
@@ -70,6 +72,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
   const [showAdvancedActions, setShowAdvancedActions] = useState(false);
   const [expandedBlockIds, setExpandedBlockIds] = useState<Set<string>>(new Set());
   const [isDndMode, setIsDndMode] = useState(false);
+  const [bodyMapPresets, setBodyMapPresets] = useState<BodyMapPreset[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -86,7 +89,12 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
   // Load templates on mount
   useEffect(() => {
     loadTemplates();
+    loadBodyMapPresets();
   }, []);
+
+  function loadBodyMapPresets() {
+    setBodyMapPresets(getPresets());
+  }
 
   // Load initial template if provided
   useEffect(() => {
@@ -464,6 +472,20 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
     }));
   }
 
+  // BodyMap Preset Delete Handler
+  function handleDeleteBodyMapPreset(blockId: string, presetId: string) {
+    if (!confirm('Vorlage wirklich löschen?')) return;
+    
+    // Falls gelöschtes Preset = Default-Preset → Default zurücksetzen
+    const block = editingBlocks.find(b => b.id === blockId);
+    if (block?.bodyMapConfig?.defaultPresetId === presetId) {
+      handleBlockConfigChange(blockId, { defaultPresetId: undefined });
+    }
+    
+    deletePreset(presetId);
+    loadBodyMapPresets();
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -599,6 +621,8 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                           onBodyMapTypeChange={handleBodyMapTypeChange}
                           onMultiSelectButtonsChange={handleMultiSelectButtonsChange}
                           onConfigChange={handleBlockConfigChange}
+                          bodyMapPresets={bodyMapPresets}
+                          onDeleteBodyMapPreset={handleDeleteBodyMapPreset}
                           isDndMode={isDndMode}
                           isNew={block.id === newBlockId}
                           isDeletable={block.isDeletable !== false}
