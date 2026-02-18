@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import type { Block } from '../../types/blocks';
-import { getPresets, savePreset, deletePreset } from '../../utils/bodymapPresets';
+import { getPresets, savePreset } from '../../utils/bodymapPresets';
 import type { BodyMapPreset } from '../../utils/bodymapPresets';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -445,18 +445,6 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
     if (onConfigChange) {
       onConfigChange({ defaultPresetId: presetId });
     }
-  }
-
-  function handleDeletePreset(presetId: string) {
-    if (!confirm('Vorlage wirklich löschen?')) return;
-    
-    // Falls gelöschtes Preset = Default-Preset → Default zurücksetzen
-    if (block.bodyMapConfig?.defaultPresetId === presetId && onConfigChange) {
-      onConfigChange({ defaultPresetId: undefined });
-    }
-    
-    deletePreset(presetId);
-    setPresets(getPresets());
   }
 
   // Crop Tool Functions

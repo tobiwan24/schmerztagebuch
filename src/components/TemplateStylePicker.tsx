@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AVAILABLE_ICON_NAMES, getIconComponent } from '../utils/iconUtils';
 import type { Template } from '../types/database';
+import type { Block } from '../types/blocks';
 
 interface TemplateStylePickerProps {
   templateName: string;
@@ -15,7 +15,7 @@ interface TemplateStylePickerProps {
   currentColor?: string;
   onIconChange: (icon: string) => void;
   // Bulk Actions
-  blocks: any[];
+  blocks: Block[];
   onToggleAllDashboard: () => void;
   onToggleAllLabels: () => void;
   // Advanced Actions Toggle
@@ -103,7 +103,7 @@ export default function TemplateStylePicker({
           onClick={handlePrev}
           disabled={!hasPrev}
           className="btn-touch-target flex items-center justify-center hover:bg-accent rounded transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
-          title="Vorheriges Template"
+          title="Vorherige Vorlage"
         >
           <ChevronLeft size={18} />
         </button>
@@ -112,14 +112,14 @@ export default function TemplateStylePicker({
           value={templateName}
           onChange={handleNameChange}
           className="text-base font-medium flex-1"
-          placeholder="Template-Name eingeben..."
+          placeholder="Vorlagen-Name eingeben..."
         />
 
         <button
           onClick={handleNext}
           disabled={!hasNext}
           className="btn-touch-target flex items-center justify-center hover:bg-accent rounded transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
-          title="Nächstes Template"
+          title="Nächste Vorlage"
         >
           <ChevronRight size={18} />
         </button>

@@ -258,13 +258,13 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
   }
 
   async function handleCreateTemplate() {
-    const name = prompt('Name des neuen Templates:');
+    const name = prompt('Name der neuen Vorlage:');
     if (!name) return;
     
     // Prüfe ob Name bereits existiert
     const nameExists = templates.some(t => t.name.toLowerCase() === name.toLowerCase());
     if (nameExists) {
-      alert(`⚠️ Ein Template mit dem Namen "${name}" existiert bereits!\n\nBitte wähle einen anderen Namen.`);
+      alert(`⚠️ Eine Vorlage mit dem Namen "${name}" existiert bereits!\n\nBitte wähle einen anderen Namen.`);
       return;
     }
     
@@ -274,7 +274,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
       onNavigate('editor');
     } catch (error) {
       console.error('Fehler beim Erstellen:', error);
-      alert('Fehler beim Erstellen des Templates');
+      alert('Fehler beim Erstellen der Vorlage');
     }
   }
 
@@ -341,7 +341,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
   function handleTemplateChange(newIndex: number) {
     if (hasUnsavedChanges) {
       const confirmed = window.confirm(
-        '⚠️ Du hast ungespeicherte Änderungen!\n\nMöchtest du wirklich das Template wechseln? Alle Änderungen gehen verloren.'
+        '⚠️ Du hast ungespeicherte Änderungen!\n\nMöchtest du wirklich die Vorlage wechseln? Alle Änderungen gehen verloren.'
       );
       if (!confirmed) return;
     }
@@ -358,7 +358,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
 
     if (hasUnsavedChanges) {
       const confirmed = window.confirm(
-        '⚠️ Du hast ungespeicherte Änderungen!\n\nMöchtest du zum Template-Editor wechseln? Alle Änderungen gehen verloren.'
+        '⚠️ Du hast ungespeicherte Änderungen!\n\nMöchtest du zum Vorlagen-Editor wechseln? Alle Änderungen gehen verloren.'
       );
       if (!confirmed) return;
     }
@@ -470,13 +470,13 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
 
         <div className="max-w-2xl mx-auto">
           <Card className="p-8 text-center">
-            <p className="text-lg font-semibold mb-2">Keine Templates vorhanden</p>
+            <p className="text-lg font-semibold mb-2">Keine Vorlagen vorhanden</p>
             <p className="text-sm text-muted-foreground mb-4">
-              Erstelle dein erstes Template, um loszulegen.
+              Erstelle deine erste Vorlage, um loszulegen.
             </p>
             <Button onClick={handleCreateTemplate} className="gap-2">
               <Plus size={22} />
-              Neues Template erstellen
+              Neue Vorlage erstellen
             </Button>
           </Card>
         </div>

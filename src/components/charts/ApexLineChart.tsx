@@ -28,14 +28,6 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
   visibleTemplates = new Set(),
   dashboardTemplates = [],
 }) => {
-  // Schutz vor leeren Series
-  if (!series || series.length === 0) {
-    return (
-      <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--muted-foreground))' }}>
-        <p>Keine Daten vorhanden</p>
-      </div>
-    );
-  }
   const chartOptions: ApexOptions = useMemo(() => {
     // Dark Mode Detection
     const isDarkMode = document.documentElement.classList.contains('dark');
@@ -175,7 +167,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         marker: {
           show: false,  // Marker im Tooltip ausblenden
         },
-        custom: ({ series: tooltipSeries, seriesIndex, dataPointIndex, w }) => {
+        custom: ({ seriesIndex, dataPointIndex, w }) => {
           const dataPoint = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
           const date = dataPoint.x;
           const value = dataPoint.y;
@@ -286,7 +278,16 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         },
       ],
     };
-  }, [categories, timeRange, colors, height, events, visibleTemplates, dashboardTemplates]);
+  }, [categories, timeRange, colors, height, events, visibleTemplates, dashboardTemplates, series]);
+
+  // Schutz vor leeren Series (nach useMemo, damit Hooks-Reihenfolge konstant bleibt)
+  if (!series || series.length === 0) {
+    return (
+      <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--muted-foreground))' }}>
+        <p>Keine Daten vorhanden</p>
+      </div>
+    );
+  }
 
   return (
     <Chart

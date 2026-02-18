@@ -172,7 +172,7 @@ export function aggregatePainByDay(painData: PainDataPoint[]): DailyPainData[] {
   // Berechne Min/Max/Avg für jeden Tag
   const dailyData: DailyPainData[] = [];
   
-  grouped.forEach((points, key) => {
+  grouped.forEach((points) => {
     const values = points.map(p => p.value);
     const min = Math.min(...values);
     const max = Math.max(...values);
@@ -253,9 +253,10 @@ export function extractEvents(
       blocks.forEach(block => {
         if (!block.dashboard?.enabled) return;
         if (block.type !== 'textarea') return;
-        if (!block.dashboard.eventCategory) return;
+        if (!block.dashboard?.eventCategory) return;
         
-        const title = block.dashboard.eventTitle || block.label;
+        const dashboard = block.dashboard;
+        const title = dashboard.eventTitle || block.label;
         const description = typeof block.value === 'string' ? block.value : undefined;
         
         // Für jeden Tag im Zeitraum ein Event erstellen
@@ -263,7 +264,7 @@ export function extractEvents(
           events.push({
             date,
             timestamp: new Date(date),
-            category: block.dashboard.eventCategory!,
+            category: dashboard.eventCategory!,
             title,
             description,
             templateId: entry.templateId,

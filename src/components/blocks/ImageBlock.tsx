@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { Camera, FileText, X } from 'lucide-react';
 import type { Block } from '../../types/blocks';
 import { Label } from "@/components/ui/label";

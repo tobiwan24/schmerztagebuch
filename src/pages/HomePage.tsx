@@ -35,7 +35,7 @@ export default function HomePage({ templates, onSelectTemplate, onNavigate, isLo
       return (
         <div className="home-loading">
           <div className="spinner"></div>
-          <p>Lade Templates...</p>
+          <p>Lade Vorlagen...</p>
         </div>
       );
     }
@@ -43,9 +43,9 @@ export default function HomePage({ templates, onSelectTemplate, onNavigate, isLo
     if (templates.length === 0) {
       return (
         <div className="home-empty">
-          <p>Keine Templates vorhanden.</p>
+          <p>Keine Vorlagen vorhanden.</p>
           <p className="text-sm text-gray-400 mt-2">
-            Erstelle dein erstes Template in den Einstellungen.
+            Erstelle deine erste Vorlage in den Einstellungen.
           </p>
         </div>
       );

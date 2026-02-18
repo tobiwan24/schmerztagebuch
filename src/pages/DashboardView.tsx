@@ -246,10 +246,10 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     const now = new Date();
     
     // Berechne Zeiträume basierend auf timeRange + timeRangeOffset
-    let currentStart = new Date();
-    let currentEnd = new Date();
-    let previousStart = new Date();
-    let previousEnd = new Date();
+    const currentStart = new Date();
+    const currentEnd = new Date();
+    const previousStart = new Date();
+    const previousEnd = new Date();
     
     switch (timeRange) {
       case 'W': {

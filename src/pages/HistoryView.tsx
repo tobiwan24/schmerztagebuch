@@ -139,12 +139,13 @@ export default function HistoryView({ onBack }: HistoryViewProps) {
       case 'thisMonth':
         start = new Date(today.getFullYear(), today.getMonth(), 1);
         break;
-      case 'lastMonth':
+      case 'lastMonth': {
         start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
         const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
         setStartDate(start.toISOString().split('T')[0]);
         setEndDate(lastMonthEnd.toISOString().split('T')[0]);
         return;
+      }
       case 'thisYear':
         start = new Date(today.getFullYear(), 0, 1);
         break;
@@ -242,13 +243,13 @@ export default function HistoryView({ onBack }: HistoryViewProps) {
           <CardContent className="space-y-4">
             {/* Template Filter */}
             <div className="space-y-2">
-              <Label>Template</Label>
+              <Label>Vorlage</Label>
               <select 
                 className="w-full h-10 px-3 rounded-md border border-input bg-background"
                 value={selectedTemplateId || ''}
                 onChange={(e) => setSelectedTemplateId(e.target.value ? Number(e.target.value) : null)}
               >
-                <option value="">Alle Templates</option>
+                <option value="">Alle Vorlagen</option>
                 {templates.map(template => (
                   <option key={template.id} value={template.id}>
                     {template.name}
@@ -358,7 +359,7 @@ export default function HistoryView({ onBack }: HistoryViewProps) {
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <h4 className="font-semibold">
-                            {template?.name || 'Unbekanntes Template'}
+                            {template?.name || 'Unbekannte Vorlage'}
                           </h4>
                           <p className="text-sm text-muted-foreground mt-1">
                             {date.toLocaleDateString('de-DE', { 

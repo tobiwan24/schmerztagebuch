@@ -101,7 +101,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
       } else {
         alert('Biometrie-Registrierung fehlgeschlagen');
       }
-    } catch (error) {
+    } catch {
       alert('Biometrie nicht verfügbar');
     } finally {
       setIsLoading(false);
@@ -136,7 +136,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 <Check className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <h3 className="font-semibold">Flexible Templates</h3>
+                <h3 className="font-semibold">Flexible Vorlagen</h3>
                 <p className="text-sm text-muted-foreground">Erstellen Sie individuelle Tagebuch-Vorlagen</p>
               </div>
             </div>

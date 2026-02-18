@@ -312,10 +312,10 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                   let pointsText = `Schmerzpunkte erfasst (${bodymapData.points.length} Punkte) - siehe Anhang Seite ${imageAttachments.length}`;
                   
                   // Füge Kommentare hinzu
-                  const pointsWithComments = bodymapData.points.filter((p: any) => p.comment && p.comment.trim());
+                  const pointsWithComments = bodymapData.points.filter((p: PainPoint) => p.comment && p.comment.trim());
                   if (pointsWithComments.length > 0) {
                     pointsText += '\n\nKommentare:';
-                    pointsWithComments.forEach((p: any, idx: number) => {
+                    pointsWithComments.forEach((p: PainPoint, idx: number) => {
                       pointsText += `\n${idx + 1}. Intensität ${p.intensity}/10: ${p.comment}`;
                     });
                   }
@@ -337,7 +337,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 // Neues Format: Array von Dateien
                 const files = JSON.parse(block.value);
                 if (Array.isArray(files) && files.length > 0) {
-                  files.forEach((file: any) => {
+                  files.forEach((file: { data: string; name?: string; type?: string }) => {
                     if (file.data) {
                       imageAttachments.push({
                         entryId: entry.id!,

@@ -201,7 +201,8 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
     setEditingBlocks(editingBlocks.filter(b => b.id !== blockId));
   }
 
-  function handleBlockChange(_blockId: string, _value: BlockValue) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  function handleBlockChange(_value: BlockValue) {
     // Editor ändert nur Struktur, nicht Werte
   }
 
@@ -351,7 +352,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
         const currentEnabled = block.dashboard?.enabled || false;
         
         if (currentEnabled) {
-          const { dashboard, ...rest } = block;
+          const { dashboard: _dashboard, ...rest } = block;
           return rest;
         } else {
           return {
@@ -382,7 +383,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
       
       if (allEnabled) {
         // Alle deaktivieren
-        const { dashboard, ...rest } = block;
+        const { dashboard: _dashboard, ...rest } = block;
         return rest;
       } else {
         // Alle aktivieren
@@ -502,7 +503,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="spinner"></div>
-          <p className="text-muted-foreground">Templates werden geladen...</p>
+          <p className="text-muted-foreground">Vorlagen werden geladen...</p>
         </div>
       </div>
     );
@@ -625,7 +626,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                           block={block}
                           onEdit={() => handleEditBlockOptions(block.id)}
                           onDelete={() => handleDeleteBlock(block.id)}
-                          onChange={(value) => handleBlockChange(block.id, value)}
+                          onChange={(value) => handleBlockChange(value)}
                           onLabelChange={handleLabelChange}
                           onToggleHideLabel={handleToggleHideLabel}
                           onToggleDashboard={handleToggleDashboard}
@@ -666,8 +667,8 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
       <Dialog open={dialog.type === 'create-template'} onOpenChange={(open) => !open && setDialog({ type: 'none' })}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Neues Template</DialogTitle>
-            <DialogDescription>Gib einen Namen für das neue Template ein.</DialogDescription>
+            <DialogTitle>Neue Vorlage</DialogTitle>
+            <DialogDescription>Gib einen Namen für die neue Vorlage ein.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
             <Label>Name</Label>
@@ -693,7 +694,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
       <Dialog open={dialog.type === 'delete-template'} onOpenChange={(open) => !open && setDialog({ type: 'none' })}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Template löschen?</DialogTitle>
+            <DialogTitle>Vorlage löschen?</DialogTitle>
             <DialogDescription>
               Möchtest du <strong>{selectedTemplate?.name}</strong> wirklich löschen? Alle zugehörigen Einträge bleiben erhalten.
             </DialogDescription>
