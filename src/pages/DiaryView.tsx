@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Check, Menu, History, Settings, TrendingUp, Paintbrush, Plus, ArrowLeft } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import PageTutorial from '../components/tutorial/PageTutorial';
 
 interface DiaryViewProps {
   onNavigate: (view: 'editor' | 'history' | 'diary' | 'settings' | 'dashboard') => void;
@@ -545,7 +546,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
         }}
       >
         <div className="max-w-2xl mx-auto">
-          <div className="space-y-3" key={formKey}>
+          <div className="space-y-3 diary-content" key={formKey}>
             {currentBlocks.map(block => (
               <BlockRenderer
                 key={block.id}
@@ -601,6 +602,36 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
           })}
         </div>
       </nav>
+
+      {/* Tutorial - DiaryView */}
+      <PageTutorial
+        page="diary"
+        steps={[
+          {
+            spotlight: null,
+            text: 'Hier trägst du täglich deine Schmerzwerte und Beobachtungen ein.',
+            cardPosition: 'center',
+          },
+          {
+            spotlight: '.diary-content',
+            title: 'Eintrag ausfüllen',
+            text: 'Fülle die Felder deiner Vorlage aus. Alle Felder sind optional.',
+            cardPosition: 'auto',
+          },
+          {
+            spotlight: '.floating-buttons-container',
+            title: 'Speichern',
+            text: 'Nach dem Ausfüllen erscheint oben rechts ein grüner Haken. Tippe darauf, um den Eintrag zu speichern.',
+            cardPosition: 'bottom',
+          },
+          {
+            spotlight: '.bottom-nav-glass',
+            title: 'Vorlage anpassen',
+            text: 'Am unteren Rand befindet sich die Vorlagen-Navigation. Ganz nach unten scrollen und nach oben ziehen, um die Seite zu personalisieren.',
+            cardPosition: 'top',
+          },
+        ]}
+      />
 
       {showMenu && (
         <>

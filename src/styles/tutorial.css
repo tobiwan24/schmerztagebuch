@@ -1,0 +1,239 @@
+/* ================================================
+   Tutorial Guide System - Phase 11.6
+   ================================================ */
+
+/* Spotlight */
+.tutorial-spotlight {
+  animation: tutorialPulse 2s ease-in-out infinite;
+}
+
+@keyframes tutorialPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+/* Card Wrapper - zentriert, mobile-first */
+.tutorial-card-wrapper {
+  width: min(calc(100vw - 32px), 340px);
+}
+
+/* Info Card */
+.tutorial-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  padding: 16px;
+  min-width: 240px;
+}
+
+.tutorial-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.tutorial-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.tutorial-step-counter {
+  font-size: 11px;
+  color: #888;
+  font-weight: 500;
+  margin-left: auto;
+  margin-right: 6px;
+  white-space: nowrap;
+}
+
+.tutorial-card-desc {
+  font-size: 13px;
+  color: #444;
+  line-height: 1.5;
+  margin: 0 0 6px;
+}
+
+.tutorial-card-tip {
+  font-size: 12px;
+  color: #666;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 12px;
+}
+
+.tutorial-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  color: #555;
+  cursor: pointer;
+  transition: background 150ms;
+  flex-shrink: 0;
+}
+
+.tutorial-menu-btn:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.tutorial-dropdown {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  min-width: 200px;
+  z-index: 10001;
+}
+
+.tutorial-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 13px;
+  color: #333;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 120ms;
+}
+
+.tutorial-dropdown-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.tutorial-confirm-btn {
+  width: 100%;
+  padding: 9px 0;
+  border-radius: 10px;
+  border: none;
+  background: var(--color-primary, #6c63ff);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 150ms;
+  margin-top: 4px;
+  min-height: 44px;
+}
+
+.tutorial-confirm-btn:hover {
+  opacity: 0.88;
+}
+
+/* Banner */
+.tutorial-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 10px 14px;
+  margin: 0 0 8px;
+  animation: tutorialFadeIn 150ms ease-in;
+}
+
+@keyframes tutorialFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tutorial-banner-text {
+  font-size: 13px;
+  color: #333;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.tutorial-banner-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  color: #555;
+  cursor: pointer;
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  transition: background 150ms;
+}
+
+.tutorial-banner-close:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .tutorial-card {
+    background: rgba(30, 30, 46, 0.95);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .tutorial-card-title {
+    color: #f0f0f8;
+  }
+
+  .tutorial-step-counter {
+    color: #666;
+  }
+
+  .tutorial-card-desc {
+    color: #bbb;
+  }
+
+  .tutorial-card-tip {
+    color: #999;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .tutorial-menu-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ccc;
+  }
+
+  .tutorial-dropdown {
+    background: #1e1e2e;
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .tutorial-dropdown-item {
+    color: #ddd;
+  }
+
+  .tutorial-banner {
+    background: rgba(30, 30, 46, 0.92);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .tutorial-banner-text {
+    color: #ddd;
+  }
+
+  .tutorial-banner-close {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ccc;
+  }
+}

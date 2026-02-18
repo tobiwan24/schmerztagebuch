@@ -3,6 +3,7 @@ import type { Template } from '../types/database';
 import { getIconComponent } from '../utils/iconUtils';
 import { History, TrendingUp, Settings } from 'lucide-react';
 import '../styles/home-page.css';
+import PageTutorial from '../components/tutorial/PageTutorial';
 
 interface HomePageProps {
   templates: Template[];
@@ -91,6 +92,30 @@ export default function HomePage({ templates, onSelectTemplate, onNavigate, isLo
         <main className="home-main">
           {templateCards}
         </main>
+
+      {/* Tutorial - HomePage */}
+      <PageTutorial
+        page="home"
+        steps={[
+          {
+            spotlight: null,
+            text: 'Auf der Startseite findest du alle wichtigen Inhalte.',
+            cardPosition: 'center',
+          },
+          {
+            spotlight: '.home-footer',
+            title: 'Navigation',
+            text: 'Im unteren Bereich befindet sich das Menü, über das du Zugriff auf Verlauf, Dashboard und Einstellungen hast.',
+            cardPosition: 'auto',
+          },
+          {
+            spotlight: '.template-grid',
+            title: 'Deine Vorlagen',
+            text: 'Hier findest du deine Tagebuch-Vorlagen, um schnell Einträge anzulegen. Probiere es direkt aus!',
+            cardPosition: 'auto',
+          },
+        ]}
+      />
 
         <footer className="home-footer">
           <button

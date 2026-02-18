@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Trash2, ChevronRight, X, Download } from 'lucide-react';
 import BlockRenderer from '../components/BlockRenderer';
+import PageTutorial from '../components/tutorial/PageTutorial';
 
 interface HistoryViewProps {
   onBack: () => void;
@@ -344,7 +345,7 @@ export default function HistoryView({ onBack }: HistoryViewProps) {
               <p className="text-muted-foreground">Keine Einträge gefunden</p>
             </Card>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 history-list">
               {entries.map(entry => {
                 const template = templates.find(t => t.id === entry.templateId);
                 const date = new Date(entry.timestamp);
@@ -397,6 +398,30 @@ export default function HistoryView({ onBack }: HistoryViewProps) {
             </div>
           )}
         </div>
+
+        {/* Tutorial - HistoryView */}
+        <PageTutorial
+          page="history"
+          steps={[
+            {
+              spotlight: null,
+              text: 'Im Verlauf findest du alle deine bisherigen Tagebucheinträge.',
+              cardPosition: 'center',
+            },
+            {
+              spotlight: '.history-list',
+              title: 'Einträge durchstöbern',
+              text: 'Tippe auf einen Eintrag, um ihn zu öffnen. Mit den Filtern oben kannst du nach Vorlage oder Zeitraum einschränken.',
+              cardPosition: 'auto',
+            },
+            {
+              spotlight: null,
+              title: 'PDF-Export',
+              text: 'Mit dem Download-Button kannst du deine Einträge als PDF exportieren – praktisch für Arzttermine.',
+              cardPosition: 'center',
+            },
+          ]}
+        />
 
         {/* Detail Modal */}
         {selectedEntry && (

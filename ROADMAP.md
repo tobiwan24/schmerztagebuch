@@ -443,6 +443,341 @@ const BODYMAP_STANDARD_SIZE = {
 
 ---
 
+### 11.6: Tutorial-Guide System (6-8h)
+**Branch:** `feature/tutorial-guide-system`
+**Priorität:** HOCH - Onboarding für neue User
+
+**Ziel:** Intelligenter Tutorial-Guide der neue User durch die App führt
+
+#### 📋 Entscheidungen (18.02.2026):
+
+**1. Design-Ansatz:** ✅ HYBRID
+- Spotlight-Overlays für wichtige Elemente (minimal, fokussiert)
+- Inline-Banner für fortlaufende Tipps (subtil, dauerhaft)
+
+**2. Tutorial-Start:** ✅ NACH SETUP-WIZARD
+- Automatisch beim ersten Besuch der DiaryView
+- Reaktivierbar über Settings → "Tutorial neu starten"
+
+**3. Content-Länge:** ✅ BEST PRACTICE (1-2 Sätze)
+- Kurze, prägnante Tipps (1-2 Sätze pro Page)
+- Fokus auf essenzielle Features
+- Mobile-optimiert, schnell erfassbar
+
+**4. Animationen:** ✅ ALLE AKTIVIERT
+- Fade-In/Out für Overlays (150ms)
+- Spotlight-Pulsieren für Aufmerksamkeit (2s Intervall)
+- Scroll-to-Element automatisch (smooth behavior)
+
+**5. Aufwand-Budget:** ✅ HYBRID (6-8h)
+- Bei Bedarf iterative Nachbesserung
+
+---
+
+#### 🎯 Implementierungs-Plan:
+
+**A. TutorialProvider Context (1h)**
+```typescript
+// src/contexts/TutorialContext.tsx
+interface TutorialState {
+  globalDisabled: boolean;
+  pageDisabled: {
+    home: boolean;
+    diary: boolean;
+    editor: boolean;
+    dashboard: boolean;
+    history: boolean;
+    settings: boolean;
+  };
+  completedSteps: string[]; // z.B. ['home-step-1', 'diary-step-2']
+  lastShown: Date;
+}
+
+interface TutorialContextType {
+  state: TutorialState;
+  showTutorial: (page: string, step: string) => boolean;
+  dismissPage: (page: string) => void;
+  dismissGlobally: () => void;
+  resetTutorials: () => void;
+  markStepCompleted: (step: string) => void;
+}
+```
+- LocalStorage-basiertes State-Management
+- Keine DB-Migration nötig
+- PWA-konform (offline-fähig)
+- **Commit:** `feat: add tutorial context with localStorage persistence`
+
+**B. TutorialOverlay Component (2.5h)**
+```tsx
+// src/components/tutorial/TutorialOverlay.tsx
+interface TutorialOverlayProps {
+  page: string;
+  step: string;
+  targetSelector: string; // CSS Selector für Spotlight
+  position: 'top' | 'bottom' | 'left' | 'right';
+  content: {
+    title: string;
+    description: string;
+    tip?: string; // Optional
+  };
+  zIndex?: number;
+}
+```
+
+**Features:**
+- Halbtransparenter Backdrop (`backdrop-filter: blur(2px)`)
+- Spotlight-Effekt mit CSS box-shadow
+- Pulsier-Animation (2s Intervall, scale 1.0 → 1.05)
+- Info-Card mit Glassmorphismus
+- Pfeil zeigt auf Element
+- 2 Buttons:
+  - "Verstanden" (primär)
+  - Dropdown-Menu (⋮):
+    - "Auf dieser Seite nicht mehr"
+    - "Überall nicht mehr"
+- Scroll-to-Element mit `scrollIntoView({ behavior: 'smooth', block: 'center' })`
+- Fade-In/Out (150ms transition)
+- **Commit:** `feat: implement tutorial overlay with spotlight and animations`
+
+**C. TutorialBanner Component (1h)**
+```tsx
+// src/components/tutorial/TutorialBanner.tsx
+interface TutorialBannerProps {
+  page: string;
+  step: string;
+  content: string; // Kurzer Tipp-Text
+  icon?: string; // Lucide Icon Name, default: 'Lightbulb'
+  dismissable?: boolean;
+}
+```
+
+**Features:**
+- Glassmorphismus-Style (konsistent mit App)
+- Icon (💡 Glühbirne default) + Text
+- X-Button rechts
+- Checkbox "Nicht mehr zeigen" inline
+- Fade-In Animation
+- Positionierung: Top der Page (unter Header)
+- **Commit:** `feat: add tutorial banner component`
+
+**D. Tutorial-Inhalte definieren (1.5h)**
+```typescript
+// src/data/tutorialSteps.ts
+export const TUTORIAL_STEPS = {
+  home: [
+    {
+      step: 'select-template',
+      type: 'spotlight',
+      targetSelector: '.template-card:first-child',
+      position: 'bottom',
+      content: {
+        title: 'Wähle deine Vorlage',
+        description: 'Tippe auf eine Vorlage, um dein Tagebuch zu starten.',
+      }
+    },
+    {
+      step: 'create-template',
+      type: 'banner',
+      content: '💡 Tipp: Neue Vorlage erstellen mit dem +-Button unten'
+    }
+  ],
+  diary: [
+    {
+      step: 'first-entry',
+      type: 'spotlight',
+      targetSelector: '.diary-container',
+      position: 'top',
+      content: {
+        title: 'Trage deine Daten ein',
+        description: 'Fülle die Felder aus und speichere deinen Eintrag.',
+        tip: 'Alle Felder sind optional.'
+      }
+    },
+    {
+      step: 'pull-to-reveal',
+      type: 'banner',
+      content: '💡 Tipp: Ziehe nach unten für Vorlagen-Anpassungen'
+    },
+    {
+      step: 'save-reminder',
+      type: 'banner',
+      content: '💡 Vergiss nicht zu speichern! (💾 Button oben rechts)'
+    }
+  ],
+  editor: [
+    // ... weitere 4 Steps
+  ],
+  dashboard: [
+    // ... 2 Steps
+  ],
+  history: [
+    // ... 1 Step
+  ],
+  settings: [
+    // ... 1 Step (Backup-Hinweis)
+  ]
+};
+```
+- **Total:** 13 Tutorial-Steps über 6 Pages
+- **Commit:** `feat: define tutorial content for all pages`
+
+**E. Settings Integration (30 Min)**
+```tsx
+// src/pages/SettingsView.tsx
+<Card>
+  <CardHeader>
+    <CardTitle>Tutorial-Hilfe</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <p className="text-sm text-muted-foreground mb-4">
+      Zeigt alle Hilfe-Tipps wieder an und startet den
+      interaktiven Guide von vorne.
+    </p>
+    <Button 
+      onClick={handleResetTutorial}
+      variant="outline"
+      className="w-full"
+    >
+      <RotateCcw className="mr-2 h-4 w-4" />
+      Tutorial neu starten
+    </Button>
+  </CardContent>
+</Card>
+```
+- Button ruft `tutorialContext.resetTutorials()` auf
+- Löscht alle LocalStorage-Flags
+- Zeigt Toast: "Tutorial wurde zurückgesetzt"
+- **Commit:** `feat: add tutorial reset button to settings`
+
+**F. DiaryView Integration (30 Min)**
+```tsx
+// src/pages/DiaryView.tsx
+const { showTutorial, markStepCompleted } = useTutorial();
+const [hasShownTutorial, setHasShownTutorial] = useState(false);
+
+useEffect(() => {
+  // Tutorial nur beim ersten Besuch nach Setup
+  const isFirstVisit = !localStorage.getItem('tutorial-diary-visited');
+  
+  if (isFirstVisit && !hasShownTutorial) {
+    setHasShownTutorial(true);
+    localStorage.setItem('tutorial-diary-visited', 'true');
+    // Tutorial-Sequenz wird automatisch angezeigt
+  }
+}, []);
+
+return (
+  <div>
+    {/* Tutorial-Overlays & Banner werden hier gerendert */}
+    <TutorialOverlay
+      page="diary"
+      step="first-entry"
+      targetSelector=".diary-container"
+      // ... props
+    />
+    <TutorialBanner
+      page="diary"
+      step="pull-to-reveal"
+      content="💡 Tipp: Ziehe nach unten für Vorlagen-Anpassungen"
+    />
+    {/* ... Rest der DiaryView */}
+  </div>
+);
+```
+- Tutorial startet automatisch nach SetupWizard
+- Flag verhindert erneutes Anzeigen
+- **Commit:** `feat: integrate tutorial into diaryview with auto-start`
+
+**G. Weitere Pages Integration (1h)**
+- HomePage: 2 Steps (Spotlight + Banner)
+- EditorMode: 4 Steps (Spotlight + Banner)
+- Dashboard: 2 Steps
+- HistoryView: 1 Step
+- SettingsView: 1 Step
+- **Commit:** `feat: integrate tutorial steps into all pages`
+
+---
+
+#### 🎨 UI/UX Spezifikationen:
+
+**Spotlight-Overlay:**
+- Backdrop: `rgba(0, 0, 0, 0.6)` + `backdrop-filter: blur(2px)`
+- Spotlight: Target-Element bleibt sichtbar (keine Verdunkelung)
+- Pulsier-Animation: `@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }`
+- Info-Card: Glassmorphismus (wie DiaryView Cards)
+- Pfeil: CSS `::before` mit border-triangle
+- Z-Index: 9999 (über allem)
+
+**Banner:**
+- Position: `position: sticky; top: 56px;` (unter Header)
+- Glassmorphismus: `background: rgba(255,255,255,0.85); backdrop-filter: blur(10px);`
+- Border: `1px solid rgba(255,255,255,0.3)`
+- Shadow: `box-shadow: 0 2px 8px rgba(0,0,0,0.1)`
+- Padding: `p-3` (12px)
+- Icon-Größe: 20px (Lucide)
+- Text: `text-sm`
+
+**Animationen:**
+- Fade-In: `transition: opacity 150ms ease-in`
+- Fade-Out: `transition: opacity 150ms ease-out`
+- Spotlight-Pulse: `animation: pulse 2s ease-in-out infinite`
+- Scroll-to-Element: `element.scrollIntoView({ behavior: 'smooth', block: 'center' })`
+
+---
+
+#### ✅ Testing-Checkliste:
+
+- [ ] Tutorial startet nach SetupWizard in DiaryView
+- [ ] Spotlight-Overlays zeigen korrekt auf Elemente
+- [ ] Pulsier-Animation läuft smooth
+- [ ] Scroll-to-Element funktioniert
+- [ ] "Auf dieser Seite nicht mehr" funktioniert
+- [ ] "Überall nicht mehr" funktioniert
+- [ ] Settings "Tutorial neu starten" reaktiviert alles
+- [ ] LocalStorage persistence über Sessions
+- [ ] Mobile: Touch-Targets 44px
+- [ ] Mobile: Animationen performant
+- [ ] Tutorial-Sequenz logisch für neue User
+
+---
+
+#### 🐛 Edge Cases:
+
+**1. Element nicht gefunden:**
+- Fallback: Tutorial-Card zentriert ohne Spotlight
+- Console-Warning für Entwickler
+
+**2. Tutorial während Navigation:**
+- Tutorial pausiert bei Page-Wechsel
+- Fortsetzung auf neuer Page wenn aktiviert
+
+**3. Mehrere Overlays gleichzeitig:**
+- Nur 1 Overlay + max. 1 Banner gleichzeitig
+- Queue-System für Sequenzen
+
+**4. User schließt App während Tutorial:**
+- State bleibt in LocalStorage
+- Fortsetzung beim nächsten Besuch
+
+---
+
+#### 📦 Aufwands-Breakdown:
+
+| Task | Aufwand |
+|------|--------|
+| TutorialProvider Context | 1h |
+| TutorialOverlay Component | 2.5h |
+| TutorialBanner Component | 1h |
+| Tutorial-Inhalte definieren | 1.5h |
+| Settings Integration | 30 Min |
+| DiaryView Integration | 30 Min |
+| Weitere Pages Integration | 1h |
+| **GESAMT** | **8h** |
+
+**Falls nötig:** Iterative Nachbesserung (+1-2h)
+
+---
+
 ## 🔮 PHASE 12: FUTURE FEATURES (VERSION 2.0+)
 
 **Priorität:** NIEDRIG - Für spätere Versionen
@@ -572,7 +907,8 @@ function renderHeatmap(canvas: HTMLCanvasElement, points: HeatmapPoint[]) {
 | 11.3 | HomePage UI | 2-3h | HOCH |
 | 11.4 | Datenpersistenz | 4-6h | KRITISCH |
 | 11.5 | BodyMap Bildgrößen | 2-3h | MITTEL |
-| **GESAMT Phase 11** | - | **~17h** | - |
+| 11.6 | Tutorial-Guide System | 6-8h | HOCH |
+| **GESAMT Phase 11** | - | **~25h** | - |
 | 12.1 | BodyMap Heatmap | 4-6h | NIEDRIG (v2.0) |
 
 ---
@@ -583,11 +919,12 @@ function renderHeatmap(canvas: HTMLCanvasElement, points: HeatmapPoint[]) {
 1. ✅ **Phase 6.6:** Template-Switcher (KOMPLETT!) ✅
 2. ✅ **Phase 11.3:** HomePage UI Überarbeitung (KOMPLETT!) ✅
 3. 🔴 **Phase 11.4:** Datenpersistenz & Backup (NEXT - KRITISCH!)
-4. 🟡 **Phase 11.2:** Dashboard Export
-5. 🟡 **Phase 11.1:** Verlauf-Page Optimierung
-6. 🟡 **Phase 11.5:** BodyMap Bildgrößen-Optimierung
-7. 🟢 **Phase 8:** Code Cleanup
-8. 🔮 **Phase 12.1:** BodyMap Heatmap (v2.0+)
+4. 🟡 **Phase 11.6:** Tutorial-Guide System (Onboarding)
+5. 🟡 **Phase 11.2:** Dashboard Export
+6. 🟡 **Phase 11.1:** Verlauf-Page Optimierung
+7. 🟡 **Phase 11.5:** BodyMap Bildgrößen-Optimierung
+8. 🟢 **Phase 8:** Code Cleanup
+9. 🔮 **Phase 12.1:** BodyMap Heatmap (v2.0+)
 
 **Rationale für neue Reihenfolge:**
 - Template-Switcher = Quick Win (1.5h), verbessert Editor-UX sofort

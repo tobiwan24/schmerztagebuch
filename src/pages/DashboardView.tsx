@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, CircleSlash2, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronLeft, ChevronRight, TrendingUpDown } from 'lucide-react';
 import { ApexLineChart } from '../components/charts/ApexLineChart';
+import PageTutorial from '../components/tutorial/PageTutorial';
 import { 
   convertToApexSeries, 
   generateCategories, 
@@ -729,6 +730,23 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
           )}
         </div>
       </div>
+      {/* Tutorial - DashboardView */}
+      <PageTutorial
+        page="dashboard"
+        steps={[
+          {
+            spotlight: null,
+            text: 'Im Dashboard siehst du deine Schmerzdaten als Diagramm über die Zeit.',
+            cardPosition: 'center',
+          },
+          {
+            spotlight: '.dashboard-chart',
+            title: 'Verlaufsdiagramm',
+            text: 'Hier werden deine Einträge grafisch dargestellt. Den Zeitraum kannst du oben anpassen.',
+            cardPosition: 'auto',
+          },
+        ]}
+      />
     </div>
   );
 }

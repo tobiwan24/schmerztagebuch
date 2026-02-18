@@ -10,13 +10,16 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Trash2, Shield, Key, Fingerprint, Info } from 'lucide-react';
+import { AlertCircle, Trash2, Shield, Key, Fingerprint, Info, RotateCcw } from 'lucide-react';
+import PageTutorial from '../components/tutorial/PageTutorial';
+import { useTutorial } from '../contexts/TutorialContext';
 
 interface SettingsViewProps {
   onBack: () => void;
 }
 
 export default function SettingsView({ onBack }: SettingsViewProps) {
+  const { resetTutorials } = useTutorial();
   const [currentMode, setCurrentMode] = useState<EncryptionMode>('none');
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -497,6 +500,28 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
             </div>
           </Card>
 
+          {/* Tutorial-Hilfe */}
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <RotateCcw size={20} className="text-primary" />
+              <h3 className="text-lg font-semibold">Tutorial-Hilfe</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Zeigt alle Hilfe-Tipps wieder an und startet den interaktiven Guide von vorne.
+            </p>
+            <Button
+              onClick={() => {
+                resetTutorials();
+                alert('Tutorial wurde zurückgesetzt! Beim nächsten Besuch einer Seite werden die Tipps wieder angezeigt.');
+              }}
+              variant="outline"
+              className="w-full"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Tutorial neu starten
+            </Button>
+          </Card>
+
           {/* Gefahr-Zone */}
           <Card className="p-6 border-destructive">
             <h3 className="text-lg font-semibold text-destructive mb-4">Gefahr-Zone</h3>
@@ -527,6 +552,19 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
           }}
         />
       )}
+
+      {/* Tutorial - SettingsView */}
+      <PageTutorial
+        page="settings"
+        steps={[
+          {
+            spotlight: null,
+            title: 'Einstellungen',
+            text: 'Hier verwaltest du Verschlüsselung, Passwort und kannst das Tutorial jederzeit neu starten.',
+            cardPosition: 'center',
+          },
+        ]}
+      />
     </>
   );
 }

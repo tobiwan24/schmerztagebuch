@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { ArrowLeft, Plus, Trash2, Check, ArrowDownUp } from 'lucide-react';
 import TemplateCatalogPicker from '../components/TemplateCatalogPicker';
+import PageTutorial from '../components/tutorial/PageTutorial';
 import { TEMPLATE_CATALOG } from '../data/templateCatalog';
 import {
   DndContext,
@@ -730,6 +731,36 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Tutorial - EditorMode */}
+      <PageTutorial
+        page="editor"
+        steps={[
+          {
+            spotlight: null,
+            text: 'Im Editor baust du deine persönliche Vorlage aus verschiedenen Bausteinen zusammen.',
+            cardPosition: 'center',
+          },
+          {
+            spotlight: '.add-block-button-container',
+            title: 'Bausteine hinzufügen',
+            text: 'Tippe hier, um einen neuen Baustein (Schieberegler, Text, Auswahl …) zur Vorlage hinzuzufügen.',
+            cardPosition: 'auto',
+          },
+          {
+            spotlight: '.floating-buttons-container',
+            title: 'Reihenfolge ändern',
+            text: 'Mit dem Pfeil-Button oben kannst du den Sortier-Modus aktivieren und Bausteine per Drag & Drop neu anordnen.',
+            cardPosition: 'bottom',
+          },
+          {
+            spotlight: '.floating-buttons-container',
+            title: 'Speichern',
+            text: 'Wenn du fertig bist, leuchtet der Haken-Button grün. Tippe darauf, um die Vorlage zu speichern.',
+            cardPosition: 'bottom',
+          },
+        ]}
+      />
 
       {/* Dialog: Vorlagen-Katalog (Schritt 2 nach Name-Eingabe) */}
       <Dialog open={dialog.type === 'template-catalog'} onOpenChange={(open) => !open && setDialog({ type: 'none' })}>
