@@ -70,6 +70,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
   // Block states
   const [newBlockId, setNewBlockId] = useState<string | null>(null);
   const [showAdvancedActions, setShowAdvancedActions] = useState(false);
+  const [pendingTemplateId, setPendingTemplateId] = useState<number | null>(null);
   const [expandedBlockIds, setExpandedBlockIds] = useState<Set<string>>(new Set());
   const [isDndMode, setIsDndMode] = useState(false);
   const [bodyMapPresets, setBodyMapPresets] = useState<BodyMapPreset[]>([]);
@@ -314,6 +315,16 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
       return;
     }
     onBack();
+  }
+
+  function handleSwitchTemplate(templateId: number) {
+    if (hasUnsavedChanges) {
+      setPendingTemplateId(templateId);
+      setDialog({ type: 'unsaved-changes' });
+      return;
+    }
+    const template = templates.find(t => t.id === templateId);
+    if (template) setSelectedTemplate(template);
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -572,6 +583,9 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                 onToggleAllLabels={handleToggleAllLabels}
                 showAdvancedActions={showAdvancedActions}
                 onToggleAdvancedActions={handleToggleAdvancedActions}
+                templates={templates}
+                currentTemplateId={selectedTemplate.id!}
+                onSwitchTemplate={handleSwitchTemplate}
               />
 
               {/* Add Block Button */}
@@ -702,7 +716,16 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialog({ type: 'none' })}>Zurück zum Editor</Button>
-            <Button variant="destructive" onClick={() => { setDialog({ type: 'none' }); onBack(); }}>Ohne Speichern verlassen</Button>
+            <Button variant="destructive" onClick={() => {
+              setDialog({ type: 'none' });
+              if (pendingTemplateId !== null) {
+                const template = templates.find(t => t.id === pendingTemplateId);
+                if (template) setSelectedTemplate(template);
+                setPendingTemplateId(null);
+              } else {
+                onBack();
+              }
+            }}>Ohne Speichern verlassen</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

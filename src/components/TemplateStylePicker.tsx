@@ -4,8 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AVAILABLE_ICON_NAMES, getIconComponent } from '../utils/iconUtils';
+import type { Template } from '../types/database';
 
 interface TemplateStylePickerProps {
   templateName: string;
@@ -20,6 +21,10 @@ interface TemplateStylePickerProps {
   // Advanced Actions Toggle
   showAdvancedActions: boolean;
   onToggleAdvancedActions: () => void;
+  // Template Switcher
+  templates: Template[];
+  currentTemplateId: number;
+  onSwitchTemplate: (id: number) => void;
 }
 
 export default function TemplateStylePicker({
@@ -33,10 +38,27 @@ export default function TemplateStylePicker({
   onToggleAllLabels,
   showAdvancedActions,
   onToggleAdvancedActions,
+  templates,
+  currentTemplateId,
+  onSwitchTemplate,
 }: TemplateStylePickerProps) {
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [iconSearchTerm, setIconSearchTerm] = useState('');
   const [isExpanded, setIsExpanded] = useState(true);
+
+  const currentIndex = templates.findIndex(t => t.id === currentTemplateId);
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex < templates.length - 1;
+
+  function handlePrev() {
+    if (!hasPrev) return;
+    onSwitchTemplate(templates[currentIndex - 1].id!);
+  }
+
+  function handleNext() {
+    if (!hasNext) return;
+    onSwitchTemplate(templates[currentIndex + 1].id!);
+  }
 
   function handleNameChange(e: React.ChangeEvent<HTMLInputElement>) {
     onNameChange(e.target.value);
@@ -75,17 +97,37 @@ export default function TemplateStylePicker({
 
   return (
     <Card className="p-3 template-settings-card">
-      {/* Header: Template Name + Chevron */}
-      <div className="flex items-center gap-2 mb-3">
+      {/* Header: Template Name + Switcher + Collapse */}
+      <div className="flex items-center gap-1 mb-3">
+        <button
+          onClick={handlePrev}
+          disabled={!hasPrev}
+          className="btn-touch-target flex items-center justify-center hover:bg-accent rounded transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Vorheriges Template"
+        >
+          <ChevronLeft size={18} />
+        </button>
+
         <Input
           value={templateName}
           onChange={handleNameChange}
           className="text-base font-medium flex-1"
           placeholder="Template-Name eingeben..."
         />
+
+        <button
+          onClick={handleNext}
+          disabled={!hasNext}
+          className="btn-touch-target flex items-center justify-center hover:bg-accent rounded transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Nächstes Template"
+        >
+          <ChevronRight size={18} />
+        </button>
+
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="btn-touch-target flex items-center justify-center hover:bg-accent rounded transition-colors flex-shrink-0"
+          title={isExpanded ? 'Einklappen' : 'Ausklappen'}
         >
           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </button>
