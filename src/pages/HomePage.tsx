@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { Template } from '../types/database';
-import FloatingLines from '../components/backgrounds/FloatingLines';
 import { getIconComponent } from '../utils/iconUtils';
 import { History, TrendingUp, Settings } from 'lucide-react';
 import '../styles/home-page.css';
@@ -81,19 +80,6 @@ export default function HomePage({ templates, onSelectTemplate, onNavigate, isLo
 
   return (
     <div className="home-page">
-      <FloatingLines 
-        linesGradient={['#8b5a3c', '#a67c52', '#c19a6b']}
-        enabledWaves={['top', 'middle', 'bottom']}
-        lineCount={[6, 6, 6]}
-        lineDistance={[12, 10, 8]}
-        topWavePosition={{ x: -0.8, y: 0.6, rotate: 0.4}}
-        middleWavePosition={{ x: 0, y: 0, rotate: 1.3 }}
-        bottomWavePosition={{ x: 0.8, y: -0.6, rotate: 1.7 }}
-        animationSpeed={0.5}
-        interactive={false}
-        parallax={false}
-        mixBlendMode="multiply"
-      />
       
       <div className="home-content">
         <header className="home-header">
