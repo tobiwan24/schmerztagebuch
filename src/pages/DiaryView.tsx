@@ -389,6 +389,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
       // dann animierten Scroll nach unten starten
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
+          if (!contentRef.current) return;
           const maxScroll = container.scrollHeight - container.clientHeight;
           const duration = 1200;
           const start = performance.now();
