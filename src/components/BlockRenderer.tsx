@@ -14,6 +14,7 @@ interface BlockRendererProps {
   onChange: (value: BlockValue) => void;
   onDashboardConfigChange?: (blockId: string, config: { eventCategory: 'event' | 'doctor'; eventTitle: string }) => void;
   onPresetSaved?: () => void;
+  onConfigChange?: (config: { defaultPresetId?: string }) => void;
   readOnly?: boolean;
   hideLabel?: boolean;
 }
@@ -23,6 +24,7 @@ export default function BlockRenderer({
   onChange, 
   onDashboardConfigChange,
   onPresetSaved,
+  onConfigChange,
   readOnly = false, 
   hideLabel = false 
 }: BlockRendererProps) {
@@ -57,7 +59,7 @@ export default function BlockRenderer({
       return <ImageBlock block={block} onChange={onChange} readOnly={readOnly} hideLabel={hideLabel} />;
     
     case 'bodymap':
-      return <BodyMapBlock block={block} onChange={onChange} onPresetSaved={onPresetSaved} readOnly={readOnly} hideLabel={hideLabel} />;
+      return <BodyMapBlock block={block} onChange={onChange} onPresetSaved={onPresetSaved} onConfigChange={onConfigChange} readOnly={readOnly} hideLabel={hideLabel} />;
     
     default:
       return (

@@ -666,6 +666,211 @@
   - Fix: Performance-Limit 120 Icons initial verhindert 579ms Click-Lag
   - **Commit:** `fix: resolve vite lazy-getter issue and icon render crash`
 
+### 6.10: BodyMap Block-spezifische Presets & Default-Vorlagen (4h)
+**Branch:** `feature/bodymap-block-presets`
+**Status:** Geplant (18.02.2026)
+
+**Ziel:** Jeder BodyMapBlock kann seine eigene Standard-Vorlage haben; Vorlagen-Manager im Editor
+
+**KONTEXT:**
+- 2 BodyMapBlocks im selben Template sollen UNTERSCHIEDLICHE Default-Presets laden können
+- Block A: "Vorderseite" lädt automatisch "Körper Vorderseite"-Preset
+- Block B: "Rückseite" lädt automatisch "Körper Rückseite"-Preset
+- Aktuelle Architektur: `isDefault` ist GLOBAL → funktioniert nicht für mehrere Blocks
+- Neue Architektur: `block.bodyMapConfig.defaultPresetId` pro Block
+
+**Tasks:**
+
+- [ ] **Block-Interface erweitern (15 Min)**
+  ```typescript
+  // types/blocks.ts
+  interface Block {
+    // ... existing properties
+    bodyMapConfig?: {
+      defaultPresetId?: string;  // Welches Preset ist Default für DIESEN Block
+    };
+  }
+  ```
+  - **Commit:** `feat: add bodyMapConfig to Block interface`
+
+- [ ] **bodymapPresets.ts: isDefault entfernen (15 Min)**
+  ```typescript
+  export interface BodyMapPreset {
+    id: string;
+    name: string;
+    image: string;
+    // isDefault: boolean; ← ENTFERNEN (wird jetzt pro Block gespeichert)
+  }
+  ```
+  - `setDefaultPreset()` und `getDefaultPreset()` ENTFERNEN
+  - Bestehende Presets mit `isDefault` werden zu normalen Presets migriert
+  - **Commit:** `refactor: remove global isDefault from bodyMapPreset interface`
+
+- [ ] **BodyMapBlock: "Als Standardvorlage"-Button (30 Min)**
+  - Neuer Button neben "Als Vorlage" (Star-Icon)
+  - Prüft ob aktuelles Bild als Preset existiert
+  - Falls NEIN: Auto-Speichern mit Namen `${block.label} - Standard`
+  - Falls JA: Verwendet existierende Preset-ID
+  - Ruft `onConfigChange({ defaultPresetId })` auf
+  - **Commit:** `feat: add set as default preset button to bodymap block`
+
+- [ ] **BodyMapBlock: Default-Preset-Laden mit Edge Case Handling (20 Min)**
+  ```typescript
+  useEffect(() => {
+    setPresets(getPresets());
+    
+    if (!data.image && !readOnly && !hideLabel) {
+      const defaultPresetId = block.bodyMapConfig?.defaultPresetId;
+      
+      if (defaultPresetId) {
+        const preset = getPresets().find(p => p.id === defaultPresetId);
+        if (preset) {
+          // Default-Preset gefunden → laden
+          updateData({ image: preset.image, points: [] });
+        }
+        // Preset gelöscht → Fallback zu normaler Ansicht
+      }
+      // Kein Default ODER Preset nicht gefunden → Zeige Vorlage-Auswahl oder Upload
+    }
+  }, []);
+  ```
+  - **Commit:** `feat: implement block-specific default preset loading`
+
+- [ ] **BodyMapBlock: Vorlagen-Manager UI (30 Min)**
+  - Nur im Editor sichtbar (`hideLabel === true`)
+  - Card mit Liste aller Presets
+  - Jeder Preset: Name + Lösch-Button (Trash-Icon)
+  - Standard-Preset mit ⭐ markiert
+  - Position: Unterhalb der Button-Reihe (Bild ändern, Als Vorlage, etc.)
+  ```tsx
+  {hideLabel && presets.length > 0 && (
+    <Card className="p-3 bg-secondary/30">
+      <Label className="text-sm mb-2 block">Gespeicherte Vorlagen</Label>
+      <div className="space-y-2">
+        {presets.map(preset => (
+          <div key={preset.id} className="flex items-center justify-between p-2 bg-background rounded border">
+            <span className="text-sm flex-1">
+              {preset.name}
+              {block.bodyMapConfig?.defaultPresetId === preset.id && (
+                <span className="ml-2 text-xs text-yellow-600">⭐ Standard</span>
+              )}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDeletePreset(preset.id)}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 size={16} />
+            </Button>
+          </div>
+        ))}
+      </div>
+    </Card>
+  )}
+  ```
+  - **Commit:** `feat: add preset manager ui to bodymap block editor`
+
+- [ ] **BodyMapBlock: handleDeletePreset mit Confirmation (20 Min)**
+  - Dialog-Confirmation vor Löschen
+  - Falls gelöschtes Preset = Default-Preset → `onConfigChange({ defaultPresetId: undefined })`
+  - Aktualisiert lokalen `presets` State
+  - **Commit:** `feat: add preset deletion with confirmation dialog`
+
+- [ ] **BodyMapBlock: onConfigChange Callback (15 Min)**
+  ```typescript
+  interface BodyMapBlockProps {
+    block: Block;
+    onChange: (value: string) => void;
+    onPresetSaved?: () => void;
+    onConfigChange?: (config: { defaultPresetId?: string }) => void; // ← NEU
+    readOnly?: boolean;
+    hideLabel?: boolean;
+  }
+  ```
+  - **Commit:** `feat: add onConfigChange callback to bodymap block`
+
+- [ ] **BlockRenderer: onConfigChange durchreichen (10 Min)**
+  ```typescript
+  interface BlockRendererProps {
+    // ... existing props
+    onConfigChange?: (config: { defaultPresetId?: string }) => void;
+  }
+  
+  case 'bodymap':
+    return (
+      <BodyMapBlock 
+        block={block} 
+        onChange={onChange} 
+        onPresetSaved={onPresetSaved}
+        onConfigChange={onConfigChange} // ← NEU
+        readOnly={readOnly} 
+        hideLabel={hideLabel} 
+      />
+    );
+  ```
+  - **Commit:** `feat: pass onConfigChange through BlockRenderer`
+
+- [ ] **DiaryView: handleBlockConfigChange (20 Min)**
+  ```typescript
+  function handleBlockConfigChange(blockId: string, config: { defaultPresetId?: string }) {
+    setCurrentBlocks(prev => 
+      prev.map(block => 
+        block.id === blockId 
+          ? { 
+              ...block, 
+              bodyMapConfig: { 
+                ...block.bodyMapConfig, 
+                ...config 
+              } 
+            }
+          : block
+      )
+    );
+  }
+  
+  <BlockRenderer
+    key={block.id}
+    block={block}
+    onChange={(value) => handleBlockChange(block.id, value)}
+    onDashboardConfigChange={handleDashboardConfigChange}
+    onPresetSaved={handlePresetSaved}
+    onConfigChange={(config) => handleBlockConfigChange(block.id, config)} // ← NEU
+    hideLabel={block.hideLabelInDiary}
+  />
+  ```
+  - **Commit:** `feat: add block config change handler to DiaryView`
+
+- [ ] **EditorMode: handleBlockConfigChange (20 Min)**
+  - Gleiche Logik wie DiaryView
+  - Aktualisiert `editingBlocks` State
+  - Config wird im Template gespeichert beim Save
+  - **Commit:** `feat: add block config change handler to EditorMode`
+
+- [ ] **UI-Feedback: Aktiver "Standard"-Button (15 Min)**
+  - "Als Standardvorlage"-Button zeigt visuell ob aktuelles Bild = Default
+  - Gelber Hintergrund + Star-Icon gefüllt wenn aktiv
+  - **Commit:** `feat: add visual feedback for active default preset button`
+
+- [ ] **Testing: Multi-Block-Szenarien (40 Min)**
+  - 2 BodyMapBlocks im selben Template
+  - Unterschiedliche Default-Presets setzen
+  - Presets löschen (inkl. Default-Preset)
+  - DiaryView neu laden → Default-Presets werden korrekt geladen
+  - **Commit:** `test: verify block-specific preset system with multiple blocks`
+
+**Edge Cases:**
+- ✅ **Default-Preset gelöscht:** Block fällt zurück auf Vorlage-Auswahl oder Upload-Button
+- ✅ **Keine Presets vorhanden:** Normale Upload-Ansicht wird angezeigt
+- ✅ **Preset-Name-Kollision:** Auto-Namen bekommen Timestamp-Suffix
+
+**Breaking Changes:**
+- ✅ KEINE - `bodyMapConfig` ist optional, alte Blocks funktionieren weiter
+- ✅ Alte Presets mit `isDefault` werden automatisch migriert (Flag wird ignoriert)
+
+**Aufwandsschätzung:** ~4h
+**DB-Migration:** KEINE (nur Block-Schema erweitert, keine DB-Änderung nötig)
+
 ---
 
 ## 🎯 PHASE 7: PFLICHTFELD-WORKFLOW (MEDIUM PRIO)
@@ -1001,7 +1206,7 @@
 
 ## 🎯 NÄCHSTE SCHRITTE
 
-**Aktuelle Priorisierung (17.02.2026):**
+**Aktuelle Priorisierung (18.02.2026):**
 1. ✅ Phase 6.3d: MultiSelect Collapsible (KOMPLETT)
 2. ✅ Phase 6.3c: Lösch-Bestätigung (KOMPLETT)
 3. ✅ Phase 6.7: TextArea-Erweiterung (KOMPLETT)
@@ -1012,15 +1217,16 @@
 8. ✅ Phase 6.9: Icon Picker Lucide (KOMPLETT)
 9. ✅ Phase 6.4: Modal-System Vereinheitlichung (KOMPLETT)
 10. ✅ Phase 6.8: Standard-Template Auto-Generierung + Vorlagen-Katalog (KOMPLETT)
-11. 🚀 Phase 6.6: Template-Switcher (NEXT)
-12. Phase 8: Code Cleanup
+11. 🚀 Phase 6.10: BodyMap Block-spezifische Presets (IN ARBEIT)
+12. Phase 6.6: Template-Switcher
+13. Phase 8: Code Cleanup
 
 **Dann:** Phase 8 (Code Cleanup) vor weiteren Features
 
 ---
 
-**Letzte Aktualisierung:** 17.02.2026  
-**Aktueller Stand:** Phase 6.8 komplett ✅ (Standard-Template Auto-Generierung + Vorlagen-Katalog + isDeletable)  
-**Nächster Schritt:** Phase 6.6 - Template-Switcher  
+**Letzte Aktualisierung:** 18.02.2026  
+**Aktueller Stand:** Phase 6.10 in Arbeit (BodyMap Block-spezifische Presets & Default-Vorlagen)  
+**Nächster Schritt:** Task 1 - Block-Interface erweitern  
 **DB Version:** 14  
-**Status:** ✅ ALLE COMMITS DURCHGEFÜHRT - ROADMAP AKTUALISIERT
+**Status:** 🚀 ROADMAP AKTUALISIERT - BEREIT FÜR UMSETZUNG

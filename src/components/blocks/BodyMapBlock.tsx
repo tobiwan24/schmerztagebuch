@@ -1,13 +1,13 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import type { Block } from '../../types/blocks';
-import { getPresets, savePreset, getDefaultPreset } from '../../utils/bodymapPresets';
+import { getPresets, savePreset, deletePreset } from '../../utils/bodymapPresets';
 import type { BodyMapPreset } from '../../utils/bodymapPresets';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Camera, Trash2, Save, X } from 'lucide-react';
+import { Camera, Trash2, Save, X, Star } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 interface PainPoint {
@@ -30,11 +30,12 @@ interface BodyMapBlockProps {
   block: Block;
   onChange: (value: string) => void;
   onPresetSaved?: () => void;
+  onConfigChange?: (config: { defaultPresetId?: string }) => void;
   readOnly?: boolean;
   hideLabel?: boolean;
 }
 
-export default function BodyMapBlock({ block, onChange, onPresetSaved, readOnly = false, hideLabel = false }: BodyMapBlockProps) {
+export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigChange, readOnly = false, hideLabel = false }: BodyMapBlockProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -163,10 +164,17 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, readOnly 
     
     // Nur im normalen Diary-Modus (nicht im Editor) Default-Preset laden
     if (!data.image && !readOnly && !hideLabel) {
-      const defaultPreset = getDefaultPreset();
-      if (defaultPreset) {
-        updateData({ image: defaultPreset.image, points: [] });
+      const defaultPresetId = block.bodyMapConfig?.defaultPresetId;
+      
+      if (defaultPresetId) {
+        const preset = getPresets().find(p => p.id === defaultPresetId);
+        if (preset) {
+          // Default-Preset gefunden → laden
+          updateData({ image: preset.image, points: [] });
+        }
+        // Preset gelöscht → Fallback zu normaler Ansicht
       }
+      // Kein Default ODER Preset nicht gefunden → Zeige Vorlage-Auswahl oder Upload
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -391,6 +399,49 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, readOnly 
     updateData({ image: preset.image, points: [] });
   }
 
+  function handleSetAsDefault() {
+    if (!data.image) return;
+    
+    // Prüfen ob Bild bereits als Preset existiert
+    const existingPreset = presets.find(p => p.image === data.image);
+    
+    let presetId: string;
+    
+    if (existingPreset) {
+      // Preset existiert → ID verwenden
+      presetId = existingPreset.id;
+    } else {
+      // Preset existiert NICHT → Automatisch speichern
+      const autoName = `${block.label || 'Körperkarte'} - Standard`;
+      presetId = crypto.randomUUID();
+      const newPreset: BodyMapPreset = {
+        id: presetId,
+        name: autoName,
+        image: data.image
+      };
+      const updatedPresets = [...presets, newPreset];
+      localStorage.setItem('bodymap_presets', JSON.stringify(updatedPresets));
+      setPresets(updatedPresets);
+    }
+    
+    // Default-Preset-ID im Block speichern
+    if (onConfigChange) {
+      onConfigChange({ defaultPresetId: presetId });
+    }
+  }
+
+  function handleDeletePreset(presetId: string) {
+    if (!confirm('Vorlage wirklich löschen?')) return;
+    
+    // Falls gelöschtes Preset = Default-Preset → Default zurücksetzen
+    if (block.bodyMapConfig?.defaultPresetId === presetId && onConfigChange) {
+      onConfigChange({ defaultPresetId: undefined });
+    }
+    
+    deletePreset(presetId);
+    setPresets(getPresets());
+  }
+
   return (
     <div className="space-y-4">
       {!hideLabel && <Label>{block.label}</Label>}
@@ -498,11 +549,51 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, readOnly 
                 <Save size={16} className="mr-2" />
                 Als Vorlage
               </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleSetAsDefault} 
+                type="button"
+                className={cn(
+                  block.bodyMapConfig?.defaultPresetId && 
+                  presets.find(p => p.id === block.bodyMapConfig?.defaultPresetId && p.image === data.image) &&
+                  "bg-yellow-50 border-yellow-400 text-yellow-700"
+                )}
+              >
+                <Star size={16} className="mr-2" />
+                Als Standardvorlage
+              </Button>
               <Button variant="outline" onClick={handleDeleteImage} type="button">
                 <Trash2 size={16} className="mr-2" />
                 Alles löschen
               </Button>
             </div>
+          )}
+
+          {hideLabel && presets.length > 0 && (
+            <Card className="p-3 bg-secondary/30">
+              <Label className="text-sm mb-2 block">Gespeicherte Vorlagen</Label>
+              <div className="space-y-2">
+                {presets.map(preset => (
+                  <div key={preset.id} className="flex items-center justify-between p-2 bg-background rounded border">
+                    <span className="text-sm flex-1">
+                      {preset.name}
+                      {block.bodyMapConfig?.defaultPresetId === preset.id && (
+                        <span className="ml-2 text-xs text-yellow-600">⭐ Standard</span>
+                      )}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeletePreset(preset.id)}
+                      className="text-destructive hover:text-destructive"
+                      type="button"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </Card>
           )}
 
           <Card className="p-3 bg-secondary/30">
@@ -585,7 +676,7 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, readOnly 
                 <option value="">-- Vorlage wählen --</option>
                 {presets.map(preset => (
                   <option key={preset.id} value={preset.id}>
-                    {preset.name} {preset.isDefault && '⭐'}
+                    {preset.name}
                   </option>
                 ))}
               </select>

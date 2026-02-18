@@ -48,6 +48,11 @@ export interface DashboardConfig {
   eventCategory?: 'event' | 'doctor';  // Event oder Arztbesuch
 }
 
+// BodyMap-spezifische Konfiguration
+export interface BodyMapConfig {
+  defaultPresetId?: string;  // Welches Preset ist Default für DIESEN Block
+}
+
 // Basis-Interface für alle Blöcke
 export interface Block {
   id: string;
@@ -61,7 +66,8 @@ export interface Block {
   min?: number;        // Für Slider
   max?: number;        // Für Slider
   step?: number;       // Für Slider
-  dashboard?: DashboardConfig;  // NEU: Dashboard-Konfiguration
+  dashboard?: DashboardConfig;  // Dashboard-Konfiguration
+  bodyMapConfig?: BodyMapConfig;  // BodyMap-spezifische Konfiguration
 }
 
 // Type Guards für bessere Type Safety

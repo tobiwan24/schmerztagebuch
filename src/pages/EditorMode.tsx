@@ -448,6 +448,22 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
     }));
   }
 
+  // BodyMap Config Handler
+  function handleBlockConfigChange(blockId: string, config: { defaultPresetId?: string }) {
+    setEditingBlocks(editingBlocks.map(block => {
+      if (block.id === blockId) {
+        return {
+          ...block,
+          bodyMapConfig: {
+            ...block.bodyMapConfig,
+            ...config
+          }
+        };
+      }
+      return block;
+    }));
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -582,6 +598,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
                           onSliderSettingsChange={handleSliderSettingsChange}
                           onBodyMapTypeChange={handleBodyMapTypeChange}
                           onMultiSelectButtonsChange={handleMultiSelectButtonsChange}
+                          onConfigChange={handleBlockConfigChange}
                           isDndMode={isDndMode}
                           isNew={block.id === newBlockId}
                           isDeletable={block.isDeletable !== false}

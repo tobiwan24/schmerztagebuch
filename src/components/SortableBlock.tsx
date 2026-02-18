@@ -35,6 +35,7 @@ interface SortableBlockProps {
   onSliderSettingsChange?: (blockId: string, settings: { min?: number; max?: number; step?: number }) => void;
   onBodyMapTypeChange?: (blockId: string, type: 'pain' | 'function') => void;
   onMultiSelectButtonsChange?: (blockId: string, buttons: { text: string; color: string }[]) => void;
+  onConfigChange?: (blockId: string, config: { defaultPresetId?: string }) => void;
   isDndMode?: boolean;
   isNew?: boolean;
   isDeletable?: boolean;
@@ -53,6 +54,7 @@ export default function SortableBlock({
   onSliderSettingsChange,
   onBodyMapTypeChange,
   onMultiSelectButtonsChange,
+  onConfigChange,
   isDndMode = false,
   isNew = false,
   isDeletable = true
@@ -147,6 +149,7 @@ export default function SortableBlock({
             <BlockRenderer
               block={block}
               onChange={onChange}
+              onConfigChange={onConfigChange ? (config) => onConfigChange(block.id, config) : undefined}
               readOnly={true}
               hideLabel={true}
             />
@@ -157,6 +160,7 @@ export default function SortableBlock({
           <BlockRenderer
             block={block}
             onChange={onChange}
+            onConfigChange={onConfigChange ? (config) => onConfigChange(block.id, config) : undefined}
             readOnly={false}
             hideLabel={true}
           />

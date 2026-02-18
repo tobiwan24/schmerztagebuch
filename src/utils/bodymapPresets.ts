@@ -3,7 +3,6 @@ export interface BodyMapPreset {
   id: string;
   name: string;
   image: string; // base64
-  isDefault?: boolean;
 }
 
 const STORAGE_KEY = 'bodymap_presets';
@@ -30,8 +29,7 @@ export function savePreset(name: string, image: string): void {
   const newPreset: BodyMapPreset = {
     id: crypto.randomUUID(),
     name,
-    image,
-    isDefault: false
+    image
   };
   presets.push(newPreset);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(presets));
@@ -43,16 +41,5 @@ export function deletePreset(id: string): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
 }
 
-export function setDefaultPreset(id: string): void {
-  const presets = getPresets();
-  const updated = presets.map(p => ({
-    ...p,
-    isDefault: p.id === id
-  }));
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-}
-
-export function getDefaultPreset(): BodyMapPreset | null {
-  const presets = getPresets();
-  return presets.find(p => p.isDefault) || null;
-}
+// setDefaultPreset() und getDefaultPreset() ENTFERNT
+// Default-Preset wird jetzt pro Block in block.bodyMapConfig.defaultPresetId gespeichert

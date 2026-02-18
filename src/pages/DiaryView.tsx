@@ -322,6 +322,22 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
     }
   }
 
+  function handleBlockConfigChange(blockId: string, config: { defaultPresetId?: string }) {
+    setCurrentBlocks(prev => 
+      prev.map(block => 
+        block.id === blockId 
+          ? { 
+              ...block, 
+              bodyMapConfig: { 
+                ...block.bodyMapConfig, 
+                ...config 
+              } 
+            }
+          : block
+      )
+    );
+  }
+
   function handleTemplateChange(newIndex: number) {
     if (hasUnsavedChanges) {
       const confirmed = window.confirm(
@@ -537,6 +553,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
                 onChange={(value) => handleBlockChange(block.id, value)}
                 onDashboardConfigChange={handleDashboardConfigChange}
                 onPresetSaved={handlePresetSaved}
+                onConfigChange={(config) => handleBlockConfigChange(block.id, config)}
                 hideLabel={block.hideLabelInDiary}
               />
             ))}
