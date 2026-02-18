@@ -13,12 +13,19 @@ export interface TutorialStep {
   text: string;
   /**
    * Wo die Karte erscheinen soll:
-   * 'auto'   = automatisch (Seite mit mehr Platz)
-   * 'top'    = immer oben im Viewport
-   * 'bottom' = immer unten im Viewport
-   * 'center' = vertikal mittig (nur sinnvoll ohne Spotlight)
+   * 'auto'    = automatisch (Seite mit mehr Platz)
+   * 'top'     = immer oben im Viewport
+   * 'bottom'  = immer unten im Viewport
+   * 'center'  = vertikal mittig im Viewport
+   * 'between' = mittig zwischen zwei DOM-Elementen (braucht betweenSelectors)
    */
-  cardPosition?: 'auto' | 'top' | 'bottom' | 'center';
+  cardPosition?: 'auto' | 'top' | 'bottom' | 'center' | 'between';
+  /**
+   * Nur für cardPosition 'between':
+   * [0] = oberes Element (Unterkante wird als Obergrenze genutzt)
+   * [1] = unteres Element (Oberkante wird als Untergrenze genutzt)
+   */
+  betweenSelectors?: [string, string];
 }
 
 interface PageTutorialProps {
@@ -75,7 +82,9 @@ export default function PageTutorial({ page, steps }: PageTutorialProps) {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [spotlight, setSpotlight] = useState<SpotlightRect | null>(null);
-  const [cardPlacement, setCardPlacement] = useState<'top' | 'bottom' | 'center'>('center');
+  const [cardPlacement, setCardPlacement] = useState<'top' | 'bottom' | 'center' | 'between'>('center');
+  /** Nur gesetzt wenn cardPlacement === 'between': feste top-Position in px */
+  const [cardBetweenTopPx, setCardBetweenTopPx] = useState<number | null>(null);
   const [visible, setVisible] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
@@ -102,7 +111,26 @@ export default function PageTutorial({ page, steps }: PageTutorialProps) {
       timeoutRef.current = setTimeout(() => {
         const sp = step.spotlight ? computeSpotlight(step.spotlight) : null;
         setSpotlight(sp);
-        setCardPlacement(resolveCardPlacement(step, sp));
+
+        if (step.cardPosition === 'between' && step.betweenSelectors) {
+          const [topSel, botSel] = step.betweenSelectors;
+          const topEl = document.querySelector(topSel);
+          const botEl = document.querySelector(botSel);
+          if (topEl && botEl) {
+            const topBottom = topEl.getBoundingClientRect().bottom;
+            const botTop = botEl.getBoundingClientRect().top;
+            // Mittelpunkt des Leerraums zwischen den beiden Elementen
+            const midY = topBottom + (botTop - topBottom) / 2;
+            setCardBetweenTopPx(midY);
+          } else {
+            setCardBetweenTopPx(null);
+          }
+          setCardPlacement('between');
+        } else {
+          setCardBetweenTopPx(null);
+          setCardPlacement(resolveCardPlacement(step, sp));
+        }
+
         setVisible(true);
       }, 350);
     },
@@ -150,11 +178,13 @@ export default function PageTutorial({ page, steps }: PageTutorialProps) {
 
   // ── Card-Position-Stil ───────────────────────────────────────────────────
   const cardPositionStyle: React.CSSProperties =
-    cardPlacement === 'center'
+    cardPlacement === 'between' && cardBetweenTopPx !== null
+      ? { top: cardBetweenTopPx, transform: 'translateX(-50%) translateY(-50%)' }
+      : cardPlacement === 'center'
       ? { top: '50%', transform: 'translateX(-50%) translateY(-50%)' }
       : cardPlacement === 'bottom'
-      ? { bottom: '4vh', transform: 'translateX(-50%)' }
-      : { top: '4vh', transform: 'translateX(-50%)' };
+      ? { bottom: 'max(4vh, 72px)', transform: 'translateX(-50%)' }
+      : { top: 'max(4vh, 72px)', transform: 'translateX(-50%)' };
 
   // ── Spotlight-Stil ───────────────────────────────────────────────────────
   const spotlightStyle: React.CSSProperties | null = spotlight

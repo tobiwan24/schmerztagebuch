@@ -100,19 +100,22 @@ export default function HomePage({ templates, onSelectTemplate, onNavigate, isLo
           {
             spotlight: null,
             text: 'Auf der Startseite findest du alle wichtigen Inhalte.',
-            cardPosition: 'center',
+            cardPosition: 'between',
+            betweenSelectors: ['.template-grid', '.home-footer'],
           },
           {
             spotlight: '.home-footer',
             title: 'Navigation',
             text: 'Im unteren Bereich befindet sich das Menü, über das du Zugriff auf Verlauf, Dashboard und Einstellungen hast.',
-            cardPosition: 'auto',
+            cardPosition: 'between',
+            betweenSelectors: ['.template-grid', '.home-footer'],
           },
           {
             spotlight: '.template-grid',
             title: 'Deine Vorlagen',
             text: 'Hier findest du deine Tagebuch-Vorlagen, um schnell Einträge anzulegen. Probiere es direkt aus!',
-            cardPosition: 'auto',
+            cardPosition: 'between',
+            betweenSelectors: ['.template-grid', '.home-footer'],
           },
         ]}
       />
