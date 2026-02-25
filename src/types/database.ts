@@ -29,9 +29,3 @@ export interface Settings {
 
 // Verschlüsselungs-Modi
 export type EncryptionMode = 'none' | 'history' | 'full';
-
-export interface AppSettings {
-  encryptionMode: EncryptionMode;
-  biometricEnabled: boolean;
-  setupCompleted: boolean;
-}

@@ -186,10 +186,6 @@ export async function getTemplates(): Promise<Template[]> {
   return templates.map(migrateImageBlocksToTextArea);
 }
 
-export async function getTemplate(id: number): Promise<Template | undefined> {
-  return await db.templates.get(id);
-}
-
 export async function updateTemplate(id: number, changes: Partial<Template>): Promise<void> {
   await db.templates.update(id, changes);
 }
@@ -198,19 +194,6 @@ export async function deleteTemplate(id: number): Promise<void> {
   await db.templates.delete(id);
 }
 
-export async function reorderTemplates(templates: Template[]): Promise<void> {
-  await db.transaction('rw', db.templates, async () => {
-    for (let i = 0; i < templates.length; i++) {
-      if (templates[i].id) {
-        await db.templates.update(templates[i].id!, { order: i });
-      }
-    }
-  });
-}
-
-export async function getTemplateEntryCount(templateId: number): Promise<number> {
-  return await db.entries.where('templateId').equals(templateId).count();
-}
 
 // ========== ENTRY CRUD ==========
 
@@ -259,21 +242,6 @@ export async function deleteEntry(id: number): Promise<void> {
   await db.entries.delete(id);
 }
 
-export async function getEntriesByTag(tag: string): Promise<Entry[]> {
-  return await db.entries
-    .where('tags')
-    .equals(tag)
-    .reverse()
-    .sortBy('timestamp');
-}
-
-export async function getEntriesByDateRange(start: Date, end: Date): Promise<Entry[]> {
-  return await db.entries
-    .where('timestamp')
-    .between(start, end, true, true)
-    .reverse()
-    .sortBy('timestamp');
-}
 
 // ========== SETTINGS ==========
 
@@ -302,21 +270,6 @@ export async function getAppSettings(): Promise<{
   };
 }
 
-export async function setAppSettings(settings: {
-  encryptionMode?: 'none' | 'history' | 'full';
-  biometricEnabled?: boolean;
-  setupCompleted?: boolean;
-}): Promise<void> {
-  if (settings.encryptionMode) {
-    await setSetting('encryptionMode', settings.encryptionMode);
-  }
-  if (settings.biometricEnabled !== undefined) {
-    await setSetting('biometricEnabled', String(settings.biometricEnabled));
-  }
-  if (settings.setupCompleted !== undefined) {
-    await setSetting('setupCompleted', String(settings.setupCompleted));
-  }
-}
 
 // ========== INITIALISIERUNG ==========
 

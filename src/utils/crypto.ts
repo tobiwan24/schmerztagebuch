@@ -110,24 +110,13 @@ export async function encryptData(data: string, password: string): Promise<strin
   }
   
   try {
-    console.log('[crypto] encryptData START - data length:', data.length);
-    console.log('[crypto] Protocol:', window.location.protocol, 'Hostname:', window.location.hostname);
-    
     const encoder = new TextEncoder();
     const dataBuffer = encoder.encode(data);
-    console.log('[crypto] TextEncoder OK - buffer length:', dataBuffer.length);
 
     const salt = generateSalt();
-    console.log('[crypto] Salt generated - length:', salt.length);
-    
     const iv = generateIV();
-    console.log('[crypto] IV generated - length:', iv.length);
-    
-    console.log('[crypto] Deriving key...');
     const key = await deriveKey(password, salt);
-    console.log('[crypto] Key derived OK');
 
-    console.log('[crypto] Encrypting...');
     const encryptedBuffer = await crypto.subtle.encrypt(
       {
         name: 'AES-GCM',
@@ -136,21 +125,15 @@ export async function encryptData(data: string, password: string): Promise<strin
       key,
       dataBuffer.buffer as ArrayBuffer
     );
-    console.log('[crypto] Encryption OK - encrypted length:', encryptedBuffer.byteLength);
 
     // Kombiniere: Salt + IV + verschlüsselte Daten
     const combined = new Uint8Array(salt.length + iv.length + encryptedBuffer.byteLength);
     combined.set(salt, 0);
     combined.set(iv, salt.length);
     combined.set(new Uint8Array(encryptedBuffer), salt.length + iv.length);
-    console.log('[crypto] Combined array - length:', combined.length);
 
     // Konvertiere zu Base64 (iOS-kompatibel)
-    console.log('[crypto] Converting to Base64...');
     const base64 = arrayBufferToBase64(combined);
-    console.log('[crypto] Base64 conversion OK - length:', base64.length);
-    
-    console.log('[crypto] encryptData SUCCESS');
     return base64;
   } catch (error) {
     console.error('[crypto] encryptData ERROR:', error);
