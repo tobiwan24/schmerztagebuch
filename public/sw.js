@@ -146,15 +146,3 @@ self.addEventListener('message', (event) => {
     }
   }
 });
-
-// Background Sync (optional - wenn unterstützt)
-self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync:', event.tag);
-  
-  if (event.tag === 'sync-data') {
-    event.waitUntil(
-      // Hier könnte man Daten synchronisieren
-      Promise.resolve()
-    );
-  }
-});

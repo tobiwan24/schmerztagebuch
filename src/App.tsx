@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { initializeDB, getAppSettings } from './db';
-import { getEncryptionMode, requiresAuth, checkPassword, setSession, isSessionValid } from './utils/auth';
+import { requiresAuth, checkPassword, setSession, isSessionValid } from './utils/auth';
 import SetupWizard from './pages/SetupWizard';
 import HomePage from './pages/HomePage';
 import DiaryView from './pages/DiaryView';
@@ -30,13 +30,12 @@ export default function App() {
       try {
         await initializeDB();
         const settings = await getAppSettings();
-        const mode = await getEncryptionMode();
-        
+
         // Load templates
         await loadTemplates();
-        
+
         if (settings.setupCompleted) {
-          if (mode === 'full' && !isSessionValid()) {
+          if (settings.encryptionMode === 'full' && !isSessionValid()) {
             setPendingView('home');
             setShowAuthModal(true);
           } else {
@@ -56,7 +55,6 @@ export default function App() {
     
     const debugMode = localStorage.getItem('debugEnabled');
     setDebugEnabled(debugMode === 'true');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reload templates when returning to home view
@@ -64,7 +62,6 @@ export default function App() {
     if (currentView === 'home') {
       loadTemplates();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentView]);
 
   async function loadTemplates() {
@@ -78,7 +75,7 @@ export default function App() {
   };
 
   const handleNavigate = async (view: 'editor' | 'history' | 'diary' | 'settings' | 'dashboard') => {
-    const needsAuth = await requiresAuth(view as 'diary' | 'history' | 'editor');
+    const needsAuth = await requiresAuth();
     
     if (needsAuth && !isSessionValid()) {
       setPendingView(view as 'diary' | 'history' | 'editor');

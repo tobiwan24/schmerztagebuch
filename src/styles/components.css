@@ -437,15 +437,6 @@
   transform: translateX(-1rem);
 }
 
-/* Save Button - grüner Haken mit grünem Hintergrund */
-.floating-btn-glass.save-btn {
-  background: rgba(22, 163, 74, 0.1) !important;
-}
-
-.floating-btn-glass.save-btn svg {
-  color: #16a34a;
-  stroke-width: 2.5;
-}
 
 /* ========== PERSONALISIEREN BUTTON (DiaryView) ========== */
 .personalize-btn {

@@ -11,6 +11,16 @@ export default function UpdateControl() {
   const [isChecking, setIsChecking] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
 
+  function handleUpdate() {
+    if (!registration || !registration.waiting) return;
+
+    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    }, { once: true });
+  }
+
   useEffect(() => {
     const autoUpdatePref = localStorage.getItem('autoUpdate');
     setAutoUpdate(autoUpdatePref === 'true');
@@ -18,7 +28,7 @@ export default function UpdateControl() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then((reg) => {
         setRegistration(reg);
-        
+
         if (reg.active) {
           const messageChannel = new MessageChannel();
           messageChannel.port1.onmessage = (event) => {
@@ -36,7 +46,7 @@ export default function UpdateControl() {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 console.log('[Update] New version available!');
                 setUpdateAvailable(true);
-                
+
                 if (autoUpdatePref === 'true') {
                   handleUpdate();
                 }
@@ -46,6 +56,7 @@ export default function UpdateControl() {
         });
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleCheckUpdate() {
@@ -64,16 +75,6 @@ export default function UpdateControl() {
       console.error('[Update] Check failed:', error);
       alert('Update-Prüfung fehlgeschlagen');
       setIsChecking(false);
-    });
-  }
-
-  function handleUpdate() {
-    if (!registration || !registration.waiting) return;
-
-    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-    
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      window.location.reload();
     });
   }
 

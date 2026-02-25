@@ -34,6 +34,387 @@
   color: hsl(var(--foreground));
 }
 
+/* ========== HISTORY VIEW ========== */
+
+/* Entry Card */
+.history-entry-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  min-height: 68px;
+}
+
+.history-entry-card:hover {
+  border-color: hsl(var(--primary) / 0.4);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.history-entry-card:active {
+  box-shadow: none;
+}
+
+.history-entry-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.history-entry-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-entry-preview {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.history-entry-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.history-entry-date {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.history-entry-icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.history-icon {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.7;
+}
+
+.history-entry-pain {
+  flex-shrink: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  min-width: 24px;
+  text-align: center;
+}
+
+.history-entry-chevron {
+  flex-shrink: 0;
+  color: hsl(var(--muted-foreground));
+  opacity: 0.5;
+}
+
+/* Dropdown Buttons */
+.history-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  background: hsl(var(--background));
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
+}
+
+.history-dropdown-btn:hover,
+.history-dropdown-btn.active {
+  border-color: hsl(var(--primary) / 0.6);
+  background: hsl(var(--accent));
+}
+
+.history-dropdown-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: hsl(var(--primary));
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.history-dropdown-chevron {
+  transition: transform 0.2s ease;
+  opacity: 0.6;
+}
+
+.history-dropdown-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+.history-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 100;
+  min-width: 240px;
+  max-width: 300px;
+  background: hsl(var(--popover));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  overflow: hidden;
+}
+
+.history-dropdown-content {
+  padding: 6px 0;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.history-filter-section {
+  padding: 4px 0;
+}
+
+.history-filter-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: hsl(var(--muted-foreground));
+  padding: 4px 14px 6px;
+}
+
+.history-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  font-size: 0.8125rem;
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.history-filter-row:hover {
+  background: hsl(var(--accent));
+}
+
+.history-filter-text {
+  flex: 1;
+}
+
+.history-checkbox {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  accent-color: hsl(var(--primary));
+  cursor: pointer;
+}
+
+.history-filter-row-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+}
+
+.history-select {
+  flex: 1;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  background: hsl(var(--background));
+  font-size: 0.8125rem;
+  color: hsl(var(--foreground));
+  outline: none;
+}
+
+/* Datepicker – kompakte Zeile */
+.history-datepicker-row {
+  display: flex;
+  gap: 6px;
+  padding: 4px 14px 6px;
+}
+
+.history-date-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-date-label {
+  font-size: 0.6875rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.history-date-input {
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  background: hsl(var(--background));
+  font-size: 0.8125rem;
+  color: hsl(var(--foreground));
+  width: 100%;
+  outline: none;
+}
+
+/* Spezifisch: das Kalender-Icon beim date-input eng halten */
+.history-date-input::-webkit-calendar-picker-indicator {
+  margin-left: 2px;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.history-filter-divider {
+  height: 1px;
+  background: hsl(var(--border));
+  margin: 4px 0;
+}
+
+.history-sort-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px;
+  font-size: 0.8125rem;
+  color: hsl(var(--foreground));
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s ease;
+}
+
+.history-sort-option:hover {
+  background: hsl(var(--accent));
+}
+
+.history-sort-option.active {
+  font-weight: 600;
+  color: hsl(var(--primary));
+}
+
+.history-tags-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 14px 6px;
+}
+
+.history-tag-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 12px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--secondary));
+  font-size: 0.75rem;
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.history-tag-btn.selected {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+}
+
+.history-reset-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 14px;
+  font-size: 0.8125rem;
+  color: hsl(var(--destructive));
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.history-reset-btn:hover {
+  background: hsl(var(--destructive) / 0.05);
+}
+
+/* PDF-Button */
+.history-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  background: hsl(var(--background));
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.history-pdf-btn:hover:not(:disabled) {
+  border-color: hsl(var(--primary) / 0.5);
+  background: hsl(var(--primary) / 0.06);
+}
+
+.history-pdf-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* PDF-Dialog Größen-Buttons */
+.pdf-size-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  background: hsl(var(--background));
+  font-size: 0.8rem;
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pdf-size-btn.selected {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.08);
+  color: hsl(var(--primary));
+  font-weight: 600;
+}
+
 /* ========== RESPONSIVE ========== */
 @media (max-width: 640px) {
   .content-wrapper {

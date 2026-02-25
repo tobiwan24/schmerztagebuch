@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import type { Block } from '../../types/blocks';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -12,24 +11,15 @@ interface MultiSelectBlockProps {
 }
 
 export default function MultiSelectBlock({ block, onChange, readOnly = false, hideLabel = false }: MultiSelectBlockProps) {
-  const [selected, setSelected] = useState<string[]>(
-    Array.isArray(block.value) ? block.value : []
-  );
-
-  useEffect(() => {
-    if (Array.isArray(block.value)) {
-      setSelected(block.value);
-    }
-  }, [block.value]);
+  const selected = Array.isArray(block.value) ? block.value : [];
 
   const handleToggle = (optionText: string) => {
     if (readOnly) return;
-    
+
     const newSelected = selected.includes(optionText)
       ? selected.filter(item => item !== optionText)
       : [...selected, optionText];
-    
-    setSelected(newSelected);
+
     onChange(newSelected);
   };
 

@@ -100,6 +100,15 @@ async function renderBodyMapToImage(data: BodyMapData): Promise<string> {
   });
 }
 
+type ImageSize = 'a6' | 'a5' | 'a4' | 'none';
+
+// Bild-Dimensionen (mm) je Größe
+const IMAGE_SIZE_MM: Record<Exclude<ImageSize, 'none'>, { w: number; h: number }> = {
+  a6: { w: 105, h: 148 },
+  a5: { w: 148, h: 210 },
+  a4: { w: 210, h: 297 },
+};
+
 interface PDFExportOptions {
   entries: Entry[];
   templates: Template[];
@@ -107,6 +116,8 @@ interface PDFExportOptions {
   startDate?: string;
   endDate?: string;
   selectedTemplate?: string;
+  imageSize?: ImageSize;
+  password?: string;
 }
 
 interface ImageAttachment {
@@ -122,14 +133,24 @@ interface ImageAttachment {
  * Exportiert gefilterte Einträge als medizinisches PDF
  */
 export async function exportToPDF(options: PDFExportOptions): Promise<void> {
-  const { entries, templates, decryptedData, startDate, endDate, selectedTemplate } = options;
-  
+  const { entries, templates, decryptedData, startDate, endDate, selectedTemplate, imageSize = 'a5', password = '' } = options;
+
   // PDF erstellen (A4 Format)
-  const doc = new jsPDF({
+  // Record<string,unknown> nötig weil ConstructorParameters<jsPDF>[0] die Options-Überladung
+  // nicht korrekt auflöst (liefert orientation-String-Union statt Options-Objekt)
+  const pdfOptions: Record<string, unknown> = {
     orientation: 'portrait',
     unit: 'mm',
-    format: 'a4'
-  });
+    format: 'a4',
+  };
+  if (password) {
+    pdfOptions['encryption'] = {
+      userPassword: password,
+      ownerPassword: password + '_owner',
+      userPermissions: ['print', 'copy'],
+    };
+  }
+  const doc = new jsPDF(pdfOptions);
   
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -418,7 +439,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
   }
   
   // ========== BILDER-ANHANG ==========
-  if (imageAttachments.length > 0) {
+  if (imageAttachments.length > 0 && imageSize !== 'none') {
     // Neue Seite für Anhang
     doc.addPage();
     yPosition = margin;
@@ -466,9 +487,11 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
       
       // Bild einfügen
       try {
-        // Maximalmaße für Bild (A4: 210mm x 297mm, mit margins)
-        const maxWidth = pageWidth - 2 * margin;
-        const maxHeight = pageHeight - yPosition - 20; // 20mm für Footer
+        // Maximalmaße je gewählter Bildgröße
+        // imageSize !== 'none' ist durch den äußeren Guard (Zeile ~440) sichergestellt
+        const sizeMM = IMAGE_SIZE_MM[imageSize];
+        const maxWidth = Math.min(sizeMM.w - 10, pageWidth - 2 * margin);
+        const maxHeight = Math.min(sizeMM.h - 10, pageHeight - yPosition - 20);
         
         // Bild-Daten vorbereiten
         let imageData = attachment.imageData;
