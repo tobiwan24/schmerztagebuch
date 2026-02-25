@@ -2,6 +2,34 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+---
+
+## Always Read, Never Guess
+
+Before suggesting or making any change, read the affected file. Never assume what a file contains, how a function behaves, or what a component imports. Use `Grep` or `Glob` when uncertain. Reference code with `file.tsx:line` format.
+
+## Context Recovery
+
+After context compression or at the start of a new session, run this routine:
+
+```bash
+git log --oneline -10   # What was done recently?
+git status              # Any open changes?
+```
+
+Then read:
+1. `.claude/context/PRD.md` — project status overview
+2. The relevant feature file in `.claude/context/features/` for the current task
+
+## Rules
+
+Full behavior conventions are in `.claude/rules/conventions.md`. Key points:
+- Use `EnterPlanMode` when >2 files are affected, for new features, or architectural decisions
+- Keep answers short — code speaks for itself
+- Never invent functions/variables; use `Grep`/`Glob` to verify
+
+---
+
 ## Commands
 
 ```bash
