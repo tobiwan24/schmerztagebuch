@@ -62,9 +62,6 @@ export default function HomePage({ templates, onSelectTemplate, onNavigate, isLo
               key={template.id}
               className="template-card"
               onClick={() => template.id && onSelectTemplate(template.id)}
-              style={{
-                '--template-color': template.color || '#007AFF'
-              } as React.CSSProperties}
             >
               <div className="template-card-icon">
                 <IconComponent size={48} strokeWidth={2.5} />

@@ -193,29 +193,6 @@
   }
 }
 
-/* ========== TEMPLATE BUTTON CUSTOM COLORS (DiaryView) ========== */
-.template-button-custom {
-  background-color: var(--template-bg) !important;
-  color: white !important;
-  border-color: var(--template-bg) !important;
-}
-
-.template-button-custom:hover {
-  background-color: var(--template-bg) !important;
-  opacity: 0.9;
-}
-
-.template-button-active-custom {
-  background-color: var(--template-bg) !important;
-  color: white !important;
-  box-shadow: 0 0 0 2px var(--template-bg), 0 0 0 4px rgba(0, 0, 0, 0.1) !important;
-}
-
-.template-button-active-custom:hover {
-  background-color: var(--template-bg) !important;
-  opacity: 0.9;
-}
-
 /* ========== MULTISELECT BUTTON CUSTOM COLORS (MultiSelectBlock) ========== */
 .multiselect-button {
   transition: all 0.2s ease;

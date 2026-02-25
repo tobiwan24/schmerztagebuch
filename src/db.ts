@@ -16,6 +16,17 @@ db.version(14).stores({
   settings: 'key'
 });
 
+// Version 15: Persist image-to-textarea migration (was previously done at runtime)
+db.version(15).upgrade(async tx => {
+  const templates = await tx.table('templates').toArray();
+  for (const template of templates) {
+    const migrated = migrateImageBlocksToTextArea(template);
+    if (migrated !== template) {
+      await tx.table('templates').put(migrated);
+    }
+  }
+});
+
 // ========== MIGRATIONS ==========
 
 // Standard-Icons basierend auf Template-Namen - Lucide Icon Names (CamelCase)
@@ -182,8 +193,7 @@ function migrateImageBlocksToTextArea(template: Template): Template {
 }
 
 export async function getTemplates(): Promise<Template[]> {
-  const templates = await db.templates.orderBy('order').toArray();
-  return templates.map(migrateImageBlocksToTextArea);
+  return await db.templates.orderBy('order').toArray();
 }
 
 export async function getTemplate(id: number): Promise<Template | undefined> {
