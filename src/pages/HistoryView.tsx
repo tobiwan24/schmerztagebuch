@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getEntries, getTemplates, deleteEntry } from '../db';
-import { getSessionPassword } from '../utils/auth';
-import { decryptData } from '../utils/crypto';
+import { useDecrypt } from '../hooks/useDecrypt';
 import { exportToPDF } from '../utils/pdfExport';
 import type { Entry, Template } from '../types/database';
 import type { Block } from '../types/blocks';
@@ -19,6 +18,7 @@ interface HistoryViewProps {
 }
 
 export default function HistoryView({ onBack }: HistoryViewProps) {
+  const { decrypt } = useDecrypt();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,22 +81,12 @@ export default function HistoryView({ onBack }: HistoryViewProps) {
       setDecryptError(null);
       
       try {
-        let blocks: Block[];
-        
-        if (selectedEntry.encrypted) {
-          const password = getSessionPassword();
-          if (!password) {
-            setDecryptError('Session abgelaufen - bitte neu anmelden');
-            setIsDecrypting(false);
-            return;
-          }
-          
-          const decrypted = await decryptData(selectedEntry.data, password);
-          blocks = JSON.parse(decrypted);
-        } else {
-          blocks = JSON.parse(selectedEntry.data);
+        const blocks = await decrypt(selectedEntry);
+        if (blocks === null) {
+          setDecryptError('Session abgelaufen - bitte neu anmelden');
+          setIsDecrypting(false);
+          return;
         }
-        
         setDecryptedBlocks(blocks);
       } catch (error) {
         console.error('Fehler beim Laden:', error);
@@ -170,24 +160,15 @@ export default function HistoryView({ onBack }: HistoryViewProps) {
     
     try {
       const decryptedData = new Map<number, Block[]>();
-      const password = getSessionPassword();
-      
+
       for (const entry of entries) {
         if (entry.id) {
-          let blocks: Block[];
-          
-          if (entry.encrypted) {
-            if (!password) {
-              alert('Session abgelaufen - bitte neu anmelden');
-              setIsLoading(false);
-              return;
-            }
-            const decrypted = await decryptData(entry.data, password);
-            blocks = JSON.parse(decrypted);
-          } else {
-            blocks = JSON.parse(entry.data);
+          const blocks = await decrypt(entry);
+          if (blocks === null) {
+            alert('Session abgelaufen - bitte neu anmelden');
+            setIsLoading(false);
+            return;
           }
-          
           decryptedData.set(entry.id, blocks);
         }
       }
