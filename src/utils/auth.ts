@@ -1,7 +1,7 @@
 // Authentifizierungs- und Session-Management
 
 import { getSetting, setSetting } from '../db';
-import { verifyPassword, createPasswordTest } from './crypto';
+import { verifyPassword, createPasswordTest, arrayBufferToBase64, base64ToArrayBuffer } from './crypto';
 
 export type EncryptionMode = 'none' | 'history' | 'full';
 
@@ -11,30 +11,6 @@ const BIOMETRIC_ENABLED_KEY = 'biometricEnabled';
 const BIOMETRIC_CREDENTIAL_KEY = 'biometricCredential';
 const SESSION_KEY = 'authSession';
 const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 Stunden
-
-/**
- * iOS-kompatible Base64-Encoding
- */
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
-/**
- * iOS-kompatible Base64-Decoding
- */
-function base64ToArrayBuffer(base64: string): Uint8Array {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
 
 interface AuthSession {
   password: string;
@@ -276,7 +252,7 @@ export async function registerBiometric(password: string): Promise<boolean> {
     }
 
     // Credential-ID speichern (iOS-kompatibel)
-    const credentialId = arrayBufferToBase64(credential.rawId);
+    const credentialId = arrayBufferToBase64(new Uint8Array(credential.rawId));
     await setSetting(BIOMETRIC_CREDENTIAL_KEY, credentialId);
 
     // Passwort mit Credential verknüpfen (in Session speichern)

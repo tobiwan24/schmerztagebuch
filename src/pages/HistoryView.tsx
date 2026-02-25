@@ -32,6 +32,9 @@ type SortOption =
   | 'template_az'
   | 'template_date';
 
+// TODO: ContentFilter-Filterlogik ist noch nicht implementiert.
+// Die Checkboxen werden angezeigt und erhöhen activeFilterCount, filtern aber keine Einträge.
+// Implementierung: entries nach Block-Typen oder Inhalts-Eigenschaften filtern.
 type ContentFilter =
   | 'events'
   | 'doctor'

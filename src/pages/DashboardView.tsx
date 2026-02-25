@@ -117,14 +117,13 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
     }
   }
   
-  function filterPainDataByTimeRange(data: PainDataPoint[], range: 'T' | 'W' | 'M' | '6M' | 'J') {
+  function getDateRangeForTimeRange(range: 'T' | 'W' | 'M' | '6M' | 'J'): { cutoffDate: Date; endDate: Date } {
     const now = new Date();
     const cutoffDate = new Date(now);
     const endDate = new Date(now);
-    
+
     switch (range) {
       case 'T': {
-        // Tag: Heute + offset (00:00 bis 23:59)
         cutoffDate.setDate(now.getDate() + timeRangeOffset);
         cutoffDate.setHours(0, 0, 0, 0);
         endDate.setDate(now.getDate() + timeRangeOffset);
@@ -132,7 +131,6 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
         break;
       }
       case 'W': {
-        // Woche: Diese Woche + offset (Mo bis So)
         const dayOfWeek = now.getDay();
         const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         cutoffDate.setDate(now.getDate() - daysToMonday + (timeRangeOffset * 7));
@@ -142,17 +140,15 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
         break;
       }
       case 'M': {
-        // Monat: Aktueller Monat + offset (1. bis letzter Tag)
         cutoffDate.setMonth(now.getMonth() + timeRangeOffset);
         cutoffDate.setDate(1);
         cutoffDate.setHours(0, 0, 0, 0);
         endDate.setMonth(cutoffDate.getMonth() + 1);
-        endDate.setDate(0); // Letzter Tag des Monats
+        endDate.setDate(0);
         endDate.setHours(23, 59, 59, 999);
         break;
       }
       case '6M': {
-        // 6 Monate: Letzte 6 Monate + offset
         cutoffDate.setMonth(now.getMonth() - 5 + (timeRangeOffset * 6));
         cutoffDate.setDate(1);
         cutoffDate.setHours(0, 0, 0, 0);
@@ -162,7 +158,6 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
         break;
       }
       case 'J': {
-        // Jahr: Letzte 12 Monate + offset
         cutoffDate.setMonth(now.getMonth() - 11 + (timeRangeOffset * 12));
         cutoffDate.setDate(1);
         cutoffDate.setHours(0, 0, 0, 0);
@@ -172,62 +167,19 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
         break;
       }
     }
+    return { cutoffDate, endDate };
+  }
+
+  function filterPainDataByTimeRange(data: PainDataPoint[], range: 'T' | 'W' | 'M' | '6M' | 'J') {
+    const { cutoffDate, endDate } = getDateRangeForTimeRange(range);
     return data.filter(point => {
       const pointDate = new Date(point.date);
       return pointDate >= cutoffDate && pointDate <= endDate;
     });
   }
-  
+
   function filterEventsByTimeRange(data: EventMarker[], range: 'T' | 'W' | 'M' | '6M' | 'J') {
-    const now = new Date();
-    const cutoffDate = new Date(now);
-    const endDate = new Date(now);
-    
-    switch (range) {
-      case 'T': {
-        cutoffDate.setDate(now.getDate() + timeRangeOffset);
-        cutoffDate.setHours(0, 0, 0, 0);
-        endDate.setDate(now.getDate() + timeRangeOffset);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      }
-      case 'W': {
-        const dayOfWeek = now.getDay();
-        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        cutoffDate.setDate(now.getDate() - daysToMonday + (timeRangeOffset * 7));
-        cutoffDate.setHours(0, 0, 0, 0);
-        endDate.setDate(cutoffDate.getDate() + 6);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      }
-      case 'M': {
-        cutoffDate.setMonth(now.getMonth() + timeRangeOffset);
-        cutoffDate.setDate(1);
-        cutoffDate.setHours(0, 0, 0, 0);
-        endDate.setMonth(cutoffDate.getMonth() + 1);
-        endDate.setDate(0);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      }
-      case '6M': {
-        cutoffDate.setMonth(now.getMonth() - 5 + (timeRangeOffset * 6));
-        cutoffDate.setDate(1);
-        cutoffDate.setHours(0, 0, 0, 0);
-        endDate.setMonth(cutoffDate.getMonth() + 6);
-        endDate.setDate(0);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      }
-      case 'J': {
-        cutoffDate.setMonth(now.getMonth() - 11 + (timeRangeOffset * 12));
-        cutoffDate.setDate(1);
-        cutoffDate.setHours(0, 0, 0, 0);
-        endDate.setMonth(cutoffDate.getMonth() + 12);
-        endDate.setDate(0);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      }
-    }
+    const { cutoffDate, endDate } = getDateRangeForTimeRange(range);
     return data.filter(event => {
       const eventDate = new Date(event.date);
       return eventDate >= cutoffDate && eventDate <= endDate;
@@ -539,18 +491,7 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
               }}>
                 <button
                   onClick={handlePreviousTimeRange}
-                  style={{
-                    background: 'hsl(var(--secondary))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px',
-                    padding: '4px 8px',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    color: 'hsl(var(--foreground))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
+                  className={styles.navButton}
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -564,18 +505,7 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
                 </button>
                 <button
                   onClick={handleNextTimeRange}
-                  style={{
-                    background: 'hsl(var(--secondary))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px',
-                    padding: '4px 8px',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    color: 'hsl(var(--foreground))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
+                  className={styles.navButton}
                 >
                   <ChevronRight size={16} />
                 </button>

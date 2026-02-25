@@ -251,6 +251,23 @@
   display: none;
 }
 
+/* ----------------------------------------
+   NAV BUTTONS (Chevron Links/Rechts)
+   ---------------------------------------- */
+
+.navButton {
+  background: hsl(var(--secondary));
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 14px;
+  cursor: pointer;
+  color: hsl(var(--foreground));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Mobile: Kurze Datumsanzeige */
 @media (max-width: 480px) {
   .dateRangeFull {

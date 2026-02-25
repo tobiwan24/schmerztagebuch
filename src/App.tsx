@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { initializeDB, getAppSettings } from './db';
-import { getEncryptionMode, requiresAuth, checkPassword, setSession, isSessionValid } from './utils/auth';
+import { requiresAuth, checkPassword, setSession, isSessionValid } from './utils/auth';
 import SetupWizard from './pages/SetupWizard';
 import HomePage from './pages/HomePage';
 import DiaryView from './pages/DiaryView';
@@ -30,13 +30,12 @@ export default function App() {
       try {
         await initializeDB();
         const settings = await getAppSettings();
-        const mode = await getEncryptionMode();
-        
+
         // Load templates
         await loadTemplates();
-        
+
         if (settings.setupCompleted) {
-          if (mode === 'full' && !isSessionValid()) {
+          if (settings.encryptionMode === 'full' && !isSessionValid()) {
             setPendingView('home');
             setShowAuthModal(true);
           } else {
