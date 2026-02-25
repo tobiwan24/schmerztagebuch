@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { initializeDB, getAppSettings } from './db';
-import { getEncryptionMode, requiresAuth, checkPassword, setSession, isSessionValid } from './utils/auth';
+import { getEncryptionMode, requiresAuth, checkPassword, setSession, isSessionValid, refreshSession } from './utils/auth';
 import SetupWizard from './pages/SetupWizard';
 import HomePage from './pages/HomePage';
 import DiaryView from './pages/DiaryView';
@@ -57,6 +57,19 @@ export default function App() {
     const debugMode = localStorage.getItem('debugEnabled');
     setDebugEnabled(debugMode === 'true');
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Session auto-refresh on user activity
+  useEffect(() => {
+    const refresh = () => { if (isSessionValid()) refreshSession(); };
+    window.addEventListener('click', refresh);
+    window.addEventListener('keydown', refresh);
+    window.addEventListener('touchstart', refresh);
+    return () => {
+      window.removeEventListener('click', refresh);
+      window.removeEventListener('keydown', refresh);
+      window.removeEventListener('touchstart', refresh);
+    };
   }, []);
 
   // Reload templates when returning to home view
