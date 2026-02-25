@@ -62,54 +62,50 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
   const [visibleTemplates, setVisibleTemplates] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+    async function load() {
+      try {
+        const [allEntries, allTemplates] = await Promise.all([getEntries(), getTemplates()]);
+        if (cancelled) return;
+        setEntries(allEntries);
+        setTemplates(allTemplates);
+        const dashTemplates = getDashboardEnabledTemplates(allTemplates);
+        setDashboardTemplates(dashTemplates);
+        setVisibleTemplates(new Set(dashTemplates.map(t => t.id!)));
+      } catch (error) {
+        console.error('Fehler beim Laden der Dashboard-Daten:', error);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
-    if (entries.length > 0 && templates.length > 0) {
-      aggregateData();
+    if (entries.length === 0 || templates.length === 0) return;
+    let cancelled = false;
+    async function load() {
+      try {
+        const painData = await extractPainData(entries, templates);
+        if (cancelled) return;
+        const filteredPainData = filterPainDataByTimeRange(painData, timeRange);
+        const dailyData = aggregatePainByDay(filteredPainData);
+        const aggregatedData = aggregateDataByTimeRange(dailyData, timeRange);
+        if (!cancelled) setDailyPainData(aggregatedData);
+        const eventData = await extractEvents(entries, templates);
+        if (cancelled) return;
+        const filteredEvents = filterEventsByTimeRange(eventData, timeRange);
+        if (!cancelled) setEvents(filteredEvents);
+      } catch (error) {
+        console.error('Fehler beim Aggregieren der Daten:', error);
+      }
     }
+    load();
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, templates, timeRange, timeRangeOffset]);
 
-  async function loadData() {
-    try {
-      const [allEntries, allTemplates] = await Promise.all([
-        getEntries(),
-        getTemplates()
-      ]);
-      
-      setEntries(allEntries);
-      setTemplates(allTemplates);
-      
-      const dashTemplates = getDashboardEnabledTemplates(allTemplates);
-      setDashboardTemplates(dashTemplates);
-      setVisibleTemplates(new Set(dashTemplates.map(t => t.id!)));
-    } catch (error) {
-      console.error('Fehler beim Laden der Dashboard-Daten:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function aggregateData() {
-    try {
-      const painData = await extractPainData(entries, templates);
-      const filteredPainData = filterPainDataByTimeRange(painData, timeRange);
-      const dailyData = aggregatePainByDay(filteredPainData);
-      
-      // Adaptive Aggregation basierend auf Zeitraum
-      const aggregatedData = aggregateDataByTimeRange(dailyData, timeRange);
-      setDailyPainData(aggregatedData);
-      
-      const eventData = await extractEvents(entries, templates);
-      const filteredEvents = filterEventsByTimeRange(eventData, timeRange);
-      setEvents(filteredEvents);
-    } catch (error) {
-      console.error('Fehler beim Aggregieren der Daten:', error);
-    }
-  }
-  
   function filterPainDataByTimeRange(data: PainDataPoint[], range: 'T' | 'W' | 'M' | '6M' | 'J') {
     const now = new Date();
     const cutoffDate = new Date(now);

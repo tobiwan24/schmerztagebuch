@@ -47,7 +47,11 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
 
   // Load templates on mount and when returning from editor
   useEffect(() => {
-    loadTemplates();
+    let cancelled = false;
+    db.templates.orderBy('order').toArray().then(allTemplates => {
+      if (!cancelled) setTemplates(allTemplates);
+    });
+    return () => { cancelled = true; };
   }, [initialActiveTemplateId]);
 
   // Set active template from initialActiveTemplateId and scroll to top
