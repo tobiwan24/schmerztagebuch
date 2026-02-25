@@ -94,6 +94,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
 
   // Pull-to-Reveal Logic
   useLayoutEffect(() => {
+    let containerCleanup: (() => void) | undefined;
     const initTimeout = setTimeout(() => {
       const container = contentRef.current;
       if (!container) {
@@ -247,10 +248,18 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
       container.addEventListener('touchmove', handleTouchMove, { passive: false });
       container.addEventListener('touchend', handleTouchEnd, { passive: true });
       container.addEventListener('wheel', handleWheel, { passive: false });
+
+      containerCleanup = () => {
+        container.removeEventListener('touchstart', handleTouchStart);
+        container.removeEventListener('touchmove', handleTouchMove);
+        container.removeEventListener('touchend', handleTouchEnd);
+        container.removeEventListener('wheel', handleWheel);
+      };
     }, 100);
 
     return () => {
       clearTimeout(initTimeout);
+      containerCleanup?.();
     };
   }, []);
 

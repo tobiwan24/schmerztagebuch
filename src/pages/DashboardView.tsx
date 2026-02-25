@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getEntries, getTemplates } from '../db';
+import { getSessionPassword } from '../utils/auth';
+import { decryptData } from '../utils/crypto';
 import type { Entry, Template } from '../types/database';
 import Header from '../components/Header';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -94,15 +96,20 @@ export default function DashboardView({ onBack, onNavigate }: DashboardViewProps
 
   async function aggregateData() {
     try {
-      const painData = await extractPainData(entries, templates);
+      const password = getSessionPassword();
+      const decryptFn = password
+        ? (data: string) => decryptData(data, password)
+        : undefined;
+
+      const painData = await extractPainData(entries, templates, decryptFn);
       const filteredPainData = filterPainDataByTimeRange(painData, timeRange);
       const dailyData = aggregatePainByDay(filteredPainData);
-      
+
       // Adaptive Aggregation basierend auf Zeitraum
       const aggregatedData = aggregateDataByTimeRange(dailyData, timeRange);
       setDailyPainData(aggregatedData);
-      
-      const eventData = await extractEvents(entries, templates);
+
+      const eventData = await extractEvents(entries, templates, decryptFn);
       const filteredEvents = filterEventsByTimeRange(eventData, timeRange);
       setEvents(filteredEvents);
     } catch (error) {

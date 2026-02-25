@@ -68,20 +68,20 @@ export function filterEntriesByTimeRange(
 export function extractPainData(
   entries: Entry[],
   templates: Template[],
-  decryptFn?: (data: string, password: string) => Promise<string>
+  decryptFn?: (data: string) => Promise<string>
 ): Promise<PainDataPoint[]> {
   return Promise.all(
     entries.map(async (entry) => {
       const template = templates.find(t => t.id === entry.templateId);
       if (!template) return [];
-      
+
       let blocks: Block[];
-      
+
       try {
-        // Decrypt if needed
-        if (entry.encrypted && decryptFn) {
-          // TODO: Handle encryption later
-          return [];
+        if (entry.encrypted) {
+          if (!decryptFn) return [];
+          const decrypted = await decryptFn(entry.data);
+          blocks = JSON.parse(decrypted);
         } else {
           blocks = JSON.parse(entry.data);
         }
@@ -199,19 +199,21 @@ export function aggregatePainByDay(painData: PainDataPoint[]): DailyPainData[] {
  */
 export function extractEvents(
   entries: Entry[],
-  templates: Template[]
+  templates: Template[],
+  decryptFn?: (data: string) => Promise<string>
 ): Promise<EventMarker[]> {
   return Promise.all(
     entries.map(async (entry) => {
       const template = templates.find(t => t.id === entry.templateId);
       if (!template) return [];
-      
+
       let blocks: Block[];
-      
+
       try {
         if (entry.encrypted) {
-          // TODO: Handle encryption later
-          return [];
+          if (!decryptFn) return [];
+          const decrypted = await decryptFn(entry.data);
+          blocks = JSON.parse(decrypted);
         } else {
           blocks = JSON.parse(entry.data);
         }

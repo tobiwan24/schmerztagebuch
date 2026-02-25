@@ -74,7 +74,7 @@ export default function UpdateControl() {
     
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       window.location.reload();
-    });
+    }, { once: true });
   }
 
   function toggleAutoUpdate() {

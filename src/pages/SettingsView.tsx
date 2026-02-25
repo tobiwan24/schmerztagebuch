@@ -183,7 +183,14 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
       
       await updatePassword(newPassword);
       setSession(newPassword);
-      
+
+      // Biometrie deaktivieren — sie ist mit dem alten Passwort verknüpft
+      const bioEnabled = await isBiometricEnabled();
+      if (bioEnabled) {
+        await disableBiometric();
+        setBiometricEnabledState(false);
+      }
+
       alert('Passwort erfolgreich geändert!');
       
       setShowChangePassword(false);
