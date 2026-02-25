@@ -1,0 +1,36 @@
+/* ================================================
+   MultiSelect Block – Custom Color Buttons
+   ================================================ */
+
+.multiselectButton {
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.multiselectButtonSelected {
+  background-color: var(--multiselect-color) !important;
+  color: white !important;
+  border-color: #000 !important;
+  border-width: 2px !important;
+  opacity: 1 !important;
+  transform: scale(1.05);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.multiselectButtonSelected:hover {
+  background-color: var(--multiselect-color) !important;
+  border-color: #000 !important;
+  opacity: 0.95 !important;
+}
+
+.multiselectButtonUnselected {
+  background-color: var(--multiselect-color) !important;
+  color: white !important;
+  border-color: var(--multiselect-color) !important;
+  opacity: 0.7 !important;
+}
+
+.multiselectButtonUnselected:hover {
+  background-color: var(--multiselect-color) !important;
+  opacity: 0.85 !important;
+}

@@ -3,6 +3,7 @@ import type { Block } from '../../types/blocks';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import styles from './MultiSelectBlock.module.css';
 
 interface MultiSelectBlockProps {
   block: Block;
@@ -50,7 +51,6 @@ export default function MultiSelectBlock({ block, onChange, readOnly = false, hi
           return (
             <div
               key={index}
-              className="multiselect-button-wrapper"
               style={{ '--multiselect-color': option.color } as React.CSSProperties}
             >
               <Button
@@ -58,8 +58,8 @@ export default function MultiSelectBlock({ block, onChange, readOnly = false, hi
                 onClick={() => handleToggle(option.text)}
                 disabled={readOnly}
                 className={cn(
-                  "multiselect-button",
-                  isSelected ? "multiselect-button-selected" : "multiselect-button-unselected"
+                  styles.multiselectButton,
+                  isSelected ? styles.multiselectButtonSelected : styles.multiselectButtonUnselected
                 )}
               >
                 {option.text}

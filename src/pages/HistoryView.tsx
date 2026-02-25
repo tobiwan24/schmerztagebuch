@@ -95,7 +95,7 @@ export default function HistoryView() {
     }
     
     decryptEntry();
-  }, [selectedEntry]);
+  }, [selectedEntry, decrypt]);
 
   async function handleDeleteEntry(entryId: number) {
     if (!confirm('Eintrag wirklich löschen?')) return;
