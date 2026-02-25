@@ -408,6 +408,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
           }
 
           function animStep(now: number) {
+            if (!container) return;
             const elapsed = now - start;
             const progress = Math.min(elapsed / duration, 1);
             container.scrollTop = startScroll + (maxScroll - startScroll) * easeInOut(progress);

@@ -126,7 +126,7 @@ export function refreshSession(): void {
 /**
  * Prüft ob Auth für eine View erforderlich ist
  */
-export async function requiresAuth(_view: 'diary' | 'history' | 'editor'): Promise<boolean> {
+export async function requiresAuth(): Promise<boolean> {
   const mode = await getEncryptionMode();
   
   if (mode === 'none') return false;

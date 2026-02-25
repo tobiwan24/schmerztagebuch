@@ -136,13 +136,15 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
   const { entries, templates, decryptedData, startDate, endDate, selectedTemplate, imageSize = 'a5', password = '' } = options;
 
   // PDF erstellen (A4 Format)
-  const pdfOptions: ConstructorParameters<typeof jsPDF>[0] = {
+  // Record<string,unknown> nötig weil ConstructorParameters<jsPDF>[0] die Options-Überladung
+  // nicht korrekt auflöst (liefert orientation-String-Union statt Options-Objekt)
+  const pdfOptions: Record<string, unknown> = {
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4',
   };
   if (password) {
-    (pdfOptions as Record<string, unknown>).encryption = {
+    pdfOptions['encryption'] = {
       userPassword: password,
       ownerPassword: password + '_owner',
       userPermissions: ['print', 'copy'],
@@ -486,16 +488,10 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
       // Bild einfügen
       try {
         // Maximalmaße je gewählter Bildgröße
-        let maxWidth: number;
-        let maxHeight: number;
-        if (imageSize === 'none') {
-          // Übersprungen – wird vorher abgefangen
-          maxWidth = 0; maxHeight = 0;
-        } else {
-          const sizeMM = IMAGE_SIZE_MM[imageSize];
-          maxWidth = Math.min(sizeMM.w - 10, pageWidth - 2 * margin);
-          maxHeight = Math.min(sizeMM.h - 10, pageHeight - yPosition - 20);
-        }
+        // imageSize !== 'none' ist durch den äußeren Guard (Zeile ~440) sichergestellt
+        const sizeMM = IMAGE_SIZE_MM[imageSize];
+        const maxWidth = Math.min(sizeMM.w - 10, pageWidth - 2 * margin);
+        const maxHeight = Math.min(sizeMM.h - 10, pageHeight - yPosition - 20);
         
         // Bild-Daten vorbereiten
         let imageData = attachment.imageData;

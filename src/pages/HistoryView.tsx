@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft, Trash2, ChevronRight, X, Download,
   Filter, ArrowUpDown, Check, ChevronDown,
-  Calendar, Stethoscope, Map, ImageIcon, FileText,
+  Calendar, Stethoscope, Map as MapIcon, ImageIcon, FileText,
   CalendarDays, Tag
 } from 'lucide-react';
 import BlockRenderer from '../components/BlockRenderer';
@@ -183,7 +183,6 @@ function EntryCard({ entry, template, onClick }: EntryCardProps) {
     minute: '2-digit',
   });
 
-  const IconComp = getIconComponent(template?.icon);
   const iconColor = template?.color ?? '#6366f1';
 
   return (
@@ -200,7 +199,9 @@ function EntryCard({ entry, template, onClick }: EntryCardProps) {
         className="history-entry-icon"
         style={{ background: iconColor }}
       >
-        <IconComp size={20} color="#fff" strokeWidth={2} />
+        <span style={{ color: '#fff', display: 'flex' }}>
+          {React.createElement(getIconComponent(template?.icon), { size: 20, strokeWidth: 2 })}
+        </span>
       </div>
 
       {/* Content */}
@@ -218,11 +219,11 @@ function EntryCard({ entry, template, onClick }: EntryCardProps) {
 
           {meta && (
             <span className="history-entry-icons">
-              {meta.hasEvent && <Calendar size={13} className="history-icon" title="Event" />}
-              {meta.hasDoctor && <Stethoscope size={13} className="history-icon" title="Arzttermin" />}
-              {meta.hasBodyMap && <Map size={13} className="history-icon" title="Körperkarte" />}
-              {meta.hasPhoto && <ImageIcon size={13} className="history-icon" title="Foto" />}
-              {meta.hasPdf && <FileText size={13} className="history-icon" title="PDF" />}
+              {meta.hasEvent && <span title="Event"><Calendar size={13} className="history-icon" /></span>}
+              {meta.hasDoctor && <span title="Arzttermin"><Stethoscope size={13} className="history-icon" /></span>}
+              {meta.hasBodyMap && <span title="Körperkarte"><MapIcon size={13} className="history-icon" /></span>}
+              {meta.hasPhoto && <span title="Foto"><ImageIcon size={13} className="history-icon" /></span>}
+              {meta.hasPdf && <span title="PDF"><FileText size={13} className="history-icon" /></span>}
             </span>
           )}
         </div>
@@ -596,7 +597,7 @@ export default function HistoryView({ onBack }: HistoryViewProps) {
   const contentFilterOptions: { value: ContentFilter; label: string; icon: React.ReactNode }[] = [
     { value: 'events', label: 'Mit Events', icon: <Calendar size={14} /> },
     { value: 'doctor', label: 'Mit Arztterminen', icon: <Stethoscope size={14} /> },
-    { value: 'bodymap', label: 'Mit Körperkarte', icon: <Map size={14} /> },
+    { value: 'bodymap', label: 'Mit Körperkarte', icon: <MapIcon size={14} /> },
     { value: 'photo', label: 'Mit Fotos', icon: <ImageIcon size={14} /> },
     { value: 'pdf', label: 'Mit PDF', icon: <FileText size={14} /> },
   ];

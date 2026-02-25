@@ -353,6 +353,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
         const currentEnabled = block.dashboard?.enabled || false;
         
         if (currentEnabled) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { dashboard: _dashboard, ...rest } = block;
           return rest;
         } else {
@@ -384,6 +385,7 @@ export default function EditorMode({ onBack, initialTemplateId }: EditorModeProp
       
       if (allEnabled) {
         // Alle deaktivieren
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { dashboard: _dashboard, ...rest } = block;
         return rest;
       } else {

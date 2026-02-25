@@ -55,7 +55,6 @@ export default function App() {
     
     const debugMode = localStorage.getItem('debugEnabled');
     setDebugEnabled(debugMode === 'true');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reload templates when returning to home view
@@ -63,7 +62,6 @@ export default function App() {
     if (currentView === 'home') {
       loadTemplates();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentView]);
 
   async function loadTemplates() {
@@ -77,7 +75,7 @@ export default function App() {
   };
 
   const handleNavigate = async (view: 'editor' | 'history' | 'diary' | 'settings' | 'dashboard') => {
-    const needsAuth = await requiresAuth(view as 'diary' | 'history' | 'editor');
+    const needsAuth = await requiresAuth();
     
     if (needsAuth && !isSessionValid()) {
       setPendingView(view as 'diary' | 'history' | 'editor');
