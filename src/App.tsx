@@ -10,6 +10,7 @@ import AuthModal from './components/AuthModal';
 import DebugPanel from './components/DebugPanel';
 import SettingsView from './pages/SettingsView';
 import InstallPrompt from './components/InstallPrompt';
+import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
 function AppInner() {
@@ -47,7 +48,7 @@ function AppInner() {
   if (currentView === 'setup') {
     return (
       <>
-        <SetupWizard />
+        <ErrorBoundary><SetupWizard /></ErrorBoundary>
         {debugEnabled && <DebugPanel />}
       </>
     );
@@ -56,7 +57,7 @@ function AppInner() {
   if (currentView === 'editor') {
     return (
       <>
-        <EditorMode />
+        <ErrorBoundary><EditorMode /></ErrorBoundary>
         {authModal}
         {debugEnabled && <DebugPanel />}
       </>
@@ -66,7 +67,7 @@ function AppInner() {
   if (currentView === 'history') {
     return (
       <>
-        <HistoryView />
+        <ErrorBoundary><HistoryView /></ErrorBoundary>
         {authModal}
         {debugEnabled && <DebugPanel />}
       </>
@@ -76,7 +77,7 @@ function AppInner() {
   if (currentView === 'settings') {
     return (
       <>
-        <SettingsView />
+        <ErrorBoundary><SettingsView /></ErrorBoundary>
         {debugEnabled && <DebugPanel />}
       </>
     );
@@ -85,7 +86,7 @@ function AppInner() {
   if (currentView === 'dashboard') {
     return (
       <>
-        <DashboardView />
+        <ErrorBoundary><DashboardView /></ErrorBoundary>
         {authModal}
         {debugEnabled && <DebugPanel />}
       </>
@@ -95,7 +96,7 @@ function AppInner() {
   if (currentView === 'home') {
     return (
       <>
-        <HomePage />
+        <ErrorBoundary><HomePage /></ErrorBoundary>
         {authModal}
         {debugEnabled && <DebugPanel />}
         <InstallPrompt />
@@ -106,7 +107,7 @@ function AppInner() {
   // DiaryView
   return (
     <>
-      <DiaryView />
+      <ErrorBoundary><DiaryView /></ErrorBoundary>
       {authModal}
       {debugEnabled && <DebugPanel />}
       <InstallPrompt />
@@ -116,8 +117,10 @@ function AppInner() {
 
 export default function App() {
   return (
-    <NavigationProvider>
-      <AppInner />
-    </NavigationProvider>
+    <ErrorBoundary>
+      <NavigationProvider>
+        <AppInner />
+      </NavigationProvider>
+    </ErrorBoundary>
   );
 }
