@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Check, RefreshCw, BookOpen, Shield, Fingerprint, Key, AlertCircle, LayoutTemplate } from 'lucide-react';
+import { useNavigation } from '../contexts/NavigationContext';
 
 function isCryptoAvailable(): boolean {
   return !!(window.crypto && window.crypto.subtle);
@@ -26,11 +27,8 @@ function getCryptoWarning(): string {
   return '⚠️ Web Crypto API nicht verfügbar in diesem Browser.';
 }
 
-interface SetupWizardProps {
-  onComplete: () => void;
-}
-
-export default function SetupWizard({ onComplete }: SetupWizardProps) {
+export default function SetupWizard() {
+  const { setupComplete: onComplete } = useNavigation();
   const [step, setStep] = useState<'welcome' | 'updates' | 'encryption' | 'password' | 'biometric' | 'templates'>('welcome');
   const [selectedMode, setSelectedMode] = useState<EncryptionMode>('none');
   const [autoUpdate, setAutoUpdate] = useState(true);

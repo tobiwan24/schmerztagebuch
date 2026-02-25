@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getEntries, getTemplates, deleteEntry } from '../db';
 import { useDecrypt } from '../hooks/useDecrypt';
+import { useNavigation } from '../contexts/NavigationContext';
 import { exportToPDF } from '../utils/pdfExport';
 import type { Entry, Template } from '../types/database';
 import type { Block } from '../types/blocks';
@@ -13,11 +14,8 @@ import { ArrowLeft, Trash2, ChevronRight, X, Download } from 'lucide-react';
 import BlockRenderer from '../components/BlockRenderer';
 import PageTutorial from '../components/tutorial/PageTutorial';
 
-interface HistoryViewProps {
-  onBack: () => void;
-}
-
-export default function HistoryView({ onBack }: HistoryViewProps) {
+export default function HistoryView() {
+  const { goHome: onBack } = useNavigation();
   const { decrypt } = useDecrypt();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);

@@ -1,18 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { Template } from '../types/database';
 import { getIconComponent } from '../utils/iconUtils';
 import { History, TrendingUp, Settings } from 'lucide-react';
 import '../styles/home-page.css';
 import PageTutorial from '../components/tutorial/PageTutorial';
+import { useNavigation } from '../contexts/NavigationContext';
 
-interface HomePageProps {
-  templates: Template[];
-  onSelectTemplate: (templateId: number) => void;
-  onNavigate: (view: 'history' | 'dashboard' | 'settings') => void;
-  isLoading?: boolean;
-}
+export default function HomePage() {
+  const { templates, selectTemplate, navigate } = useNavigation();
 
-export default function HomePage({ templates, onSelectTemplate, onNavigate, isLoading }: HomePageProps) {
   const [username, setUsername] = useState<string>(() => {
     return localStorage.getItem('username') || '';
   });
@@ -24,7 +19,7 @@ export default function HomePage({ templates, onSelectTemplate, onNavigate, isLo
     };
 
     window.addEventListener('storage', handleStorageChange);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
@@ -32,15 +27,6 @@ export default function HomePage({ templates, onSelectTemplate, onNavigate, isLo
 
   // Memoize template rendering to prevent unnecessary re-renders
   const templateCards = useMemo(() => {
-    if (isLoading) {
-      return (
-        <div className="home-loading">
-          <div className="spinner"></div>
-          <p>Lade Vorlagen...</p>
-        </div>
-      );
-    }
-
     if (templates.length === 0) {
       return (
         <div className="home-empty">
@@ -56,12 +42,12 @@ export default function HomePage({ templates, onSelectTemplate, onNavigate, isLo
       <div className="template-grid">
         {templates.map((template) => {
           const IconComponent = getIconComponent(template.icon || 'book');
-          
+
           return (
             <button
               key={template.id}
               className="template-card"
-              onClick={() => template.id && onSelectTemplate(template.id)}
+              onClick={() => template.id && selectTemplate(template.id)}
             >
               <div className="template-card-icon">
                 <IconComponent size={48} strokeWidth={2.5} />
@@ -74,11 +60,11 @@ export default function HomePage({ templates, onSelectTemplate, onNavigate, isLo
         })}
       </div>
     );
-  }, [templates, isLoading, onSelectTemplate]);
+  }, [templates, selectTemplate]);
 
   return (
     <div className="home-page">
-      
+
       <div className="home-content">
         <header className="home-header">
           <h1 className="home-greeting">
@@ -120,23 +106,23 @@ export default function HomePage({ templates, onSelectTemplate, onNavigate, isLo
         <footer className="home-footer">
           <button
             className="nav-button"
-            onClick={() => onNavigate('history')}
+            onClick={() => navigate('history')}
           >
             <History size={28} strokeWidth={2.5} />
             <span>Verlauf</span>
           </button>
-          
+
           <button
             className="nav-button"
-            onClick={() => onNavigate('dashboard')}
+            onClick={() => navigate('dashboard')}
           >
             <TrendingUp size={28} strokeWidth={2.5} />
             <span>Dashboard</span>
           </button>
-          
+
           <button
             className="nav-button"
-            onClick={() => onNavigate('settings')}
+            onClick={() => navigate('settings')}
           >
             <Settings size={28} strokeWidth={2.5} />
             <span>Einstellungen</span>

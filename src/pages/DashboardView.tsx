@@ -23,6 +23,7 @@ import {
   type PainDataPoint
 } from '../utils/dashboardData';
 import styles from '../styles/DashboardView.module.css';
+import { useNavigation } from '../contexts/NavigationContext';
 
 // Vordefinierte Farbpalette für Charts (optimiert für Light & Dark Mode)
 const CHART_COLORS = [
@@ -45,12 +46,8 @@ function getTemplateColor(index: number, totalTemplates: number): string {
   return `hsl(${hue}, 70%, 50%)`;
 }
 
-interface DashboardViewProps {
-  onBack: () => void;
-  onNavigate: (view: 'editor' | 'history' | 'diary' | 'settings' | 'dashboard') => void;
-}
-
-export default function DashboardView({ onBack, onNavigate }: DashboardViewProps) {
+export default function DashboardView() {
+  const { goHome: onBack, navigate: onNavigate } = useNavigation();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);

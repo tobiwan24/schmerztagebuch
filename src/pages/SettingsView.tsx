@@ -13,12 +13,10 @@ import { Separator } from "@/components/ui/separator";
 import { AlertCircle, Trash2, Shield, Key, Fingerprint, Info, RotateCcw } from 'lucide-react';
 import PageTutorial from '../components/tutorial/PageTutorial';
 import { useTutorial } from '../contexts/TutorialContext';
+import { useNavigation } from '../contexts/NavigationContext';
 
-interface SettingsViewProps {
-  onBack: () => void;
-}
-
-export default function SettingsView({ onBack }: SettingsViewProps) {
+export default function SettingsView() {
+  const { goHome: onBack } = useNavigation();
   const { resetTutorials } = useTutorial();
   const [currentMode, setCurrentMode] = useState<EncryptionMode>('none');
   const [biometricEnabled, setBiometricEnabledState] = useState(false);

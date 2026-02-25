@@ -11,15 +11,10 @@ import { Card } from "@/components/ui/card";
 import { Check, Menu, History, Settings, TrendingUp, Paintbrush, Plus, ArrowLeft } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import PageTutorial from '../components/tutorial/PageTutorial';
+import { useNavigation } from '../contexts/NavigationContext';
 
-interface DiaryViewProps {
-  onNavigate: (view: 'editor' | 'history' | 'diary' | 'settings' | 'dashboard') => void;
-  onEditTemplate?: (templateId: number) => void;
-  onBack?: () => void;
-  initialActiveTemplateId?: number;
-}
-
-export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialActiveTemplateId }: DiaryViewProps) {
+export default function DiaryView() {
+  const { navigate, editTemplate, goHome, activeTemplateId: initialActiveTemplateId } = useNavigation();
   // State
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
@@ -277,7 +272,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
     try {
       await createTemplate(name, []);
       await loadTemplates();
-      onNavigate('editor');
+      navigate('editor');
     } catch (error) {
       console.error('Fehler beim Erstellen:', error);
       alert('Fehler beim Erstellen der Vorlage');
@@ -369,11 +364,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
       if (!confirmed) return;
     }
 
-    if (onEditTemplate) {
-      onEditTemplate(currentTemplate.id);
-    } else {
-      onNavigate('editor');
-    }
+    editTemplate(currentTemplate.id);
   }
 
   function triggerPersonalizeReveal() {
@@ -535,16 +526,16 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
             <div className="fixed inset-0 bg-black/30 z-20" onClick={() => setShowMenu(false)} />
             <Card className="fixed top-16 right-4 z-40 p-2 shadow-xl min-w-[240px] border-2">
               <div className="space-y-1">
-                <Button onClick={() => { setShowMenu(false); onNavigate('editor'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+                <Button onClick={() => { setShowMenu(false); navigate('editor'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
                   <Paintbrush size={22} /><span className="font-medium">Seite personalisieren</span>
                 </Button>
-                <Button onClick={() => { setShowMenu(false); onNavigate('history'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+                <Button onClick={() => { setShowMenu(false); navigate('history'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
                   <History size={22} /><span className="font-medium">Verlauf anzeigen</span>
                 </Button>
-                <Button onClick={() => { setShowMenu(false); onNavigate('dashboard'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+                <Button onClick={() => { setShowMenu(false); navigate('dashboard'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
                   <TrendingUp size={22} /><span className="font-medium">Dashboard</span>
                 </Button>
-                <Button onClick={() => { setShowMenu(false); onNavigate('settings'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+                <Button onClick={() => { setShowMenu(false); navigate('settings'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
                   <Settings size={22} /><span className="font-medium">Einstellungen</span>
                 </Button>
               </div>
@@ -577,7 +568,7 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
 
       <div className="fixed top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
-          <button className="floating-btn-glass" onClick={() => onBack?.()}>
+          <button className="floating-btn-glass" onClick={() => goHome()}>
             <ArrowLeft size={22} />
           </button>
           <h1 className="text-base font-semibold">{activeTemplate?.name || 'Tagebuch'}</h1>
@@ -722,13 +713,13 @@ export default function DiaryView({ onNavigate, onEditTemplate, onBack, initialA
               <Button onClick={() => { setShowMenu(false); handlePersonalize(); }} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <Paintbrush size={22} /><span className="font-medium">Seite personalisieren</span>
               </Button>
-              <Button onClick={() => { setShowMenu(false); onNavigate('history'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+              <Button onClick={() => { setShowMenu(false); navigate('history'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <History size={22} /><span className="font-medium">Verlauf anzeigen</span>
               </Button>
-              <Button onClick={() => { setShowMenu(false); onNavigate('dashboard'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+              <Button onClick={() => { setShowMenu(false); navigate('dashboard'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <TrendingUp size={22} /><span className="font-medium">Dashboard</span>
               </Button>
-              <Button onClick={() => { setShowMenu(false); onNavigate('settings'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+              <Button onClick={() => { setShowMenu(false); navigate('settings'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <Settings size={22} /><span className="font-medium">Einstellungen</span>
               </Button>
             </div>
