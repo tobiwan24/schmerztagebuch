@@ -4,7 +4,7 @@ import type { Entry, Template } from '../types/database';
 import Header from '../components/Header';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, CircleSlash2, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronLeft, ChevronRight, TrendingUpDown } from 'lucide-react';
+import { TrendingUp, CircleSlash2, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronLeft, ChevronRight, TrendingUpDown, ChartArea } from 'lucide-react';
 import { ApexLineChart } from '../components/charts/ApexLineChart';
 import PageTutorial from '../components/tutorial/PageTutorial';
 import {
@@ -612,49 +612,49 @@ export default function DashboardView() {
                 </div>
               )}
 
-              {/* Template Legend UNTER dem Chart */}
-              {dashboardTemplates.length > 1 && (
-                <div className={styles.templateLegend}>
-                  {dashboardTemplates.map((template, index) => {
-                    const isVisible = visibleTemplates.has(template.id!);
-                    const key = `template_${template.id}_avg`;
-                    const color = chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
-                    return (
-                      <div
-                        key={template.id}
-                        className={`${styles.templateIcon} ${!isVisible ? styles.inactive : ''}`}
-                        onClick={() => toggleTemplate(template.id!)}
-                        style={{ backgroundColor: color }}
-                        title={template.name}
-                      >
-                        {React.createElement(getIconComponent(template.icon), { size: 16, className: 'text-white', strokeWidth: 2 })}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              {/* Template + Funktionswert Toggles */}
+              <div className="flex gap-2 flex-wrap justify-center mt-3">
+                {dashboardTemplates.map((template, index) => {
+                  const isVisible = visibleTemplates.has(template.id!);
+                  const key = `template_${template.id}_avg`;
+                  const color = chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
+                  const hasFn = dailyFunctionData.some(d => d.templateId === template.id);
+                  const isFnActive = visibleFunctionSeries.has(template.id!);
+                  const fnEnabled = isVisible && hasFn;
 
-              {/* Funktionswert Sub-Toggle */}
-              {dailyFunctionData.length > 0 && (
-                <div className={styles.functionLegend}>
-                  {dashboardTemplates.map(template => {
-                    const hasFn = dailyFunctionData.some(d => d.templateId === template.id);
-                    if (!hasFn || !visibleTemplates.has(template.id!)) return null;
-                    const isActive = visibleFunctionSeries.has(template.id!);
-                    const key = `template_${template.id}_avg`;
-                    const color = chartConfig[key]?.color;
-                    return (
-                      <button
-                        key={template.id}
-                        onClick={() => toggleFunctionSeries(template.id!)}
-                        className={`${styles.functionToggle} ${!isActive ? styles.inactive : ''}`}
-                        style={{ borderColor: color, color }}
-                        title={`Funktionswert ${template.name}`}
-                      >F</button>
-                    );
-                  })}
-                </div>
-              )}
+                  return (
+                    <div key={template.id} className="flex">
+                      {/* Template-Button (linker Teil) */}
+                      <Button
+                        size="sm"
+                        onClick={() => toggleTemplate(template.id!)}
+                        title={template.name}
+                        style={isVisible
+                          ? { backgroundColor: color, borderColor: color, color: '#fff' }
+                          : { backgroundColor: 'transparent', borderColor: color, color: color }
+                        }
+                        className="rounded-r-none border-r-0 h-8 px-2.5"
+                      >
+                        {React.createElement(getIconComponent(template.icon), { size: 14, strokeWidth: 2 })}
+                      </Button>
+                      {/* Funktionswert-Button (rechter Teil) */}
+                      <Button
+                        size="sm"
+                        onClick={() => fnEnabled && toggleFunctionSeries(template.id!)}
+                        disabled={!fnEnabled}
+                        title={hasFn ? `Funktionswert ${template.name}` : `Keine Funktionswerte für ${template.name}`}
+                        style={fnEnabled && isFnActive
+                          ? { backgroundColor: color, borderColor: color, color: '#fff' }
+                          : { backgroundColor: 'transparent', borderColor: color, color: color }
+                        }
+                        className="rounded-l-none h-8 px-2.5"
+                      >
+                        <ChartArea size={14} strokeWidth={2} />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ) : dashboardTemplates.length > 0 ? (
             <Card className="p-8 text-center">
