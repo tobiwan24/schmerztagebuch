@@ -41,13 +41,11 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import type { DragEndEvent } from '@dnd-kit/core';
+import { useNavigation } from '../contexts/NavigationContext';
 
-interface EditorModeProps {
-  onBack: (templateId?: number) => void;
-  initialTemplateId?: number;
-}
-
-export default function EditorMode({ onBack, initialTemplateId }: EditorModeProps) {
+export default function EditorMode() {
+  const { backFromEditor, editingTemplateId: initialTemplateId } = useNavigation();
+  const onBack = backFromEditor;
   // State
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);

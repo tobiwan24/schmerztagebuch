@@ -10,15 +10,15 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Trash2, Shield, Key, Fingerprint, Info, RotateCcw } from 'lucide-react';
+import { AlertCircle, Trash2, Shield, Key, Fingerprint, Info, RotateCcw, Bell } from 'lucide-react';
+import { ManualBackupCard } from '../components/ManualBackupCard';
+import { NotificationSettingsManager } from '../components/NotificationSettingsManager';
 import PageTutorial from '../components/tutorial/PageTutorial';
 import { useTutorial } from '../contexts/TutorialContext';
+import { useNavigation } from '../contexts/NavigationContext';
 
-interface SettingsViewProps {
-  onBack: () => void;
-}
-
-export default function SettingsView({ onBack }: SettingsViewProps) {
+export default function SettingsView() {
+  const { goHome: onBack } = useNavigation();
   const { resetTutorials } = useTutorial();
   const [currentMode, setCurrentMode] = useState<EncryptionMode>('none');
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
@@ -443,6 +443,18 @@ export default function SettingsView({ onBack }: SettingsViewProps) {
               )}
             </Card>
           )}
+
+          {/* Erinnerungen */}
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Bell size={20} className="text-primary" />
+              <h3 className="text-lg font-semibold">Erinnerungen</h3>
+            </div>
+            <NotificationSettingsManager />
+          </Card>
+
+          {/* Manuelles Backup */}
+          <ManualBackupCard />
 
           {/* Update Control */}
           <UpdateControl />

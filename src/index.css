@@ -3,12 +3,68 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ========== HINWEIS ========== */
-/* Eigene Styles werden in main.tsx importiert:
-   - ./styles/global.css
-   - ./styles/layout.css
-   - ./styles/components.css
-*/
+/* ========== GLOBAL RESET & BASE ========== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Nur vertikales Scrollen erlauben, kein horizontales Swipe */
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
+}
+
+/* ========== GLOBAL LAYOUT ========== */
+.app-container {
+  min-height: 100vh;
+  background-color: hsl(var(--background));
+}
+
+.content-wrapper {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.header {
+  background: hsl(var(--card));
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-content {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+@media (max-width: 640px) {
+  .content-wrapper {
+    padding: 0.75rem;
+  }
+
+  .header-content {
+    padding: 0.75rem;
+  }
+}
 
 /* ========== SHADCN/UI THEME VARIABLEN ========== */
 @layer base {

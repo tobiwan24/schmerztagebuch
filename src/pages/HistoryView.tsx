@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getEntries, getTemplates, deleteEntry } from '../db';
-import { getSessionPassword } from '../utils/auth';
-import { decryptData } from '../utils/crypto';
+import { useDecrypt } from '../hooks/useDecrypt';
+import { useNavigation } from '../contexts/NavigationContext';
 import { exportToPDF } from '../utils/pdfExport';
+import type { ImageSize } from '../utils/pdfExport';
 import { getIconComponent } from '../utils/iconUtils';
 import type { Entry, Template } from '../types/database';
 import type { Block, TextAreaBlockValue } from '../types/blocks';
@@ -20,10 +21,6 @@ import {
 import BlockRenderer from '../components/BlockRenderer';
 import PageTutorial from '../components/tutorial/PageTutorial';
 
-interface HistoryViewProps {
-  onBack: () => void;
-}
-
 // ─── Typen ───────────────────────────────────────────────────────────────────
 
 type SortOption =
@@ -32,17 +29,12 @@ type SortOption =
   | 'template_az'
   | 'template_date';
 
-// TODO: ContentFilter-Filterlogik ist noch nicht implementiert.
-// Die Checkboxen werden angezeigt und erhöhen activeFilterCount, filtern aber keine Einträge.
-// Implementierung: entries nach Block-Typen oder Inhalts-Eigenschaften filtern.
 type ContentFilter =
   | 'events'
   | 'doctor'
   | 'bodymap'
   | 'photo'
   | 'pdf';
-
-type ImageSize = 'a6' | 'a5' | 'a4' | 'none';
 
 // ─── Hilfsfunktionen ─────────────────────────────────────────────────────────
 
@@ -92,7 +84,7 @@ function extractEntryMeta(blocks: Block[]) {
       }
     }
 
-    // Bildblock
+    // Bildblock (legacy)
     if (block.type === 'image' && block.value) {
       try {
         const files = JSON.parse(block.value as string);
@@ -127,7 +119,7 @@ function extractEntryMeta(blocks: Block[]) {
   return { previewText, avgPain, hasEvent, hasDoctor, hasBodyMap, hasPhoto, hasPdf };
 }
 
-// ─── EntryCard (lazy decrypt) ─────────────────────────────────────────────────
+// ─── EntryCard (lazy decrypt via IntersectionObserver) ───────────────────────
 
 interface EntryCardProps {
   entry: Entry;
@@ -136,6 +128,7 @@ interface EntryCardProps {
 }
 
 function EntryCard({ entry, template, onClick }: EntryCardProps) {
+  const { decrypt } = useDecrypt();
   const [meta, setMeta] = useState<ReturnType<typeof extractEntryMeta> | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const decryptedRef = useRef(false);
@@ -151,15 +144,8 @@ function EntryCard({ entry, template, onClick }: EntryCardProps) {
           observer.disconnect();
 
           try {
-            let blocks: Block[];
-            if (entry.encrypted) {
-              const pw = getSessionPassword();
-              if (!pw) return;
-              const dec = await decryptData(entry.data, pw);
-              blocks = JSON.parse(dec);
-            } else {
-              blocks = JSON.parse(entry.data);
-            }
+            const blocks = await decrypt(entry);
+            if (blocks === null) return;
             setMeta(extractEntryMeta(blocks));
           } catch {
             // Entschlüsselung fehlgeschlagen – kein Preview
@@ -171,7 +157,7 @@ function EntryCard({ entry, template, onClick }: EntryCardProps) {
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [entry]);
+  }, [entry, decrypt]);
 
   const date = new Date(entry.timestamp);
   const dateStr = date.toLocaleDateString('de-DE', {
@@ -199,9 +185,7 @@ function EntryCard({ entry, template, onClick }: EntryCardProps) {
         className="history-entry-icon"
         style={{ background: iconColor }}
       >
-        <span style={{ color: '#fff', display: 'flex' }}>
-          {React.createElement(getIconComponent(template?.icon), { size: 20, strokeWidth: 2 })}
-        </span>
+        {React.createElement(getIconComponent(template?.icon), { size: 20, className: 'text-white', strokeWidth: 2 })}
       </div>
 
       {/* Content */}
@@ -219,11 +203,11 @@ function EntryCard({ entry, template, onClick }: EntryCardProps) {
 
           {meta && (
             <span className="history-entry-icons">
-              {meta.hasEvent && <span title="Event"><Calendar size={13} className="history-icon" /></span>}
-              {meta.hasDoctor && <span title="Arzttermin"><Stethoscope size={13} className="history-icon" /></span>}
-              {meta.hasBodyMap && <span title="Körperkarte"><MapIcon size={13} className="history-icon" /></span>}
-              {meta.hasPhoto && <span title="Foto"><ImageIcon size={13} className="history-icon" /></span>}
-              {meta.hasPdf && <span title="PDF"><FileText size={13} className="history-icon" /></span>}
+              {meta.hasEvent && <Calendar size={13} className="history-icon" aria-label="Event" />}
+              {meta.hasDoctor && <Stethoscope size={13} className="history-icon" aria-label="Arzttermin" />}
+              {meta.hasBodyMap && <MapIcon size={13} className="history-icon" aria-label="Körperkarte" />}
+              {meta.hasPhoto && <ImageIcon size={13} className="history-icon" aria-label="Foto" />}
+              {meta.hasPdf && <FileText size={13} className="history-icon" aria-label="PDF" />}
             </span>
           )}
         </div>
@@ -377,7 +361,10 @@ function PdfDialog({ entryCount, onClose, onExport, isExporting }: PdfDialogProp
 
 // ─── Hauptkomponente ──────────────────────────────────────────────────────────
 
-export default function HistoryView({ onBack }: HistoryViewProps) {
+export default function HistoryView() {
+  const { goHome: onBack } = useNavigation();
+  const { decrypt } = useDecrypt();
+
   const [entries, setEntries] = useState<Entry[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -441,7 +428,7 @@ export default function HistoryView({ onBack }: HistoryViewProps) {
         );
       }
 
-      // Sortierung (Templates direkt aus frischem Fetch nutzen)
+      // Sortierung
       allEntries = [...allEntries].sort((a, b) => {
         const tA = allTemplates.find(t => t.id === a.templateId)?.name ?? '';
         const tB = allTemplates.find(t => t.id === b.templateId)?.name ?? '';
@@ -472,14 +459,11 @@ export default function HistoryView({ onBack }: HistoryViewProps) {
       setIsDecrypting(true);
       setDecryptError(null);
       try {
-        let blocks: Block[];
-        if (selectedEntry.encrypted) {
-          const pw = getSessionPassword();
-          if (!pw) { setDecryptError('Session abgelaufen'); setIsDecrypting(false); return; }
-          const dec = await decryptData(selectedEntry.data, pw);
-          blocks = JSON.parse(dec);
-        } else {
-          blocks = JSON.parse(selectedEntry.data);
+        const blocks = await decrypt(selectedEntry);
+        if (blocks === null) {
+          setDecryptError('Session abgelaufen – bitte neu anmelden');
+          setIsDecrypting(false);
+          return;
         }
         setDecryptedBlocks(blocks);
       } catch {
@@ -489,7 +473,7 @@ export default function HistoryView({ onBack }: HistoryViewProps) {
       }
     }
     decryptEntry();
-  }, [selectedEntry]);
+  }, [selectedEntry, decrypt]);
 
   async function handleDeleteEntry(entryId: number) {
     if (!confirm('Eintrag wirklich löschen?')) return;
@@ -554,16 +538,13 @@ export default function HistoryView({ onBack }: HistoryViewProps) {
     setIsExporting(true);
     try {
       const decryptedData = new Map<number, Block[]>();
-      const pw = getSessionPassword();
       for (const entry of entries) {
         if (!entry.id) continue;
-        let blocks: Block[];
-        if (entry.encrypted) {
-          if (!pw) { alert('Session abgelaufen'); setIsExporting(false); return; }
-          const dec = await decryptData(entry.data, pw);
-          blocks = JSON.parse(dec);
-        } else {
-          blocks = JSON.parse(entry.data);
+        const blocks = await decrypt(entry);
+        if (blocks === null) {
+          alert('Session abgelaufen – bitte neu anmelden');
+          setIsExporting(false);
+          return;
         }
         decryptedData.set(entry.id, blocks);
       }
@@ -647,10 +628,8 @@ export default function HistoryView({ onBack }: HistoryViewProps) {
                     key={t.id}
                     className="history-filter-row"
                     onClick={e => {
-                      // Klick auf Text (nicht Checkbox): nur diese, Dropdown schließt über bubbling
                       if ((e.target as HTMLElement).tagName !== 'INPUT') {
                         setSelectedTemplateIds(t.id ? [t.id] : []);
-                        // Dropdown schließen via state (einfachste Lösung: klick außerhalb simulieren)
                         document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
                       }
                     }}
