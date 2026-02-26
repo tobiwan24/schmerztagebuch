@@ -80,6 +80,8 @@ async function resizeAndOptimizeImage(src: string): Promise<string> {
       canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (!ctx) { reject(new Error('Canvas context nicht verfügbar')); return; }
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
       resolve(canvas.toDataURL('image/jpeg', BODYMAP_CONFIG.jpegQuality));
     };
