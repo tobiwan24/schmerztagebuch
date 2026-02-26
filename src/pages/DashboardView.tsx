@@ -328,16 +328,6 @@ export default function DashboardView() {
     return generateCategories(timeRange, new Date(), timeRangeOffset);
   }, [timeRange, timeRangeOffset]);
 
-  // Template-Farben für ApexCharts
-  const chartColors = useMemo(() => {
-    return dashboardTemplates
-      .filter(t => visibleTemplates.has(t.id!))
-      .map((template, index) => {
-        const key = `template_${template.id}_avg`;
-        return chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
-      });
-  }, [dashboardTemplates, visibleTemplates, chartConfig]);
-
   const toggleTemplate = (templateId: number) => {
     const newVisible = new Set(visibleTemplates);
     if (newVisible.has(templateId)) newVisible.delete(templateId);
@@ -356,6 +346,25 @@ export default function DashboardView() {
     convertFunctionToApexSeries(dailyFunctionData, chartConfig, visibleFunctionSeries),
     [dailyFunctionData, chartConfig, visibleFunctionSeries]
   );
+
+  // Template-Farben für ApexCharts – muss combinedSeries komplett abdecken (pain + function)
+  const chartColors = useMemo(() => {
+    const painColors = dashboardTemplates
+      .filter(t => visibleTemplates.has(t.id!))
+      .map((template, index) => {
+        const key = `template_${template.id}_avg`;
+        return chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
+      });
+    // Funktionswert-Series verwenden dieselbe Farbe wie das zugehörige Template
+    const fnColors = functionApexSeries.map(fnSeries => {
+      const templateName = fnSeries.name.replace(' · Funktion', '');
+      const template = dashboardTemplates.find(t => t.name === templateName);
+      if (!template) return '#999';
+      const key = `template_${template.id}_avg`;
+      return chartConfig[key]?.color || '#999';
+    });
+    return [...painColors, ...fnColors];
+  }, [dashboardTemplates, visibleTemplates, chartConfig, functionApexSeries]);
 
   // Zeitraum-Navigation
   const handlePreviousTimeRange = () => {

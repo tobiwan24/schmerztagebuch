@@ -53,7 +53,10 @@ export default function UpdateBanner() {
     setBackupError(false);
     try {
       await exportBackup();
-      applyUpdate(); // nur bei Erfolg
+      // Kurze Pause damit iOS/Safari die Datei verarbeiten kann,
+      // bevor der Reload durch applyUpdate() ausgelöst wird
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      applyUpdate();
     } catch {
       setIsBackingUp(false);
       setBackupError(true);

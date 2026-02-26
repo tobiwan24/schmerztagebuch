@@ -39,22 +39,20 @@ async function decompress(base64: string): Promise<string> {
 // ── Daten sammeln ─────────────────────────────────────────────────────────────
 
 async function collectData() {
-  const [templates, entries, settings] = await Promise.all([
-    db.templates.toArray(),
-    db.entries.toArray(),
-    db.settings.toArray()
-  ]);
-  return {
-    version: db.verno,
-    exportedAt: new Date().toISOString(),
-    templates,
-    entries,
-    // ⚠️ Limitation Phase 11.4: entries.data enthält ggf. noch Bild-Base64,
-    // da der separate images-Store erst in Phase 11.5 eingeführt wird.
-    // Große Bilder können das 5 MB LocalStorage-Limit überschreiten →
-    // Fallback: Trimmen auf letzte 100 Entries.
-    settings,
-  };
+  return db.transaction('r', [db.templates, db.entries, db.settings], async () => {
+    const [templates, entries, settings] = await Promise.all([
+      db.templates.toArray(),
+      db.entries.toArray(),
+      db.settings.toArray()
+    ]);
+    return {
+      version: db.verno,
+      exportedAt: new Date().toISOString(),
+      templates,
+      entries,
+      settings,
+    };
+  });
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -139,16 +137,23 @@ export function clearAutoBackup(): void {
 // Vermeidet zirkuläre Imports zwischen db.ts und autoBackup.ts
 
 export function initAutoBackupHooks(): void {
-  db.entries.hook('creating', () => {
-    createAutoBackup().catch(err => console.warn('Auto-Backup (creating) fehlgeschlagen:', err));
-  });
-  db.entries.hook('updating', () => {
-    createAutoBackup().catch(err => console.warn('Auto-Backup (updating) fehlgeschlagen:', err));
-  });
-  db.templates.hook('creating', () => {
-    createAutoBackup().catch(err => console.warn('Auto-Backup Template (creating) fehlgeschlagen:', err));
-  });
-  db.templates.hook('updating', () => {
-    createAutoBackup().catch(err => console.warn('Auto-Backup Template (updating) fehlgeschlagen:', err));
-  });
+  // Dexie hooks fire within the active IDB transaction.
+  // setTimeout(0) schedules a macrotask – ensures the transaction is fully
+  // committed before collectData() opens a new read transaction.
+  // Debounce (500 ms) prevents redundant backups during rapid bulk operations
+  // (e.g. SetupWizard creating multiple templates in quick succession).
+  let backupTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const scheduleBackup = () => {
+    if (backupTimer) clearTimeout(backupTimer);
+    backupTimer = setTimeout(() => {
+      backupTimer = null;
+      createAutoBackup().catch(err => console.warn('Auto-Backup fehlgeschlagen:', err));
+    }, 500);
+  };
+
+  db.entries.hook('creating', scheduleBackup);
+  db.entries.hook('updating', scheduleBackup);
+  db.templates.hook('creating', scheduleBackup);
+  db.templates.hook('updating', scheduleBackup);
 }
