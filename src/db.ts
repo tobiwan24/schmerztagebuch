@@ -93,6 +93,13 @@ db.version(16).stores({
   console.log(`✅ DB v16: ${migratedCount} Einträge mit BodyMap migriert`);
 });
 
+// Version 17: Entry editedAt field (optionales Feld, keine Strukturänderung)
+db.version(17).stores({
+  templates: '++id, name, order',
+  entries: '++id, templateId, timestamp, encrypted, *tags',
+  settings: 'key'
+});
+
 // ========== MIGRATIONS ==========
 
 // Standard-Icons basierend auf Template-Namen - Lucide Icon Names (CamelCase)
@@ -317,6 +324,15 @@ export async function getEntry(id: number): Promise<Entry | undefined> {
 
 export async function deleteEntry(id: number): Promise<void> {
   await db.entries.delete(id);
+}
+
+export async function updateEntry(
+  id: number,
+  data: string,
+  encrypted: boolean,
+  editedAt: string
+): Promise<void> {
+  await db.entries.update(id, { data, encrypted, editedAt });
 }
 
 
