@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useTutorial, type TutorialPage } from '../../contexts/TutorialContext';
+import styles from './PageTutorial.module.css';
 
 // ─── Typen ───────────────────────────────────────────────────────────────────
 
@@ -310,11 +311,11 @@ export default function PageTutorial({ page, steps, onStepChange }: PageTutorial
       <div style={backdropStyle} onClick={() => setShowMenu(false)} />
 
       {spotlightStyle && (
-        <div style={spotlightStyle} className="tutorial-spotlight" />
+        <div style={spotlightStyle} className={styles.tutorialSpotlight} />
       )}
 
       <div
-        className="tutorial-card-wrapper"
+        className={styles.tutorialCardWrapper}
         style={{
           position: 'fixed',
           left: '50%',
@@ -324,19 +325,19 @@ export default function PageTutorial({ page, steps, onStepChange }: PageTutorial
           ...cardPositionStyle,
         }}
       >
-        <div className="tutorial-card">
-          <div className="tutorial-card-header">
-            <span className="tutorial-card-title">{step.title ?? ''}</span>
+        <div className={styles.tutorialCard}>
+          <div className={styles.tutorialCardHeader}>
+            <span className={styles.tutorialCardTitle}>{step.title ?? ''}</span>
 
             {steps.length > 1 && (
-              <span className="tutorial-step-counter">
+              <span className={styles.tutorialStepCounter}>
                 {currentIndex + 1} / {steps.length}
               </span>
             )}
 
             <div style={{ position: 'relative' }}>
               <button
-                className="tutorial-menu-btn"
+                className={styles.tutorialMenuBtn}
                 onClick={(e) => { e.stopPropagation(); setShowMenu(p => !p); }}
                 aria-label="Mehr Optionen"
               >
@@ -344,11 +345,11 @@ export default function PageTutorial({ page, steps, onStepChange }: PageTutorial
               </button>
 
               {showMenu && (
-                <div className="tutorial-dropdown" onClick={e => e.stopPropagation()}>
-                  <button className="tutorial-dropdown-item" onClick={handleDismissPage}>
+                <div className={styles.tutorialDropdown} onClick={e => e.stopPropagation()}>
+                  <button className={styles.tutorialDropdownItem} onClick={handleDismissPage}>
                     Auf dieser Seite nicht mehr
                   </button>
-                  <button className="tutorial-dropdown-item" onClick={handleDismissGlobally}>
+                  <button className={styles.tutorialDropdownItem} onClick={handleDismissGlobally}>
                     Überall nicht mehr
                   </button>
                 </div>
@@ -356,9 +357,9 @@ export default function PageTutorial({ page, steps, onStepChange }: PageTutorial
             </div>
           </div>
 
-          <p className="tutorial-card-desc">{step.text}</p>
+          <p className={styles.tutorialCardDesc}>{step.text}</p>
 
-          <button className="tutorial-confirm-btn" onClick={handleNext}>
+          <button className={styles.tutorialConfirmBtn} onClick={handleNext}>
             {isLast ? 'Fertig' : 'Weiter'}
           </button>
         </div>

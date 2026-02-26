@@ -100,7 +100,7 @@ async function renderBodyMapToImage(data: BodyMapData): Promise<string> {
   });
 }
 
-type ImageSize = 'a6' | 'a5' | 'a4' | 'none';
+export type ImageSize = 'a6' | 'a5' | 'a4' | 'none';
 
 // Bild-Dimensionen (mm) je Größe
 const IMAGE_SIZE_MM: Record<Exclude<ImageSize, 'none'>, { w: number; h: number }> = {
@@ -136,15 +136,14 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
   const { entries, templates, decryptedData, startDate, endDate, selectedTemplate, imageSize = 'a5', password = '' } = options;
 
   // PDF erstellen (A4 Format)
-  // Record<string,unknown> nötig weil ConstructorParameters<jsPDF>[0] die Options-Überladung
-  // nicht korrekt auflöst (liefert orientation-String-Union statt Options-Objekt)
-  const pdfOptions: Record<string, unknown> = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pdfOptions: any = {
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4',
   };
   if (password) {
-    pdfOptions['encryption'] = {
+    pdfOptions.encryption = {
       userPassword: password,
       ownerPassword: password + '_owner',
       userPermissions: ['print', 'copy'],
@@ -487,9 +486,8 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
       
       // Bild einfügen
       try {
-        // Maximalmaße je gewählter Bildgröße
-        // imageSize !== 'none' ist durch den äußeren Guard (Zeile ~440) sichergestellt
-        const sizeMM = IMAGE_SIZE_MM[imageSize];
+        // Maximalmaße je gewählter Bildgröße (imageSize !== 'none' durch äußeres if garantiert)
+        const sizeMM = IMAGE_SIZE_MM[imageSize as Exclude<ImageSize, 'none'>];
         const maxWidth = Math.min(sizeMM.w - 10, pageWidth - 2 * margin);
         const maxHeight = Math.min(sizeMM.h - 10, pageHeight - yPosition - 20);
         
