@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Chart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
 import { formatXAxisLabel, formatTooltipDate } from '../../utils/apexChartHelpers';
@@ -28,9 +28,18 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
   visibleTemplates = new Set(),
   dashboardTemplates = [],
 }) => {
+  const [isDarkMode, setIsDarkMode] = useState(
+    () => document.documentElement.classList.contains('dark')
+  );
+  useEffect(() => {
+    const obs = new MutationObserver(() =>
+      setIsDarkMode(document.documentElement.classList.contains('dark'))
+    );
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
+
   const chartOptions: ApexOptions = useMemo(() => {
-    // Dark Mode Detection
-    const isDarkMode = document.documentElement.classList.contains('dark');
 
     // Event Annotations erstellen - als Points direkt über Datenpunkten
     const eventPointAnnotations = events
@@ -85,6 +94,8 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         background: 'transparent',
         foreColor: isDarkMode ? '#e5e7eb' : '#374151',
         offsetX: -10, // Chart nach links verschieben
+        zoom: { enabled: false },
+        selection: { enabled: false },
       },
       theme: {
         mode: isDarkMode ? 'dark' : 'light',
@@ -107,6 +118,12 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         axisTicks: {
           show: true,
           color: 'hsl(var(--border))',
+        },
+        crosshairs: {
+          show: true,
+          width: 1,
+          position: 'back',
+          stroke: { color: 'hsl(var(--muted-foreground))', width: 1, dashArray: 3 },
         },
       },
       yaxis: {
@@ -158,8 +175,8 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
       tooltip: {
         enabled: true,
         theme: isDarkMode ? 'dark' : 'light',
-        shared: false,
-        intersect: true,
+        shared: true,
+        intersect: false,
         x: {
           show: false,  // Datums-Marker unter X-Achse ausblenden
           format: undefined,
@@ -278,7 +295,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         },
       ],
     };
-  }, [categories, timeRange, colors, height, events, visibleTemplates, dashboardTemplates, series]);
+  }, [categories, timeRange, colors, height, events, visibleTemplates, dashboardTemplates, series, isDarkMode]);
 
   // Schutz vor leeren Series (nach useMemo, damit Hooks-Reihenfolge konstant bleibt)
   if (!series || series.length === 0) {

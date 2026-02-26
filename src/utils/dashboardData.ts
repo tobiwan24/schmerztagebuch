@@ -36,33 +36,6 @@ export interface EventMarker {
 }
 
 /**
- * Filtert Entries nach Zeitraum
- */
-export function filterEntriesByTimeRange(
-  entries: Entry[],
-  timeRange: '7d' | '1m' | '3m' | 'all'
-): Entry[] {
-  if (timeRange === 'all') return entries;
-  
-  const now = new Date();
-  const cutoffDate = new Date(now);
-  
-  switch (timeRange) {
-    case '7d':
-      cutoffDate.setDate(now.getDate() - 7);
-      break;
-    case '1m':
-      cutoffDate.setMonth(now.getMonth() - 1);
-      break;
-    case '3m':
-      cutoffDate.setMonth(now.getMonth() - 3);
-      break;
-  }
-  
-  return entries.filter(entry => new Date(entry.timestamp) >= cutoffDate);
-}
-
-/**
  * Extrahiert Schmerzwerte aus Entries
  */
 export function extractPainData(
