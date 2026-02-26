@@ -1,7 +1,10 @@
 // src/utils/autoBackup.ts
 // Automatisches Backup in LocalStorage via nativer CompressionStream-API (kein pako!)
 
+import Dexie from 'dexie';
 import db from '../db';
+import type { Entry } from '../types/database';
+import type { TextAreaBlockValue } from '../types/blocks';
 
 const AUTO_BACKUP_KEY = 'auto_backup';
 const BACKUP_TIMESTAMP_KEY = 'backup_timestamp';
@@ -38,13 +41,39 @@ async function decompress(base64: string): Promise<string> {
 
 // ── Daten sammeln ─────────────────────────────────────────────────────────────
 
+function stripImagesFromEntry(entry: Entry): Entry {
+  if (entry.encrypted) return entry; // verschlüsselt → nicht anfassbar
+  try {
+    const blocks: { type: string; value?: string }[] = JSON.parse(entry.data);
+    const stripped = blocks.map(b => {
+      if (b.type === 'textarea' && b.value) {
+        const val = JSON.parse(b.value) as TextAreaBlockValue;
+        if (val.attachedFiles?.some(f => f.type === 'image')) {
+          return {
+            ...b,
+            value: JSON.stringify({
+              ...val,
+              attachedFiles: val.attachedFiles.filter(f => f.type !== 'image'),
+            }),
+          };
+        }
+      }
+      return b;
+    });
+    return { ...entry, data: JSON.stringify(stripped) };
+  } catch {
+    return entry;
+  }
+}
+
 async function collectData() {
   return db.transaction('r', [db.templates, db.entries, db.settings], async () => {
-    const [templates, entries, settings] = await Promise.all([
+    const [templates, rawEntries, settings] = await Promise.all([
       db.templates.toArray(),
       db.entries.toArray(),
       db.settings.toArray()
     ]);
+    const entries = rawEntries.map(stripImagesFromEntry);
     return {
       version: db.verno,
       exportedAt: new Date().toISOString(),
@@ -148,7 +177,11 @@ export function initAutoBackupHooks(): void {
     if (backupTimer) clearTimeout(backupTimer);
     backupTimer = setTimeout(() => {
       backupTimer = null;
-      createAutoBackup().catch(err => console.warn('Auto-Backup fehlgeschlagen:', err));
+      // Dexie.ignoreTransaction escapes the hook's transaction zone so
+      // collectData() can open a fresh read transaction on all three stores.
+      Dexie.ignoreTransaction(() => {
+        createAutoBackup().catch(err => console.warn('Auto-Backup fehlgeschlagen:', err));
+      });
     }, 500);
   };
 
