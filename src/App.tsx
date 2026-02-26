@@ -10,6 +10,7 @@ import AuthModal from './components/AuthModal';
 import DebugPanel from './components/DebugPanel';
 import SettingsView from './pages/SettingsView';
 import InstallPrompt from './components/InstallPrompt';
+import UpdateBanner from './components/UpdateBanner';
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
@@ -120,6 +121,7 @@ export default function App() {
     <ErrorBoundary>
       <NavigationProvider>
         <AppInner />
+        <UpdateBanner />
       </NavigationProvider>
     </ErrorBoundary>
   );

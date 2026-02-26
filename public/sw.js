@@ -1,16 +1,18 @@
 // Service Worker für Schmerztagebuch PWA
 // Vollständig Offline-First mit manuellem Update
 
-const VERSION = '1.0.0';
+// WICHTIG: VERSION hier manuell synchron halten mit APP_VERSION in src/utils/version.ts
+// (SW kann keine ES-Module importieren)
+const VERSION = '1.01';
 const CACHE_NAME = `schmerztagebuch-v${VERSION}`;
 const RUNTIME_CACHE = `schmerztagebuch-runtime-v${VERSION}`;
 
-// Install Event - Aggressive Pre-Caching
+// Install Event - wartet auf User-Bestätigung (kein automatisches skipWaiting)
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing Service Worker v' + VERSION);
-  
-  // Übernimmt sofort die Kontrolle
-  event.waitUntil(self.skipWaiting());
+  // Kein self.skipWaiting() hier – der neue SW wartet in 'installed' state
+  // bis der User im UpdateBanner bestätigt (SKIP_WAITING message)
+  event.waitUntil(Promise.resolve());
 });
 
 // Activate Event - Cleanup alte Caches

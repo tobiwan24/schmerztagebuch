@@ -1,72 +1,51 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { RefreshCw, Download } from 'lucide-react';
+import { APP_VERSION } from '../utils/version';
 
 export default function UpdateControl() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [autoUpdate, setAutoUpdate] = useState(false);
-  const [currentVersion, setCurrentVersion] = useState<string>('');
   const [isChecking, setIsChecking] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  // Ref für stale-closure-freie Prüfung im setTimeout
+  const updateAvailableRef = useRef(false);
 
   function handleUpdate() {
     if (!registration || !registration.waiting) return;
-
     registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       window.location.reload();
     }, { once: true });
   }
 
   useEffect(() => {
-    const autoUpdatePref = localStorage.getItem('autoUpdate');
-    setAutoUpdate(autoUpdatePref === 'true');
+    if (!('serviceWorker' in navigator)) return;
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then((reg) => {
-        setRegistration(reg);
+    navigator.serviceWorker.ready.then((reg) => {
+      setRegistration(reg);
 
-        if (reg.active) {
-          const messageChannel = new MessageChannel();
-          messageChannel.port1.onmessage = (event) => {
-            if (event.data && event.data.version) {
-              setCurrentVersion(event.data.version);
-            }
-          };
-          reg.active.postMessage({ type: 'GET_VERSION' }, [messageChannel.port2]);
-        }
-
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                console.log('[Update] New version available!');
-                setUpdateAvailable(true);
-
-                if (autoUpdatePref === 'true') {
-                  handleUpdate();
-                }
-              }
-            });
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            setUpdateAvailable(true);
+            updateAvailableRef.current = true;
+            // Kein auto-apply hier – UpdateBanner ist der primäre Mechanismus
           }
         });
       });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    });
   }, []);
 
   function handleCheckUpdate() {
     if (!registration) return;
-    
     setIsChecking(true);
-    
     registration.update().then(() => {
       setTimeout(() => {
-        if (!updateAvailable) {
+        if (!updateAvailableRef.current) {
           alert('App ist auf dem neuesten Stand! ✅');
         }
         setIsChecking(false);
@@ -78,12 +57,6 @@ export default function UpdateControl() {
     });
   }
 
-  function toggleAutoUpdate() {
-    const newValue = !autoUpdate;
-    setAutoUpdate(newValue);
-    localStorage.setItem('autoUpdate', String(newValue));
-  }
-
   return (
     <Card className="p-6">
       <h3 className="text-lg font-semibold mb-4">App-Updates</h3>
@@ -91,30 +64,13 @@ export default function UpdateControl() {
       <div className="space-y-4">
         <div>
           <p className="text-sm text-muted-foreground">Aktuelle Version</p>
-          <p className="font-medium">{currentVersion || '1.0.0'}</p>
+          <p className="font-medium">{APP_VERSION}</p>
         </div>
 
         <Separator />
 
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="font-medium">Automatische Updates</p>
-            <p className="text-sm text-muted-foreground">
-              Updates werden automatisch installiert
-            </p>
-          </div>
-          <Button
-            onClick={toggleAutoUpdate}
-            variant={autoUpdate ? 'default' : 'outline'}
-            className="min-w-[80px]"
-          >
-            {autoUpdate ? 'An' : 'Aus'}
-          </Button>
-        </div>
-
         {updateAvailable && (
           <>
-            <Separator />
             <Card className="p-4 bg-blue-50 border-blue-200">
               <div className="flex gap-3 items-start mb-3">
                 <span className="text-2xl">🎉</span>
@@ -132,6 +88,7 @@ export default function UpdateControl() {
                 Jetzt aktualisieren
               </Button>
             </Card>
+            <Separator />
           </>
         )}
 
