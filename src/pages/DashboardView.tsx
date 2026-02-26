@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getEntries, getTemplates } from '../db';
 import type { Entry, Template } from '../types/database';
 import Header from '../components/Header';
@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { TrendingUp, CircleSlash2, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronLeft, ChevronRight, TrendingUpDown } from 'lucide-react';
 import { ApexLineChart } from '../components/charts/ApexLineChart';
 import PageTutorial from '../components/tutorial/PageTutorial';
-import { 
-  convertToApexSeries, 
-  generateCategories, 
-  type ChartConfig 
+import {
+  convertToApexSeries,
+  generateCategories,
+  type ChartConfig
 } from '../utils/apexChartHelpers';
-import { 
-  extractPainData, 
+import {
+  extractPainData,
   aggregatePainByDay,
   extractEvents,
   getDashboardEnabledTemplates,
@@ -24,6 +24,9 @@ import {
 } from '../utils/dashboardData';
 import styles from '../styles/DashboardView.module.css';
 import { useNavigation } from '../contexts/NavigationContext';
+import { getIconComponent } from '../utils/iconUtils';
+import { decryptData } from '../utils/crypto';
+import { getSessionPassword } from '../utils/auth';
 
 // Vordefinierte Farbpalette für Charts (optimiert für Light & Dark Mode)
 const CHART_COLORS = [
@@ -48,6 +51,14 @@ function getTemplateColor(index: number, totalTemplates: number): string {
 
 export default function DashboardView() {
   const { goHome: onBack, navigate: onNavigate } = useNavigation();
+
+  // Decrypt function for encrypted entries
+  const decryptFn = useCallback(async (data: string): Promise<string> => {
+    const password = getSessionPassword();
+    if (!password) throw new Error('Keine aktive Session');
+    return decryptData(data, password);
+  }, []);
+
   const [entries, setEntries] = useState<Entry[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,13 +95,13 @@ export default function DashboardView() {
     let cancelled = false;
     async function load() {
       try {
-        const painData = await extractPainData(entries, templates);
+        const painData = await extractPainData(entries, templates, decryptFn);
         if (cancelled) return;
         const filteredPainData = filterPainDataByTimeRange(painData, timeRange);
         const dailyData = aggregatePainByDay(filteredPainData);
         const aggregatedData = aggregateDataByTimeRange(dailyData, timeRange);
         if (!cancelled) setDailyPainData(aggregatedData);
-        const eventData = await extractEvents(entries, templates);
+        const eventData = await extractEvents(entries, templates, decryptFn);
         if (cancelled) return;
         const filteredEvents = filterEventsByTimeRange(eventData, timeRange);
         if (!cancelled) setEvents(filteredEvents);
@@ -101,7 +112,7 @@ export default function DashboardView() {
     load();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries, templates, timeRange, timeRangeOffset]);
+  }, [entries, templates, timeRange, timeRangeOffset, decryptFn]);
 
   function filterPainDataByTimeRange(data: PainDataPoint[], range: 'T' | 'W' | 'M' | '6M' | 'J') {
     const now = new Date();
@@ -222,10 +233,11 @@ export default function DashboardView() {
 
 
 
-  // Durchschnitt berechnen
+  // Durchschnitt berechnen (nur sichtbare Templates)
   const calculateAverage = () => {
-    if (dailyPainData.length === 0) return 0;
-    const allValues = dailyPainData.flatMap(d => [d.avg]);
+    const visibleData = dailyPainData.filter(d => visibleTemplates.has(d.templateId));
+    if (visibleData.length === 0) return 0;
+    const allValues = visibleData.map(d => d.avg);
     return Math.round((allValues.reduce((a, b) => a + b, 0) / allValues.length) * 10) / 10;
   };
 
@@ -651,7 +663,7 @@ export default function DashboardView() {
                         style={{ backgroundColor: color }}
                         title={template.name}
                       >
-                        {template.name.charAt(0).toUpperCase()}
+                        {React.createElement(getIconComponent(template.icon), { size: 16, className: 'text-white', strokeWidth: 2 })}
                       </div>
                     );
                   })}
