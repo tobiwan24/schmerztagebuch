@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from 'dexie';
 import type { Block } from './types/blocks';
 import type { Template, Entry, Settings } from './types/database';
 import { generateUUID } from './utils/uuid';
+import { AVAILABLE_ICON_NAMES } from './utils/iconUtils';
 
 const db = new Dexie('PainDiaryDB') as Dexie & {
   templates: EntityTable<Template, 'id'>;
@@ -180,18 +181,21 @@ export async function migrateTemplateStyles(): Promise<void> {
   let colorIndex = 0;
   
   for (const template of templates) {
-    if (!template.icon || !template.color) {
+    const iconInvalid = !template.icon || !AVAILABLE_ICON_NAMES.includes(template.icon);
+    const colorInvalid = !template.color;
+
+    if (iconInvalid || colorInvalid) {
       const updates: Partial<Template> = {};
-      
-      if (!template.icon) {
+
+      if (iconInvalid) {
         updates.icon = getDefaultIconForTemplate(template.name);
       }
-      
-      if (!template.color) {
+
+      if (colorInvalid) {
         updates.color = DEFAULT_COLORS[colorIndex % DEFAULT_COLORS.length];
         colorIndex++;
       }
-      
+
       if (template.id) {
         await db.templates.update(template.id, updates);
       }
