@@ -16,6 +16,8 @@ interface ApexLineChartProps {
   events?: EventMarker[];
   visibleTemplates?: Set<number>;
   dashboardTemplates?: Array<{ id?: number; name: string }>;
+  functionSeries?: { name: string; data: { x: string; y: number }[] }[];
+  functionYAxisMax?: number;
 }
 
 export const ApexLineChart: React.FC<ApexLineChartProps> = ({
@@ -27,6 +29,8 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
   events = [],
   visibleTemplates = new Set(),
   dashboardTemplates = [],
+  functionSeries,
+  functionYAxisMax = 10,
 }) => {
   const [isDarkMode, setIsDarkMode] = useState(
     () => document.documentElement.classList.contains('dark')
@@ -85,6 +89,9 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         };
       });
 
+    const hasFunctionSeries = functionSeries && functionSeries.length > 0;
+    const painCount = series.length;
+
     return {
       chart: {
         id: 'pain-chart-poc',
@@ -126,27 +133,66 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
           stroke: { color: 'hsl(var(--muted-foreground))', width: 1, dashArray: 3 },
         },
       },
-      yaxis: {
+      yaxis: hasFunctionSeries ? [
+        {
+          min: 0,
+          max: 10.5,
+          tickAmount: 5,
+          forceNiceScale: false,
+          labels: {
+            offsetX: -5,
+            minWidth: 20,
+            style: {
+              colors: 'hsl(var(--muted-foreground))',
+              fontSize: '12px',
+            },
+          },
+          axisBorder: { show: true, color: 'hsl(var(--border))' },
+        },
+        {
+          opposite: true,
+          min: 0,
+          max: functionYAxisMax + 0.5,
+          tickAmount: 5,
+          forceNiceScale: false,
+          labels: {
+            offsetX: 5,
+            minWidth: 20,
+            style: {
+              colors: 'hsl(var(--muted-foreground))',
+              fontSize: '12px',
+            },
+          },
+          axisBorder: { show: true, color: 'hsl(var(--border))' },
+        },
+      ] : {
         min: 0,
         max: 10.5,
         tickAmount: 5,
         forceNiceScale: false,
         labels: {
-          offsetX: -5, // Labels näher an Chart
-          minWidth: 20, // Minimale Breite für Labels
+          offsetX: -5,
+          minWidth: 20,
           style: {
             colors: 'hsl(var(--muted-foreground))',
             fontSize: '12px',
           },
         },
-        axisBorder: {
-          show: true,
-          color: 'hsl(var(--border))',
-        },
+        axisBorder: { show: true, color: 'hsl(var(--border))' },
       },
       stroke: {
-        width: 2,
-        curve: 'smooth',
+        width: hasFunctionSeries
+          ? [...Array(painCount).fill(2), ...Array(functionSeries!.length).fill(1)]
+          : 2,
+        curve: (hasFunctionSeries
+          ? [...Array(painCount).fill('smooth'), ...Array(functionSeries!.length).fill('stepline')]
+          : 'smooth') as 'smooth' | 'stepline' | ('smooth' | 'stepline')[],
+      },
+      fill: {
+        type: 'solid',
+        opacity: hasFunctionSeries
+          ? [...Array(painCount).fill(1), ...Array(functionSeries!.length).fill(0.2)]
+          : 1,
       },
       markers: {
         size: 5,
@@ -298,7 +344,13 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         },
       ],
     };
-  }, [categories, timeRange, colors, height, events, visibleTemplates, dashboardTemplates, series, isDarkMode]);
+  }, [categories, timeRange, colors, height, events, visibleTemplates, dashboardTemplates, series, isDarkMode, functionSeries, functionYAxisMax]);
+
+  const combinedSeries = useMemo(() => {
+    const painSeries = series.map(s => ({ ...s, type: 'line' as const }));
+    const fnSeries = (functionSeries ?? []).map(s => ({ ...s, type: 'area' as const }));
+    return [...painSeries, ...fnSeries];
+  }, [series, functionSeries]);
 
   // Schutz vor leeren Series (nach useMemo, damit Hooks-Reihenfolge konstant bleibt)
   if (!series || series.length === 0) {
@@ -312,7 +364,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
   return (
     <Chart
       type="line"
-      series={series}
+      series={combinedSeries}
       options={chartOptions}
       height={height}
     />

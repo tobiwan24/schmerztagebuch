@@ -9,16 +9,20 @@ import { ApexLineChart } from '../components/charts/ApexLineChart';
 import PageTutorial from '../components/tutorial/PageTutorial';
 import {
   convertToApexSeries,
+  convertFunctionToApexSeries,
   generateCategories,
   type ChartConfig
 } from '../utils/apexChartHelpers';
 import {
   extractPainData,
   aggregatePainByDay,
+  extractFunctionData,
+  aggregateFunctionByDay,
   extractEvents,
   getDashboardEnabledTemplates,
   aggregateDataByTimeRange,
   type DailyPainData,
+  type DailyFunctionData,
   type EventMarker,
 } from '../utils/dashboardData';
 import styles from '../styles/DashboardView.module.css';
@@ -165,6 +169,8 @@ export default function DashboardView() {
   const [events, setEvents] = useState<EventMarker[]>([]);
   const [dashboardTemplates, setDashboardTemplates] = useState<Template[]>([]);
   const [visibleTemplates, setVisibleTemplates] = useState<Set<number>>(new Set());
+  const [dailyFunctionData, setDailyFunctionData] = useState<DailyFunctionData[]>([]);
+  const [visibleFunctionSeries, setVisibleFunctionSeries] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -204,6 +210,14 @@ export default function DashboardView() {
         if (cancelled) return;
         const filteredEventData = filterByTimeRange(eventData, timeRange);
         if (!cancelled) setEvents(filteredEventData);
+        const functionPoints = await extractFunctionData(entries, templates, decryptFn);
+        if (cancelled) return;
+        const filteredFunctionPoints = filterByTimeRange(functionPoints, timeRange);
+        const aggregatedFunction = aggregateFunctionByDay(filteredFunctionPoints);
+        if (!cancelled) {
+          setDailyFunctionData(aggregatedFunction);
+          setVisibleFunctionSeries(new Set(aggregatedFunction.map(d => d.templateId)));
+        }
       } catch (error) {
         console.error('Fehler beim Aggregieren der Daten:', error);
       }
@@ -330,6 +344,25 @@ export default function DashboardView() {
     else newVisible.add(templateId);
     setVisibleTemplates(newVisible);
   };
+
+  const toggleFunctionSeries = (templateId: number) => {
+    const newVisible = new Set(visibleFunctionSeries);
+    if (newVisible.has(templateId)) newVisible.delete(templateId);
+    else newVisible.add(templateId);
+    setVisibleFunctionSeries(newVisible);
+  };
+
+  const functionApexSeries = useMemo(() =>
+    convertFunctionToApexSeries(dailyFunctionData, chartConfig, visibleFunctionSeries),
+    [dailyFunctionData, chartConfig, visibleFunctionSeries]
+  );
+
+  const functionYAxisMax = useMemo(() => {
+    const maxes = dailyFunctionData
+      .filter(d => visibleFunctionSeries.has(d.templateId))
+      .map(d => d.blockMax);
+    return maxes.length > 0 ? Math.max(...maxes) : 10;
+  }, [dailyFunctionData, visibleFunctionSeries]);
 
   // Zeitraum-Navigation
   const handlePreviousTimeRange = () => {
@@ -556,6 +589,8 @@ export default function DashboardView() {
                   events={events}
                   visibleTemplates={visibleTemplates}
                   dashboardTemplates={dashboardTemplates}
+                  functionSeries={functionApexSeries.length > 0 ? functionApexSeries : undefined}
+                  functionYAxisMax={functionYAxisMax}
                 />
               </div>
 
@@ -594,6 +629,28 @@ export default function DashboardView() {
                       >
                         {React.createElement(getIconComponent(template.icon), { size: 16, className: 'text-white', strokeWidth: 2 })}
                       </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Funktionswert Sub-Toggle */}
+              {dailyFunctionData.length > 0 && (
+                <div className={styles.functionLegend}>
+                  {dashboardTemplates.map(template => {
+                    const hasFn = dailyFunctionData.some(d => d.templateId === template.id);
+                    if (!hasFn || !visibleTemplates.has(template.id!)) return null;
+                    const isActive = visibleFunctionSeries.has(template.id!);
+                    const key = `template_${template.id}_avg`;
+                    const color = chartConfig[key]?.color;
+                    return (
+                      <button
+                        key={template.id}
+                        onClick={() => toggleFunctionSeries(template.id!)}
+                        className={`${styles.functionToggle} ${!isActive ? styles.inactive : ''}`}
+                        style={{ borderColor: color, color }}
+                        title={`Funktionswert ${template.name}`}
+                      >F</button>
                     );
                   })}
                 </div>

@@ -223,6 +223,28 @@ export default function SortableBlock({
               Datenauswertung aktivieren
             </Label>
           </div>
+          {block.dashboard?.enabled && (
+            <>
+              <Separator />
+              <div>
+                <Label className="text-sm mb-2 block">Dashboard-Typ</Label>
+                <div className="flex gap-2">
+                  <Button
+                    variant={!block.dashboard?.type || block.dashboard?.type === 'pain' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => onBodyMapTypeChange?.(block.id, 'pain')}
+                    className="flex-1"
+                  >Schmerzwert</Button>
+                  <Button
+                    variant={block.dashboard?.type === 'function' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => onBodyMapTypeChange?.(block.id, 'function')}
+                    className="flex-1"
+                  >Funktionswert</Button>
+                </div>
+              </div>
+            </>
+          )}
           {isDeletable !== false && (
             <>
               <Separator />
