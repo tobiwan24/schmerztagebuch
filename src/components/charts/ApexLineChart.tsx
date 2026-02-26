@@ -17,7 +17,6 @@ interface ApexLineChartProps {
   visibleTemplates?: Set<number>;
   dashboardTemplates?: Array<{ id?: number; name: string }>;
   functionSeries?: { name: string; data: { x: string; y: number }[] }[];
-  functionYAxisMax?: number;
 }
 
 export const ApexLineChart: React.FC<ApexLineChartProps> = ({
@@ -30,7 +29,6 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
   visibleTemplates = new Set(),
   dashboardTemplates = [],
   functionSeries,
-  functionYAxisMax = 10,
 }) => {
   const [isDarkMode, setIsDarkMode] = useState(
     () => document.documentElement.classList.contains('dark')
@@ -133,39 +131,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
           stroke: { color: 'hsl(var(--muted-foreground))', width: 1, dashArray: 3 },
         },
       },
-      yaxis: hasFunctionSeries ? [
-        {
-          min: 0,
-          max: 10.5,
-          tickAmount: 5,
-          forceNiceScale: false,
-          labels: {
-            offsetX: -5,
-            minWidth: 20,
-            style: {
-              colors: 'hsl(var(--muted-foreground))',
-              fontSize: '12px',
-            },
-          },
-          axisBorder: { show: true, color: 'hsl(var(--border))' },
-        },
-        {
-          opposite: true,
-          min: 0,
-          max: functionYAxisMax + 0.5,
-          tickAmount: 5,
-          forceNiceScale: false,
-          labels: {
-            offsetX: 5,
-            minWidth: 20,
-            style: {
-              colors: 'hsl(var(--muted-foreground))',
-              fontSize: '12px',
-            },
-          },
-          axisBorder: { show: true, color: 'hsl(var(--border))' },
-        },
-      ] : {
+      yaxis: {
         min: 0,
         max: 10.5,
         tickAmount: 5,
@@ -344,7 +310,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         },
       ],
     };
-  }, [categories, timeRange, colors, height, events, visibleTemplates, dashboardTemplates, series, isDarkMode, functionSeries, functionYAxisMax]);
+  }, [categories, timeRange, colors, height, events, visibleTemplates, dashboardTemplates, series, isDarkMode, functionSeries]);
 
   const combinedSeries = useMemo(() => {
     const painSeries = series.map(s => ({ ...s, type: 'line' as const }));

@@ -357,13 +357,6 @@ export default function DashboardView() {
     [dailyFunctionData, chartConfig, visibleFunctionSeries]
   );
 
-  const functionYAxisMax = useMemo(() => {
-    const maxes = dailyFunctionData
-      .filter(d => visibleFunctionSeries.has(d.templateId))
-      .map(d => d.blockMax);
-    return maxes.length > 0 ? Math.max(...maxes) : 10;
-  }, [dailyFunctionData, visibleFunctionSeries]);
-
   // Zeitraum-Navigation
   const handlePreviousTimeRange = () => {
     setTimeRangeOffset(timeRangeOffset - 1);
@@ -590,7 +583,6 @@ export default function DashboardView() {
                   visibleTemplates={visibleTemplates}
                   dashboardTemplates={dashboardTemplates}
                   functionSeries={functionApexSeries.length > 0 ? functionApexSeries : undefined}
-                  functionYAxisMax={functionYAxisMax}
                 />
               </div>
 
