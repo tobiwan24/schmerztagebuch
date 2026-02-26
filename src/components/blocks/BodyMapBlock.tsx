@@ -471,12 +471,14 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
   }
 
   async function handleLoadPreset(preset: BodyMapPreset) {
+    // imageUrl (default presets) hat Vorrang vor base64 image
+    const src = preset.imageUrl ?? preset.image;
     try {
-      const resized = await resizeAndOptimizeImage(preset.image);
+      const resized = await resizeAndOptimizeImage(src);
       updateData({ image: resized, points: [] });
     } catch {
       // Fallback: Original verwenden
-      updateData({ image: preset.image, points: [] });
+      updateData({ image: src, points: [] });
     }
   }
 

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 380" fill="none">
+  <rect width="160" height="380" fill="#f8f9fa"/>
+  <!-- Head -->
+  <ellipse cx="80" cy="38" rx="28" ry="32" fill="white" stroke="#555" stroke-width="2"/>
+  <!-- Neck -->
+  <rect x="70" y="67" width="20" height="16" rx="4" fill="white" stroke="#555" stroke-width="2"/>
+  <!-- Shoulders + Torso -->
+  <path d="M35,83 Q20,85 18,105 L22,200 Q22,208 30,208 L130,208 Q138,208 138,200 L142,105 Q140,85 125,83 L80,78 Z" fill="white" stroke="#555" stroke-width="2"/>
+  <!-- Left Arm (user's right) -->
+  <path d="M35,86 Q18,92 12,130 L10,200 Q10,212 18,214 L26,214 Q32,214 34,204 L38,160 L42,110" fill="white" stroke="#555" stroke-width="2"/>
+  <!-- Left Hand -->
+  <ellipse cx="18" cy="220" rx="10" ry="14" fill="white" stroke="#555" stroke-width="2"/>
+  <!-- Right Arm (user's left) -->
+  <path d="M125,86 Q142,92 148,130 L150,200 Q150,212 142,214 L134,214 Q128,214 126,204 L122,160 L118,110" fill="white" stroke="#555" stroke-width="2"/>
+  <!-- Right Hand -->
+  <ellipse cx="142" cy="220" rx="10" ry="14" fill="white" stroke="#555" stroke-width="2"/>
+  <!-- Hips -->
+  <path d="M30,208 Q28,230 32,240 L128,240 Q132,230 130,208 Z" fill="white" stroke="#555" stroke-width="2"/>
+  <!-- Left Leg -->
+  <path d="M32,240 L38,340 Q38,350 48,350 L62,350 Q70,350 72,340 L78,240 Z" fill="white" stroke="#555" stroke-width="2"/>
+  <!-- Left Foot -->
+  <path d="M40,350 Q36,358 30,360 L68,360 Q72,358 72,352 Z" fill="white" stroke="#555" stroke-width="2"/>
+  <!-- Right Leg -->
+  <path d="M128,240 L122,340 Q122,350 112,350 L98,350 Q90,350 88,340 L82,240 Z" fill="white" stroke="#555" stroke-width="2"/>
+  <!-- Right Foot -->
+  <path d="M120,350 Q124,358 130,360 L92,360 Q88,358 88,352 Z" fill="white" stroke="#555" stroke-width="2"/>
+  <!-- Face features -->
+  <ellipse cx="70" cy="34" rx="4" ry="5" fill="#aaa"/>
+  <ellipse cx="90" cy="34" rx="4" ry="5" fill="#aaa"/>
+  <path d="M72,46 Q80,52 88,46" stroke="#aaa" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- Navel -->
+  <circle cx="80" cy="165" r="3" fill="#ddd" stroke="#aaa" stroke-width="1"/>
+</svg>
