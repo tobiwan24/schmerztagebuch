@@ -24,6 +24,28 @@ export interface DailyPainData {
   count: number;
 }
 
+// Datentyp für Funktionswert-Datenpunkte
+export interface FunctionDataPoint {
+  date: string;
+  timestamp: Date;
+  templateId: number;
+  templateName: string;
+  value: number;
+  blockLabel: string;
+  blockMin: number;
+  blockMax: number;
+}
+
+// Datentyp für aggregierte Tagesfunktionswerte
+export interface DailyFunctionData {
+  date: string;
+  templateId: number;
+  templateName: string;
+  value: number;
+  blockMin: number;
+  blockMax: number;
+}
+
 // Event/Arztbesuch Marker
 export interface EventMarker {
   date: string; // ISO Date String
@@ -355,6 +377,121 @@ export function aggregateByMonth(dailyData: DailyPainData[]): DailyPainData[] {
   });
   
   return aggregated.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Extrahiert Funktionswerte aus Entries
+ */
+export function extractFunctionData(
+  entries: Entry[],
+  templates: Template[],
+  decryptFn?: (data: string) => Promise<string>
+): Promise<FunctionDataPoint[]> {
+  return Promise.all(
+    entries.map(async (entry) => {
+      const template = templates.find(t => t.id === entry.templateId);
+      if (!template) return [];
+
+      let blocks: Block[];
+
+      try {
+        if (entry.encrypted) {
+          if (!decryptFn) return [];
+          const decrypted = await decryptFn(entry.data);
+          blocks = JSON.parse(decrypted);
+        } else {
+          blocks = JSON.parse(entry.data);
+        }
+      } catch (error) {
+        console.error('Fehler beim Parsen von Entry-Daten:', error);
+        return [];
+      }
+
+      const dateBlock = blocks.find(b => b.type === 'date' && b.value);
+      let dates: string[] = [];
+
+      if (dateBlock && typeof dateBlock.value === 'string') {
+        try {
+          const parsed = JSON.parse(dateBlock.value);
+          if (parsed.mode === 'range' && parsed.startDate && parsed.endDate) {
+            const start = new Date(parsed.startDate);
+            const end = new Date(parsed.endDate);
+            const current = new Date(start);
+            while (current <= end) {
+              dates.push(current.toISOString().split('T')[0]);
+              current.setDate(current.getDate() + 1);
+            }
+          } else if (parsed.startDate) {
+            dates = [parsed.startDate];
+          }
+        } catch {
+          dates = [dateBlock.value];
+        }
+      } else {
+        dates = [new Date(entry.timestamp).toISOString().split('T')[0]];
+      }
+
+      const functionPoints: FunctionDataPoint[] = [];
+
+      blocks.forEach(block => {
+        if (!block.dashboard?.enabled) return;
+        if ((block.type === 'slider' || block.type === 'bodymap') && typeof block.value === 'number') {
+          const dashboardType = block.dashboard.type || 'pain';
+          if (dashboardType !== 'function') return;
+
+          const blockMin = block.type === 'slider' ? (block.min ?? 0) : 0;
+          const blockMax = block.type === 'slider' ? (block.max ?? 10) : 10;
+
+          dates.forEach(date => {
+            functionPoints.push({
+              date,
+              timestamp: new Date(date),
+              templateId: entry.templateId,
+              templateName: template.name,
+              value: block.value as number,
+              blockLabel: block.label,
+              blockMin,
+              blockMax,
+            });
+          });
+        }
+      });
+
+      return functionPoints;
+    })
+  ).then(results => results.flat());
+}
+
+/**
+ * Aggregiert Funktionswerte nach Tag und Template (letzter Wert gewinnt)
+ */
+export function aggregateFunctionByDay(functionData: FunctionDataPoint[]): DailyFunctionData[] {
+  const grouped = new Map<string, FunctionDataPoint[]>();
+
+  functionData.forEach(point => {
+    const key = `${point.date}-${point.templateId}`;
+    if (!grouped.has(key)) {
+      grouped.set(key, []);
+    }
+    grouped.get(key)!.push(point);
+  });
+
+  const dailyData: DailyFunctionData[] = [];
+
+  grouped.forEach((points) => {
+    // Letzter Wert des Tages (neuester Entry gewinnt bei Stepline)
+    const last = points[points.length - 1];
+    dailyData.push({
+      date: last.date,
+      templateId: last.templateId,
+      templateName: last.templateName,
+      value: last.value,
+      blockMin: last.blockMin,
+      blockMax: last.blockMax,
+    });
+  });
+
+  return dailyData.sort((a, b) => a.date.localeCompare(b.date));
 }
 
 /**

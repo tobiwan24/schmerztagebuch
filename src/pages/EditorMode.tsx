@@ -442,7 +442,7 @@ export default function EditorMode() {
 
   function handleBodyMapTypeChange(blockId: string, dashboardType: 'pain' | 'function') {
     setEditingBlocks(editingBlocks.map(block => {
-      if (block.id === blockId && block.type === 'bodymap') {
+      if (block.id === blockId && (block.type === 'bodymap' || block.type === 'slider')) {
         return {
           ...block,
           dashboard: {

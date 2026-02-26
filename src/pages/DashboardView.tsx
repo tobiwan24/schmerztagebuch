@@ -4,21 +4,25 @@ import type { Entry, Template } from '../types/database';
 import Header from '../components/Header';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, CircleSlash2, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronLeft, ChevronRight, TrendingUpDown } from 'lucide-react';
+import { TrendingUp, CircleSlash2, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronLeft, ChevronRight, TrendingUpDown, ChartArea } from 'lucide-react';
 import { ApexLineChart } from '../components/charts/ApexLineChart';
 import PageTutorial from '../components/tutorial/PageTutorial';
 import {
   convertToApexSeries,
+  convertFunctionToApexSeries,
   generateCategories,
   type ChartConfig
 } from '../utils/apexChartHelpers';
 import {
   extractPainData,
   aggregatePainByDay,
+  extractFunctionData,
+  aggregateFunctionByDay,
   extractEvents,
   getDashboardEnabledTemplates,
   aggregateDataByTimeRange,
   type DailyPainData,
+  type DailyFunctionData,
   type EventMarker,
 } from '../utils/dashboardData';
 import styles from '../styles/DashboardView.module.css';
@@ -165,6 +169,8 @@ export default function DashboardView() {
   const [events, setEvents] = useState<EventMarker[]>([]);
   const [dashboardTemplates, setDashboardTemplates] = useState<Template[]>([]);
   const [visibleTemplates, setVisibleTemplates] = useState<Set<number>>(new Set());
+  const [dailyFunctionData, setDailyFunctionData] = useState<DailyFunctionData[]>([]);
+  const [visibleFunctionSeries, setVisibleFunctionSeries] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -204,6 +210,14 @@ export default function DashboardView() {
         if (cancelled) return;
         const filteredEventData = filterByTimeRange(eventData, timeRange);
         if (!cancelled) setEvents(filteredEventData);
+        const functionPoints = await extractFunctionData(entries, templates, decryptFn);
+        if (cancelled) return;
+        const filteredFunctionPoints = filterByTimeRange(functionPoints, timeRange);
+        const aggregatedFunction = aggregateFunctionByDay(filteredFunctionPoints);
+        if (!cancelled) {
+          setDailyFunctionData(aggregatedFunction);
+          setVisibleFunctionSeries(new Set(aggregatedFunction.map(d => d.templateId)));
+        }
       } catch (error) {
         console.error('Fehler beim Aggregieren der Daten:', error);
       }
@@ -330,6 +344,18 @@ export default function DashboardView() {
     else newVisible.add(templateId);
     setVisibleTemplates(newVisible);
   };
+
+  const toggleFunctionSeries = (templateId: number) => {
+    const newVisible = new Set(visibleFunctionSeries);
+    if (newVisible.has(templateId)) newVisible.delete(templateId);
+    else newVisible.add(templateId);
+    setVisibleFunctionSeries(newVisible);
+  };
+
+  const functionApexSeries = useMemo(() =>
+    convertFunctionToApexSeries(dailyFunctionData, chartConfig, visibleFunctionSeries),
+    [dailyFunctionData, chartConfig, visibleFunctionSeries]
+  );
 
   // Zeitraum-Navigation
   const handlePreviousTimeRange = () => {
@@ -556,6 +582,7 @@ export default function DashboardView() {
                   events={events}
                   visibleTemplates={visibleTemplates}
                   dashboardTemplates={dashboardTemplates}
+                  functionSeries={functionApexSeries.length > 0 ? functionApexSeries : undefined}
                 />
               </div>
 
@@ -577,27 +604,49 @@ export default function DashboardView() {
                 </div>
               )}
 
-              {/* Template Legend UNTER dem Chart */}
-              {dashboardTemplates.length > 1 && (
-                <div className={styles.templateLegend}>
-                  {dashboardTemplates.map((template, index) => {
-                    const isVisible = visibleTemplates.has(template.id!);
-                    const key = `template_${template.id}_avg`;
-                    const color = chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
-                    return (
-                      <div
-                        key={template.id}
-                        className={`${styles.templateIcon} ${!isVisible ? styles.inactive : ''}`}
+              {/* Template + Funktionswert Toggles */}
+              <div className="flex gap-2 flex-wrap justify-center mt-3">
+                {dashboardTemplates.map((template, index) => {
+                  const isVisible = visibleTemplates.has(template.id!);
+                  const key = `template_${template.id}_avg`;
+                  const color = chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
+                  const hasFn = dailyFunctionData.some(d => d.templateId === template.id);
+                  const isFnActive = visibleFunctionSeries.has(template.id!);
+                  const fnEnabled = isVisible && hasFn;
+
+                  return (
+                    <div key={template.id} className="flex">
+                      {/* Template-Button (linker Teil) */}
+                      <Button
+                        size="sm"
                         onClick={() => toggleTemplate(template.id!)}
-                        style={{ backgroundColor: color }}
                         title={template.name}
+                        style={isVisible
+                          ? { backgroundColor: color, borderColor: color, color: '#fff' }
+                          : { backgroundColor: 'transparent', borderColor: color, color: color }
+                        }
+                        className="rounded-r-none border-r-0 h-8 px-2.5"
                       >
-                        {React.createElement(getIconComponent(template.icon), { size: 16, className: 'text-white', strokeWidth: 2 })}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                        {React.createElement(getIconComponent(template.icon), { size: 14, strokeWidth: 2 })}
+                      </Button>
+                      {/* Funktionswert-Button (rechter Teil) */}
+                      <Button
+                        size="sm"
+                        onClick={() => fnEnabled && toggleFunctionSeries(template.id!)}
+                        disabled={!fnEnabled}
+                        title={hasFn ? `Funktionswert ${template.name}` : `Keine Funktionswerte für ${template.name}`}
+                        style={fnEnabled && isFnActive
+                          ? { backgroundColor: color, borderColor: color, color: '#fff' }
+                          : { backgroundColor: 'transparent', borderColor: color, color: color }
+                        }
+                        className="rounded-l-none h-8 px-2.5"
+                      >
+                        <ChartArea size={14} strokeWidth={2} />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ) : dashboardTemplates.length > 0 ? (
             <Card className="p-8 text-center">

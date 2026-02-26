@@ -1,4 +1,4 @@
-import type { DailyPainData } from './dashboardData';
+import type { DailyPainData, DailyFunctionData } from './dashboardData';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -69,8 +69,45 @@ export function convertToApexSeries(
 }
 
 /**
+ * Konvertiert DailyFunctionData zu ApexCharts Series Format (für Stepline-Area)
+ */
+export function convertFunctionToApexSeries(
+  functionData: DailyFunctionData[],
+  chartConfig: ChartConfig,
+  visibleFunctionSeries: Set<number>
+): ApexSeries[] {
+  const dataByTemplate = new Map<number, { x: string; y: number }[]>();
+
+  functionData.forEach(point => {
+    if (!visibleFunctionSeries.has(point.templateId)) return;
+    if (!dataByTemplate.has(point.templateId)) {
+      dataByTemplate.set(point.templateId, []);
+    }
+    dataByTemplate.get(point.templateId)!.push({
+      x: point.date,
+      y: point.value,
+    });
+  });
+
+  const series: ApexSeries[] = [];
+
+  dataByTemplate.forEach((data, templateId) => {
+    const key = `template_${templateId}_avg`;
+    const config = chartConfig[key];
+    if (config) {
+      series.push({
+        name: `${config.label} · Funktion`,
+        data: data.sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime()),
+      });
+    }
+  });
+
+  return series;
+}
+
+/**
  * Generiert feste Kategorien (X-Achsen Ticks) basierend auf Zeitraum
- * 
+ *
  * @param timeRange - Zeitraum (T/W/M/6M/J)
  * @param now - Aktuelles Datum
  * @returns Array von ISO-Date Strings für X-Achse
