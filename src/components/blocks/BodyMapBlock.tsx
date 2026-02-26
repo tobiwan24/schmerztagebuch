@@ -266,9 +266,10 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
         const preset = getPresets().find(p => p.id === defaultPresetId);
         if (preset) {
           // Default-Preset gefunden → lazy resizen und laden
-          resizeAndOptimizeImage(preset.image)
+          const src = preset.imageUrl ?? preset.image;
+          resizeAndOptimizeImage(src)
             .then(resized => updateData({ image: resized, points: [] }))
-            .catch(() => updateData({ image: preset.image, points: [] }));
+            .catch(() => updateData({ image: src, points: [] }));
         }
         // Preset gelöscht → Fallback zu normaler Ansicht
       }

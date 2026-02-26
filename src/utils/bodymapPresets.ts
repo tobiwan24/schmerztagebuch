@@ -12,17 +12,45 @@ const STORAGE_KEY = 'bodymap_presets';
 // Standard-Presets (gebündelte Körperbilder aus public/bodymap/)
 const DEFAULT_PRESETS: BodyMapPreset[] = [
   {
-    id: 'default-body-front',
-    name: 'Körper – Vorderseite',
+    id: 'default-koerper-vorderseite',
+    name: 'Körper Vorderseite',
     image: '',
-    imageUrl: '/bodymap/body-front.svg',
+    imageUrl: '/bodymap/K%C3%B6rper%20Vorderseite.png',
     isDefault: true,
   },
   {
-    id: 'default-body-back',
-    name: 'Körper – Rückseite',
+    id: 'default-koerper-rueckseite',
+    name: 'Körper Rückseite',
     image: '',
-    imageUrl: '/bodymap/body-back.svg',
+    imageUrl: '/bodymap/K%C3%B6rper%20R%C3%BCckseite.png',
+    isDefault: true,
+  },
+  {
+    id: 'default-fuss-dorsal',
+    name: 'Fuß dorsal',
+    image: '',
+    imageUrl: '/bodymap/Fu%C3%9F%20dorsal.png',
+    isDefault: true,
+  },
+  {
+    id: 'default-fuss-lateral',
+    name: 'Fuß lateral',
+    image: '',
+    imageUrl: '/bodymap/Fu%C3%9F%20lateral.png',
+    isDefault: true,
+  },
+  {
+    id: 'default-fuss-medial',
+    name: 'Fuß medial',
+    image: '',
+    imageUrl: '/bodymap/Fu%C3%9F%20medial.png',
+    isDefault: true,
+  },
+  {
+    id: 'default-fuss-plantar',
+    name: 'Fuß plantar',
+    image: '',
+    imageUrl: '/bodymap/Fu%C3%9F%20plantar.png',
     isDefault: true,
   },
 ];
