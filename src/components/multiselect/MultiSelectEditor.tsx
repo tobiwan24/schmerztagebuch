@@ -37,7 +37,9 @@ export function MultiSelectEditor({ buttons, onChange }: MultiSelectEditorProps)
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [newButtonText, setNewButtonText] = useState('');
   const [newButtonColor, setNewButtonColor] = useState(PRESET_COLORS[0]);
+  const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const paletteTriggerRef = useRef<HTMLButtonElement>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -98,23 +100,45 @@ export function MultiSelectEditor({ buttons, onChange }: MultiSelectEditorProps)
     }
   }
 
-  // Neuen Button hinzufügen
-  function handleAddButton() {
+  // Neuen Button hinzufügen (mit expliziter Farbe)
+  function handleAddButton(color?: string) {
     if (!newButtonText.trim()) return;
-    
-    onChange([...buttons, {
-      text: newButtonText.trim(),
-      color: newButtonColor
-    }]);
-    
+    const chosenColor = color ?? newButtonColor;
+    onChange([...buttons, { text: newButtonText.trim(), color: chosenColor }]);
     setNewButtonText('');
     setNewButtonColor(PRESET_COLORS[0]);
+    setColorPickerOpen(false);
+  }
+
+  // Farbe auswählen → Button hinzufügen + Picker schließen
+  function handleColorSelectAndAdd(color: string) {
+    setNewButtonColor(color);
+    handleAddButton(color);
+  }
+
+  // Input: Enter → Farbpalette öffnen
+  function handleInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (newButtonText.trim()) {
+        setColorPickerOpen(true);
+      }
+    }
+  }
+
+  // Input: Blur → Button mit aktueller Farbe hinzufügen
+  // Ausnahme: Blur durch Klick auf Palette-Trigger-Button
+  function handleInputBlur(e: React.FocusEvent<HTMLInputElement>) {
+    if (e.relatedTarget === paletteTriggerRef.current) return;
+    if (!colorPickerOpen && newButtonText.trim()) {
+      handleAddButton();
+    }
   }
 
   // DnD Handler
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    
+
     if (over && active.id !== over.id) {
       const oldIndex = buttons.findIndex((_, i) => i === active.id);
       const newIndex = buttons.findIndex((_, i) => i === over.id);
@@ -123,7 +147,7 @@ export function MultiSelectEditor({ buttons, onChange }: MultiSelectEditorProps)
   }
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className={cn(
         "multiselect-editor-container",
@@ -149,12 +173,12 @@ export function MultiSelectEditor({ buttons, onChange }: MultiSelectEditorProps)
       </button>
 
       {/* Buttons List */}
-      <DndContext 
-        sensors={sensors} 
+      <DndContext
+        sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext 
+        <SortableContext
           items={buttons.map((_, idx) => idx)}
           strategy={verticalListSortingStrategy}
           disabled={!isDndMode}
@@ -182,23 +206,20 @@ export function MultiSelectEditor({ buttons, onChange }: MultiSelectEditorProps)
           <Input
             value={newButtonText}
             onChange={(e) => setNewButtonText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAddButton();
-              }
-            }}
+            onKeyDown={handleInputKeyDown}
+            onBlur={handleInputBlur}
             placeholder="Neuer Button..."
             className="flex-1"
           />
-          
-          {/* Palette Icon statt runder Button */}
-          <Popover>
+
+          {/* Palette Icon – öffnet Farbwahl */}
+          <Popover open={colorPickerOpen} onOpenChange={setColorPickerOpen}>
             <PopoverTrigger asChild>
-              <button 
+              <button
+                ref={paletteTriggerRef}
                 className="color-palette-btn"
-                style={{ 
-                  backgroundColor: `${newButtonColor}33`, // 33 = 20% opacity in hex
+                style={{
+                  backgroundColor: `${newButtonColor}33`,
                   color: newButtonColor
                 }}
                 type="button"
@@ -207,14 +228,12 @@ export function MultiSelectEditor({ buttons, onChange }: MultiSelectEditorProps)
               </button>
             </PopoverTrigger>
             <PopoverContent>
-              <ColorPalette 
+              <ColorPalette
                 selected={newButtonColor}
-                onSelect={setNewButtonColor}
+                onSelect={handleColorSelectAndAdd}
               />
             </PopoverContent>
           </Popover>
-          
-          {/* KEIN + Button mehr - Enter drücken zum Hinzufügen */}
         </div>
       )}
     </div>
