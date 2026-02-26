@@ -1,5 +1,5 @@
 import type { Entry, Template } from '../types/database';
-import type { Block } from '../types/blocks';
+import type { Block, TextAreaBlockValue } from '../types/blocks';
 
 // Datentyp für aggregierte Schmerzwerte
 export interface PainDataPoint {
@@ -250,24 +250,27 @@ export function extractEvents(
       }
       
       const events: EventMarker[] = [];
-      
-      // Finde alle TextArea-Blocks mit Event-Konfiguration
+
+      // Finde alle TextArea-Blocks mit gespeicherten Events in block.value.events[]
       blocks.forEach(block => {
-        if (!block.dashboard?.enabled) return;
         if (block.type !== 'textarea') return;
-        if (!block.dashboard?.eventCategory) return;
-        
-        const dashboard = block.dashboard;
-        const title = dashboard.eventTitle || block.label;
-        const description = typeof block.value === 'string' ? block.value : undefined;
-        
-        // Für jeden Tag im Zeitraum ein Event erstellen
-        dates.forEach(date => {
+        const textAreaValue = block.value as TextAreaBlockValue | undefined;
+        if (!textAreaValue?.events?.length) return;
+
+        const description = textAreaValue.text || undefined;
+
+        textAreaValue.events.forEach(ev => {
+          // Verwende event-eigenen Timestamp, sonst Eintragsdatum
+          const eventTimestamp = ev.timestamp
+            ? new Date(ev.timestamp)
+            : new Date(dates[0] ?? entry.timestamp);
+          const eventDate = eventTimestamp.toISOString().split('T')[0];
+
           events.push({
-            date,
-            timestamp: new Date(date),
-            category: dashboard.eventCategory!,
-            title,
+            date: eventDate,
+            timestamp: eventTimestamp,
+            category: ev.eventCategory,
+            title: ev.eventTitle,
             description,
             templateId: entry.templateId,
             templateName: template.name
