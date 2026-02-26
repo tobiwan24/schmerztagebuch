@@ -27,6 +27,72 @@ db.version(15).upgrade(async tx => {
   }
 });
 
+// Version 16: BodyMap normalisierte Koordinaten (0.0-1.0)
+db.version(16).stores({
+  templates: '++id, name, order',
+  entries: '++id, templateId, timestamp, encrypted, *tags',
+  settings: 'key'
+}).upgrade(async tx => {
+  console.log('🔄 DB v16: Migriere BodyMap Koordinaten zu normalisierten Werten');
+
+  function loadImageForMigration(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  const entries = await tx.table('entries').toArray();
+  let migratedCount = 0;
+
+  for (const entry of entries) {
+    try {
+      const blocks = JSON.parse(entry.data);
+      let changed = false;
+
+      for (const block of blocks) {
+        if (block.type === 'bodymap' && block.value) {
+          const bodyMapData = JSON.parse(block.value);
+
+          if (bodyMapData.image && Array.isArray(bodyMapData.points) && bodyMapData.points.length > 0) {
+            const firstPoint = bodyMapData.points[0];
+            // Nur migrieren wenn Koordinaten noch Pixel-Werte sind (> 1)
+            if (firstPoint.x > 1 || firstPoint.y > 1) {
+              try {
+                const img = await loadImageForMigration(bodyMapData.image);
+                bodyMapData.points = bodyMapData.points.map((point: { x: number; y: number; diameter: number; [key: string]: unknown }) => ({
+                  ...point,
+                  x: point.x / img.width,
+                  y: point.y / img.height,
+                  diameter: point.diameter / img.width
+                }));
+                block.value = JSON.stringify(bodyMapData);
+                changed = true;
+              } catch {
+                console.warn('Migration: Konnte Bild nicht laden für Entry', entry.id);
+              }
+            }
+          }
+        }
+      }
+
+      if (changed) {
+        await tx.table('entries').put({
+          ...entry,
+          data: JSON.stringify(blocks)
+        });
+        migratedCount++;
+      }
+    } catch (error) {
+      console.error('Migration v16 fehlgeschlagen für Entry:', entry.id, error);
+    }
+  }
+
+  console.log(`✅ DB v16: ${migratedCount} Einträge mit BodyMap migriert`);
+});
+
 // ========== MIGRATIONS ==========
 
 // Standard-Icons basierend auf Template-Namen - Lucide Icon Names (CamelCase)
@@ -193,7 +259,8 @@ function migrateImageBlocksToTextArea(template: Template): Template {
 }
 
 export async function getTemplates(): Promise<Template[]> {
-  return await db.templates.orderBy('order').toArray();
+  const templates = await db.templates.orderBy('order').toArray();
+  return templates.map(migrateImageBlocksToTextArea);
 }
 
 export async function getTemplate(id: number): Promise<Template | undefined> {

@@ -4,6 +4,19 @@ import { initializeDB, getAppSettings } from '../db';
 import db from '../db';
 import { getEncryptionMode, requiresAuth, checkPassword, setSession, isSessionValid, refreshSession } from '../utils/auth';
 import type { Template } from '../types/database';
+import {
+  requestPersistentStorage,
+  isPersistentStorageGranted,
+  isIOSNonSafari,
+} from '../utils/persistentStorage';
+import {
+  createAutoBackup,
+  restoreFromAutoBackup,
+  hasAutoBackup,
+  getBackupTimestamp,
+  initAutoBackupHooks,
+} from '../utils/autoBackup';
+import { initializeNotifications } from '../services/notificationService';
 
 export type ViewType = 'setup' | 'home' | 'diary' | 'editor' | 'history' | 'settings' | 'dashboard';
 
@@ -51,6 +64,52 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
     async function init() {
       try {
         await initializeDB();
+
+        // Auto-Backup Hooks einmalig registrieren
+        initAutoBackupHooks();
+
+        // Notification-Scheduling initialisieren
+        await initializeNotifications();
+
+        // Persistent Storage anfordern (falls noch nicht gewährt)
+        const alreadyGranted = await isPersistentStorageGranted();
+        if (!alreadyGranted) {
+          const lastTryStr = localStorage.getItem('persist_last_try');
+          const daysSince = lastTryStr
+            ? (Date.now() - Number(lastTryStr)) / 86400000
+            : 999;
+          if (daysSince > 3) {
+            localStorage.setItem('persist_last_try', Date.now().toString());
+            await requestPersistentStorage();
+          }
+        }
+
+        // Auto-Restore: DB leer + Backup vorhanden + Backup < 7 Tage alt
+        const entryCount = await db.entries.count();
+        if (entryCount === 0 && hasAutoBackup()) {
+          const backupDate = getBackupTimestamp();
+          const daysSince = backupDate
+            ? (Date.now() - backupDate.getTime()) / 86400000
+            : 999;
+          if (daysSince < 7) {
+            const restored = await restoreFromAutoBackup();
+            if (restored) {
+              console.log('✅ Auto-Restore beim App-Start erfolgreich');
+            }
+          }
+        }
+
+        // Initiales Backup beim App-Start
+        createAutoBackup().catch(err => console.warn('App-Start Backup fehlgeschlagen:', err));
+
+        // Safari-Warnung für iOS-Nicht-Safari-Nutzer
+        if (isIOSNonSafari()) {
+          const dismissed = localStorage.getItem('safari_warning_dismissed');
+          if (!dismissed) {
+            console.log('iOS non-Safari detected – DataProtectionBanner wird angezeigt');
+          }
+        }
+
         const settings = await getAppSettings();
         const mode = await getEncryptionMode();
 

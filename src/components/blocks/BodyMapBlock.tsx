@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { ImagePlus, ImageUp, Trash2, Save, X, Star, ChevronDown, Scissors } from 'lucide-react';
+import { ImagePlus, ImageUp, Trash2, Save, X, Star, ChevronDown, Scissors, Brush, ArrowDownToDot } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -19,6 +19,74 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
+
+// BodyMap Konfiguration
+const BODYMAP_CONFIG = {
+  baseWidth: 600,
+  baseHeight: 800,
+  maxWidth: 1000,
+  maxHeight: 1400,
+  maxViewportWidthPercent: 0.9,
+  maxViewportHeightPercent: 0.6,
+  jpegQuality: 0.85
+};
+
+// Normalisierte Punkt-Größen (relativ zur Bildbreite)
+const POINT_SIZE = {
+  small: 0.03,
+  medium: 0.05,
+  large: 0.08
+};
+
+function calculateOptimalSize(img: HTMLImageElement): { width: number; height: number } {
+  const viewportMaxWidth = window.innerWidth * BODYMAP_CONFIG.maxViewportWidthPercent;
+  const viewportMaxHeight = window.innerHeight * BODYMAP_CONFIG.maxViewportHeightPercent;
+
+  const maxWidth = Math.min(BODYMAP_CONFIG.maxWidth, viewportMaxWidth);
+  const maxHeight = Math.min(BODYMAP_CONFIG.maxHeight, viewportMaxHeight);
+
+  let width = img.width;
+  let height = img.height;
+
+  if (width > maxWidth || height > maxHeight) {
+    const ratio = Math.min(maxWidth / width, maxHeight / height);
+    width *= ratio;
+    height *= ratio;
+  }
+
+  // Mindestgröße sicherstellen
+  if (width < BODYMAP_CONFIG.baseWidth && height < BODYMAP_CONFIG.baseHeight) {
+    const upRatio = Math.min(BODYMAP_CONFIG.baseWidth / width, BODYMAP_CONFIG.baseHeight / height);
+    width *= upRatio;
+    height *= upRatio;
+    // Aber nicht über Maximum
+    if (width > maxWidth || height > maxHeight) {
+      const downRatio = Math.min(maxWidth / width, maxHeight / height);
+      width *= downRatio;
+      height *= downRatio;
+    }
+  }
+
+  return { width: Math.round(width), height: Math.round(height) };
+}
+
+async function resizeAndOptimizeImage(src: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const { width, height } = calculateOptimalSize(img);
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Canvas context nicht verfügbar')); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', BODYMAP_CONFIG.jpegQuality));
+    };
+    img.onerror = reject;
+    img.src = src;
+  });
+}
 
 interface PainPoint {
   x: number;
@@ -69,13 +137,12 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
     return { image: null, points: [] };
   });
   
-  const [showIntensityModal, setShowIntensityModal] = useState(false);
-  const [pendingPoint, setPendingPoint] = useState<{ x: number; y: number } | null>(null);
   const [selectedIntensity, setSelectedIntensity] = useState(5);
-  const [selectedDiameter, setSelectedDiameter] = useState(30);
+  const [selectedDiameter, setSelectedDiameter] = useState(POINT_SIZE.medium);
   const [selectedTool, setSelectedTool] = useState<'point' | 'brush'>('point');
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentBrushPath, setCurrentBrushPath] = useState<{ x: number; y: number }[]>([]);
+  const [openSizeDropdown, setOpenSizeDropdown] = useState<'point' | 'brush' | null>(null);
   const [showPresetModal, setShowPresetModal] = useState(false);
   const [presets, setPresets] = useState<BodyMapPreset[]>([]);
   const [presetName, setPresetName] = useState('');
@@ -85,7 +152,7 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
-  const [selectedAspect, setSelectedAspect] = useState<number | undefined>(4 / 3); // Default: 4:3
+  const [selectedAspect, setSelectedAspect] = useState<number | undefined>(3 / 4); // Default: 3:4 (Portrait)
 
   function updateData(newData: BodyMapData) {
     setData(newData);
@@ -107,44 +174,56 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = img.width;
-    canvas.height = img.height;
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const cw = canvas.width;
+    const ch = canvas.height;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.drawImage(img, 0, 0, cw, ch);
 
-    // Zeichne Schmerzpunkte mit Nummern
+    // Zeichne Schmerzpunkte mit normalisierten Koordinaten
     data.points.forEach(point => {
       const color = getColorForIntensity(point.intensity);
-      const radius = point.diameter / 2;
+      // Normalisierte → Pixel
+      const px = point.x * cw;
+      const py = point.y * ch;
+      const radius = (point.diameter * cw) / 2;
+      const fontSize = Math.max(12, Math.min(20, radius * 0.9));
 
       if (point.type === 'brush' && point.path && point.path.length > 0) {
-        // Pinselstrich
-        point.path.forEach(pos => {
-          ctx.beginPath();
-          ctx.arc(pos.x, pos.y, radius, 0, 2 * Math.PI);
-          ctx.fillStyle = color + '60';
-          ctx.fill();
-        });
-        
+        // Pinselstrich als durchgehende Linie
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(point.path[0].x * cw, point.path[0].y * ch);
+        for (let i = 1; i < point.path.length; i++) {
+          ctx.lineTo(point.path[i].x * cw, point.path[i].y * ch);
+        }
+        ctx.strokeStyle = color + '80';
+        ctx.lineWidth = radius * 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        ctx.restore();
+
         // Nummer beim Pinselstrich
         ctx.fillStyle = 'white';
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
-        ctx.font = 'bold 18px sans-serif';
+        ctx.font = `bold ${fontSize}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.strokeText(`#${point.number}`, point.x, point.y);
-        ctx.fillText(`#${point.number}`, point.x, point.y);
+        ctx.strokeText(`#${point.number}`, px, py);
+        ctx.fillText(`#${point.number}`, px, py);
       } else {
         // Punkt mit Glow
         ctx.beginPath();
-        ctx.arc(point.x, point.y, radius + 5, 0, 2 * Math.PI);
+        ctx.arc(px, py, radius + 5, 0, 2 * Math.PI);
         ctx.fillStyle = color + '40';
         ctx.fill();
 
         ctx.beginPath();
-        ctx.arc(point.x, point.y, radius, 0, 2 * Math.PI);
+        ctx.arc(px, py, radius, 0, 2 * Math.PI);
         ctx.fillStyle = color + 'CC';
         ctx.fill();
 
@@ -156,11 +235,11 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
         ctx.fillStyle = 'white';
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
-        ctx.font = 'bold 16px sans-serif';
+        ctx.font = `bold ${fontSize}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.strokeText(`#${point.number}`, point.x, point.y);
-        ctx.fillText(`#${point.number}`, point.x, point.y);
+        ctx.strokeText(`#${point.number}`, px, py);
+        ctx.fillText(`#${point.number}`, px, py);
       }
     });
   }, [data.points]);
@@ -186,8 +265,10 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
       if (defaultPresetId) {
         const preset = getPresets().find(p => p.id === defaultPresetId);
         if (preset) {
-          // Default-Preset gefunden → laden
-          updateData({ image: preset.image, points: [] });
+          // Default-Preset gefunden → lazy resizen und laden
+          resizeAndOptimizeImage(preset.image)
+            .then(resized => updateData({ image: resized, points: [] }))
+            .catch(() => updateData({ image: preset.image, points: [] }));
         }
         // Preset gelöscht → Fallback zu normaler Ansicht
       }
@@ -204,8 +285,6 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
 
     let clientX, clientY;
     if ('touches' in e) {
@@ -217,26 +296,43 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
       clientY = e.clientY;
     }
 
-    const x = (clientX - rect.left) * scaleX;
-    const y = (clientY - rect.top) * scaleY;
+    // Normalisierte Koordinaten (0.0-1.0)
+    const x = (clientX - rect.left) / rect.width;
+    const y = (clientY - rect.top) / rect.height;
 
-    // Prüfe ob auf existierenden Punkt geklickt
+    // Prüfe ob auf existierenden Punkt geklickt (Toleranz: halber Durchmesser + 0.02)
     const clickedPointIndex = data.points.findIndex(p => {
       const distance = Math.sqrt((p.x - x) ** 2 + (p.y - y) ** 2);
-      return distance < p.diameter / 2 + 10; // 10px Toleranz
+      return distance < p.diameter / 2 + 0.02;
     });
 
     if (clickedPointIndex !== -1) {
       if (confirm('Schmerzpunkt entfernen?')) {
         const newPoints = data.points.filter((_, i) => i !== clickedPointIndex)
-          .map((p, idx) => ({ ...p, number: idx + 1 })); // Nummern neu vergeben
+          .map((p, idx) => ({ ...p, number: idx + 1 }));
         updateData({ ...data, points: newPoints });
       }
     } else {
-      // Neuen Punkt hinzufügen
-      setPendingPoint({ x, y });
-      setShowIntensityModal(true);
+      // Punkt direkt mit aktuellem Intensitätswert setzen
+      const newPoint: PainPoint = {
+        x,
+        y,
+        intensity: selectedIntensity,
+        diameter: selectedDiameter,
+        comment: '',
+        type: 'point',
+        number: data.points.length + 1
+      };
+      updateData({ ...data, points: [...data.points, newPoint] });
     }
+  }
+
+  function getCanvasNormalizedCoords(canvas: HTMLCanvasElement, clientX: number, clientY: number) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (clientX - rect.left) / rect.width,
+      y: (clientY - rect.top) / rect.height
+    };
   }
 
   function handleMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
@@ -245,12 +341,8 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
       setCurrentBrushPath([]);
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const x = (e.clientX - rect.left) * scaleX;
-      const y = (e.clientY - rect.top) * scaleY;
-      setCurrentBrushPath([{ x, y }]);
+      const pos = getCanvasNormalizedCoords(canvas, e.clientX, e.clientY);
+      setCurrentBrushPath([pos]);
     }
   }
 
@@ -260,12 +352,8 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
       setCurrentBrushPath([]);
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const x = (e.touches[0].clientX - rect.left) * scaleX;
-      const y = (e.touches[0].clientY - rect.top) * scaleY;
-      setCurrentBrushPath([{ x, y }]);
+      const pos = getCanvasNormalizedCoords(canvas, e.touches[0].clientX, e.touches[0].clientY);
+      setCurrentBrushPath([pos]);
     }
   }
 
@@ -273,12 +361,8 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
     if (isDrawing && selectedTool === 'brush') {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const x = (e.clientX - rect.left) * scaleX;
-      const y = (e.clientY - rect.top) * scaleY;
-      setCurrentBrushPath(prev => [...prev, { x, y }]);
+      const pos = getCanvasNormalizedCoords(canvas, e.clientX, e.clientY);
+      setCurrentBrushPath(prev => [...prev, pos]);
     }
   }
 
@@ -287,12 +371,8 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
       e.preventDefault();
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const x = (e.touches[0].clientX - rect.left) * scaleX;
-      const y = (e.touches[0].clientY - rect.top) * scaleY;
-      setCurrentBrushPath(prev => [...prev, { x, y }]);
+      const pos = getCanvasNormalizedCoords(canvas, e.touches[0].clientX, e.touches[0].clientY);
+      setCurrentBrushPath(prev => [...prev, pos]);
     }
   }
 
@@ -300,7 +380,6 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
     if (isDrawing && selectedTool === 'brush' && currentBrushPath.length > 0) {
       const avgX = currentBrushPath.reduce((sum, p) => sum + p.x, 0) / currentBrushPath.length;
       const avgY = currentBrushPath.reduce((sum, p) => sum + p.y, 0) / currentBrushPath.length;
-
       const newBrushPoint: PainPoint = {
         x: avgX,
         y: avgY,
@@ -311,38 +390,10 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
         path: currentBrushPath,
         number: data.points.length + 1
       };
-
-      updateData({
-        ...data,
-        points: [...data.points, newBrushPoint]
-      });
-
+      updateData({ ...data, points: [...data.points, newBrushPoint] });
       setCurrentBrushPath([]);
     }
     setIsDrawing(false);
-  }
-
-  function handleIntensityConfirm() {
-    if (!pendingPoint) return;
-
-    const newPoint: PainPoint = {
-      x: pendingPoint.x,
-      y: pendingPoint.y,
-      intensity: selectedIntensity,
-      diameter: selectedDiameter,
-      comment: '',
-      type: 'point',
-      number: data.points.length + 1
-    };
-
-    updateData({
-      ...data,
-      points: [...data.points, newPoint]
-    });
-
-    setShowIntensityModal(false);
-    setPendingPoint(null);
-    setSelectedIntensity(5);
   }
 
   function updatePointComment(index: number, comment: string) {
@@ -359,7 +410,7 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
     }
   }
 
-  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -368,15 +419,22 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Bild ist zu groß! Maximal 5MB.');
+    if (file.size > 20 * 1024 * 1024) {
+      alert('Bild ist zu groß! Maximal 20MB.');
       return;
     }
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const base64 = event.target?.result as string;
-      updateData({ image: base64, points: [] });
+      try {
+        const resized = await resizeAndOptimizeImage(base64);
+        updateData({ image: resized, points: [] });
+      } catch (error) {
+        console.error('Bild-Resize fehlgeschlagen:', error);
+        // Fallback: Original verwenden
+        updateData({ image: base64, points: [] });
+      }
     };
     reader.readAsDataURL(file);
   }
@@ -412,8 +470,14 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
     }
   }
 
-  function handleLoadPreset(preset: BodyMapPreset) {
-    updateData({ image: preset.image, points: [] });
+  async function handleLoadPreset(preset: BodyMapPreset) {
+    try {
+      const resized = await resizeAndOptimizeImage(preset.image);
+      updateData({ image: resized, points: [] });
+    } catch {
+      // Fallback: Original verwenden
+      updateData({ image: preset.image, points: [] });
+    }
   }
 
   function handleSetAsDefault() {
@@ -535,56 +599,75 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
           {!readOnly && (
             <Card className="p-4">
               <div className="flex flex-wrap gap-3 items-center">
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => setSelectedTool('point')}
-                    variant={selectedTool === 'point' ? 'default' : 'outline'}
-                    size="sm"
-                    type="button"
-                  >
-                    📍 Punkt
-                  </Button>
-                  <Button
-                    onClick={() => setSelectedTool('brush')}
-                    variant={selectedTool === 'brush' ? 'default' : 'outline'}
-                    size="sm"
-                    type="button"
-                  >
-                    🖌️ Pinsel
-                  </Button>
-                </div>
+                {(['point', 'brush'] as const).map((tool) => (
+                  <div key={tool} className="relative">
+                    {/* Sichtbarer Button – steuert Tool-Auswahl UND Dropdown */}
+                    <Button
+                      onClick={() => {
+                        if (selectedTool !== tool) {
+                          setSelectedTool(tool);
+                          setOpenSizeDropdown(null);
+                        } else {
+                          setOpenSizeDropdown(prev => prev === tool ? null : tool);
+                        }
+                      }}
+                      variant={selectedTool === tool ? 'default' : 'outline'}
+                      size="icon"
+                      type="button"
+                      title={selectedTool === tool ? 'Größe wählen' : tool === 'point' ? 'Punkt setzen' : 'Pinsel'}
+                    >
+                      {tool === 'point' ? <ArrowDownToDot size={18} /> : <Brush size={18} />}
+                    </Button>
 
-                <div className="flex-1 min-w-[200px] space-y-1">
+                    {/* Dropdown – komplett entkoppelt vom Button */}
+                    <DropdownMenu
+                      open={openSizeDropdown === tool}
+                      onOpenChange={(open) => setOpenSizeDropdown(open ? tool : null)}
+                    >
+                      <DropdownMenuTrigger className="absolute inset-0 w-full h-full opacity-0 pointer-events-none" />
+                      <DropdownMenuContent align="start" className="w-40">
+                        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                          {tool === 'point' ? 'Punktgröße' : 'Pinselgröße'}
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {[
+                          { size: POINT_SIZE.small,  r: 4,  label: 'Klein' },
+                          { size: POINT_SIZE.medium, r: 7,  label: 'Mittel' },
+                          { size: POINT_SIZE.large,  r: 10, label: 'Groß' },
+                        ].map(({ size, r, label }) => (
+                          <DropdownMenuItem
+                            key={label}
+                            onSelect={() => { setSelectedDiameter(size); setOpenSizeDropdown(null); }}
+                            className={cn('flex items-center gap-3 cursor-pointer', selectedDiameter === size && 'bg-primary/10 font-semibold')}
+                          >
+                            <svg viewBox="0 0 24 24" width="24" height="24" className="flex-shrink-0">
+                              <circle cx="12" cy="12" r={r} fill={selectedDiameter === size ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'} />
+                            </svg>
+                            <span>{label}</span>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                ))}
+
+                <div className="flex-1 min-w-[160px] space-y-1">
                   <div className="flex justify-between text-sm">
-                    <span>Durchmesser:</span>
-                    <span className="font-semibold">{selectedDiameter}px</span>
+                    <span>Schmerzstärke:</span>
+                    <span className="font-semibold" style={{ color: getColorForIntensity(selectedIntensity) }}>
+                      {selectedIntensity}
+                    </span>
                   </div>
                   <Slider
-                    value={[selectedDiameter]}
-                    onValueChange={(val) => setSelectedDiameter(val[0])}
-                    min={10}
-                    max={80}
-                    step={5}
+                    value={[selectedIntensity]}
+                    onValueChange={(val) => setSelectedIntensity(val[0])}
+                    min={1}
+                    max={10}
+                    step={1}
                   />
                 </div>
 
-                {selectedTool === 'brush' && (
-                  <div className="flex-1 min-w-[200px] space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>Intensität:</span>
-                      <span className="font-semibold" style={{ color: getColorForIntensity(selectedIntensity) }}>
-                        {selectedIntensity}
-                      </span>
-                    </div>
-                    <Slider
-                      value={[selectedIntensity]}
-                      onValueChange={(val) => setSelectedIntensity(val[0])}
-                      min={1}
-                      max={10}
-                      step={1}
-                    />
-                  </div>
-                )}
+
               </div>
             </Card>
           )}
@@ -601,9 +684,10 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
             onTouchEnd={handleMouseUp}
             onTouchCancel={handleMouseUp}
             className={cn(
-              "w-full h-auto border-2 rounded-lg touch-none",
+              "border-2 rounded-lg touch-none",
               readOnly ? "cursor-default" : selectedTool === 'brush' ? "cursor-crosshair" : "cursor-pointer"
             )}
+            style={{ width: '100%', height: 'auto', maxHeight: 'calc(60vh)', display: 'block' }}
           />
 
           {!readOnly && (
@@ -709,7 +793,7 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
                     <div className="flex-1 space-y-2">
                       <div className="text-xs text-muted-foreground">
                         {point.type === 'point' ? '📍 Punkt' : '🖌️ Pinsel'} • 
-                        Ø {point.diameter}px • 
+                        Größe {point.diameter === POINT_SIZE.small ? 'Klein' : point.diameter === POINT_SIZE.large ? 'Groß' : 'Mittel'} • 
                         Intensität {point.intensity}/10
                       </div>
                       
@@ -777,52 +861,6 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
         </Card>
       )}
 
-      {showIntensityModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowIntensityModal(false)}>
-          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="p-4 border-b flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Schmerzstärke</h3>
-              <Button variant="ghost" size="icon" onClick={() => setShowIntensityModal(false)}>
-                <X size={18} />
-              </Button>
-            </div>
-
-            <div className="p-4 space-y-4">
-              <p className="text-sm">Wie stark ist der Schmerz an dieser Stelle?</p>
-
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm">Schmerzstärke:</span>
-                  <span className="text-2xl font-bold" style={{ color: getColorForIntensity(selectedIntensity) }}>
-                    {selectedIntensity}
-                  </span>
-                </div>
-                <Slider
-                  value={[selectedIntensity]}
-                  onValueChange={(val) => setSelectedIntensity(val[0])}
-                  min={1}
-                  max={10}
-                  step={1}
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>1 (Leicht)</span>
-                  <span>10 (Sehr stark)</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 border-t flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowIntensityModal(false)}>
-                Abbrechen
-              </Button>
-              <Button onClick={handleIntensityConfirm}>
-                Bestätigen
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
-
       {showPresetModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowPresetModal(false)}>
           <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
@@ -875,7 +913,7 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
                   setCrop({ x: 0, y: 0 });
                   setZoom(1);
                   setCroppedAreaPixels(null);
-                  setSelectedAspect(4 / 3);
+                  setSelectedAspect(3 / 4);
                 }}
                 className="text-white hover:bg-white/10"
               >
@@ -884,34 +922,25 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
             </div>
             <div>
               <p className="text-white/70 text-xs mb-2">Seitenverhältnis:</p>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={selectedAspect === 1 ? 'default' : 'outline'}
-                  onClick={() => setSelectedAspect(1)}
-                  className={selectedAspect === 1 ? '' : 'bg-white/10 text-white border-white/20 hover:bg-white/20'}
-                >
-                  1:1
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={selectedAspect === 4/3 ? 'default' : 'outline'}
-                  onClick={() => setSelectedAspect(4/3)}
-                  className={selectedAspect === 4/3 ? '' : 'bg-white/10 text-white border-white/20 hover:bg-white/20'}
-                >
-                  4:3
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={selectedAspect === 16/9 ? 'default' : 'outline'}
-                  onClick={() => setSelectedAspect(16/9)}
-                  className={selectedAspect === 16/9 ? '' : 'bg-white/10 text-white border-white/20 hover:bg-white/20'}
-                >
-                  16:9
-                </Button>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { label: 'Frei', value: undefined },
+                  { label: '3:4', value: 3/4 },
+                  { label: '1:1', value: 1 },
+                  { label: '4:3', value: 4/3 },
+                  { label: '9:16', value: 9/16 }
+                ].map(ratio => (
+                  <Button
+                    key={ratio.label}
+                    type="button"
+                    size="sm"
+                    variant={selectedAspect === ratio.value ? 'default' : 'outline'}
+                    onClick={() => setSelectedAspect(ratio.value)}
+                    className={selectedAspect === ratio.value ? '' : 'bg-white/10 text-white border-white/20 hover:bg-white/20'}
+                  >
+                    {ratio.label}
+                  </Button>
+                ))}
               </div>
             </div>
           </div>

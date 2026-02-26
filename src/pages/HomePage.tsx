@@ -4,6 +4,9 @@ import { History, TrendingUp, Settings } from 'lucide-react';
 import '../styles/home-page.css';
 import PageTutorial from '../components/tutorial/PageTutorial';
 import { useNavigation } from '../contexts/NavigationContext';
+import { RestoreBackupBanner } from '../components/RestoreBackupBanner';
+import { BackupReminder } from '../components/BackupReminder';
+import { DataProtectionBanner } from '../components/DataProtectionBanner';
 
 export default function HomePage() {
   const { templates, selectTemplate, navigate } = useNavigation();
@@ -66,6 +69,9 @@ export default function HomePage() {
     <div className="home-page">
 
       <div className="home-content">
+        <RestoreBackupBanner />
+        <DataProtectionBanner />
+        <BackupReminder />
         <header className="home-header">
           <h1 className="home-greeting">
             {username ? `Hallo ${username}!` : 'Hallo!'}
