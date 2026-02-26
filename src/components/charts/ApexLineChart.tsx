@@ -175,7 +175,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
       tooltip: {
         enabled: true,
         theme: isDarkMode ? 'dark' : 'light',
-        shared: true,
+        shared: false,
         intersect: false,
         x: {
           show: false,  // Datums-Marker unter X-Achse ausblenden
@@ -185,7 +185,9 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
           show: false,  // Marker im Tooltip ausblenden
         },
         custom: ({ seriesIndex, dataPointIndex, w }) => {
-          const dataPoint = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
+          if (seriesIndex < 0 || dataPointIndex < 0) return '';
+          const dataPoint = w.globals.initialSeries[seriesIndex]?.data[dataPointIndex];
+          if (!dataPoint) return '';
           const date = dataPoint.x;
           const value = dataPoint.y;
           const seriesName = w.globals.seriesNames[seriesIndex];
