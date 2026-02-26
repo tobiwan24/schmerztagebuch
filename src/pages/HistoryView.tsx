@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getEntries, getTemplates, deleteEntry } from '../db';
+import { getEntries, getTemplates, deleteEntry, updateEntry } from '../db';
 import { useDecrypt } from '../hooks/useDecrypt';
 import { useNavigation } from '../contexts/NavigationContext';
 import { exportToPDF } from '../utils/pdfExport';
 import type { ImageSize } from '../utils/pdfExport';
 import { getIconComponent } from '../utils/iconUtils';
+import { encryptData } from '../utils/crypto';
+import { getSessionPassword } from '../utils/auth';
 import type { Entry, Template } from '../types/database';
 import type { Block, TextAreaBlockValue } from '../types/blocks';
 import { Button } from "@/components/ui/button";
@@ -16,7 +18,7 @@ import {
   ArrowLeft, Trash2, ChevronRight, X, Download,
   Filter, ArrowUpDown, Check, ChevronDown,
   Calendar, Stethoscope, Map as MapIcon, ImageIcon, FileText,
-  CalendarDays, Tag
+  CalendarDays, Tag, Pencil, Save
 } from 'lucide-react';
 import BlockRenderer from '../components/BlockRenderer';
 import PageTutorial from '../components/tutorial/PageTutorial';
@@ -388,6 +390,11 @@ export default function HistoryView() {
   const [showPdfDialog, setShowPdfDialog] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
+  // Edit mode
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editedBlocks, setEditedBlocks] = useState<Block[] | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
   // Alle verfügbaren Tags aus Einträgen
   const allTags = [...new Set(entries.flatMap(e => e.tags ?? []))];
 
@@ -475,11 +482,59 @@ export default function HistoryView() {
     decryptEntry();
   }, [selectedEntry, decrypt]);
 
+  function handleCloseModal() {
+    setSelectedEntry(null);
+    setIsEditMode(false);
+    setEditedBlocks(null);
+  }
+
   async function handleDeleteEntry(entryId: number) {
     if (!confirm('Eintrag wirklich löschen?')) return;
     await deleteEntry(entryId);
-    setSelectedEntry(null);
+    handleCloseModal();
     loadData();
+  }
+
+  function handleStartEdit() {
+    if (!decryptedBlocks) return;
+    setEditedBlocks(JSON.parse(JSON.stringify(decryptedBlocks))); // deep copy
+    setIsEditMode(true);
+  }
+
+  async function handleSaveEdit() {
+    if (!selectedEntry?.id || !editedBlocks) return;
+    setIsSavingEdit(true);
+    try {
+      const dataString = JSON.stringify(editedBlocks);
+      let encrypted = false;
+      let data = dataString;
+
+      if (selectedEntry.encrypted) {
+        const password = getSessionPassword();
+        if (!password) {
+          alert('Session abgelaufen – bitte neu anmelden');
+          setIsSavingEdit(false);
+          return;
+        }
+        data = await encryptData(dataString, password);
+        encrypted = true;
+      }
+
+      const editedAt = new Date().toISOString();
+      await updateEntry(selectedEntry.id, data, encrypted, editedAt);
+
+      // Update local state
+      const updatedEntry: Entry = { ...selectedEntry, data, encrypted, editedAt };
+      setSelectedEntry(updatedEntry);
+      setDecryptedBlocks(editedBlocks);
+      setIsEditMode(false);
+      setEditedBlocks(null);
+      loadData();
+    } catch (error) {
+      alert('Fehler beim Speichern: ' + (error instanceof Error ? error.message : 'Unbekannt'));
+    } finally {
+      setIsSavingEdit(false);
+    }
   }
 
   function handlePresetChange(preset: string) {
@@ -827,20 +882,30 @@ export default function HistoryView() {
 
       {/* ── Detail-Modal ── */}
       {selectedEntry && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setSelectedEntry(null)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={isEditMode ? undefined : handleCloseModal}>
           <Card className="w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <CardHeader className="border-b">
               <div className="flex justify-between items-start">
                 <div>
-                  <CardTitle>{templates.find(t => t.id === selectedEntry.templateId)?.name}</CardTitle>
+                  <CardTitle>
+                    {templates.find(t => t.id === selectedEntry.templateId)?.name}
+                    {isEditMode && <span className="ml-2 text-sm font-normal text-muted-foreground">(Bearbeiten)</span>}
+                  </CardTitle>
                   <CardDescription className="mt-1">
                     {new Date(selectedEntry.timestamp).toLocaleDateString('de-DE', {
                       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
                       hour: '2-digit', minute: '2-digit',
                     })}
+                    {selectedEntry.editedAt && (
+                      <span className="ml-2 text-xs">
+                        · bearbeitet {new Date(selectedEntry.editedAt).toLocaleDateString('de-DE', {
+                          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                        })}
+                      </span>
+                    )}
                   </CardDescription>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setSelectedEntry(null)}>
+                <Button variant="ghost" size="icon" onClick={handleCloseModal}>
                   <X size={20} />
                 </Button>
               </div>
@@ -854,6 +919,21 @@ export default function HistoryView() {
                 </div>
               ) : decryptError ? (
                 <p className="text-destructive">{decryptError}</p>
+              ) : isEditMode && editedBlocks ? (
+                <div className="space-y-4">
+                  {editedBlocks.map((block, idx) => (
+                    <BlockRenderer
+                      key={block.id}
+                      block={block}
+                      onChange={(newValue) => {
+                        const updated = [...editedBlocks];
+                        updated[idx] = { ...block, value: newValue };
+                        setEditedBlocks(updated);
+                      }}
+                      readOnly={false}
+                    />
+                  ))}
+                </div>
               ) : decryptedBlocks ? (
                 <div className="space-y-4">
                   {decryptedBlocks.map(block => (
@@ -866,11 +946,33 @@ export default function HistoryView() {
             </CardContent>
 
             <div className="border-t p-4 flex justify-between gap-2">
-              <Button variant="outline" onClick={() => setSelectedEntry(null)}>Schließen</Button>
-              <Button variant="destructive" onClick={() => selectedEntry.id && handleDeleteEntry(selectedEntry.id)}>
-                <Trash2 size={16} className="mr-2" />
-                Löschen
-              </Button>
+              {isEditMode ? (
+                <>
+                  <Button variant="outline" onClick={() => { setIsEditMode(false); setEditedBlocks(null); }}>
+                    Abbrechen
+                  </Button>
+                  <Button onClick={handleSaveEdit} disabled={isSavingEdit}>
+                    <Save size={16} className="mr-2" />
+                    {isSavingEdit ? 'Speichern…' : 'Speichern'}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={handleCloseModal}>Schließen</Button>
+                  <div className="flex gap-2">
+                    {decryptedBlocks && (
+                      <Button variant="outline" onClick={handleStartEdit}>
+                        <Pencil size={16} className="mr-2" />
+                        Bearbeiten
+                      </Button>
+                    )}
+                    <Button variant="destructive" onClick={() => selectedEntry.id && handleDeleteEntry(selectedEntry.id)}>
+                      <Trash2 size={16} className="mr-2" />
+                      Löschen
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           </Card>
         </div>

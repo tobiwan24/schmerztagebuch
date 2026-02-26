@@ -34,26 +34,26 @@ const generateUUID = () => {
   });
 };
 
-export default function TextAreaBlock({ 
-  block, 
-  onChange, 
-  onDashboardConfigChange,
-  readOnly = false, 
-  hideLabel = false 
+export default function TextAreaBlock({
+  block,
+  onChange,
+  readOnly = false,
+  hideLabel = false
 }: TextAreaBlockProps) {
   // Parse block value
-  const blockValue = typeof block.value === 'string' 
+  const blockValue = typeof block.value === 'string'
     ? { text: block.value } as TextAreaBlockValue
     : (block.value as TextAreaBlockValue) || {};
 
   const [textValue, setTextValue] = useState<string>(blockValue.text || '');
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>(blockValue.attachedFiles || []);
-  const [showEventConfig, setShowEventConfig] = useState(false);
-  const [eventCategory, setEventCategory] = useState<'event' | 'doctor'>(
-    block.dashboard?.eventCategory || 'event'
-  );
-  const [eventTitle, setEventTitle] = useState(block.dashboard?.eventTitle || '');
-  
+
+  // Separate states for event and doctor input panels
+  const [showEventInput, setShowEventInput] = useState(false);
+  const [showDoctorInput, setShowDoctorInput] = useState(false);
+  const [eventTitle, setEventTitle] = useState('');
+  const [doctorTitle, setDoctorTitle] = useState('');
+
   const photoInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
@@ -62,7 +62,8 @@ export default function TextAreaBlock({
     setTextValue(newText);
     onChange({
       text: newText,
-      attachedFiles: attachedFiles
+      attachedFiles,
+      events: blockValue.events,
     });
   };
 
@@ -70,8 +71,7 @@ export default function TextAreaBlock({
     if (!files || files.length === 0) return;
 
     const file = files[0];
-    
-    // Validierung
+
     if (type === 'image' && !file.type.startsWith('image/')) {
       alert('Bitte wähle eine Bilddatei aus');
       return;
@@ -95,7 +95,8 @@ export default function TextAreaBlock({
       setAttachedFiles(updatedFiles);
       onChange({
         text: textValue,
-        attachedFiles: updatedFiles
+        attachedFiles: updatedFiles,
+        events: blockValue.events,
       });
     } catch (error) {
       console.error('File upload error:', error);
@@ -108,34 +109,49 @@ export default function TextAreaBlock({
     setAttachedFiles(updatedFiles);
     onChange({
       text: textValue,
-      attachedFiles: updatedFiles
+      attachedFiles: updatedFiles,
+      events: blockValue.events,
     });
   };
 
-  const handleSaveEventConfig = () => {
-    if (!eventTitle.trim()) {
+  // Save event/doctor to block.value.events[] via onChange
+  const handleSaveEvent = (category: 'event' | 'doctor') => {
+    const title = category === 'event' ? eventTitle : doctorTitle;
+    if (!title.trim()) {
       alert('Bitte einen Titel eingeben');
       return;
     }
-    
-    if (onDashboardConfigChange) {
-      onDashboardConfigChange({
-        eventCategory,
-        eventTitle: eventTitle.trim()
-      });
+
+    const newEvent = {
+      eventCategory: category,
+      eventTitle: title.trim(),
+      timestamp: new Date().toISOString(),
+    };
+    const updatedEvents = [...(blockValue.events ?? []), newEvent];
+
+    onChange({
+      text: textValue,
+      attachedFiles,
+      events: updatedEvents,
+    });
+
+    if (category === 'event') {
+      setEventTitle('');
+      setShowEventInput(false);
+    } else {
+      setDoctorTitle('');
+      setShowDoctorInput(false);
     }
-    
-    setShowEventConfig(false);
   };
 
-  const handleCancelEventConfig = () => {
-    setShowEventConfig(false);
-    setEventTitle(block.dashboard?.eventTitle || '');
-    setEventCategory(block.dashboard?.eventCategory || 'event');
+  const handleDeleteEvent = (index: number) => {
+    const updatedEvents = (blockValue.events ?? []).filter((_, i) => i !== index);
+    onChange({
+      text: textValue,
+      attachedFiles,
+      events: updatedEvents,
+    });
   };
-
-  const isDashboardEnabled = block.dashboard?.enabled;
-  const hasEventConfig = block.dashboard?.eventTitle;
 
   return (
     <div className="space-y-2">
@@ -150,17 +166,17 @@ export default function TextAreaBlock({
         placeholder="Notizen eingeben..."
       />
 
-      {/* File Upload Buttons - Immer sichtbar (nicht nur wenn Dashboard aktiv) */}
+      {/* Action Buttons row */}
       {!readOnly && (
         <div className="flex gap-3" style={{ marginTop: '12px' }}>
           {/* Event Button */}
           <Button
             type="button"
             onClick={() => {
-              setEventCategory('event');
-              setShowEventConfig(true);
+              setShowEventInput(v => !v);
+              setShowDoctorInput(false);
             }}
-            variant="outline"
+            variant={showEventInput ? 'default' : 'outline'}
             size="icon"
             className="btn-touch-target"
             title="Event hinzufügen"
@@ -173,10 +189,10 @@ export default function TextAreaBlock({
           <Button
             type="button"
             onClick={() => {
-              setEventCategory('doctor');
-              setShowEventConfig(true);
+              setShowDoctorInput(v => !v);
+              setShowEventInput(false);
             }}
-            variant="outline"
+            variant={showDoctorInput ? 'default' : 'outline'}
             size="icon"
             className="btn-touch-target"
             title="Arztbesuch hinzufügen"
@@ -227,6 +243,120 @@ export default function TextAreaBlock({
         </div>
       )}
 
+      {/* Event Input Panel */}
+      {!readOnly && showEventInput && (
+        <Card className="p-3 border-2 border-primary" style={{ marginTop: '8px' }}>
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold">⚡ Event</Label>
+            <div className="flex gap-2">
+              <Input
+                value={eventTitle}
+                onChange={(e) => setEventTitle(e.target.value)}
+                placeholder="Event-Titel..."
+                className="h-8 text-sm"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); handleSaveEvent('event'); }
+                  if (e.key === 'Escape') { setShowEventInput(false); setEventTitle(''); }
+                }}
+              />
+              <Button
+                type="button"
+                onClick={() => handleSaveEvent('event')}
+                size="icon"
+                className="h-8 w-8 flex-shrink-0"
+              >
+                <Check size={14} />
+              </Button>
+              <Button
+                type="button"
+                onClick={() => { setShowEventInput(false); setEventTitle(''); }}
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 flex-shrink-0"
+              >
+                <X size={14} />
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Doctor Input Panel */}
+      {!readOnly && showDoctorInput && (
+        <Card className="p-3 border-2 border-primary" style={{ marginTop: '8px' }}>
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold">🩺 Arztbesuch</Label>
+            <div className="flex gap-2">
+              <Input
+                value={doctorTitle}
+                onChange={(e) => setDoctorTitle(e.target.value)}
+                placeholder="Arztbesuch-Titel..."
+                className="h-8 text-sm"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); handleSaveEvent('doctor'); }
+                  if (e.key === 'Escape') { setShowDoctorInput(false); setDoctorTitle(''); }
+                }}
+              />
+              <Button
+                type="button"
+                onClick={() => handleSaveEvent('doctor')}
+                size="icon"
+                className="h-8 w-8 flex-shrink-0"
+              >
+                <Check size={14} />
+              </Button>
+              <Button
+                type="button"
+                onClick={() => { setShowDoctorInput(false); setDoctorTitle(''); }}
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 flex-shrink-0"
+              >
+                <X size={14} />
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Saved Events List */}
+      {blockValue.events && blockValue.events.length > 0 && (
+        <div className="space-y-1" style={{ marginTop: '8px' }}>
+          {blockValue.events.map((ev, idx) => (
+            <Card key={idx} className="p-2 bg-secondary/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {ev.eventCategory === 'doctor' ? (
+                    <Stethoscope size={12} className="text-primary" />
+                  ) : (
+                    <CalendarClock size={12} className="text-primary" />
+                  )}
+                  <div>
+                    <p className="text-xs font-semibold">
+                      {ev.eventCategory === 'doctor' ? 'Arztbesuch' : 'Event'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{ev.eventTitle}</p>
+                  </div>
+                </div>
+                {!readOnly && (
+                  <Button
+                    type="button"
+                    onClick={() => handleDeleteEvent(idx)}
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                  >
+                    <X size={12} />
+                  </Button>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {/* File Preview Grid */}
       {attachedFiles.length > 0 && (
         <div className="grid grid-cols-2 gap-2" style={{ marginTop: '12px' }}>
@@ -259,91 +389,6 @@ export default function TextAreaBlock({
               )}
             </Card>
           ))}
-        </div>
-      )}
-      
-      {/* Event-Config nur wenn Dashboard aktiv */}
-      {!readOnly && isDashboardEnabled && onDashboardConfigChange && (
-        <div className="space-y-2">
-          {/* Bereits konfiguriert - Anzeige */}
-          {hasEventConfig && !showEventConfig && (
-            <Card className="p-2 bg-secondary/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {block.dashboard?.eventCategory === 'doctor' ? (
-                    <Stethoscope size={12} className="text-primary" />
-                  ) : (
-                    <CalendarClock size={12} className="text-primary" />
-                  )}
-                  <div>
-                    <p className="text-xs font-semibold">
-                      {block.dashboard?.eventCategory === 'doctor' ? 'Arztbesuch' : 'Event'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{block.dashboard?.eventTitle}</p>
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    if (onDashboardConfigChange) {
-                      onDashboardConfigChange({ eventCategory: 'event', eventTitle: '' });
-                    }
-                  }}
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                >
-                  <X size={12} />
-                </Button>
-              </div>
-            </Card>
-          )}
-          
-          {/* Event-Konfigurations-Popup - Kompakt */}
-          {showEventConfig && (
-            <Card className="p-3 border-2 border-primary">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold">
-                    {eventCategory === 'doctor' ? '🩺 Arztbesuch' : '⚡ Event'}
-                  </Label>
-                  <Button
-                    type="button"
-                    onClick={handleCancelEventConfig}
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                  >
-                    <X size={12} />
-                  </Button>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Input
-                    value={eventTitle}
-                    onChange={(e) => setEventTitle(e.target.value)}
-                    placeholder="Titel eingeben..."
-                    className="h-8 text-sm"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleSaveEventConfig();
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    onClick={handleSaveEventConfig}
-                    size="icon"
-                    className="h-8 w-8 flex-shrink-0"
-                  >
-                    <Check size={14} />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          )}
         </div>
       )}
     </div>
