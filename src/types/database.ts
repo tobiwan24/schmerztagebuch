@@ -19,6 +19,7 @@ export interface Entry {
   encrypted: boolean;
   data: string;  // JSON string (plain oder verschlüsselt)
   tags?: string[];
+  editedAt?: string;  // ISO timestamp der letzten Bearbeitung
 }
 
 // Settings: App-Konfiguration

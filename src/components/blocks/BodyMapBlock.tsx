@@ -80,6 +80,8 @@ async function resizeAndOptimizeImage(src: string): Promise<string> {
       canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (!ctx) { reject(new Error('Canvas context nicht verfügbar')); return; }
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
       resolve(canvas.toDataURL('image/jpeg', BODYMAP_CONFIG.jpegQuality));
     };
@@ -266,9 +268,10 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
         const preset = getPresets().find(p => p.id === defaultPresetId);
         if (preset) {
           // Default-Preset gefunden → lazy resizen und laden
-          resizeAndOptimizeImage(preset.image)
+          const src = preset.imageUrl ?? preset.image;
+          resizeAndOptimizeImage(src)
             .then(resized => updateData({ image: resized, points: [] }))
-            .catch(() => updateData({ image: preset.image, points: [] }));
+            .catch(() => updateData({ image: src, points: [] }));
         }
         // Preset gelöscht → Fallback zu normaler Ansicht
       }
@@ -471,12 +474,14 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
   }
 
   async function handleLoadPreset(preset: BodyMapPreset) {
+    // imageUrl (default presets) hat Vorrang vor base64 image
+    const src = preset.imageUrl ?? preset.image;
     try {
-      const resized = await resizeAndOptimizeImage(preset.image);
+      const resized = await resizeAndOptimizeImage(src);
       updateData({ image: resized, points: [] });
     } catch {
       // Fallback: Original verwenden
-      updateData({ image: preset.image, points: [] });
+      updateData({ image: src, points: [] });
     }
   }
 

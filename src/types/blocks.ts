@@ -27,7 +27,7 @@ export interface AttachedFile {
 // TextArea Block Value (erweitert)
 export interface TextAreaBlockValue {
   text?: string;
-  events?: { eventCategory: 'event' | 'doctor'; eventTitle: string }[];
+  events?: { eventCategory: 'event' | 'doctor'; eventTitle: string; timestamp?: string }[];
   attachedFiles?: AttachedFile[];
 }
 
