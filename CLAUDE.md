@@ -28,6 +28,56 @@ Full behavior conventions are in `.claude/rules/conventions.md`. Key points:
 - Keep answers short — code speaks for itself
 - Never invent functions/variables; use `Grep`/`Glob` to verify
 
+## _planning/ Conventions
+
+### File Structure
+
+| Path | Type | Format |
+|---|---|---|
+| `_planning/PRD.md` | Project overview | Prose + status tables |
+| `_planning/roadmap.md` | Roadmap + next steps | Frontmatter + RDM sections |
+| `_planning/issues.md` | Issues index | Frontmatter + link table |
+| `_planning/issues/ISS-NNN.md` | Individual issue | Frontmatter + description |
+| `_planning/features/FEAT-NNN.md` | Feature detail | Frontmatter + prose |
+
+### ID Prefixes & Required Frontmatter Fields
+
+| Prefix | Type | Required fields |
+|---|---|---|
+| `ISS-NNN` | Issue | `id`, `title`, `type: issue`, `area`, `priority`, `status`, `created` |
+| `FEAT-NNN` | Feature | `id`, `title`, `type: feature`, `area`, `status`, `priority`, `created`, `updated` |
+| `RDM-NNN` | Roadmap entry | `id`, `area`, `status`, `refs`, `branch` (as YAML block in roadmap.md) |
+
+Valid `area` values: `dashboard`, `ui`, `pwa`, `encryption`, `export`, `templates`
+Valid `status` values (issue): `open`, `in-progress`, `resolved`
+Valid `status` values (feature): `planned`, `in-progress`, `done`
+Valid `priority` values: `low`, `medium`, `high`
+
+### Behavior Rules
+
+- **Issues:** When an issue is resolved, delete the `ISS-NNN.md` file and remove its row from `issues.md` index.
+- **Features:** When starting work on a feature, update `status` and `updated` in its frontmatter.
+- **Roadmap RDM entries:** When a roadmap item is done, set `status: done` in its YAML block.
+- **New issues:** Create `ISS-NNN.md` in `_planning/issues/` and add a row to `issues.md` index. Use next sequential ID.
+- **Cross-references:** Use IDs (`ISS-001`, `FEAT-003`) — never file paths — when referencing across documents.
+
+### Local Git Versioning
+
+`_planning/` has its own local git repository (`_planning/.git/`) — separate from the main project repo.
+It is listed in the main `.gitignore` and is **never pushed to GitHub**.
+
+After editing any `_planning/` file or `CLAUDE.md`, commit both locally:
+```bash
+# Main project repo (only CLAUDE.md)
+cd /path/to/project
+git add CLAUDE.md && git commit -m "docs(claude): ..."
+
+# Planning repo
+cd _planning
+cp ../CLAUDE.md ./CLAUDE.md   # keep copy in sync
+git add -A && git commit -m "docs: ..."
+```
+
 ---
 
 ## Commands
