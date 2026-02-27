@@ -67,20 +67,11 @@ Valid `priority` values: `low`, `medium`, `high`
 
 ### Local Git Versioning
 
-`_planning/` has its own local git repository (`_planning/.git/`) — separate from the main project repo.
+`_planning/` is a fully independent git repository — managed separately by the user.
 It is listed in the main `.gitignore` and is **never pushed to GitHub**.
 
-After editing any `_planning/` file or `CLAUDE.md`, commit both locally:
-```bash
-# Main project repo (only CLAUDE.md)
-cd /path/to/project
-git add CLAUDE.md && git commit -m "docs(claude): ..."
-
-# Planning repo
-cd _planning
-cp ../CLAUDE.md ./CLAUDE.md   # keep copy in sync
-git add -A && git commit -m "docs: ..."
-```
+Do **not** run git commands targeting `_planning/` from within the main project context.
+Do **not** copy or sync files between the two repos automatically.
 
 ---
 
