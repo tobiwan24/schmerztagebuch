@@ -67,11 +67,18 @@ Valid `priority` values: `low`, `medium`, `high`
 
 ### Local Git Versioning
 
-`_planning/` is a fully independent git repository — managed separately by the user.
-It is listed in the main `.gitignore` and is **never pushed to GitHub**.
+`_planning/` is a fully independent local git repository — no remote, never pushed to GitHub.
+It contains planning documents only and is completely separate from the main repo.
 
-Do **not** run git commands targeting `_planning/` from within the main project context.
-Do **not** copy or sync files between the two repos automatically.
+**Two-task rule after plan mode:** When a plan has been agreed on, always perform two separate tasks:
+1. Write plan changes to `_planning/` and commit there:
+   ```bash
+   cd _planning && git add -A && git commit -m "docs: ..."
+   ```
+2. Implement the plan in the main repo, commit and push:
+   ```bash
+   git add <files> && git commit -m "..." && git push
+   ```
 
 ---
 
