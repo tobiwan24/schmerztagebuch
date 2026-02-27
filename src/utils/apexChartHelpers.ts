@@ -31,41 +31,40 @@ export interface ChartConfig {
 export function convertToApexSeries(
   dailyPainData: DailyPainData[],
   chartConfig: ChartConfig,
-  visibleTemplates: Set<number>
+  visibleTemplates: Set<number>,
+  orderedTemplateIds?: number[]
 ): ApexSeries[] {
   // Gruppiere Daten nach Template
   const dataByTemplate = new Map<number, { x: string; y: number }[]>();
-  
+
   dailyPainData.forEach(point => {
     // Nur sichtbare Templates
     if (!visibleTemplates.has(point.templateId)) return;
-    
+
     if (!dataByTemplate.has(point.templateId)) {
       dataByTemplate.set(point.templateId, []);
     }
-    
+
     dataByTemplate.get(point.templateId)!.push({
       x: point.date, // ISO-Date String direkt!
       y: point.avg
     });
   });
-  
-  // Konvertiere zu ApexCharts Series Format
-  const series: ApexSeries[] = [];
-  
-  dataByTemplate.forEach((data, templateId) => {
+
+  // Konvertiere zu ApexCharts Series Format — in definierter Reihenfolge (BUG-B)
+  const ids = orderedTemplateIds
+    ? orderedTemplateIds.filter(id => dataByTemplate.has(id))
+    : [...dataByTemplate.keys()];
+
+  return ids.map(templateId => {
     const key = `template_${templateId}_avg`;
     const config = chartConfig[key];
-    
-    if (config) {
-      series.push({
-        name: config.label,
-        data: data.sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime())
-      });
-    }
+    const data = dataByTemplate.get(templateId) ?? [];
+    return {
+      name: config?.label ?? String(templateId),
+      data: data.sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime()),
+    };
   });
-  
-  return series;
 }
 
 /**
@@ -135,16 +134,16 @@ export function generateCategories(
     }
     
     case 'W': {
-      // Woche: Diese Woche + offset (Mo bis heute)
+      // Woche: Diese Woche + offset (Mo bis So; bei aktueller Woche nur bis heute)
       const dayOfWeek = now.getDay();
       const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
       const monday = new Date(now);
       monday.setDate(now.getDate() - daysToMonday + (offset * 7));
       monday.setHours(0, 0, 0, 0);
-      
-      // Von Montag bis heute
-      const daysInWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
-      for (let i = 0; i < daysInWeek; i++) {
+
+      // Vergangene/zukünftige Wochen immer 7 Tage; aktuelle Woche nur bis heute
+      const daysToShow = offset !== 0 ? 7 : (dayOfWeek === 0 ? 7 : dayOfWeek);
+      for (let i = 0; i < daysToShow; i++) {
         const date = new Date(monday);
         date.setDate(monday.getDate() + i);
         categories.push(date.toISOString().split('T')[0]);
