@@ -315,6 +315,9 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
   const combinedSeries = useMemo(() => {
     const painSeries = series.map(s => ({ ...s, type: 'line' as const }));
     const fnSeries = (functionSeries ?? []).map(s => ({ ...s, type: 'area' as const }));
+    if (fnSeries.length === 0) {
+      return [...painSeries, { name: '', data: [] as { x: string; y: number }[], type: 'area' as const }];
+    }
     return [...painSeries, ...fnSeries];
   }, [series, functionSeries]);
 
