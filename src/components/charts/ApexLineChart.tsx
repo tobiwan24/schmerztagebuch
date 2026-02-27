@@ -41,6 +41,15 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
     return () => obs.disconnect();
   }, []);
 
+  const resolvedColors = useMemo(() => {
+    // Placeholder area series braucht einen Color-Eintrag damit ApexCharts
+    // series[] und colors[] synchron bleibt — sonst bricht x-Achsen-Touch.
+    if (!functionSeries || functionSeries.length === 0) {
+      return [...colors, 'transparent'];
+    }
+    return colors;
+  }, [colors, functionSeries]);
+
   const chartOptions: ApexOptions = useMemo(() => {
 
     // Event Annotations erstellen - als Points direkt über Datenpunkten
@@ -246,7 +255,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
       legend: {
         show: false,
       },
-      colors,
+      colors: resolvedColors,
       responsive: [
         {
           breakpoint: 768,
@@ -310,7 +319,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         },
       ],
     };
-  }, [categories, timeRange, colors, height, events, visibleTemplates, dashboardTemplates, series, isDarkMode, functionSeries]);
+  }, [categories, timeRange, resolvedColors, height, events, visibleTemplates, dashboardTemplates, series, isDarkMode, functionSeries]);
 
   const combinedSeries = useMemo(() => {
     const painSeries = series.map(s => ({ ...s, type: 'line' as const }));
