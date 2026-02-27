@@ -18,8 +18,8 @@ git status              # Any open changes?
 ```
 
 Then read:
-1. `.claude/context/PRD.md` — project status overview
-2. The relevant feature file in `.claude/context/features/` for the current task
+1. `_planning/PRD.md` — project status overview
+2. The relevant feature file in `_planning/features/` for the current task
 
 ## Rules
 
