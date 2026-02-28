@@ -390,7 +390,7 @@ export default function EditorMode() {
         // Alle aktivieren
         return {
           ...block,
-          dashboard: { enabled: true }
+          dashboard: { ...block.dashboard, enabled: true }
         };
       }
     }));
