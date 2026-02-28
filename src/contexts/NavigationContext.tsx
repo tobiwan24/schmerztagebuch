@@ -1,8 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { initializeDB, getAppSettings } from '../db';
 import db from '../db';
-import { getEncryptionMode, requiresAuth, checkPassword, setSession, isSessionValid, refreshSession } from '../utils/auth';
+import { getEncryptionMode, requiresAuth, checkPassword, setSession, clearSession, isSessionValid, refreshSession, INACTIVITY_TIMEOUT } from '../utils/auth';
 import type { Template } from '../types/database';
 import {
   requestPersistentStorage,
@@ -58,6 +58,12 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activeTemplateId, setActiveTemplateId] = useState<number | undefined>(undefined);
   const [editingTemplateId, setEditingTemplateId] = useState<number | undefined>(undefined);
+  const currentViewRef = useRef<ViewType>('setup');
+
+  // currentViewRef immer aktuell halten (kein stale closure in Timern)
+  useEffect(() => {
+    currentViewRef.current = currentView;
+  }, [currentView]);
 
   // App initialization
   useEffect(() => {
@@ -135,17 +141,49 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Session auto-refresh on user activity
+  // Inaktivitäts-Timer: Sperrt App nach INACTIVITY_TIMEOUT ms ohne User-Interaktion
   useEffect(() => {
-    const refresh = () => { if (isSessionValid()) refreshSession(); };
-    window.addEventListener('click', refresh);
-    window.addEventListener('keydown', refresh);
-    window.addEventListener('touchstart', refresh);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    function lock() {
+      if (!isSessionValid()) return;
+      clearSession();
+      setPendingView(currentViewRef.current);
+      setShowAuthModal(true);
+    }
+
+    function resetTimer() {
+      if (!isSessionValid()) return;
+      refreshSession();
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(lock, INACTIVITY_TIMEOUT);
+    }
+
+    const events = ['click', 'keydown', 'pointermove', 'touchstart', 'scroll'] as const;
+    events.forEach(e => window.addEventListener(e, resetTimer, { passive: true }));
+
+    // Einmalig starten wenn Session aktiv
+    if (isSessionValid()) {
+      timer = setTimeout(lock, INACTIVITY_TIMEOUT);
+    }
+
     return () => {
-      window.removeEventListener('click', refresh);
-      window.removeEventListener('keydown', refresh);
-      window.removeEventListener('touchstart', refresh);
+      if (timer) clearTimeout(timer);
+      events.forEach(e => window.removeEventListener(e, resetTimer));
     };
+  }, []);
+
+  // visibilitychange: Sperrt App wenn Tab/App in den Hintergrund geht
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.hidden && isSessionValid()) {
+        clearSession();
+        setPendingView(currentViewRef.current);
+        setShowAuthModal(true);
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   // Reload templates when returning to home

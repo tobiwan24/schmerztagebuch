@@ -10,7 +10,8 @@ const ENCRYPTION_MODE_KEY = 'encryptionMode';
 const BIOMETRIC_ENABLED_KEY = 'biometricEnabled';
 const BIOMETRIC_CREDENTIAL_KEY = 'biometricCredential';
 const SESSION_KEY = 'authSession';
-const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 Stunden
+const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 Stunden (Fallback)
+export const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 Minuten Inaktivität
 
 /**
  * iOS-kompatible Base64-Encoding

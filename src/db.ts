@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from 'dexie';
 import type { Block } from './types/blocks';
 import type { Template, Entry, Settings } from './types/database';
 import { generateUUID } from './utils/uuid';
+import { decryptData, encryptData } from './utils/crypto';
 
 const db = new Dexie('PainDiaryDB') as Dexie & {
   templates: EntityTable<Template, 'id'>;
@@ -348,19 +349,84 @@ export async function setSetting(key: string, value: string): Promise<void> {
 }
 
 export async function getAppSettings(): Promise<{
-  encryptionMode: 'none' | 'history' | 'full';
+  encryptionMode: 'none' | 'full';
   biometricEnabled: boolean;
   setupCompleted: boolean;
 }> {
   const mode = await getSetting('encryptionMode');
   const biometric = await getSetting('biometricEnabled');
   const setup = await getSetting('setupCompleted');
-  
+
   return {
-    encryptionMode: (mode as 'none' | 'history' | 'full') || 'none',
+    encryptionMode: (mode as 'none' | 'full') || 'none',
     biometricEnabled: biometric === 'true',
     setupCompleted: setup === 'true'
   };
+}
+
+
+// ========== ENCRYPTION MIGRATION ==========
+
+/**
+ * EC1: Alle verschlüsselten Einträge entschlüsseln (full → none).
+ * Wird aufgerufen bevor encryptionMode auf 'none' gesetzt wird.
+ */
+export async function decryptAllEntries(
+  password: string,
+  onProgress?: (done: number, total: number) => void
+): Promise<void> {
+  const entries = await db.entries.toArray();
+  const encrypted = entries.filter(e => e.encrypted);
+  const total = encrypted.length;
+
+  for (let i = 0; i < encrypted.length; i++) {
+    const entry = encrypted[i];
+    const decrypted = await decryptData(entry.data, password);
+    await db.entries.update(entry.id!, { data: decrypted, encrypted: false });
+    onProgress?.(i + 1, total);
+  }
+}
+
+/**
+ * EC2: Alle unverschlüsselten Einträge verschlüsseln (none → full).
+ * Wird aufgerufen nachdem Passwort gesetzt und encryptionMode auf 'full' gesetzt wurde.
+ */
+export async function encryptAllEntries(
+  password: string,
+  onProgress?: (done: number, total: number) => void
+): Promise<void> {
+  const entries = await db.entries.toArray();
+  const unencrypted = entries.filter(e => !e.encrypted);
+  const total = unencrypted.length;
+
+  for (let i = 0; i < unencrypted.length; i++) {
+    const entry = unencrypted[i];
+    const encryptedData = await encryptData(entry.data, password);
+    await db.entries.update(entry.id!, { data: encryptedData, encrypted: true });
+    onProgress?.(i + 1, total);
+  }
+}
+
+/**
+ * EC3: Alle verschlüsselten Einträge mit neuem Passwort re-encrypten.
+ * Wird aufgerufen beim Passwort-Wechsel.
+ */
+export async function reEncryptAllEntries(
+  oldPassword: string,
+  newPassword: string,
+  onProgress?: (done: number, total: number) => void
+): Promise<void> {
+  const entries = await db.entries.toArray();
+  const encrypted = entries.filter(e => e.encrypted);
+  const total = encrypted.length;
+
+  for (let i = 0; i < encrypted.length; i++) {
+    const entry = encrypted[i];
+    const decrypted = await decryptData(entry.data, oldPassword);
+    const reEncrypted = await encryptData(decrypted, newPassword);
+    await db.entries.update(entry.id!, { data: reEncrypted });
+    onProgress?.(i + 1, total);
+  }
 }
 
 
