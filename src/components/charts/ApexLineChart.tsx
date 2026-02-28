@@ -188,7 +188,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
       tooltip: {
         enabled: true,
         theme: isDarkMode ? 'dark' : 'light',
-        shared: false,
+        shared: true,   // verhindert Force-Intersect in beiden Modi (F-button ON + OFF)
         intersect: false,
         x: {
           show: false,  // Datums-Marker unter X-Achse ausblenden
