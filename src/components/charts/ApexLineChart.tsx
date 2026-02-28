@@ -328,7 +328,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
     return [...painSeries, ...fnSeries];
   }, [series, functionSeries]);
 
-  const chartKey = (functionSeries?.length ?? 0) > 0 ? 'mixed' : 'line';
+  const chartKey = `${timeRange}-${(functionSeries?.length ?? 0) > 0 ? 'mixed' : 'line'}`;
 
   // Schutz vor leeren Series (nach useMemo, damit Hooks-Reihenfolge konstant bleibt)
   if (!series || series.length === 0) {
