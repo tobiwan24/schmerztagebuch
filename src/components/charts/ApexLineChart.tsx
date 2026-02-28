@@ -53,7 +53,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         // Finde Y-Wert (Schmerzwert) für dieses Event-Datum
         const dateStr = event.date;
         let yValue = 5; // Fallback Mitte
-        
+
         // Suche in series nach dem Datenpunkt
         series.forEach(s => {
           const point = s.data.find(p => p.x === dateStr);
@@ -61,7 +61,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
             yValue = point.y;
           }
         });
-        
+
         return {
           x: new Date(event.date).getTime(),
           y: yValue,
@@ -204,7 +204,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
           const date = dataPoint.x;
           const value = dataPoint.y;
           const seriesName = w.globals.seriesNames[seriesIndex];
-          
+
           // Finde Events für dieses Datum
           const dateStr = new Date(date).toISOString().split('T')[0];
           const dayEvents = events.filter(e => {
@@ -263,6 +263,10 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
               },
             },
             yaxis: {
+              min: 0,
+              max: 10.5,
+              tickAmount: 5,
+              forceNiceScale: false,
               labels: {
                 style: {
                   fontSize: '10px',
@@ -293,6 +297,10 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
               },
             },
             yaxis: {
+              min: 0,
+              max: 10.5,
+              tickAmount: 5,
+              forceNiceScale: false,
               labels: {
                 style: {
                   fontSize: '9px',
@@ -312,11 +320,15 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
     };
   }, [categories, timeRange, colors, height, events, visibleTemplates, dashboardTemplates, series, isDarkMode, functionSeries]);
 
+  // ISS-002: Kein Placeholder mehr — pure line wenn kein functionSeries,
+  // mixed (line + area) wenn functionSeries aktiv. key-Prop steuert Re-Mount.
   const combinedSeries = useMemo(() => {
     const painSeries = series.map(s => ({ ...s, type: 'line' as const }));
     const fnSeries = (functionSeries ?? []).map(s => ({ ...s, type: 'area' as const }));
     return [...painSeries, ...fnSeries];
   }, [series, functionSeries]);
+
+  const chartKey = (functionSeries?.length ?? 0) > 0 ? 'mixed' : 'line';
 
   // Schutz vor leeren Series (nach useMemo, damit Hooks-Reihenfolge konstant bleibt)
   if (!series || series.length === 0) {
@@ -329,6 +341,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
 
   return (
     <Chart
+      key={chartKey}
       type="line"
       series={combinedSeries}
       options={chartOptions}

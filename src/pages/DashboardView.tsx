@@ -321,8 +321,11 @@ export default function DashboardView() {
 
   // ApexCharts Series & Categories
   const apexSeries = useMemo(() => {
-    return convertToApexSeries(dailyPainData, chartConfig, visibleTemplates);
-  }, [dailyPainData, chartConfig, visibleTemplates]);
+    return convertToApexSeries(
+      dailyPainData, chartConfig, visibleTemplates,
+      dashboardTemplates.map(t => t.id!)
+    );
+  }, [dailyPainData, chartConfig, visibleTemplates, dashboardTemplates]);
 
   const categories = useMemo(() => {
     return generateCategories(timeRange, new Date(), timeRangeOffset);
@@ -347,24 +350,27 @@ export default function DashboardView() {
     [dailyFunctionData, chartConfig, visibleFunctionSeries]
   );
 
-  // Template-Farben für ApexCharts – muss combinedSeries komplett abdecken (pain + function)
+  // Template-Farben für ApexCharts (ISS-011: von apexSeries abgeleitet, nicht von visibleTemplates)
+  // painColors muss 1:1 mit apexSeries übereinstimmen — auch wenn ein Template keine Daten hat
   const chartColors = useMemo(() => {
-    const painColors = dashboardTemplates
-      .filter(t => visibleTemplates.has(t.id!))
-      .map((template, index) => {
-        const key = `template_${template.id}_avg`;
-        return chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
-      });
-    // Funktionswert-Series verwenden dieselbe Farbe wie das zugehörige Template
+    const painColors = apexSeries.map((s) => {
+      const template = dashboardTemplates.find(t => t.name === s.name);
+      if (!template) return '#ef4444';
+      const key = `template_${template.id}_avg`;
+      return chartConfig[key]?.color || '#ef4444';
+    });
+
+    // Jede aktive Funktionsseries bekommt dieselbe Farbe wie die zugehörige Pain-Series
     const fnColors = functionApexSeries.map(fnSeries => {
       const templateName = fnSeries.name.replace(' · Funktion', '');
       const template = dashboardTemplates.find(t => t.name === templateName);
-      if (!template) return '#999';
+      if (!template) return painColors[0] ?? '#ef4444';
       const key = `template_${template.id}_avg`;
-      return chartConfig[key]?.color || '#999';
+      return chartConfig[key]?.color || '#ef4444';
     });
+
     return [...painColors, ...fnColors];
-  }, [dashboardTemplates, visibleTemplates, chartConfig, functionApexSeries]);
+  }, [dashboardTemplates, apexSeries, chartConfig, functionApexSeries]);
 
   // Zeitraum-Navigation
   const handlePreviousTimeRange = () => {
@@ -422,19 +428,25 @@ export default function DashboardView() {
         return targetDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
       }
       case '6M': {
-        // Letzte 6 Monate + offset
-        const sixMonthsAgo = new Date(now);
-        sixMonthsAgo.setMonth(now.getMonth() - 5 + (timeRangeOffset * 6));
-        const startMonth = sixMonthsAgo.toLocaleDateString('de-DE', { month: 'short' });
-        const endMonth = now.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
+        // 6 Monate + offset — End-Datum aus Periodenende berechnen (BUG-C)
+        const start = new Date(now);
+        start.setMonth(now.getMonth() - 5 + (timeRangeOffset * 6));
+        start.setDate(1);
+        const end = new Date(start);
+        end.setMonth(start.getMonth() + 5);
+        const startMonth = start.toLocaleDateString('de-DE', { month: 'short' });
+        const endMonth = end.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
         return `${startMonth}–${endMonth}`;
       }
       case 'J': {
-        // Letzte 12 Monate + offset
-        const twelveMonthsAgo = new Date(now);
-        twelveMonthsAgo.setMonth(now.getMonth() - 11 + (timeRangeOffset * 12));
-        const startMonth = twelveMonthsAgo.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
-        const endMonth = now.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
+        // 12 Monate + offset — End-Datum aus Periodenende berechnen (BUG-C)
+        const start = new Date(now);
+        start.setMonth(now.getMonth() - 11 + (timeRangeOffset * 12));
+        start.setDate(1);
+        const end = new Date(start);
+        end.setMonth(start.getMonth() + 11);
+        const startMonth = start.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
+        const endMonth = end.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
         return `${startMonth}–${endMonth}`;
       }
       default:
@@ -657,21 +669,6 @@ export default function DashboardView() {
                 })}
               </div>
             </div>
-          ) : dashboardTemplates.length > 0 ? (
-            <Card className="p-8 text-center">
-              <TrendingUp size={48} className="mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">
-                Keine Daten für {timeRange === 'T' ? 'heute' : timeRange === 'W' ? 'diese Woche' : timeRange === 'M' ? 'diesen Monat' : 'diesen Zeitraum'}
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Erstelle Einträge im Tagebuch, um Daten zu sehen.
-              </p>
-              {timeRangeOffset !== 0 && (
-                <Button onClick={handleResetTimeRange} variant="outline" className="mb-4">
-                  Zurück zu heute
-                </Button>
-              )}
-            </Card>
           ) : (
             <Card className="p-8 text-center">
               <TrendingUp size={48} className="mx-auto mb-4 text-muted-foreground" />
