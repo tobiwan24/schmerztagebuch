@@ -18,6 +18,15 @@ Skip plan mode for: single-line fixes, obvious typos, adding one small utility f
 - When explaining, use bullet points, not paragraphs.
 - Always reference code as `file.tsx:line` so the user can navigate directly.
 
+## Scope Discipline — Keine ungebetenen Änderungen
+
+**Gilt für alle Arbeiten: Issue-Fixes, neue Features, Refactoring.**
+
+- Bestehende Funktionalitäten und UIs werden **niemals ohne explizite Anweisung** geändert oder entfernt, um ein Problem zu lösen.
+- Jede Änderung muss direkt durch den Auftrag begründet sein. Kollateral-Änderungen ("während ich hier bin, räume ich das noch auf") sind verboten.
+- Wenn eine Lösung eine bestehende Funktion berühren würde: **erst fragen**, dann handeln.
+- Das gilt auch für UX-Entscheidungen: kein Umbauen von Layouts, Buttons, Flows, die nicht Gegenstand des Auftrags sind.
+
 ## Anti-Hallucination Rules
 
 - Never invent function names, prop names, or variable names. Use `Grep` to verify they exist.
@@ -60,7 +69,7 @@ chore/was-erledigt-wird       # Config, Tooling, Deps
 
 **Workflow:**
 ```bash
-git checkout main              # Von main abzweigen
+git checkout develop           # Von develop abzweigen (nicht main)
 git pull                       # Aktuellen Stand holen
 git checkout -b feat/xy        # Neuen Branch erstellen
 ```

@@ -102,6 +102,19 @@ db.version(17).stores({
   settings: 'key'
 });
 
+// Version 18: 'history'-Encryption-Mode entfernt → auf 'none' migrieren
+db.version(18).stores({
+  templates: '++id, name, order',
+  entries: '++id, templateId, timestamp, encrypted, *tags',
+  settings: 'key'
+}).upgrade(async tx => {
+  const setting = await tx.table('settings').get('encryptionMode');
+  if (setting?.value === 'history') {
+    await tx.table('settings').put({ key: 'encryptionMode', value: 'none' });
+    console.log('🔄 DB v18: encryptionMode "history" → "none" migriert');
+  }
+});
+
 // ========== MIGRATIONS ==========
 
 // Standard-Icons basierend auf Template-Namen - Lucide Icon Names (CamelCase)
