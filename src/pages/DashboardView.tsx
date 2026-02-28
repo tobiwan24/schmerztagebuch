@@ -333,8 +333,15 @@ export default function DashboardView() {
 
   const toggleTemplate = (templateId: number) => {
     const newVisible = new Set(visibleTemplates);
-    if (newVisible.has(templateId)) newVisible.delete(templateId);
-    else newVisible.add(templateId);
+    if (newVisible.has(templateId)) {
+      newVisible.delete(templateId);
+      // F-Serie mitdeaktivieren wenn Template ausgeblendet wird
+      const newFn = new Set(visibleFunctionSeries);
+      newFn.delete(templateId);
+      setVisibleFunctionSeries(newFn);
+    } else {
+      newVisible.add(templateId);
+    }
     setVisibleTemplates(newVisible);
   };
 
