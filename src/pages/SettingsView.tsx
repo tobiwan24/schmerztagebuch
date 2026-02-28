@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { getEncryptionMode, setEncryptionMode, isBiometricEnabled, isBiometricAvailable, disableBiometric, registerBiometric, validatePassword, setPassword as updatePassword, checkPassword, getSessionPassword, setSession } from '../utils/auth';
+import { getEncryptionMode, setEncryptionMode, isBiometricEnabled, isBiometricAvailable, disableBiometric, registerBiometric, validatePassword, setPassword as updatePassword, checkPassword, getSessionPassword, setSession, clearSession } from '../utils/auth';
 import type { EncryptionMode } from '../utils/auth';
 import Header from '../components/Header';
 import AuthModal from '../components/AuthModal';
 import UpdateControl from '../components/UpdateControl';
-import db from '../db';
+import db, { decryptAllEntries, encryptAllEntries, reEncryptAllEntries } from '../db';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,7 @@ export default function SettingsView() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authAction, setAuthAction] = useState<'changeMode' | 'changeBiometric' | null>(null);
   const [pendingMode, setPendingMode] = useState<EncryptionMode | null>(null);
+  const [migration, setMigration] = useState<{ done: number; total: number } | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -73,17 +74,19 @@ export default function SettingsView() {
   }
 
   async function handleModeChange(newMode: EncryptionMode) {
-    if (currentMode !== 'none' && newMode === 'none') {
+    // EC1: full → none: Auth erforderlich, danach alle Einträge entschlüsseln
+    if (currentMode === 'full' && newMode === 'none') {
       setPendingMode(newMode);
       setAuthAction('changeMode');
       setShowAuthModal(true);
       return;
     }
-    
+
+    // EC2: none → full: Passwort prüfen / anlegen, danach alle Einträge verschlüsseln
     if (currentMode === 'none' && newMode === 'full') {
       const { hasPassword } = await import('../utils/auth');
       const pwExists = await hasPassword();
-      
+
       if (!pwExists) {
         await setEncryptionMode(newMode);
         setCurrentMode(newMode);
@@ -91,8 +94,28 @@ export default function SettingsView() {
         setShowChangePassword(true);
         return;
       }
+
+      // Passwort existiert → bestehende Einträge verschlüsseln
+      const password = getSessionPassword();
+      if (!password) {
+        setPendingMode(newMode);
+        setAuthAction('changeMode');
+        setShowAuthModal(true);
+        return;
+      }
+
+      await setEncryptionMode(newMode);
+      setCurrentMode(newMode);
+      setMigration({ done: 0, total: 0 });
+      try {
+        await encryptAllEntries(password, (done, total) => setMigration({ done, total }));
+      } finally {
+        setMigration(null);
+      }
+      alert('Verschlüsselungsmodus geändert! Alle Einträge wurden verschlüsselt.');
+      return;
     }
-    
+
     await setEncryptionMode(newMode);
     setCurrentMode(newMode);
     alert('Verschlüsselungsmodus geändert!');
@@ -181,6 +204,16 @@ export default function SettingsView() {
         return;
       }
       
+      // EC3: Alle verschlüsselten Einträge mit neuem Passwort re-encrypten
+      setMigration({ done: 0, total: 0 });
+      try {
+        await reEncryptAllEntries(oldPassword, newPassword, (done, total) =>
+          setMigration({ done, total })
+        );
+      } finally {
+        setMigration(null);
+      }
+
       await updatePassword(newPassword);
       setSession(newPassword);
 
@@ -192,7 +225,7 @@ export default function SettingsView() {
       }
 
       alert('Passwort erfolgreich geändert!');
-      
+
       setShowChangePassword(false);
       setOldPassword('');
       setNewPassword('');
@@ -246,15 +279,36 @@ export default function SettingsView() {
 
   async function handleAuthenticate(password: string): Promise<boolean> {
     const valid = await checkPassword(password);
-    
+
     if (valid) {
       setSession(password);
       setShowAuthModal(false);
-      
+
       if (authAction === 'changeMode' && pendingMode) {
-        await setEncryptionMode(pendingMode);
-        setCurrentMode(pendingMode);
-        alert('Verschlüsselungsmodus geändert!');
+        // EC1: full → none: alle Einträge entschlüsseln
+        if (pendingMode === 'none') {
+          setMigration({ done: 0, total: 0 });
+          try {
+            await decryptAllEntries(password, (done, total) => setMigration({ done, total }));
+          } finally {
+            setMigration(null);
+          }
+          await setEncryptionMode('none');
+          setCurrentMode('none');
+          clearSession();
+          alert('Verschlüsselungsmodus deaktiviert. Alle Einträge wurden entschlüsselt.');
+        } else {
+          // EC2: none → full (Passwort war vorhanden, Session kam von Auth-Modal)
+          setMigration({ done: 0, total: 0 });
+          try {
+            await encryptAllEntries(password, (done, total) => setMigration({ done, total }));
+          } finally {
+            setMigration(null);
+          }
+          await setEncryptionMode(pendingMode);
+          setCurrentMode(pendingMode);
+          alert('Verschlüsselungsmodus geändert! Alle Einträge wurden verschlüsselt.');
+        }
       } else if (authAction === 'changeBiometric') {
         await activateBiometric(password);
       }
@@ -559,6 +613,27 @@ export default function SettingsView() {
           </Card>
         </div>
       </div>
+
+      {/* Migration-Overlay */}
+      {migration !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 p-8 rounded-xl bg-card border shadow-lg max-w-xs w-full mx-4">
+            <div className="spinner" />
+            <p className="font-medium text-center">Einträge werden migriert…</p>
+            {migration.total > 0 && (
+              <>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div
+                    className="bg-primary h-2 rounded-full transition-all"
+                    style={{ width: `${Math.round((migration.done / migration.total) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">{migration.done} / {migration.total}</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Auth Modal */}
       {showAuthModal && (

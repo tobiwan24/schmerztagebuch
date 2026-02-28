@@ -29,4 +29,4 @@ export interface Settings {
 }
 
 // Verschlüsselungs-Modi
-export type EncryptionMode = 'none' | 'history' | 'full';
+export type EncryptionMode = 'none' | 'full';
