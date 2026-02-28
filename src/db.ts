@@ -11,6 +11,15 @@ const db = new Dexie('PainDiaryDB') as Dexie & {
   settings: EntityTable<Settings, 'key'>;
 };
 
+// Stubs v8–v13: Abwärtskompatibilität für Altversionen
+const _legacySchema = { templates: '++id, name, order', entries: '++id, templateId, timestamp, encrypted', settings: 'key' };
+db.version(8).stores(_legacySchema);
+db.version(9).stores(_legacySchema);
+db.version(10).stores(_legacySchema);
+db.version(11).stores(_legacySchema);
+db.version(12).stores(_legacySchema);
+db.version(13).stores(_legacySchema);
+
 // Version 14: Lucide Icon System Integration
 db.version(14).stores({
   templates: '++id, name, order',
@@ -115,6 +124,26 @@ db.version(18).stores({
   }
 });
 
+// Version 19: Template icon/color Defaults als Dexie-Upgrade (war zuvor migrateTemplateStyles())
+db.version(19).stores({
+  templates: '++id, name, order',
+  entries: '++id, templateId, timestamp, encrypted, *tags',
+  settings: 'key'
+}).upgrade(async tx => {
+  const templates = await tx.table('templates').toArray();
+  let colorIndex = 0;
+  for (const template of templates) {
+    const iconInvalid = !template.icon || !AVAILABLE_ICON_NAMES.includes(template.icon);
+    const colorInvalid = !template.color;
+    if (iconInvalid || colorInvalid) {
+      const updates: Partial<Template> = {};
+      if (iconInvalid) updates.icon = getDefaultIconForTemplate(template.name);
+      if (colorInvalid) { updates.color = DEFAULT_COLORS[colorIndex % DEFAULT_COLORS.length]; colorIndex++; }
+      await tx.table('templates').put({ ...template, ...updates });
+    }
+  }
+});
+
 // ========== MIGRATIONS ==========
 
 // Standard-Icons basierend auf Template-Namen - Lucide Icon Names (CamelCase)
@@ -187,34 +216,6 @@ function getDefaultIconForTemplate(name: string): string {
     }
   }
   return 'Book'; // Fallback
-}
-
-// Migration: Templates ohne icon/color mit Defaults versehen
-export async function migrateTemplateStyles(): Promise<void> {
-  const templates = await db.templates.toArray();
-  let colorIndex = 0;
-  
-  for (const template of templates) {
-    const iconInvalid = !template.icon || !AVAILABLE_ICON_NAMES.includes(template.icon);
-    const colorInvalid = !template.color;
-
-    if (iconInvalid || colorInvalid) {
-      const updates: Partial<Template> = {};
-
-      if (iconInvalid) {
-        updates.icon = getDefaultIconForTemplate(template.name);
-      }
-
-      if (colorInvalid) {
-        updates.color = DEFAULT_COLORS[colorIndex % DEFAULT_COLORS.length];
-        colorIndex++;
-      }
-
-      if (template.id) {
-        await db.templates.update(template.id, updates);
-      }
-    }
-  }
 }
 
 // ========== TEMPLATE CRUD ==========
@@ -449,11 +450,18 @@ export async function reEncryptAllEntries(
 
 // ========== INITIALISIERUNG ==========
 
+export const DB_TARGET_VERSION = 19;
+
+export async function getCurrentDBVersion(): Promise<number> {
+  return new Promise((resolve) => {
+    const req = indexedDB.open('PainDiaryDB');
+    req.onsuccess = () => { const v = req.result.version; req.result.close(); resolve(v); };
+    req.onerror = () => resolve(0);
+  });
+}
+
 export async function initializeDB(): Promise<void> {
-  // Migration ausführen
-  await migrateTemplateStyles();
-  
-  // Keine Default-Vorlagen mehr: werden im SetupWizard vom User gewählt
+  await db.open();
 }
 
 export default db;

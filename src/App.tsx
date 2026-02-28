@@ -18,6 +18,7 @@ function AppInner() {
   const {
     currentView,
     isAppLoading,
+    loadingMessage,
     showAuthModal,
     handleAuthenticate,
     handleCancelAuth,
@@ -31,7 +32,7 @@ function AppInner() {
         <div className="app-container" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="text-center">
             <div className="spinner"></div>
-            <p className="text-gray-600" style={{ marginTop: '1rem' }}>Wird geladen...</p>
+            <p className="text-gray-600" style={{ marginTop: '1rem' }}>{loadingMessage || 'Wird geladen...'}</p>
           </div>
         </div>
         {debugEnabled && <DebugPanel />}

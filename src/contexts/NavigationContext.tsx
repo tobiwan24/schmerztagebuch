@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
-import { initializeDB, getAppSettings } from '../db';
+import { initializeDB, getAppSettings, getCurrentDBVersion, DB_TARGET_VERSION } from '../db';
 import db from '../db';
 import { getEncryptionMode, requiresAuth, checkPassword, setSession, clearSession, isSessionValid, refreshSession, INACTIVITY_TIMEOUT } from '../utils/auth';
 import type { Template } from '../types/database';
@@ -23,6 +23,7 @@ export type ViewType = 'setup' | 'home' | 'diary' | 'editor' | 'history' | 'sett
 interface NavigationContextValue {
   currentView: ViewType;
   isAppLoading: boolean;
+  loadingMessage: string;
   navigate: (view: ViewType) => Promise<void>;
   goHome: () => Promise<void>;
   selectTemplate: (id: number) => void;
@@ -53,6 +54,7 @@ interface NavigationProviderProps {
 export function NavigationProvider({ children }: NavigationProviderProps) {
   const [currentView, setCurrentView] = useState<ViewType>('setup');
   const [isAppLoading, setIsAppLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingView, setPendingView] = useState<ViewType | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -69,7 +71,12 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
   useEffect(() => {
     async function init() {
       try {
+        const currentVer = await getCurrentDBVersion();
+        if (currentVer > 0 && currentVer < DB_TARGET_VERSION) {
+          setLoadingMessage('Datenbank wird aktualisiert...');
+        }
         await initializeDB();
+        setLoadingMessage('');
 
         // Auto-Backup Hooks einmalig registrieren
         initAutoBackupHooks();
@@ -266,6 +273,7 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
     <NavigationContext.Provider value={{
       currentView,
       isAppLoading,
+      loadingMessage,
       navigate,
       goHome,
       selectTemplate,
