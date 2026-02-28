@@ -16,6 +16,7 @@ import { NotificationSettingsManager } from '../components/NotificationSettingsM
 import PageTutorial from '../components/tutorial/PageTutorial';
 import { useTutorial } from '../contexts/TutorialContext';
 import { useNavigation } from '../contexts/NavigationContext';
+import { APP_VERSION } from '../utils/version';
 
 export default function SettingsView() {
   const { goHome: onBack } = useNavigation();
@@ -523,7 +524,7 @@ export default function SettingsView() {
             <div className="space-y-3">
               <div>
                 <p className="text-sm text-muted-foreground">App-Version</p>
-                <p className="font-medium">1.0.0</p>
+                <p className="font-medium">{APP_VERSION}</p>
               </div>
               
               <Separator />
