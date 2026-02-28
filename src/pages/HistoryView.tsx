@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getEntries, getTemplates, deleteEntry, updateEntry } from '../db';
 import { useDecrypt } from '../hooks/useDecrypt';
 import { useNavigation } from '../contexts/NavigationContext';
@@ -127,9 +127,10 @@ interface EntryCardProps {
   entry: Entry;
   template: Template | undefined;
   onClick: () => void;
+  onMetaReady?: (id: number, meta: ReturnType<typeof extractEntryMeta>) => void;
 }
 
-function EntryCard({ entry, template, onClick }: EntryCardProps) {
+function EntryCard({ entry, template, onClick, onMetaReady }: EntryCardProps) {
   const { decrypt } = useDecrypt();
   const [meta, setMeta] = useState<ReturnType<typeof extractEntryMeta> | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -148,7 +149,9 @@ function EntryCard({ entry, template, onClick }: EntryCardProps) {
           try {
             const blocks = await decrypt(entry);
             if (blocks === null) return;
-            setMeta(extractEntryMeta(blocks));
+            const m = extractEntryMeta(blocks);
+            setMeta(m);
+            if (entry.id) onMetaReady?.(entry.id, m);
           } catch {
             // Entschlüsselung fehlgeschlagen – kein Preview
           }
@@ -159,7 +162,7 @@ function EntryCard({ entry, template, onClick }: EntryCardProps) {
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [entry, decrypt]);
+  }, [entry, decrypt, onMetaReady]);
 
   const date = new Date(entry.timestamp);
   const dateStr = date.toLocaleDateString('de-DE', {
@@ -395,6 +398,62 @@ export default function HistoryView() {
   const [editedBlocks, setEditedBlocks] = useState<Block[] | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
+  // Metadaten-Cache für Content-Filter (befüllt via EntryCard.onMetaReady + Eager-Load)
+  const [metaCache, setMetaCache] = useState<Map<number, ReturnType<typeof extractEntryMeta>>>(new Map());
+
+  const handleMetaReady = useCallback((id: number, meta: ReturnType<typeof extractEntryMeta>) => {
+    setMetaCache(prev => {
+      if (prev.has(id)) return prev;
+      const next = new Map(prev);
+      next.set(id, meta);
+      return next;
+    });
+  }, []);
+
+  // Eager-Load: wenn Content-Filter aktiv, alle Einträge vorab dekryptieren
+  useEffect(() => {
+    if (contentFilters.length === 0) return;
+    let cancelled = false;
+    async function eagerLoad() {
+      for (const entry of entries) {
+        if (cancelled || !entry.id || metaCache.has(entry.id)) continue;
+        try {
+          const blocks = await decrypt(entry);
+          if (cancelled || blocks === null || !entry.id) continue;
+          const m = extractEntryMeta(blocks);
+          setMetaCache(prev => {
+            const next = new Map(prev);
+            next.set(entry.id!, m);
+            return next;
+          });
+        } catch { /* ignorieren */ }
+      }
+    }
+    eagerLoad();
+    return () => { cancelled = true; };
+  // metaCache bewusst ausgelassen — kein Loop
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentFilters, entries, decrypt]);
+
+  // Content-Filter anwenden (client-seitig, da Metadaten entschlüsselte Daten brauchen)
+  const visibleEntries = useMemo(() => {
+    if (contentFilters.length === 0) return entries;
+    return entries.filter(entry => {
+      if (!entry.id) return true;
+      const meta = metaCache.get(entry.id);
+      if (!meta) return true; // noch nicht geladen → optimistisch zeigen
+      return contentFilters.every(f => {
+        switch (f) {
+          case 'events':  return meta.hasEvent;
+          case 'doctor':  return meta.hasDoctor;
+          case 'bodymap': return meta.hasBodyMap;
+          case 'photo':   return meta.hasPhoto;
+          case 'pdf':     return meta.hasPdf;
+        }
+      });
+    });
+  }, [entries, contentFilters, metaCache]);
+
   // Alle verfügbaren Tags aus Einträgen
   const allTags = [...new Set(entries.flatMap(e => e.tags ?? []))];
 
@@ -589,11 +648,11 @@ export default function HistoryView() {
   }
 
   async function handleExportPDF({ imageSize, password }: { imageSize: ImageSize; password: string }) {
-    if (entries.length === 0) return;
+    if (visibleEntries.length === 0) return;
     setIsExporting(true);
     try {
       const decryptedData = new Map<number, Block[]>();
-      for (const entry of entries) {
+      for (const entry of visibleEntries) {
         if (!entry.id) continue;
         const blocks = await decrypt(entry);
         if (blocks === null) {
@@ -826,11 +885,11 @@ export default function HistoryView() {
           <div style={{ marginLeft: 'auto' }}>
             <button
               className="history-pdf-btn"
-              disabled={entries.length === 0}
+              disabled={visibleEntries.length === 0}
               onClick={() => setShowPdfDialog(true)}
             >
               <Download size={14} />
-              PDF ({entries.length})
+              PDF ({visibleEntries.length})
             </button>
           </div>
         </div>
@@ -838,21 +897,22 @@ export default function HistoryView() {
         {/* ── Einträge ── */}
         <div>
           <p className="text-sm text-muted-foreground mb-3">
-            {entries.length} {entries.length === 1 ? 'Eintrag' : 'Einträge'}
+            {visibleEntries.length} {visibleEntries.length === 1 ? 'Eintrag' : 'Einträge'}
           </p>
 
-          {entries.length === 0 ? (
+          {visibleEntries.length === 0 ? (
             <Card className="p-6 text-center">
               <p className="text-muted-foreground">Keine Einträge gefunden</p>
             </Card>
           ) : (
             <div className="space-y-2 history-list">
-              {entries.map(entry => (
+              {visibleEntries.map(entry => (
                 <EntryCard
                   key={entry.id}
                   entry={entry}
                   template={templates.find(t => t.id === entry.templateId)}
                   onClick={() => setSelectedEntry(entry)}
+                  onMetaReady={handleMetaReady}
                 />
               ))}
             </div>
