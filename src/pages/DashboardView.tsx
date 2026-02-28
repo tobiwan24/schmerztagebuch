@@ -350,14 +350,15 @@ export default function DashboardView() {
     [dailyFunctionData, chartConfig, visibleFunctionSeries]
   );
 
-  // Template-Farben für ApexCharts (ISS-011: inkl. Farben für Funktionsseries)
+  // Template-Farben für ApexCharts (ISS-011: von apexSeries abgeleitet, nicht von visibleTemplates)
+  // painColors muss 1:1 mit apexSeries übereinstimmen — auch wenn ein Template keine Daten hat
   const chartColors = useMemo(() => {
-    const painColors = dashboardTemplates
-      .filter(t => visibleTemplates.has(t.id!))
-      .map((template, index) => {
-        const key = `template_${template.id}_avg`;
-        return chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
-      });
+    const painColors = apexSeries.map((s) => {
+      const template = dashboardTemplates.find(t => t.name === s.name);
+      if (!template) return '#ef4444';
+      const key = `template_${template.id}_avg`;
+      return chartConfig[key]?.color || '#ef4444';
+    });
 
     // Jede aktive Funktionsseries bekommt dieselbe Farbe wie die zugehörige Pain-Series
     const fnColors = functionApexSeries.map(fnSeries => {
@@ -369,7 +370,7 @@ export default function DashboardView() {
     });
 
     return [...painColors, ...fnColors];
-  }, [dashboardTemplates, visibleTemplates, chartConfig, functionApexSeries]);
+  }, [dashboardTemplates, apexSeries, chartConfig, functionApexSeries]);
 
   // Zeitraum-Navigation
   const handlePreviousTimeRange = () => {
