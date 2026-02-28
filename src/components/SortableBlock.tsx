@@ -195,7 +195,8 @@ export default function SortableBlock({
               <Input
                 type="number"
                 value={block.max ?? 10}
-                onChange={(e) => onSliderSettingsChange?.(block.id, { max: Number(e.target.value) })}
+                max={10}
+                onChange={(e) => onSliderSettingsChange?.(block.id, { max: Math.min(10, Number(e.target.value)) })}
                 className="mt-1"
               />
             </div>
