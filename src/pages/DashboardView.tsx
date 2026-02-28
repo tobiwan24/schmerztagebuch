@@ -333,8 +333,15 @@ export default function DashboardView() {
 
   const toggleTemplate = (templateId: number) => {
     const newVisible = new Set(visibleTemplates);
-    if (newVisible.has(templateId)) newVisible.delete(templateId);
-    else newVisible.add(templateId);
+    if (newVisible.has(templateId)) {
+      newVisible.delete(templateId);
+      // F-Serie mitdeaktivieren wenn Template ausgeblendet wird
+      const newFn = new Set(visibleFunctionSeries);
+      newFn.delete(templateId);
+      setVisibleFunctionSeries(newFn);
+    } else {
+      newVisible.add(templateId);
+    }
     setVisibleTemplates(newVisible);
   };
 
@@ -631,9 +638,12 @@ export default function DashboardView() {
                   const isVisible = visibleTemplates.has(template.id!);
                   const key = `template_${template.id}_avg`;
                   const color = chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
-                  const hasFn = dailyFunctionData.some(d => d.templateId === template.id);
+                  const hasConfiguredFn = template.blocks.some(
+                    b => b.type === 'slider' && b.dashboard?.enabled && b.dashboard.type === 'function'
+                  );
+                  const hasFnData = dailyFunctionData.some(d => d.templateId === template.id);
                   const isFnActive = visibleFunctionSeries.has(template.id!);
-                  const fnEnabled = isVisible && hasFn;
+                  const fnEnabled = isVisible && hasFnData;
 
                   return (
                     <div key={template.id} className="flex">
@@ -646,24 +656,26 @@ export default function DashboardView() {
                           ? { backgroundColor: color, borderColor: color, color: '#fff' }
                           : { backgroundColor: 'transparent', borderColor: color, color: color }
                         }
-                        className="rounded-r-none border-r-0 h-8 px-2.5"
+                        className={hasConfiguredFn ? "rounded-r-none border-r-0 h-8 px-2.5" : "h-8 px-2.5"}
                       >
                         {React.createElement(getIconComponent(template.icon), { size: 14, strokeWidth: 2 })}
                       </Button>
-                      {/* Funktionswert-Button (rechter Teil) */}
-                      <Button
-                        size="sm"
-                        onClick={() => fnEnabled && toggleFunctionSeries(template.id!)}
-                        disabled={!fnEnabled}
-                        title={hasFn ? `Funktionswert ${template.name}` : `Keine Funktionswerte für ${template.name}`}
-                        style={fnEnabled && isFnActive
-                          ? { backgroundColor: color, borderColor: color, color: '#fff' }
-                          : { backgroundColor: 'transparent', borderColor: color, color: color }
-                        }
-                        className="rounded-l-none h-8 px-2.5"
-                      >
-                        <ChartArea size={14} strokeWidth={2} />
-                      </Button>
+                      {/* Funktionswert-Button (rechter Teil) — nur wenn Template function-Slider hat */}
+                      {hasConfiguredFn && (
+                        <Button
+                          size="sm"
+                          onClick={() => fnEnabled && toggleFunctionSeries(template.id!)}
+                          disabled={!fnEnabled}
+                          title={hasFnData ? `Funktionswert ${template.name}` : `Keine Funktionswerte für ${template.name}`}
+                          style={fnEnabled && isFnActive
+                            ? { backgroundColor: color, borderColor: color, color: '#fff' }
+                            : { backgroundColor: 'transparent', borderColor: color, color: color }
+                          }
+                          className="rounded-l-none h-8 px-2.5"
+                        >
+                          <ChartArea size={14} strokeWidth={2} />
+                        </Button>
+                      )}
                     </div>
                   );
                 })}
