@@ -52,8 +52,9 @@ export function convertToApexSeries(
   });
 
   // Konvertiere zu ApexCharts Series Format — in definierter Reihenfolge (BUG-B)
+  // Alle sichtbaren Templates einschließen — auch ohne Daten (leeres Board mit statischen Achsen)
   const ids = orderedTemplateIds
-    ? orderedTemplateIds.filter(id => dataByTemplate.has(id))
+    ? orderedTemplateIds.filter(id => visibleTemplates.has(id))
     : [...dataByTemplate.keys()];
 
   return ids.map(templateId => {

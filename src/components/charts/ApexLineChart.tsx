@@ -334,15 +334,6 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
     return [...painSeries, ...fnSeries];
   }, [series, functionSeries]);
 
-  // Schutz vor leeren Series (nach useMemo, damit Hooks-Reihenfolge konstant bleibt)
-  if (!series || series.length === 0) {
-    return (
-      <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--muted-foreground))' }}>
-        <p>Keine Daten vorhanden</p>
-      </div>
-    );
-  }
-
   return (
     <Chart
       type="line"
