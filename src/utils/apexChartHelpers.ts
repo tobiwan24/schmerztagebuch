@@ -152,26 +152,24 @@ export function generateCategories(
     }
     
     case 'M': {
-      // Monat: Aktueller Monat + offset (1. bis heute)
+      // Monat: Angezeigter Monat + offset — immer ganzer Monat (1. bis letzter Tag)
       const firstDay = new Date(now);
       firstDay.setMonth(now.getMonth() + offset);
       firstDay.setDate(1);
       firstDay.setHours(0, 0, 0, 0);
-      
-      const currentDay = now.getDate();
-      
-      // Ticks: 1., 5., 10., 15., 20., 25., aktueller Tag (falls > 25)
+
+      // Letzter Tag des angezeigten Monats (nicht aktueller Monat)
+      const lastDayDate = new Date(firstDay.getFullYear(), firstDay.getMonth() + 1, 0);
+      const lastDay = lastDayDate.getDate(); // 28, 29, 30 oder 31
+
+      // Ticks: 1., 5., 10., 15., 20., 25., letzter Tag (falls > 25)
       const ticks = [1, 5, 10, 15, 20, 25];
-      if (currentDay > 25) {
-        ticks.push(currentDay);
-      }
-      
+      if (lastDay > 25) ticks.push(lastDay);
+
       ticks.forEach(day => {
-        if (day <= currentDay) {
-          const date = new Date(firstDay);
-          date.setDate(day);
-          categories.push(date.toISOString().split('T')[0]);
-        }
+        const date = new Date(firstDay);
+        date.setDate(day);
+        categories.push(date.toISOString().split('T')[0]);
       });
       break;
     }

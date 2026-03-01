@@ -175,7 +175,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         padding: {
           left: 0,
           right: 0,
-          top: 0,
+          top: 24,
           bottom: 0,
         },
         xaxis: {
@@ -254,6 +254,9 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
             chart: {
               height: 300,
             },
+            grid: {
+              padding: { top: 24 },
+            },
             xaxis: {
               labels: {
                 rotate: -45,
@@ -287,6 +290,9 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
           options: {
             chart: {
               height: 250,
+            },
+            grid: {
+              padding: { top: 24 },
             },
             xaxis: {
               labels: {
@@ -328,8 +334,6 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
     return [...painSeries, ...fnSeries];
   }, [series, functionSeries]);
 
-  const chartKey = `${timeRange}-${(functionSeries?.length ?? 0) > 0 ? 'mixed' : 'line'}`;
-
   // Schutz vor leeren Series (nach useMemo, damit Hooks-Reihenfolge konstant bleibt)
   if (!series || series.length === 0) {
     return (
@@ -341,7 +345,6 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
 
   return (
     <Chart
-      key={chartKey}
       type="line"
       series={combinedSeries}
       options={chartOptions}

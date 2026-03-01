@@ -292,8 +292,12 @@ export default function DashboardView() {
   }, [dailyPainData, visibleTemplates]);
 
   const trend = useMemo(
-    () => calculateTrendFrom(allDailyPainData, timeRange, timeRangeOffset),
-    [allDailyPainData, timeRange, timeRangeOffset]
+    () => calculateTrendFrom(
+      allDailyPainData.filter(d => visibleTemplates.has(d.templateId)),
+      timeRange,
+      timeRangeOffset
+    ),
+    [allDailyPainData, visibleTemplates, timeRange, timeRangeOffset]
   );
 
 
@@ -361,6 +365,13 @@ export default function DashboardView() {
     convertFunctionToApexSeries(dailyFunctionData, chartConfig, visibleFunctionSeries),
     [dailyFunctionData, chartConfig, visibleFunctionSeries]
   );
+
+  const chartKey = useMemo(() => {
+    const templatesKey = [...visibleTemplates].sort().join(',');
+    const fnKey = [...visibleFunctionSeries].sort().join(',');
+    const seriesType = functionApexSeries.length > 0 ? 'mixed' : 'line';
+    return `${timeRange}-${seriesType}-t${templatesKey}-f${fnKey}`;
+  }, [timeRange, visibleTemplates, visibleFunctionSeries, functionApexSeries]);
 
   // Template-Farben für ApexCharts (ISS-011: von apexSeries abgeleitet, nicht von visibleTemplates)
   // painColors muss 1:1 mit apexSeries übereinstimmen — auch wenn ein Template keine Daten hat
@@ -604,6 +615,7 @@ export default function DashboardView() {
               {/* ApexCharts */}
               <div className={styles.chartContainer}>
                 <ApexLineChart
+                  key={chartKey}
                   series={apexSeries}
                   categories={categories}
                   timeRange={timeRange}
