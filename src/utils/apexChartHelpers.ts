@@ -141,8 +141,8 @@ export function generateCategories(
       monday.setDate(now.getDate() - daysToMonday + (offset * 7));
       monday.setHours(0, 0, 0, 0);
 
-      // Vergangene/zukünftige Wochen immer 7 Tage; aktuelle Woche nur bis heute
-      const daysToShow = offset !== 0 ? 7 : (dayOfWeek === 0 ? 7 : dayOfWeek);
+      // Immer alle 7 Tage zeigen — fehlende Datenpunkte der Zukunft bleiben leer
+      const daysToShow = 7;
       for (let i = 0; i < daysToShow; i++) {
         const date = new Date(monday);
         date.setDate(monday.getDate() + i);

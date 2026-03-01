@@ -133,7 +133,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
       },
       yaxis: {
         min: 0,
-        max: 10.5,
+        max: 10,
         tickAmount: 5,
         forceNiceScale: false,
         labels: {
@@ -264,7 +264,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
             },
             yaxis: {
               min: 0,
-              max: 10.5,
+              max: 10,
               tickAmount: 5,
               forceNiceScale: false,
               labels: {
@@ -298,7 +298,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
             },
             yaxis: {
               min: 0,
-              max: 10.5,
+              max: 10,
               tickAmount: 5,
               forceNiceScale: false,
               labels: {

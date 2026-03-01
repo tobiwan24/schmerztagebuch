@@ -30,6 +30,7 @@ import { useNavigation } from '../contexts/NavigationContext';
 import { getIconComponent } from '../utils/iconUtils';
 import { decryptData } from '../utils/crypto';
 import { getSessionPassword } from '../utils/auth';
+import { getISOWeek } from 'date-fns';
 
 // Vordefinierte Farbpalette für Charts (optimiert für Light & Dark Mode)
 const CHART_COLORS = [
@@ -341,6 +342,10 @@ export default function DashboardView() {
       setVisibleFunctionSeries(newFn);
     } else {
       newVisible.add(templateId);
+      // F-Serie mitaktivieren wenn Template wieder eingeblendet wird
+      const newFn = new Set(visibleFunctionSeries);
+      newFn.add(templateId);
+      setVisibleFunctionSeries(newFn);
     }
     setVisibleTemplates(newVisible);
   };
@@ -413,11 +418,8 @@ export default function DashboardView() {
         const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         monday.setDate(now.getDate() - daysToMonday + (timeRangeOffset * 7));
         
-        // KW berechnen (auf Basis von monday, nicht today)
-        const jan1 = new Date(monday.getFullYear(), 0, 1);
-        const weekNumber = Math.ceil(
-          (((monday.getTime() - jan1.getTime()) / 86400000) + jan1.getDay() + 1) / 7
-        );
+        // KW berechnen nach ISO 8601 (DE-Standard)
+        const weekNumber = getISOWeek(monday);
         const sundayOfWeek = new Date(monday);
         sundayOfWeek.setDate(monday.getDate() + 6);
         const mondayStr = monday.toLocaleDateString('de-DE', { day: '2-digit', month: 'short' });
