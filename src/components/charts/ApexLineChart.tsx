@@ -7,7 +7,7 @@ import type { EventMarker } from '../../utils/dashboardData';
 interface ApexLineChartProps {
   series: {
     name: string;
-    data: { x: string; y: number }[];
+    data: { x: number; y: number }[];
   }[];
   categories: string[];
   timeRange: 'T' | 'W' | 'M' | '6M' | 'J';
@@ -16,7 +16,7 @@ interface ApexLineChartProps {
   events?: EventMarker[];
   visibleTemplates?: Set<number>;
   dashboardTemplates?: Array<{ id?: number; name: string }>;
-  functionSeries?: { name: string; data: { x: string; y: number }[] }[];
+  functionSeries?: { name: string; data: { x: number; y: number }[] }[];
 }
 
 export const ApexLineChart: React.FC<ApexLineChartProps> = ({
@@ -53,20 +53,21 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
       })
       .map(event => {
         // Finde Y-Wert (Schmerzwert) für dieses Event-Datum
-        const dateStr = event.date;
         let yValue = 5; // Fallback Mitte
 
-        // Suche in series nach dem Datenpunkt
+        // Suche in series nach dem nächstgelegenen Datenpunkt des Tages
         series.forEach(s => {
-          const point = s.data.find(p => p.x === dateStr);
-          if (point) {
-            yValue = point.y;
-          }
+          const point = s.data.find(p => {
+            // Vergleiche Datum (YYYY-MM-DD) des Punktes mit Event-Datum
+            const pointDate = new Date(p.x).toISOString().split('T')[0];
+            return pointDate === event.date;
+          });
+          if (point) yValue = point.y;
         });
 
         // Stapel-Offset: jedes weitere Icon am selben Tag um 18px höher verschieben
-        const count = dateOffsetCount.get(dateStr) ?? 0;
-        dateOffsetCount.set(dateStr, count + 1);
+        const count = dateOffsetCount.get(event.date) ?? 0;
+        dateOffsetCount.set(event.date, count + 1);
         const offsetY = -20 - count * 18;
 
         return {
@@ -113,28 +114,36 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         mode: isDarkMode ? 'dark' : 'light',
       },
       xaxis: {
-        type: 'datetime',
-        categories, // ISO-Dates direkt!
-        // J + 6M: tickAmount erzwingen damit alle Monatsticks generiert werden.
-        // T/W/M: kein tickAmount — categories-Positionen werden direkt verwendet (Mo–So, 0–24h, 01.–letzter)
-        ...(timeRange === 'J' && { tickAmount: 12 }),
-        ...(timeRange === '6M' && { tickAmount: 6 }),
+        type: 'numeric',  // tickAmount funktioniert nur mit numeric, nicht mit datetime+categories
+        // KEIN categories — Konflikt mit {x: ms} Series-Werten
+
+        // tickAmount: N Intervalle = N+1 Ticks
+        ...(timeRange === 'T'  && { tickAmount: 6 }),  // 7 Ticks: 0h,4h,8h,12h,16h,20h,24h
+        ...(timeRange === 'W'  && { tickAmount: 6 }),  // 7 Ticks: Mo,Di,Mi,Do,Fr,Sa,So
+        ...(timeRange === 'M'  && { tickAmount: 6 }),  // 7 Ticks: ~1.,~5.,~10.,~15.,~20.,~25.,~letzter
+        ...(timeRange === '6M' && { tickAmount: 5 }),  // 6 Ticks: 1 pro Monat
+        ...(timeRange === 'J'  && { tickAmount: 11 }), // 12 Ticks: Jan–Dez
+
         // Erzwingt statischen Achsenbereich — unabhängig von Datenpunktdichte
         min: categories.length > 0 ? new Date(categories[0]).getTime() : undefined,
         max: (() => {
           if (categories.length === 0) return undefined;
           const last = new Date(categories[categories.length - 1]);
           // J + 6M: letzter Tick = Monatserster → Bereich bis Monatsende ausdehnen
-          // (Tages-Datenpunkte des letzten Monats liegen sonst außerhalb der Achse)
           if (timeRange === 'J' || timeRange === '6M') {
             return new Date(last.getFullYear(), last.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
           }
-          // T/W/M: letzter Tick genau als max → letzter Tick bündig am rechten Rand
           return last.getTime();
         })(),
+
         labels: {
-          formatter: (value: string) => formatXAxisLabel(value, timeRange, categories),
-          hideOverlappingLabels: false, // Alle vordefinierten Ticks immer anzeigen
+          // formatter erhält ms-Zahl als String → konvertieren → formatXAxisLabel
+          formatter: (value: string) => {
+            const ms = parseFloat(value);
+            if (isNaN(ms)) return value;
+            return formatXAxisLabel(new Date(ms).toISOString(), timeRange, categories);
+          },
+          hideOverlappingLabels: false,
           style: {
             colors: 'hsl(var(--muted-foreground))',
             fontSize: '12px',
@@ -227,12 +236,12 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
           if (seriesIndex < 0 || dataPointIndex < 0) return '';
           const dataPoint = w.globals.initialSeries[seriesIndex]?.data[dataPointIndex];
           if (!dataPoint) return '';
-          const date = dataPoint.x;
+          const date = dataPoint.x; // ms (Zahl) — new Date(date) funktioniert weiterhin ✓
           const value = dataPoint.y;
           const seriesName = w.globals.seriesNames[seriesIndex];
 
-          // Finde Events für dieses Datum
-          const dateStr = new Date(date).toISOString().split('T')[0];
+          // Finde Events für dieses Datum (UTC-Datum aus ms für Event-Match)
+          const dateStr = new Date(Number(date)).toISOString().split('T')[0];
           const dayEvents = events.filter(e => {
             const template = dashboardTemplates.find(t => t.name === e.templateName);
             return template && visibleTemplates.has(template.id ?? 0) && e.date === dateStr;
