@@ -685,8 +685,8 @@ export default function HistoryView() {
   const sortLabels: Record<SortOption, string> = {
     newest: 'Neueste zuerst',
     oldest: 'Älteste zuerst',
-    template_az: 'Template A–Z',
-    template_date: 'Template + Datum',
+    template_az: 'Vorlage A–Z',
+    template_date: 'Vorlage + Datum',
   };
 
   const contentFilterOptions: { value: ContentFilter; label: string; icon: React.ReactNode }[] = [
