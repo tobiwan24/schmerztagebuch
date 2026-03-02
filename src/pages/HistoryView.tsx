@@ -862,7 +862,7 @@ export default function HistoryView() {
 
           {/* Sortierung-Dropdown */}
           <Dropdown
-            label={sortLabels[sortOption]}
+            label="Sortieren"
             icon={<ArrowUpDown size={14} />}
           >
             <div className="history-dropdown-content">
