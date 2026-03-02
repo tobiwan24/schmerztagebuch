@@ -9,7 +9,9 @@ interface DatePickerValue {
   mode: 'single' | 'range';
   startDate: string;
   endDate?: string;
-  time?: string; // HH:MM — nur für single mode; undefined = Legacy-Eintrag ohne Uhrzeit
+  time?: string;      // HH:MM — nur für single mode; undefined = Legacy-Eintrag ohne Uhrzeit
+  startTime?: string; // HH:MM — für range mode Startzeit
+  endTime?: string;   // HH:MM — für range mode Endzeit
 }
 
 function currentLocalDate(): string {
@@ -87,14 +89,30 @@ export default function DatePickerBlock({ block, onChange, readOnly = false, hid
     onChange(JSON.stringify(newValue));
   };
 
+  const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = { ...value, startTime: e.target.value };
+    setValue(newValue);
+    onChange(JSON.stringify(newValue));
+  };
+
+  const handleEndTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = { ...value, endTime: e.target.value };
+    setValue(newValue);
+    onChange(JSON.stringify(newValue));
+  };
+
   const toggleMode = () => {
     const newMode = value.mode === 'single' ? 'range' : 'single';
     const newValue: DatePickerValue = {
       mode: newMode,
       startDate: value.startDate,
       ...(newMode === 'range'
-        ? { endDate: value.startDate }
-        : { time: value.time ?? currentLocalTime() }
+        ? {
+            endDate: value.startDate,
+            startTime: value.time ?? currentLocalTime(),
+            endTime: value.time ?? currentLocalTime(),
+          }
+        : { time: value.startTime ?? currentLocalTime() }
       ),
     };
     setValue(newValue);
@@ -102,7 +120,7 @@ export default function DatePickerBlock({ block, onChange, readOnly = false, hid
   };
 
   return (
-    <div className="space-y-2">
+    <div className="date-picker-block space-y-2">
       {!hideLabel && <Label>{block.label}</Label>}
 
       <div className="inline-flex gap-1 p-1 bg-muted rounded-lg">
@@ -131,26 +149,6 @@ export default function DatePickerBlock({ block, onChange, readOnly = false, hid
       </div>
 
       {value.mode === 'single' ? (
-        <div className="flex flex-wrap gap-2 items-center">
-          <Input
-            type="date"
-            value={value.startDate}
-            onChange={handleStartDateChange}
-            readOnly={readOnly}
-            disabled={readOnly}
-            max={today}
-            className="max-w-[180px]"
-          />
-          <Input
-            type="time"
-            value={value.time ?? ''}
-            onChange={handleTimeChange}
-            readOnly={readOnly}
-            disabled={readOnly}
-            className="max-w-[120px]"
-          />
-        </div>
-      ) : (
         <div className="flex gap-2 items-center">
           <Input
             type="date"
@@ -159,19 +157,59 @@ export default function DatePickerBlock({ block, onChange, readOnly = false, hid
             readOnly={readOnly}
             disabled={readOnly}
             max={today}
-            className="max-w-[180px]"
+            className="w-auto"
           />
-          <span className="text-muted-foreground text-sm">bis</span>
           <Input
-            type="date"
-            value={value.endDate || value.startDate}
-            onChange={handleEndDateChange}
+            type="time"
+            value={value.time ?? ''}
+            onChange={handleTimeChange}
             readOnly={readOnly}
             disabled={readOnly}
-            min={value.startDate}
-            max={today}
-            className="max-w-[180px]"
+            className="w-auto"
           />
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex gap-2 items-center">
+            <Input
+              type="date"
+              value={value.startDate}
+              onChange={handleStartDateChange}
+              readOnly={readOnly}
+              disabled={readOnly}
+              max={today}
+              className="w-auto"
+            />
+            <Input
+              type="time"
+              value={value.startTime ?? ''}
+              onChange={handleStartTimeChange}
+              readOnly={readOnly}
+              disabled={readOnly}
+              className="w-auto"
+            />
+          </div>
+          <span className="text-muted-foreground text-sm">bis</span>
+          <div className="flex gap-2 items-center">
+            <Input
+              type="date"
+              value={value.endDate || value.startDate}
+              onChange={handleEndDateChange}
+              readOnly={readOnly}
+              disabled={readOnly}
+              min={value.startDate}
+              max={today}
+              className="w-auto"
+            />
+            <Input
+              type="time"
+              value={value.endTime ?? ''}
+              onChange={handleEndTimeChange}
+              readOnly={readOnly}
+              disabled={readOnly}
+              className="w-auto"
+            />
+          </div>
         </div>
       )}
     </div>
