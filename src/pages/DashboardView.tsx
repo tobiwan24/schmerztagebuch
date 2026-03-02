@@ -385,7 +385,7 @@ export default function DashboardView() {
     const fnKey = [...visibleFunctionSeries].sort().join(',');
     const seriesType = functionApexSeries.length > 0 ? 'mixed' : 'line';
     return `${timeRange}-${timeRangeOffset}-${seriesType}-t${templatesKey}-f${fnKey}`;
-  }, [timeRange, visibleTemplates, visibleFunctionSeries, functionApexSeries]);
+  }, [timeRange, timeRangeOffset, visibleTemplates, visibleFunctionSeries, functionApexSeries]);
 
   // Template-Farben für ApexCharts (ISS-011: von apexSeries abgeleitet, nicht von visibleTemplates)
   // painColors muss 1:1 mit apexSeries übereinstimmen — auch wenn ein Template keine Daten hat
