@@ -208,11 +208,11 @@ function EntryCard({ entry, template, onClick, onMetaReady }: EntryCardProps) {
 
           {meta && (
             <span className="history-entry-icons">
-              {meta.hasEvent && <Calendar size={13} className="history-icon" aria-label="Event" />}
-              {meta.hasDoctor && <Stethoscope size={13} className="history-icon" aria-label="Arzttermin" />}
-              {meta.hasBodyMap && <MapIcon size={13} className="history-icon" aria-label="Körperkarte" />}
-              {meta.hasPhoto && <ImageIcon size={13} className="history-icon" aria-label="Foto" />}
-              {meta.hasPdf && <FileText size={13} className="history-icon" aria-label="PDF" />}
+              {meta.hasEvent && <span className="history-icon-chip history-icon-chip--event" aria-label="Event"><Calendar size={11} /></span>}
+              {meta.hasDoctor && <span className="history-icon-chip history-icon-chip--doctor" aria-label="Arzttermin"><Stethoscope size={11} /></span>}
+              {meta.hasBodyMap && <span className="history-icon-chip history-icon-chip--bodymap" aria-label="Körperkarte"><MapIcon size={11} /></span>}
+              {meta.hasPhoto && <span className="history-icon-chip history-icon-chip--photo" aria-label="Foto"><ImageIcon size={11} /></span>}
+              {meta.hasPdf && <span className="history-icon-chip history-icon-chip--pdf" aria-label="PDF"><FileText size={11} /></span>}
             </span>
           )}
         </div>
