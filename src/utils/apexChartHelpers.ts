@@ -118,19 +118,29 @@ export function generateCategories(
   offset: number = 0
 ): string[] {
   const categories: string[] = [];
-  
+
+  // Lokales Datum als ISO-Date-String (YYYY-MM-DD) — verhindert UTC±Offset-Fehler
+  // date.toISOString().split('T')[0] würde in UTC+1 den Vortag liefern!
+  const localDateStr = (d: Date): string =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
   switch (timeRange) {
     case 'T': {
-      // Tag: Heute + offset mit Stunden-Ticks (0h, 8h, 16h, 24h)
+      // Tag: Heute + offset mit Stunden-Ticks (0h, 4h, 8h, 12h, 16h, 20h, 24h)
       const today = new Date(now);
       today.setDate(now.getDate() + offset);
       today.setHours(0, 0, 0, 0);
-      
-      [0, 8, 16, 24].forEach(hour => {
-        const date = new Date(today);
-        date.setHours(hour);
-        categories.push(date.toISOString());
+
+      [0, 4, 8, 12, 16, 20].forEach(hour => {
+        const d = new Date(today);
+        d.setHours(hour, 0, 0, 0);
+        categories.push(d.toISOString());
       });
+      // "24h" = Mitternacht des Folgetags
+      const endOfDay = new Date(today);
+      endOfDay.setDate(today.getDate() + 1);
+      endOfDay.setHours(0, 0, 0, 0);
+      categories.push(endOfDay.toISOString());
       break;
     }
     
@@ -147,7 +157,7 @@ export function generateCategories(
       for (let i = 0; i < daysToShow; i++) {
         const date = new Date(monday);
         date.setDate(monday.getDate() + i);
-        categories.push(date.toISOString().split('T')[0]);
+        categories.push(localDateStr(date));
       }
       break;
     }
@@ -170,7 +180,7 @@ export function generateCategories(
       ticks.forEach(day => {
         const date = new Date(firstDay);
         date.setDate(day);
-        categories.push(date.toISOString().split('T')[0]);
+        categories.push(localDateStr(date));
       });
       break;
     }
@@ -182,19 +192,19 @@ export function generateCategories(
         date.setMonth(now.getMonth() - i + (offset * 6));
         date.setDate(1);
         date.setHours(0, 0, 0, 0);
-        categories.push(date.toISOString().split('T')[0]);
+        categories.push(localDateStr(date));
       }
       break;
     }
-    
+
     case 'J': {
-      // Jahr: Jeden 2. Monat über 12 Monate + offset
-      for (let i = 11; i >= 0; i -= 2) {
+      // Jahr: Alle 12 Monate + offset
+      for (let i = 11; i >= 0; i--) {
         const date = new Date(now);
         date.setMonth(now.getMonth() - i + (offset * 12));
         date.setDate(1);
         date.setHours(0, 0, 0, 0);
-        categories.push(date.toISOString().split('T')[0]);
+        categories.push(localDateStr(date));
       }
       break;
     }
@@ -210,30 +220,39 @@ export function generateCategories(
  * @param timeRange - Zeitraum (T/W/M/6M/J)
  * @returns Formatierter Label-String
  */
-export function formatXAxisLabel(value: string, timeRange: 'T' | 'W' | 'M' | '6M' | 'J'): string {
+export function formatXAxisLabel(
+  value: string,
+  timeRange: 'T' | 'W' | 'M' | '6M' | 'J',
+  categories?: string[]
+): string {
   const date = new Date(value);
-  
+
   switch (timeRange) {
-    case 'T':
-      // Tag: 0h, 8h, 16h, 24h
-      return `${date.getHours()}h`;
-    
+    case 'T': {
+      const hour = date.getHours();
+      // "24h"-Tick: Mitternacht des Folgetags = letzter Eintrag in categories mit hour=0
+      if (hour === 0 && categories && categories.length > 0 && value === categories[categories.length - 1]) {
+        return '24h';
+      }
+      return `${hour}h`;
+    }
+
     case 'W':
       // Woche: Mo, Di, Mi, Do, Fr, Sa, So
       return format(date, 'EEE', { locale: de });
-    
+
     case 'M':
       // Monat: 1., 5., 10., 15., 20., 25., 31.
       return `${date.getDate()}.`;
-    
+
     case '6M':
-      // 6 Monate: Aug, Sep, Okt, Nov, Dez, Jan
-      return format(date, 'MMM', { locale: de });
-    
+      // 6 Monate: numerisch 01–12
+      return format(date, 'MM', { locale: de });
+
     case 'J':
-      // Jahr: Jan, Mär, Mai, Jul, Sep, Nov
-      return format(date, 'MMM', { locale: de });
-    
+      // Jahr: numerisch 01–12
+      return format(date, 'MM', { locale: de });
+
     default:
       return value;
   }

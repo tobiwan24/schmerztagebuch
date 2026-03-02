@@ -44,6 +44,8 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
   const chartOptions: ApexOptions = useMemo(() => {
 
     // Event Annotations erstellen - als Points direkt über Datenpunkten
+    // Mehrere Icons am gleichen Tag werden vertikal gestapelt (je -18px Abstand)
+    const dateOffsetCount = new Map<string, number>();
     const eventPointAnnotations = events
       .filter(event => {
         const template = dashboardTemplates.find(t => t.name === event.templateName);
@@ -62,6 +64,11 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
           }
         });
 
+        // Stapel-Offset: jedes weitere Icon am selben Tag um 18px höher verschieben
+        const count = dateOffsetCount.get(dateStr) ?? 0;
+        dateOffsetCount.set(dateStr, count + 1);
+        const offsetY = -20 - count * 18;
+
         return {
           x: new Date(event.date).getTime(),
           y: yValue,
@@ -70,7 +77,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
           },
           label: {
             text: event.category === 'doctor' ? '🩺' : '📅',
-            offsetY: -20, // Über dem Punkt
+            offsetY,
             borderWidth: 0, // Keine Umrandung
             style: {
               background: 'transparent',
@@ -108,8 +115,26 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
       xaxis: {
         type: 'datetime',
         categories, // ISO-Dates direkt!
+        // J + 6M: tickAmount erzwingen damit alle Monatsticks generiert werden.
+        // T/W/M: kein tickAmount — categories-Positionen werden direkt verwendet (Mo–So, 0–24h, 01.–letzter)
+        ...(timeRange === 'J' && { tickAmount: 12 }),
+        ...(timeRange === '6M' && { tickAmount: 6 }),
+        // Erzwingt statischen Achsenbereich — unabhängig von Datenpunktdichte
+        min: categories.length > 0 ? new Date(categories[0]).getTime() : undefined,
+        max: (() => {
+          if (categories.length === 0) return undefined;
+          const last = new Date(categories[categories.length - 1]);
+          // J + 6M: letzter Tick = Monatserster → Bereich bis Monatsende ausdehnen
+          // (Tages-Datenpunkte des letzten Monats liegen sonst außerhalb der Achse)
+          if (timeRange === 'J' || timeRange === '6M') {
+            return new Date(last.getFullYear(), last.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
+          }
+          // T/W/M: letzter Tick genau als max → letzter Tick bündig am rechten Rand
+          return last.getTime();
+        })(),
         labels: {
-          formatter: (value: string) => formatXAxisLabel(value, timeRange),
+          formatter: (value: string) => formatXAxisLabel(value, timeRange, categories),
+          hideOverlappingLabels: false, // Alle vordefinierten Ticks immer anzeigen
           style: {
             colors: 'hsl(var(--muted-foreground))',
             fontSize: '12px',
@@ -137,6 +162,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         tickAmount: 5,
         forceNiceScale: false,
         labels: {
+          formatter: (val: number) => Math.round(val).toString(),
           offsetX: -5,
           minWidth: 20,
           style: {
@@ -271,6 +297,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
               tickAmount: 5,
               forceNiceScale: false,
               labels: {
+                formatter: (val: number) => Math.round(val).toString(),
                 style: {
                   fontSize: '10px',
                 },
@@ -308,6 +335,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
               tickAmount: 5,
               forceNiceScale: false,
               labels: {
+                formatter: (val: number) => Math.round(val).toString(),
                 style: {
                   fontSize: '9px',
                 },
