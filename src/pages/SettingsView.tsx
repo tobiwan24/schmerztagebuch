@@ -1,16 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getEncryptionMode, setEncryptionMode, isBiometricEnabled, isBiometricAvailable, disableBiometric, registerBiometric, validatePassword, setPassword as updatePassword, checkPassword, getSessionPassword, setSession, clearSession } from '../utils/auth';
 import type { EncryptionMode } from '../utils/auth';
 import Header from '../components/Header';
 import AuthModal from '../components/AuthModal';
-import UpdateControl from '../components/UpdateControl';
 import db, { decryptAllEntries, encryptAllEntries, reEncryptAllEntries } from '../db';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Trash2, Shield, Key, Fingerprint, Info, RotateCcw, Bell } from 'lucide-react';
+import { AlertCircle, Trash2, Shield, Key, Fingerprint, Info, RotateCcw, Bell, RefreshCw } from 'lucide-react';
 import { ManualBackupCard } from '../components/ManualBackupCard';
 import { NotificationSettingsManager } from '../components/NotificationSettingsManager';
 import PageTutorial from '../components/tutorial/PageTutorial';
@@ -39,6 +38,40 @@ export default function SettingsView() {
   const [authAction, setAuthAction] = useState<'changeMode' | 'changeBiometric' | null>(null);
   const [pendingMode, setPendingMode] = useState<EncryptionMode | null>(null);
   const [migration, setMigration] = useState<{ done: number; total: number } | null>(null);
+
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const updateAvailableRef = useRef(false);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.ready.then((reg) => {
+      setSwRegistration(reg);
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            updateAvailableRef.current = true;
+          }
+        });
+      });
+    });
+  }, []);
+
+  function handleCheckUpdate() {
+    if (!swRegistration) return;
+    setIsCheckingUpdate(true);
+    swRegistration.update().then(() => {
+      setTimeout(() => {
+        if (!updateAvailableRef.current) alert('App ist auf dem neuesten Stand! ✅');
+        setIsCheckingUpdate(false);
+      }, 2000);
+    }).catch(() => {
+      alert('Update-Prüfung fehlgeschlagen');
+      setIsCheckingUpdate(false);
+    });
+  }
 
   useEffect(() => {
     loadSettings();
@@ -511,9 +544,6 @@ export default function SettingsView() {
           {/* Manuelles Backup */}
           <ManualBackupCard />
 
-          {/* Update Control */}
-          <UpdateControl />
-
           {/* Info */}
           <Card className="p-6">
             <div className="flex items-center gap-2 mb-4">
@@ -522,9 +552,20 @@ export default function SettingsView() {
             </div>
             
             <div className="space-y-3">
-              <div>
-                <p className="text-sm text-muted-foreground">App-Version</p>
-                <p className="font-medium">{APP_VERSION}</p>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-muted-foreground">App-Version</p>
+                  <p className="font-medium">{APP_VERSION}</p>
+                </div>
+                <Button
+                  onClick={handleCheckUpdate}
+                  disabled={isCheckingUpdate}
+                  variant="outline"
+                  size="sm"
+                >
+                  <RefreshCw size={14} className={`mr-1.5 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
+                  {isCheckingUpdate ? 'Prüft…' : 'Updates suchen'}
+                </Button>
               </div>
               
               <Separator />
