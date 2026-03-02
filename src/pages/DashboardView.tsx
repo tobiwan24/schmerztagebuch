@@ -197,6 +197,9 @@ export default function DashboardView() {
   useEffect(() => {
     if (entries.length === 0 || templates.length === 0) return;
     let cancelled = false;
+    setDailyPainData([]);
+    setEvents([]);
+    setDailyFunctionData([]);
     async function load() {
       try {
         const painData = await extractPainData(entries, templates, decryptFn);
@@ -230,57 +233,50 @@ export default function DashboardView() {
 
   function filterByTimeRange<T extends { date: string }>(data: T[], range: 'T' | 'W' | 'M' | '6M' | 'J'): T[] {
     const now = new Date();
-    const cutoffDate = new Date(now);
-    const endDate = new Date(now);
+    let startDate: Date;
+    let endDate: Date;
 
     switch (range) {
       case 'T': {
-        cutoffDate.setDate(now.getDate() + timeRangeOffset);
-        cutoffDate.setHours(0, 0, 0, 0);
-        endDate.setDate(now.getDate() + timeRangeOffset);
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() + timeRangeOffset);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(startDate);
         endDate.setHours(23, 59, 59, 999);
         break;
       }
       case 'W': {
         const dayOfWeek = now.getDay();
         const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        cutoffDate.setDate(now.getDate() - daysToMonday + (timeRangeOffset * 7));
-        cutoffDate.setHours(0, 0, 0, 0);
-        endDate.setDate(cutoffDate.getDate() + 6);
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - daysToMonday + (timeRangeOffset * 7));
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
         endDate.setHours(23, 59, 59, 999);
         break;
       }
       case 'M': {
-        cutoffDate.setMonth(now.getMonth() + timeRangeOffset);
-        cutoffDate.setDate(1);
-        cutoffDate.setHours(0, 0, 0, 0);
-        endDate.setMonth(cutoffDate.getMonth() + 1);
-        endDate.setDate(0);
-        endDate.setHours(23, 59, 59, 999);
+        startDate = new Date(now.getFullYear(), now.getMonth() + timeRangeOffset, 1, 0, 0, 0, 0);
+        endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0, 23, 59, 59, 999);
         break;
       }
       case '6M': {
-        cutoffDate.setMonth(now.getMonth() - 5 + (timeRangeOffset * 6));
-        cutoffDate.setDate(1);
-        cutoffDate.setHours(0, 0, 0, 0);
-        endDate.setMonth(cutoffDate.getMonth() + 6);
-        endDate.setDate(0);
-        endDate.setHours(23, 59, 59, 999);
+        startDate = new Date(now.getFullYear(), now.getMonth() - 5 + (timeRangeOffset * 6), 1, 0, 0, 0, 0);
+        endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 6, 0, 23, 59, 59, 999);
         break;
       }
       case 'J': {
-        cutoffDate.setMonth(now.getMonth() - 11 + (timeRangeOffset * 12));
-        cutoffDate.setDate(1);
-        cutoffDate.setHours(0, 0, 0, 0);
-        endDate.setMonth(cutoffDate.getMonth() + 12);
-        endDate.setDate(0);
-        endDate.setHours(23, 59, 59, 999);
+        startDate = new Date(now.getFullYear(), now.getMonth() - 11 + (timeRangeOffset * 12), 1, 0, 0, 0, 0);
+        endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 12, 0, 23, 59, 59, 999);
         break;
       }
+      default:
+        return data;
     }
     return data.filter(item => {
       const d = new Date(item.date);
-      return d >= cutoffDate && d <= endDate;
+      return d >= startDate && d <= endDate;
     });
   }
 
@@ -292,8 +288,12 @@ export default function DashboardView() {
   }, [dailyPainData, visibleTemplates]);
 
   const trend = useMemo(
-    () => calculateTrendFrom(allDailyPainData, timeRange, timeRangeOffset),
-    [allDailyPainData, timeRange, timeRangeOffset]
+    () => calculateTrendFrom(
+      allDailyPainData.filter(d => visibleTemplates.has(d.templateId)),
+      timeRange,
+      timeRangeOffset
+    ),
+    [allDailyPainData, visibleTemplates, timeRange, timeRangeOffset]
   );
 
 
@@ -361,6 +361,13 @@ export default function DashboardView() {
     convertFunctionToApexSeries(dailyFunctionData, chartConfig, visibleFunctionSeries),
     [dailyFunctionData, chartConfig, visibleFunctionSeries]
   );
+
+  const chartKey = useMemo(() => {
+    const templatesKey = [...visibleTemplates].sort().join(',');
+    const fnKey = [...visibleFunctionSeries].sort().join(',');
+    const seriesType = functionApexSeries.length > 0 ? 'mixed' : 'line';
+    return `${timeRange}-${timeRangeOffset}-${seriesType}-t${templatesKey}-f${fnKey}`;
+  }, [timeRange, visibleTemplates, visibleFunctionSeries, functionApexSeries]);
 
   // Template-Farben für ApexCharts (ISS-011: von apexSeries abgeleitet, nicht von visibleTemplates)
   // painColors muss 1:1 mit apexSeries übereinstimmen — auch wenn ein Template keine Daten hat
@@ -604,6 +611,7 @@ export default function DashboardView() {
               {/* ApexCharts */}
               <div className={styles.chartContainer}>
                 <ApexLineChart
+                  key={chartKey}
                   series={apexSeries}
                   categories={categories}
                   timeRange={timeRange}
