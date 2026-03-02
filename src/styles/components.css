@@ -983,10 +983,3 @@
   font-weight: 600;
 }
 
-/* DatePickerBlock: Verhindert Überlauf nativer Datepicker-Controls.
-   shadcn Input setzt display:flex auf <input>, was bei type=date/time dazu führen kann,
-   dass die ::-webkit-calendar-picker-indicator als Flex-Item außerhalb der Border rendert. */
-.date-picker-block input[type="date"],
-.date-picker-block input[type="time"] {
-  display: block;
-}
