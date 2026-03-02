@@ -1005,7 +1005,7 @@ export default function HistoryView() {
               )}
             </CardContent>
 
-            <div className="border-t p-4 flex justify-between gap-2">
+            <div className="border-t p-4 flex justify-between gap-2 flex-shrink-0">
               {isEditMode ? (
                 <>
                   <Button variant="outline" onClick={() => { setIsEditMode(false); setEditedBlocks(null); }}>
@@ -1027,8 +1027,8 @@ export default function HistoryView() {
                       </Button>
                     )}
                     <Button variant="destructive" onClick={() => selectedEntry.id && handleDeleteEntry(selectedEntry.id)}>
-                      <Trash2 size={16} className="mr-2" />
-                      Löschen
+                      <Trash2 size={16} className="sm:mr-2" />
+                      <span className="hidden sm:inline">Löschen</span>
                     </Button>
                   </div>
                 </>
