@@ -10,6 +10,7 @@ import PageTutorial from '../components/tutorial/PageTutorial';
 import {
   convertToApexSeries,
   convertFunctionToApexSeries,
+  convertToApexSeriesForDay,
   generateCategories,
   type ChartConfig
 } from '../utils/apexChartHelpers';
@@ -24,6 +25,7 @@ import {
   type DailyPainData,
   type DailyFunctionData,
   type EventMarker,
+  type PainDataPoint,
 } from '../utils/dashboardData';
 import styles from '../styles/DashboardView.module.css';
 import { useNavigation } from '../contexts/NavigationContext';
@@ -166,6 +168,7 @@ export default function DashboardView() {
   const [timeRange, setTimeRange] = useState<'T' | 'W' | 'M' | '6M' | 'J'>('M');
   const [timeRangeOffset, setTimeRangeOffset] = useState(0); // 0 = aktuell, -1 = zurück, +1 = vorwärts
   const [dailyPainData, setDailyPainData] = useState<DailyPainData[]>([]);
+  const [rawPainData, setRawPainData] = useState<PainDataPoint[]>([]);
   const [allDailyPainData, setAllDailyPainData] = useState<DailyPainData[]>([]);
   const [events, setEvents] = useState<EventMarker[]>([]);
   const [dashboardTemplates, setDashboardTemplates] = useState<Template[]>([]);
@@ -198,6 +201,7 @@ export default function DashboardView() {
     if (entries.length === 0 || templates.length === 0) return;
     let cancelled = false;
     setDailyPainData([]);
+    setRawPainData([]);
     setEvents([]);
     setDailyFunctionData([]);
     async function load() {
@@ -210,6 +214,12 @@ export default function DashboardView() {
         const dailyData = aggregatePainByDay(filteredPainData);
         const aggregatedData = aggregateDataByTimeRange(dailyData, timeRange);
         if (!cancelled) setDailyPainData(aggregatedData);
+        // Für T-View: rohe Datenpunkte (nicht aggregiert, mit exaktem Timestamp)
+        if (timeRange === 'T') {
+          if (!cancelled) setRawPainData(filteredPainData);
+        } else {
+          if (!cancelled) setRawPainData([]);
+        }
         const eventData = await extractEvents(entries, templates, decryptFn);
         if (cancelled) return;
         const filteredEventData = filterByTimeRange(eventData, timeRange);
@@ -322,11 +332,19 @@ export default function DashboardView() {
 
   // ApexCharts Series & Categories
   const apexSeries = useMemo(() => {
+    if (timeRange === 'T') {
+      return convertToApexSeriesForDay(
+        rawPainData,
+        chartConfig,
+        visibleTemplates,
+        dashboardTemplates.map(t => t.id!)
+      );
+    }
     return convertToApexSeries(
       dailyPainData, chartConfig, visibleTemplates,
       dashboardTemplates.map(t => t.id!)
     );
-  }, [dailyPainData, chartConfig, visibleTemplates, dashboardTemplates]);
+  }, [timeRange, rawPainData, dailyPainData, chartConfig, visibleTemplates, dashboardTemplates]);
 
   const categories = useMemo(() => {
     return generateCategories(timeRange, new Date(), timeRangeOffset);

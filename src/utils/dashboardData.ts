@@ -1,10 +1,12 @@
 import type { Entry, Template } from '../types/database';
 import type { Block, TextAreaBlockValue } from '../types/blocks';
+import { localDateStr } from './apexChartHelpers';
 
 // Datentyp für aggregierte Schmerzwerte
 export interface PainDataPoint {
-  date: string; // ISO Date String (YYYY-MM-DD)
-  timestamp: Date;
+  date: string;       // YYYY-MM-DD (Filterung + Aggregation)
+  datetime: number;   // ms — exakter Zeitpunkt (DatePicker-Zeit wenn vorhanden, sonst entry.timestamp)
+  timestamp: Date;    // bleibt (rückwärtskompatibel)
   templateId: number;
   templateName: string;
   templateColor: string;
@@ -88,7 +90,9 @@ export function extractPainData(
       // Finde Datum: DatePicker-Block hat Vorrang, sonst entry.timestamp
       const dateBlock = blocks.find(b => b.type === 'date' && b.value);
       let dates: string[] = [];
-      
+      // datetime: exakter Zeitpunkt (DatePicker-Zeit wenn vorhanden, sonst entry.timestamp)
+      let entryDatetime = new Date(entry.timestamp).getTime();
+
       if (dateBlock && typeof dateBlock.value === 'string') {
         try {
           // Parse DatePicker value (kann JSON oder einfacher String sein)
@@ -98,41 +102,45 @@ export function extractPainData(
             const start = new Date(parsed.startDate);
             const end = new Date(parsed.endDate);
             const current = new Date(start);
-            
+
             while (current <= end) {
-              dates.push(current.toISOString().split('T')[0]);
+              dates.push(localDateStr(current));
               current.setDate(current.getDate() + 1);
             }
             console.log(`[extractPainData] Range detected: ${parsed.startDate} - ${parsed.endDate}, generated ${dates.length} dates`);
           } else if (parsed.startDate) {
-            // Single mode
+            // Single mode: DatePicker-Zeit verwenden wenn vorhanden
             dates = [parsed.startDate];
+            if (parsed.time) {
+              entryDatetime = new Date(`${parsed.startDate}T${parsed.time}`).getTime();
+            }
           }
         } catch {
           // Legacy: einfacher String
           dates = [dateBlock.value];
         }
       } else {
-        // Fallback: entry.timestamp
-        dates = [new Date(entry.timestamp).toISOString().split('T')[0]];
+        // Fallback: entry.timestamp (BUG-A Fix: localDateStr statt toISOString)
+        dates = [localDateStr(new Date(entry.timestamp))];
       }
-      
+
       const painPoints: PainDataPoint[] = [];
-      
+
       // Finde alle Blocks mit Dashboard-Konfiguration (pain/function)
       blocks.forEach(block => {
         if (!block.dashboard?.enabled) return;
-        
+
         // Slider oder BodyMap mit numerischem Wert
         if ((block.type === 'slider' || block.type === 'bodymap') && typeof block.value === 'number') {
           // Fallback: Wenn kein type gesetzt, nutze 'pain' als default
           const dashboardType = block.dashboard.type || 'pain';
           if (dashboardType !== 'pain') return; // Nur Schmerzwerte (später auch 'function')
-          
+
           // Für jeden Tag im Zeitraum einen Datenpunkt erstellen
           dates.forEach(date => {
             painPoints.push({
               date,
+              datetime: entryDatetime,
               timestamp: new Date(date),
               templateId: entry.templateId,
               templateName: template.name,
@@ -220,7 +228,7 @@ export function extractEvents(
       // Finde Datum: DatePicker-Block hat Vorrang, sonst entry.timestamp
       const dateBlock = blocks.find(b => b.type === 'date' && b.value);
       let dates: string[] = [];
-      
+
       if (dateBlock && typeof dateBlock.value === 'string') {
         try {
           const parsed = JSON.parse(dateBlock.value);
@@ -229,9 +237,9 @@ export function extractEvents(
             const start = new Date(parsed.startDate);
             const end = new Date(parsed.endDate);
             const current = new Date(start);
-            
+
             while (current <= end) {
-              dates.push(current.toISOString().split('T')[0]);
+              dates.push(localDateStr(current));
               current.setDate(current.getDate() + 1);
             }
           } else if (parsed.startDate) {
@@ -241,9 +249,10 @@ export function extractEvents(
           dates = [dateBlock.value];
         }
       } else {
-        dates = [new Date(entry.timestamp).toISOString().split('T')[0]];
+        // BUG-A Fix: localDateStr statt toISOString
+        dates = [localDateStr(new Date(entry.timestamp))];
       }
-      
+
       const events: EventMarker[] = [];
 
       // Finde alle TextArea-Blocks mit gespeicherten Events in block.value.events[]
@@ -301,7 +310,7 @@ export function aggregateByWeek(dailyData: DailyPainData[]): DailyPainData[] {
     const dayOfWeek = date.getDay();
     const diff = date.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
     const monday = new Date(date.setDate(diff));
-    const weekKey = `${point.templateId}-${monday.toISOString().split('T')[0]}`;
+    const weekKey = `${point.templateId}-${localDateStr(monday)}`;
     
     if (!grouped.has(weekKey)) {
       grouped.set(weekKey, []);
@@ -365,7 +374,7 @@ export function aggregateByMonth(dailyData: DailyPainData[]): DailyPainData[] {
     const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
     
     aggregated.push({
-      date: firstDayOfMonth.toISOString().split('T')[0],
+      date: localDateStr(firstDayOfMonth),
       templateId: points[0].templateId,
       templateName: points[0].templateName,
       templateColor: points[0].templateColor,
@@ -418,7 +427,7 @@ export function extractFunctionData(
             const end = new Date(parsed.endDate);
             const current = new Date(start);
             while (current <= end) {
-              dates.push(current.toISOString().split('T')[0]);
+              dates.push(localDateStr(current));
               current.setDate(current.getDate() + 1);
             }
           } else if (parsed.startDate) {
@@ -428,7 +437,8 @@ export function extractFunctionData(
           dates = [dateBlock.value];
         }
       } else {
-        dates = [new Date(entry.timestamp).toISOString().split('T')[0]];
+        // BUG-A Fix: localDateStr statt toISOString
+        dates = [localDateStr(new Date(entry.timestamp))];
       }
 
       const functionPoints: FunctionDataPoint[] = [];

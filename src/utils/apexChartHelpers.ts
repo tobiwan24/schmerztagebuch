@@ -1,13 +1,21 @@
-import type { DailyPainData, DailyFunctionData } from './dashboardData';
+import type { DailyPainData, DailyFunctionData, PainDataPoint } from './dashboardData';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
+
+/**
+ * Lokales Datum als ISO-Date-String (YYYY-MM-DD).
+ * Verhindert UTC±Offset-Fehler (toISOString würde UTC liefern).
+ */
+export function localDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 /**
  * ApexCharts Series Format
  */
 export interface ApexSeries {
   name: string;
-  data: { x: string; y: number }[];
+  data: { x: number; y: number }[];
 }
 
 /**
@@ -35,7 +43,7 @@ export function convertToApexSeries(
   orderedTemplateIds?: number[]
 ): ApexSeries[] {
   // Gruppiere Daten nach Template
-  const dataByTemplate = new Map<number, { x: string; y: number }[]>();
+  const dataByTemplate = new Map<number, { x: number; y: number }[]>();
 
   dailyPainData.forEach(point => {
     // Nur sichtbare Templates
@@ -46,7 +54,7 @@ export function convertToApexSeries(
     }
 
     dataByTemplate.get(point.templateId)!.push({
-      x: point.date, // ISO-Date String direkt!
+      x: new Date(point.date).getTime(), // ms (UTC midnight des Datums)
       y: point.avg
     });
   });
@@ -63,7 +71,7 @@ export function convertToApexSeries(
     const data = dataByTemplate.get(templateId) ?? [];
     return {
       name: config?.label ?? String(templateId),
-      data: data.sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime()),
+      data: data.sort((a, b) => a.x - b.x),
     };
   });
 }
@@ -76,7 +84,7 @@ export function convertFunctionToApexSeries(
   chartConfig: ChartConfig,
   visibleFunctionSeries: Set<number>
 ): ApexSeries[] {
-  const dataByTemplate = new Map<number, { x: string; y: number }[]>();
+  const dataByTemplate = new Map<number, { x: number; y: number }[]>();
 
   functionData.forEach(point => {
     if (!visibleFunctionSeries.has(point.templateId)) return;
@@ -84,7 +92,7 @@ export function convertFunctionToApexSeries(
       dataByTemplate.set(point.templateId, []);
     }
     dataByTemplate.get(point.templateId)!.push({
-      x: point.date,
+      x: new Date(point.date).getTime(), // ms
       y: point.value,
     });
   });
@@ -97,12 +105,51 @@ export function convertFunctionToApexSeries(
     if (config) {
       series.push({
         name: `${config.label} · Funktion`,
-        data: data.sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime()),
+        data: data.sort((a, b) => a.x - b.x),
       });
     }
   });
 
   return series;
+}
+
+/**
+ * Konvertiert rohe PainDataPoints zu ApexSeries für T-View (Tagesansicht).
+ * Verwendet exakte Entry-Timestamps statt Tages-Aggregate.
+ * Kein aggregatePainByDay() → jeder Eintrag erscheint als eigener Punkt.
+ */
+export function convertToApexSeriesForDay(
+  rawPainData: PainDataPoint[],
+  chartConfig: ChartConfig,
+  visibleTemplates: Set<number>,
+  orderedTemplateIds?: number[]
+): ApexSeries[] {
+  const dataByTemplate = new Map<number, { x: number; y: number }[]>();
+
+  rawPainData.forEach(point => {
+    if (!visibleTemplates.has(point.templateId)) return;
+    if (!dataByTemplate.has(point.templateId)) {
+      dataByTemplate.set(point.templateId, []);
+    }
+    dataByTemplate.get(point.templateId)!.push({
+      x: point.datetime, // exakte Uhrzeit als ms
+      y: point.value,    // Rohwert (kein Durchschnitt)
+    });
+  });
+
+  const ids = orderedTemplateIds
+    ? orderedTemplateIds.filter(id => visibleTemplates.has(id))
+    : [...dataByTemplate.keys()];
+
+  return ids.map(templateId => {
+    const key = `template_${templateId}_avg`;
+    const config = chartConfig[key];
+    const data = dataByTemplate.get(templateId) ?? [];
+    return {
+      name: config?.label ?? String(templateId),
+      data: data.sort((a, b) => a.x - b.x),
+    };
+  });
 }
 
 /**
@@ -118,11 +165,6 @@ export function generateCategories(
   offset: number = 0
 ): string[] {
   const categories: string[] = [];
-
-  // Lokales Datum als ISO-Date-String (YYYY-MM-DD) — verhindert UTC±Offset-Fehler
-  // date.toISOString().split('T')[0] würde in UTC+1 den Vortag liefern!
-  const localDateStr = (d: Date): string =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
   switch (timeRange) {
     case 'T': {
