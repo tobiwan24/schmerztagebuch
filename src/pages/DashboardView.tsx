@@ -10,6 +10,7 @@ import PageTutorial from '../components/tutorial/PageTutorial';
 import {
   convertToApexSeries,
   convertFunctionToApexSeries,
+  convertToApexSeriesForDay,
   generateCategories,
   type ChartConfig
 } from '../utils/apexChartHelpers';
@@ -24,12 +25,14 @@ import {
   type DailyPainData,
   type DailyFunctionData,
   type EventMarker,
+  type PainDataPoint,
 } from '../utils/dashboardData';
 import styles from '../styles/DashboardView.module.css';
 import { useNavigation } from '../contexts/NavigationContext';
 import { getIconComponent } from '../utils/iconUtils';
 import { decryptData } from '../utils/crypto';
 import { getSessionPassword } from '../utils/auth';
+import { getISOWeek } from 'date-fns';
 
 // Vordefinierte Farbpalette für Charts (optimiert für Light & Dark Mode)
 const CHART_COLORS = [
@@ -165,6 +168,7 @@ export default function DashboardView() {
   const [timeRange, setTimeRange] = useState<'T' | 'W' | 'M' | '6M' | 'J'>('M');
   const [timeRangeOffset, setTimeRangeOffset] = useState(0); // 0 = aktuell, -1 = zurück, +1 = vorwärts
   const [dailyPainData, setDailyPainData] = useState<DailyPainData[]>([]);
+  const [rawPainData, setRawPainData] = useState<PainDataPoint[]>([]);
   const [allDailyPainData, setAllDailyPainData] = useState<DailyPainData[]>([]);
   const [events, setEvents] = useState<EventMarker[]>([]);
   const [dashboardTemplates, setDashboardTemplates] = useState<Template[]>([]);
@@ -196,6 +200,10 @@ export default function DashboardView() {
   useEffect(() => {
     if (entries.length === 0 || templates.length === 0) return;
     let cancelled = false;
+    setDailyPainData([]);
+    setRawPainData([]);
+    setEvents([]);
+    setDailyFunctionData([]);
     async function load() {
       try {
         const painData = await extractPainData(entries, templates, decryptFn);
@@ -206,6 +214,12 @@ export default function DashboardView() {
         const dailyData = aggregatePainByDay(filteredPainData);
         const aggregatedData = aggregateDataByTimeRange(dailyData, timeRange);
         if (!cancelled) setDailyPainData(aggregatedData);
+        // Für T-View: rohe Datenpunkte (nicht aggregiert, mit exaktem Timestamp)
+        if (timeRange === 'T') {
+          if (!cancelled) setRawPainData(filteredPainData);
+        } else {
+          if (!cancelled) setRawPainData([]);
+        }
         const eventData = await extractEvents(entries, templates, decryptFn);
         if (cancelled) return;
         const filteredEventData = filterByTimeRange(eventData, timeRange);
@@ -229,57 +243,50 @@ export default function DashboardView() {
 
   function filterByTimeRange<T extends { date: string }>(data: T[], range: 'T' | 'W' | 'M' | '6M' | 'J'): T[] {
     const now = new Date();
-    const cutoffDate = new Date(now);
-    const endDate = new Date(now);
+    let startDate: Date;
+    let endDate: Date;
 
     switch (range) {
       case 'T': {
-        cutoffDate.setDate(now.getDate() + timeRangeOffset);
-        cutoffDate.setHours(0, 0, 0, 0);
-        endDate.setDate(now.getDate() + timeRangeOffset);
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() + timeRangeOffset);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(startDate);
         endDate.setHours(23, 59, 59, 999);
         break;
       }
       case 'W': {
         const dayOfWeek = now.getDay();
         const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        cutoffDate.setDate(now.getDate() - daysToMonday + (timeRangeOffset * 7));
-        cutoffDate.setHours(0, 0, 0, 0);
-        endDate.setDate(cutoffDate.getDate() + 6);
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - daysToMonday + (timeRangeOffset * 7));
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
         endDate.setHours(23, 59, 59, 999);
         break;
       }
       case 'M': {
-        cutoffDate.setMonth(now.getMonth() + timeRangeOffset);
-        cutoffDate.setDate(1);
-        cutoffDate.setHours(0, 0, 0, 0);
-        endDate.setMonth(cutoffDate.getMonth() + 1);
-        endDate.setDate(0);
-        endDate.setHours(23, 59, 59, 999);
+        startDate = new Date(now.getFullYear(), now.getMonth() + timeRangeOffset, 1, 0, 0, 0, 0);
+        endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0, 23, 59, 59, 999);
         break;
       }
       case '6M': {
-        cutoffDate.setMonth(now.getMonth() - 5 + (timeRangeOffset * 6));
-        cutoffDate.setDate(1);
-        cutoffDate.setHours(0, 0, 0, 0);
-        endDate.setMonth(cutoffDate.getMonth() + 6);
-        endDate.setDate(0);
-        endDate.setHours(23, 59, 59, 999);
+        startDate = new Date(now.getFullYear(), now.getMonth() - 5 + (timeRangeOffset * 6), 1, 0, 0, 0, 0);
+        endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 6, 0, 23, 59, 59, 999);
         break;
       }
       case 'J': {
-        cutoffDate.setMonth(now.getMonth() - 11 + (timeRangeOffset * 12));
-        cutoffDate.setDate(1);
-        cutoffDate.setHours(0, 0, 0, 0);
-        endDate.setMonth(cutoffDate.getMonth() + 12);
-        endDate.setDate(0);
-        endDate.setHours(23, 59, 59, 999);
+        startDate = new Date(now.getFullYear(), now.getMonth() - 11 + (timeRangeOffset * 12), 1, 0, 0, 0, 0);
+        endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 12, 0, 23, 59, 59, 999);
         break;
       }
+      default:
+        return data;
     }
     return data.filter(item => {
       const d = new Date(item.date);
-      return d >= cutoffDate && d <= endDate;
+      return d >= startDate && d <= endDate;
     });
   }
 
@@ -291,8 +298,12 @@ export default function DashboardView() {
   }, [dailyPainData, visibleTemplates]);
 
   const trend = useMemo(
-    () => calculateTrendFrom(allDailyPainData, timeRange, timeRangeOffset),
-    [allDailyPainData, timeRange, timeRangeOffset]
+    () => calculateTrendFrom(
+      allDailyPainData.filter(d => visibleTemplates.has(d.templateId)),
+      timeRange,
+      timeRangeOffset
+    ),
+    [allDailyPainData, visibleTemplates, timeRange, timeRangeOffset]
   );
 
 
@@ -321,27 +332,39 @@ export default function DashboardView() {
 
   // ApexCharts Series & Categories
   const apexSeries = useMemo(() => {
-    return convertToApexSeries(dailyPainData, chartConfig, visibleTemplates);
-  }, [dailyPainData, chartConfig, visibleTemplates]);
+    if (timeRange === 'T') {
+      return convertToApexSeriesForDay(
+        rawPainData,
+        chartConfig,
+        visibleTemplates,
+        dashboardTemplates.map(t => t.id!)
+      );
+    }
+    return convertToApexSeries(
+      dailyPainData, chartConfig, visibleTemplates,
+      dashboardTemplates.map(t => t.id!)
+    );
+  }, [timeRange, rawPainData, dailyPainData, chartConfig, visibleTemplates, dashboardTemplates]);
 
   const categories = useMemo(() => {
     return generateCategories(timeRange, new Date(), timeRangeOffset);
   }, [timeRange, timeRangeOffset]);
 
-  // Template-Farben für ApexCharts
-  const chartColors = useMemo(() => {
-    return dashboardTemplates
-      .filter(t => visibleTemplates.has(t.id!))
-      .map((template, index) => {
-        const key = `template_${template.id}_avg`;
-        return chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
-      });
-  }, [dashboardTemplates, visibleTemplates, chartConfig]);
-
   const toggleTemplate = (templateId: number) => {
     const newVisible = new Set(visibleTemplates);
-    if (newVisible.has(templateId)) newVisible.delete(templateId);
-    else newVisible.add(templateId);
+    if (newVisible.has(templateId)) {
+      newVisible.delete(templateId);
+      // F-Serie mitdeaktivieren wenn Template ausgeblendet wird
+      const newFn = new Set(visibleFunctionSeries);
+      newFn.delete(templateId);
+      setVisibleFunctionSeries(newFn);
+    } else {
+      newVisible.add(templateId);
+      // F-Serie mitaktivieren wenn Template wieder eingeblendet wird
+      const newFn = new Set(visibleFunctionSeries);
+      newFn.add(templateId);
+      setVisibleFunctionSeries(newFn);
+    }
     setVisibleTemplates(newVisible);
   };
 
@@ -356,6 +379,35 @@ export default function DashboardView() {
     convertFunctionToApexSeries(dailyFunctionData, chartConfig, visibleFunctionSeries),
     [dailyFunctionData, chartConfig, visibleFunctionSeries]
   );
+
+  const chartKey = useMemo(() => {
+    const templatesKey = [...visibleTemplates].sort().join(',');
+    const fnKey = [...visibleFunctionSeries].sort().join(',');
+    const seriesType = functionApexSeries.length > 0 ? 'mixed' : 'line';
+    return `${timeRange}-${timeRangeOffset}-${seriesType}-t${templatesKey}-f${fnKey}`;
+  }, [timeRange, timeRangeOffset, visibleTemplates, visibleFunctionSeries, functionApexSeries]);
+
+  // Template-Farben für ApexCharts (ISS-011: von apexSeries abgeleitet, nicht von visibleTemplates)
+  // painColors muss 1:1 mit apexSeries übereinstimmen — auch wenn ein Template keine Daten hat
+  const chartColors = useMemo(() => {
+    const painColors = apexSeries.map((s) => {
+      const template = dashboardTemplates.find(t => t.name === s.name);
+      if (!template) return '#ef4444';
+      const key = `template_${template.id}_avg`;
+      return chartConfig[key]?.color || '#ef4444';
+    });
+
+    // Jede aktive Funktionsseries bekommt dieselbe Farbe wie die zugehörige Pain-Series
+    const fnColors = functionApexSeries.map(fnSeries => {
+      const templateName = fnSeries.name.replace(' · Funktion', '');
+      const template = dashboardTemplates.find(t => t.name === templateName);
+      if (!template) return painColors[0] ?? '#ef4444';
+      const key = `template_${template.id}_avg`;
+      return chartConfig[key]?.color || '#ef4444';
+    });
+
+    return [...painColors, ...fnColors];
+  }, [dashboardTemplates, apexSeries, chartConfig, functionApexSeries]);
 
   // Zeitraum-Navigation
   const handlePreviousTimeRange = () => {
@@ -391,11 +443,8 @@ export default function DashboardView() {
         const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         monday.setDate(now.getDate() - daysToMonday + (timeRangeOffset * 7));
         
-        // KW berechnen (auf Basis von monday, nicht today)
-        const jan1 = new Date(monday.getFullYear(), 0, 1);
-        const weekNumber = Math.ceil(
-          (((monday.getTime() - jan1.getTime()) / 86400000) + jan1.getDay() + 1) / 7
-        );
+        // KW berechnen nach ISO 8601 (DE-Standard)
+        const weekNumber = getISOWeek(monday);
         const sundayOfWeek = new Date(monday);
         sundayOfWeek.setDate(monday.getDate() + 6);
         const mondayStr = monday.toLocaleDateString('de-DE', { day: '2-digit', month: 'short' });
@@ -413,19 +462,25 @@ export default function DashboardView() {
         return targetDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
       }
       case '6M': {
-        // Letzte 6 Monate + offset
-        const sixMonthsAgo = new Date(now);
-        sixMonthsAgo.setMonth(now.getMonth() - 5 + (timeRangeOffset * 6));
-        const startMonth = sixMonthsAgo.toLocaleDateString('de-DE', { month: 'short' });
-        const endMonth = now.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
+        // 6 Monate + offset — End-Datum aus Periodenende berechnen (BUG-C)
+        const start = new Date(now);
+        start.setMonth(now.getMonth() - 5 + (timeRangeOffset * 6));
+        start.setDate(1);
+        const end = new Date(start);
+        end.setMonth(start.getMonth() + 5);
+        const startMonth = start.toLocaleDateString('de-DE', { month: 'short' });
+        const endMonth = end.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
         return `${startMonth}–${endMonth}`;
       }
       case 'J': {
-        // Letzte 12 Monate + offset
-        const twelveMonthsAgo = new Date(now);
-        twelveMonthsAgo.setMonth(now.getMonth() - 11 + (timeRangeOffset * 12));
-        const startMonth = twelveMonthsAgo.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
-        const endMonth = now.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
+        // 12 Monate + offset — End-Datum aus Periodenende berechnen (BUG-C)
+        const start = new Date(now);
+        start.setMonth(now.getMonth() - 11 + (timeRangeOffset * 12));
+        start.setDate(1);
+        const end = new Date(start);
+        end.setMonth(start.getMonth() + 11);
+        const startMonth = start.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
+        const endMonth = end.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' });
         return `${startMonth}–${endMonth}`;
       }
       default:
@@ -574,6 +629,7 @@ export default function DashboardView() {
               {/* ApexCharts */}
               <div className={styles.chartContainer}>
                 <ApexLineChart
+                  key={chartKey}
                   series={apexSeries}
                   categories={categories}
                   timeRange={timeRange}
@@ -610,9 +666,12 @@ export default function DashboardView() {
                   const isVisible = visibleTemplates.has(template.id!);
                   const key = `template_${template.id}_avg`;
                   const color = chartConfig[key]?.color || getTemplateColor(index, dashboardTemplates.length);
-                  const hasFn = dailyFunctionData.some(d => d.templateId === template.id);
+                  const hasConfiguredFn = template.blocks.some(
+                    b => b.type === 'slider' && b.dashboard?.enabled && b.dashboard.type === 'function'
+                  );
+                  const hasFnData = dailyFunctionData.some(d => d.templateId === template.id);
                   const isFnActive = visibleFunctionSeries.has(template.id!);
-                  const fnEnabled = isVisible && hasFn;
+                  const fnEnabled = isVisible && hasFnData;
 
                   return (
                     <div key={template.id} className="flex">
@@ -625,44 +684,31 @@ export default function DashboardView() {
                           ? { backgroundColor: color, borderColor: color, color: '#fff' }
                           : { backgroundColor: 'transparent', borderColor: color, color: color }
                         }
-                        className="rounded-r-none border-r-0 h-8 px-2.5"
+                        className={hasConfiguredFn ? "rounded-r-none border-r-0 h-8 px-2.5" : "h-8 px-2.5"}
                       >
                         {React.createElement(getIconComponent(template.icon), { size: 14, strokeWidth: 2 })}
                       </Button>
-                      {/* Funktionswert-Button (rechter Teil) */}
-                      <Button
-                        size="sm"
-                        onClick={() => fnEnabled && toggleFunctionSeries(template.id!)}
-                        disabled={!fnEnabled}
-                        title={hasFn ? `Funktionswert ${template.name}` : `Keine Funktionswerte für ${template.name}`}
-                        style={fnEnabled && isFnActive
-                          ? { backgroundColor: color, borderColor: color, color: '#fff' }
-                          : { backgroundColor: 'transparent', borderColor: color, color: color }
-                        }
-                        className="rounded-l-none h-8 px-2.5"
-                      >
-                        <ChartArea size={14} strokeWidth={2} />
-                      </Button>
+                      {/* Funktionswert-Button (rechter Teil) — nur wenn Template function-Slider hat */}
+                      {hasConfiguredFn && (
+                        <Button
+                          size="sm"
+                          onClick={() => fnEnabled && toggleFunctionSeries(template.id!)}
+                          disabled={!fnEnabled}
+                          title={hasFnData ? `Funktionswert ${template.name}` : `Keine Funktionswerte für ${template.name}`}
+                          style={fnEnabled && isFnActive
+                            ? { backgroundColor: color, borderColor: color, color: '#fff' }
+                            : { backgroundColor: 'transparent', borderColor: color, color: color }
+                          }
+                          className="rounded-l-none h-8 px-2.5"
+                        >
+                          <ChartArea size={14} strokeWidth={2} />
+                        </Button>
+                      )}
                     </div>
                   );
                 })}
               </div>
             </div>
-          ) : dashboardTemplates.length > 0 ? (
-            <Card className="p-8 text-center">
-              <TrendingUp size={48} className="mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">
-                Keine Daten für {timeRange === 'T' ? 'heute' : timeRange === 'W' ? 'diese Woche' : timeRange === 'M' ? 'diesen Monat' : 'diesen Zeitraum'}
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Erstelle Einträge im Tagebuch, um Daten zu sehen.
-              </p>
-              {timeRangeOffset !== 0 && (
-                <Button onClick={handleResetTimeRange} variant="outline" className="mb-4">
-                  Zurück zu heute
-                </Button>
-              )}
-            </Card>
           ) : (
             <Card className="p-8 text-center">
               <TrendingUp size={48} className="mx-auto mb-4 text-muted-foreground" />

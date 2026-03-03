@@ -382,15 +382,16 @@ export default function EditorMode() {
       }
       
       if (allEnabled) {
-        // Alle deaktivieren
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { dashboard: _dashboard, ...rest } = block;
-        return rest;
+        // Alle deaktivieren — nur enabled: false, type/eventTitle/eventCategory bleiben erhalten
+        return {
+          ...block,
+          dashboard: { ...block.dashboard, enabled: false }
+        };
       } else {
         // Alle aktivieren
         return {
           ...block,
-          dashboard: { enabled: true }
+          dashboard: { ...block.dashboard, enabled: true }
         };
       }
     }));

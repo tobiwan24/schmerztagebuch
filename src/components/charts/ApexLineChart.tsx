@@ -7,7 +7,7 @@ import type { EventMarker } from '../../utils/dashboardData';
 interface ApexLineChartProps {
   series: {
     name: string;
-    data: { x: string; y: number }[];
+    data: { x: number; y: number }[];
   }[];
   categories: string[];
   timeRange: 'T' | 'W' | 'M' | '6M' | 'J';
@@ -16,7 +16,7 @@ interface ApexLineChartProps {
   events?: EventMarker[];
   visibleTemplates?: Set<number>;
   dashboardTemplates?: Array<{ id?: number; name: string }>;
-  functionSeries?: { name: string; data: { x: string; y: number }[] }[];
+  functionSeries?: { name: string; data: { x: number; y: number }[] }[];
 }
 
 export const ApexLineChart: React.FC<ApexLineChartProps> = ({
@@ -44,6 +44,8 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
   const chartOptions: ApexOptions = useMemo(() => {
 
     // Event Annotations erstellen - als Points direkt über Datenpunkten
+    // Mehrere Icons am gleichen Tag werden vertikal gestapelt (je -18px Abstand)
+    const dateOffsetCount = new Map<string, number>();
     const eventPointAnnotations = events
       .filter(event => {
         const template = dashboardTemplates.find(t => t.name === event.templateName);
@@ -51,17 +53,23 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
       })
       .map(event => {
         // Finde Y-Wert (Schmerzwert) für dieses Event-Datum
-        const dateStr = event.date;
         let yValue = 5; // Fallback Mitte
-        
-        // Suche in series nach dem Datenpunkt
+
+        // Suche in series nach dem nächstgelegenen Datenpunkt des Tages
         series.forEach(s => {
-          const point = s.data.find(p => p.x === dateStr);
-          if (point) {
-            yValue = point.y;
-          }
+          const point = s.data.find(p => {
+            // Vergleiche Datum (YYYY-MM-DD) des Punktes mit Event-Datum
+            const pointDate = new Date(p.x).toISOString().split('T')[0];
+            return pointDate === event.date;
+          });
+          if (point) yValue = point.y;
         });
-        
+
+        // Stapel-Offset: jedes weitere Icon am selben Tag um 18px höher verschieben
+        const count = dateOffsetCount.get(event.date) ?? 0;
+        dateOffsetCount.set(event.date, count + 1);
+        const offsetY = -20 - count * 18;
+
         return {
           x: new Date(event.date).getTime(),
           y: yValue,
@@ -70,7 +78,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
           },
           label: {
             text: event.category === 'doctor' ? '🩺' : '📅',
-            offsetY: -20, // Über dem Punkt
+            offsetY,
             borderWidth: 0, // Keine Umrandung
             style: {
               background: 'transparent',
@@ -106,10 +114,36 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         mode: isDarkMode ? 'dark' : 'light',
       },
       xaxis: {
-        type: 'datetime',
-        categories, // ISO-Dates direkt!
+        type: 'numeric',  // tickAmount funktioniert nur mit numeric, nicht mit datetime+categories
+        // KEIN categories — Konflikt mit {x: ms} Series-Werten
+
+        // tickAmount: N Intervalle = N+1 Ticks
+        ...(timeRange === 'T'  && { tickAmount: 6 }),  // 7 Ticks: 0h,4h,8h,12h,16h,20h,24h
+        ...(timeRange === 'W'  && { tickAmount: 6 }),  // 7 Ticks: Mo,Di,Mi,Do,Fr,Sa,So
+        ...(timeRange === 'M'  && { tickAmount: 6 }),  // 7 Ticks: ~1.,~5.,~10.,~15.,~20.,~25.,~letzter
+        ...(timeRange === '6M' && { tickAmount: 5 }),  // 6 Ticks: 1 pro Monat
+        ...(timeRange === 'J'  && { tickAmount: 11 }), // 12 Ticks: Jan–Dez
+
+        // Erzwingt statischen Achsenbereich — unabhängig von Datenpunktdichte
+        min: categories.length > 0 ? new Date(categories[0]).getTime() : undefined,
+        max: (() => {
+          if (categories.length === 0) return undefined;
+          const last = new Date(categories[categories.length - 1]);
+          // J + 6M: letzter Tick = Monatserster → Bereich bis Monatsende ausdehnen
+          if (timeRange === 'J' || timeRange === '6M') {
+            return new Date(last.getFullYear(), last.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
+          }
+          return last.getTime();
+        })(),
+
         labels: {
-          formatter: (value: string) => formatXAxisLabel(value, timeRange),
+          // formatter erhält ms-Zahl als String → konvertieren → formatXAxisLabel
+          formatter: (value: string) => {
+            const ms = parseFloat(value);
+            if (isNaN(ms)) return value;
+            return formatXAxisLabel(new Date(ms).toISOString(), timeRange, categories);
+          },
+          hideOverlappingLabels: false,
           style: {
             colors: 'hsl(var(--muted-foreground))',
             fontSize: '12px',
@@ -133,10 +167,11 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
       },
       yaxis: {
         min: 0,
-        max: 10.5,
+        max: 10,
         tickAmount: 5,
         forceNiceScale: false,
         labels: {
+          formatter: (val: number) => Math.round(val).toString(),
           offsetX: -5,
           minWidth: 20,
           style: {
@@ -175,7 +210,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         padding: {
           left: 0,
           right: 0,
-          top: 0,
+          top: 24,
           bottom: 0,
         },
         xaxis: {
@@ -188,7 +223,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
       tooltip: {
         enabled: true,
         theme: isDarkMode ? 'dark' : 'light',
-        shared: false,
+        shared: true,   // verhindert Force-Intersect in beiden Modi (F-button ON + OFF)
         intersect: false,
         x: {
           show: false,  // Datums-Marker unter X-Achse ausblenden
@@ -201,12 +236,12 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
           if (seriesIndex < 0 || dataPointIndex < 0) return '';
           const dataPoint = w.globals.initialSeries[seriesIndex]?.data[dataPointIndex];
           if (!dataPoint) return '';
-          const date = dataPoint.x;
+          const date = dataPoint.x; // ms (Zahl) — new Date(date) funktioniert weiterhin ✓
           const value = dataPoint.y;
           const seriesName = w.globals.seriesNames[seriesIndex];
-          
-          // Finde Events für dieses Datum
-          const dateStr = new Date(date).toISOString().split('T')[0];
+
+          // Finde Events für dieses Datum (UTC-Datum aus ms für Event-Match)
+          const dateStr = new Date(Number(date)).toISOString().split('T')[0];
           const dayEvents = events.filter(e => {
             const template = dashboardTemplates.find(t => t.name === e.templateName);
             return template && visibleTemplates.has(template.id ?? 0) && e.date === dateStr;
@@ -254,6 +289,9 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
             chart: {
               height: 300,
             },
+            grid: {
+              padding: { top: 24 },
+            },
             xaxis: {
               labels: {
                 rotate: -45,
@@ -263,7 +301,12 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
               },
             },
             yaxis: {
+              min: 0,
+              max: 10,
+              tickAmount: 5,
+              forceNiceScale: false,
               labels: {
+                formatter: (val: number) => Math.round(val).toString(),
                 style: {
                   fontSize: '10px',
                 },
@@ -284,6 +327,9 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
             chart: {
               height: 250,
             },
+            grid: {
+              padding: { top: 24 },
+            },
             xaxis: {
               labels: {
                 rotate: -45,
@@ -293,7 +339,12 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
               },
             },
             yaxis: {
+              min: 0,
+              max: 10,
+              tickAmount: 5,
+              forceNiceScale: false,
               labels: {
+                formatter: (val: number) => Math.round(val).toString(),
                 style: {
                   fontSize: '9px',
                 },
@@ -312,20 +363,13 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
     };
   }, [categories, timeRange, colors, height, events, visibleTemplates, dashboardTemplates, series, isDarkMode, functionSeries]);
 
+  // ISS-002: Kein Placeholder mehr — pure line wenn kein functionSeries,
+  // mixed (line + area) wenn functionSeries aktiv. key-Prop steuert Re-Mount.
   const combinedSeries = useMemo(() => {
     const painSeries = series.map(s => ({ ...s, type: 'line' as const }));
     const fnSeries = (functionSeries ?? []).map(s => ({ ...s, type: 'area' as const }));
     return [...painSeries, ...fnSeries];
   }, [series, functionSeries]);
-
-  // Schutz vor leeren Series (nach useMemo, damit Hooks-Reihenfolge konstant bleibt)
-  if (!series || series.length === 0) {
-    return (
-      <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--muted-foreground))' }}>
-        <p>Keine Daten vorhanden</p>
-      </div>
-    );
-  }
 
   return (
     <Chart

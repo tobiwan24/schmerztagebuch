@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Check, RefreshCw, BookOpen, Shield, Fingerprint, Key, AlertCircle, LayoutTemplate } from 'lucide-react';
+import { Check, RefreshCw, BookOpen, Shield, Fingerprint, Key, AlertCircle, LayoutTemplate, Smartphone, ExternalLink } from 'lucide-react';
 import { useNavigation } from '../contexts/NavigationContext';
+import { isPWAInstalled, isIOSNonSafari } from '../utils/persistentStorage';
 
 function isCryptoAvailable(): boolean {
   return !!(window.crypto && window.crypto.subtle);
@@ -29,7 +30,13 @@ function getCryptoWarning(): string {
 
 export default function SetupWizard() {
   const { setupComplete: onComplete } = useNavigation();
-  const [step, setStep] = useState<'welcome' | 'updates' | 'encryption' | 'password' | 'biometric' | 'templates'>('welcome');
+  const isInstalled = isPWAInstalled();
+  const isNonSafariIOS = isIOSNonSafari();
+  // Install-Step überspringen wenn: bereits installiert ODER kein iOS ODER iOS aber non-Safari
+  const skipInstallStep = isInstalled || isNonSafariIOS;
+  const [step, setStep] = useState<'install' | 'welcome' | 'updates' | 'encryption' | 'password' | 'biometric' | 'templates'>(
+    skipInstallStep ? 'welcome' : 'install'
+  );
   const [selectedMode, setSelectedMode] = useState<EncryptionMode>('none');
   const [autoUpdate, setAutoUpdate] = useState(true);
   const [password, setPasswordInput] = useState('');
@@ -142,6 +149,65 @@ export default function SetupWizard() {
     await setSetting('setupCompleted', 'true');
     await setEncryptionMode(selectedMode);
     onComplete();
+  }
+
+  if (step === 'install') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <Smartphone className="w-8 h-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">App installieren</CardTitle>
+            <CardDescription>Für dauerhaften Datenschutz empfohlen</CardDescription>
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-sm font-semibold text-yellow-900 mb-1">⚠️ Daten könnten gelöscht werden</p>
+              <p className="text-xs text-yellow-800">
+                Safari kann Daten im Browser nach längerer Inaktivität löschen.
+                Als installierte App auf dem Homescreen bist du dauerhaft geschützt.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              {[
+                'Daten werden dauerhaft gespeichert',
+                'Schnellerer Zugriff vom Homescreen',
+                'Offline vollständig nutzbar',
+              ].map(benefit => (
+                <div key={benefit} className="flex items-center gap-2 text-sm">
+                  <span className="text-green-600 font-bold">✓</span>
+                  <span>{benefit}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-gray-50 border rounded-lg p-3">
+              <p className="text-xs font-semibold text-gray-700 mb-2">So installierst du die App:</p>
+              <ol className="list-decimal ml-4 space-y-1 text-xs text-gray-600">
+                <li>Tippe auf das <strong>Teilen-Symbol</strong> <ExternalLink className="inline h-3 w-3" /> unten in Safari</li>
+                <li>Scrolle nach unten</li>
+                <li>Wähle <strong>„Zum Home-Bildschirm"</strong></li>
+                <li>Tippe auf <strong>„Hinzufügen"</strong></li>
+                <li>Starte die App neu vom Homescreen</li>
+              </ol>
+            </div>
+          </CardContent>
+
+          <CardFooter className="flex flex-col gap-2">
+            <p className="text-xs text-center text-muted-foreground">
+              Nach der Installation wirst du diese Einrichtung nochmals durchlaufen – dann als installierte App.
+            </p>
+            <Button onClick={() => setStep('welcome')} variant="outline" className="w-full">
+              Trotzdem im Browser fortfahren
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
   }
 
   if (step === 'welcome') {

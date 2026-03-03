@@ -1,13 +1,21 @@
-import type { DailyPainData, DailyFunctionData } from './dashboardData';
+import type { DailyPainData, DailyFunctionData, PainDataPoint } from './dashboardData';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
+
+/**
+ * Lokales Datum als ISO-Date-String (YYYY-MM-DD).
+ * Verhindert UTC±Offset-Fehler (toISOString würde UTC liefern).
+ */
+export function localDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 /**
  * ApexCharts Series Format
  */
 export interface ApexSeries {
   name: string;
-  data: { x: string; y: number }[];
+  data: { x: number; y: number }[];
 }
 
 /**
@@ -31,41 +39,41 @@ export interface ChartConfig {
 export function convertToApexSeries(
   dailyPainData: DailyPainData[],
   chartConfig: ChartConfig,
-  visibleTemplates: Set<number>
+  visibleTemplates: Set<number>,
+  orderedTemplateIds?: number[]
 ): ApexSeries[] {
   // Gruppiere Daten nach Template
-  const dataByTemplate = new Map<number, { x: string; y: number }[]>();
-  
+  const dataByTemplate = new Map<number, { x: number; y: number }[]>();
+
   dailyPainData.forEach(point => {
     // Nur sichtbare Templates
     if (!visibleTemplates.has(point.templateId)) return;
-    
+
     if (!dataByTemplate.has(point.templateId)) {
       dataByTemplate.set(point.templateId, []);
     }
-    
+
     dataByTemplate.get(point.templateId)!.push({
-      x: point.date, // ISO-Date String direkt!
+      x: new Date(point.date).getTime(), // ms (UTC midnight des Datums)
       y: point.avg
     });
   });
-  
-  // Konvertiere zu ApexCharts Series Format
-  const series: ApexSeries[] = [];
-  
-  dataByTemplate.forEach((data, templateId) => {
+
+  // Konvertiere zu ApexCharts Series Format — in definierter Reihenfolge (BUG-B)
+  // Alle sichtbaren Templates einschließen — auch ohne Daten (leeres Board mit statischen Achsen)
+  const ids = orderedTemplateIds
+    ? orderedTemplateIds.filter(id => visibleTemplates.has(id))
+    : [...dataByTemplate.keys()];
+
+  return ids.map(templateId => {
     const key = `template_${templateId}_avg`;
     const config = chartConfig[key];
-    
-    if (config) {
-      series.push({
-        name: config.label,
-        data: data.sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime())
-      });
-    }
+    const data = dataByTemplate.get(templateId) ?? [];
+    return {
+      name: config?.label ?? String(templateId),
+      data: data.sort((a, b) => a.x - b.x),
+    };
   });
-  
-  return series;
 }
 
 /**
@@ -76,7 +84,7 @@ export function convertFunctionToApexSeries(
   chartConfig: ChartConfig,
   visibleFunctionSeries: Set<number>
 ): ApexSeries[] {
-  const dataByTemplate = new Map<number, { x: string; y: number }[]>();
+  const dataByTemplate = new Map<number, { x: number; y: number }[]>();
 
   functionData.forEach(point => {
     if (!visibleFunctionSeries.has(point.templateId)) return;
@@ -84,7 +92,7 @@ export function convertFunctionToApexSeries(
       dataByTemplate.set(point.templateId, []);
     }
     dataByTemplate.get(point.templateId)!.push({
-      x: point.date,
+      x: new Date(point.date).getTime(), // ms
       y: point.value,
     });
   });
@@ -97,12 +105,51 @@ export function convertFunctionToApexSeries(
     if (config) {
       series.push({
         name: `${config.label} · Funktion`,
-        data: data.sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime()),
+        data: data.sort((a, b) => a.x - b.x),
       });
     }
   });
 
   return series;
+}
+
+/**
+ * Konvertiert rohe PainDataPoints zu ApexSeries für T-View (Tagesansicht).
+ * Verwendet exakte Entry-Timestamps statt Tages-Aggregate.
+ * Kein aggregatePainByDay() → jeder Eintrag erscheint als eigener Punkt.
+ */
+export function convertToApexSeriesForDay(
+  rawPainData: PainDataPoint[],
+  chartConfig: ChartConfig,
+  visibleTemplates: Set<number>,
+  orderedTemplateIds?: number[]
+): ApexSeries[] {
+  const dataByTemplate = new Map<number, { x: number; y: number }[]>();
+
+  rawPainData.forEach(point => {
+    if (!visibleTemplates.has(point.templateId)) return;
+    if (!dataByTemplate.has(point.templateId)) {
+      dataByTemplate.set(point.templateId, []);
+    }
+    dataByTemplate.get(point.templateId)!.push({
+      x: point.datetime, // exakte Uhrzeit als ms
+      y: point.value,    // Rohwert (kein Durchschnitt)
+    });
+  });
+
+  const ids = orderedTemplateIds
+    ? orderedTemplateIds.filter(id => visibleTemplates.has(id))
+    : [...dataByTemplate.keys()];
+
+  return ids.map(templateId => {
+    const key = `template_${templateId}_avg`;
+    const config = chartConfig[key];
+    const data = dataByTemplate.get(templateId) ?? [];
+    return {
+      name: config?.label ?? String(templateId),
+      data: data.sort((a, b) => a.x - b.x),
+    };
+  });
 }
 
 /**
@@ -118,61 +165,64 @@ export function generateCategories(
   offset: number = 0
 ): string[] {
   const categories: string[] = [];
-  
+
   switch (timeRange) {
     case 'T': {
-      // Tag: Heute + offset mit Stunden-Ticks (0h, 8h, 16h, 24h)
+      // Tag: Heute + offset mit Stunden-Ticks (0h, 4h, 8h, 12h, 16h, 20h, 24h)
       const today = new Date(now);
       today.setDate(now.getDate() + offset);
       today.setHours(0, 0, 0, 0);
-      
-      [0, 8, 16, 24].forEach(hour => {
-        const date = new Date(today);
-        date.setHours(hour);
-        categories.push(date.toISOString());
+
+      [0, 4, 8, 12, 16, 20].forEach(hour => {
+        const d = new Date(today);
+        d.setHours(hour, 0, 0, 0);
+        categories.push(d.toISOString());
       });
+      // "24h" = Mitternacht des Folgetags
+      const endOfDay = new Date(today);
+      endOfDay.setDate(today.getDate() + 1);
+      endOfDay.setHours(0, 0, 0, 0);
+      categories.push(endOfDay.toISOString());
       break;
     }
     
     case 'W': {
-      // Woche: Diese Woche + offset (Mo bis heute)
+      // Woche: Diese Woche + offset (Mo bis So; bei aktueller Woche nur bis heute)
       const dayOfWeek = now.getDay();
       const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
       const monday = new Date(now);
       monday.setDate(now.getDate() - daysToMonday + (offset * 7));
       monday.setHours(0, 0, 0, 0);
-      
-      // Von Montag bis heute
-      const daysInWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
-      for (let i = 0; i < daysInWeek; i++) {
+
+      // Immer alle 7 Tage zeigen — fehlende Datenpunkte der Zukunft bleiben leer
+      const daysToShow = 7;
+      for (let i = 0; i < daysToShow; i++) {
         const date = new Date(monday);
         date.setDate(monday.getDate() + i);
-        categories.push(date.toISOString().split('T')[0]);
+        categories.push(localDateStr(date));
       }
       break;
     }
     
     case 'M': {
-      // Monat: Aktueller Monat + offset (1. bis heute)
+      // Monat: Angezeigter Monat + offset — immer ganzer Monat (1. bis letzter Tag)
       const firstDay = new Date(now);
       firstDay.setMonth(now.getMonth() + offset);
       firstDay.setDate(1);
       firstDay.setHours(0, 0, 0, 0);
-      
-      const currentDay = now.getDate();
-      
-      // Ticks: 1., 5., 10., 15., 20., 25., aktueller Tag (falls > 25)
+
+      // Letzter Tag des angezeigten Monats (nicht aktueller Monat)
+      const lastDayDate = new Date(firstDay.getFullYear(), firstDay.getMonth() + 1, 0);
+      const lastDay = lastDayDate.getDate(); // 28, 29, 30 oder 31
+
+      // Ticks: 1., 5., 10., 15., 20., 25., letzter Tag (falls > 25)
       const ticks = [1, 5, 10, 15, 20, 25];
-      if (currentDay > 25) {
-        ticks.push(currentDay);
-      }
-      
+      if (lastDay > 25) ticks.push(lastDay);
+
       ticks.forEach(day => {
-        if (day <= currentDay) {
-          const date = new Date(firstDay);
-          date.setDate(day);
-          categories.push(date.toISOString().split('T')[0]);
-        }
+        const date = new Date(firstDay);
+        date.setDate(day);
+        categories.push(localDateStr(date));
       });
       break;
     }
@@ -184,19 +234,19 @@ export function generateCategories(
         date.setMonth(now.getMonth() - i + (offset * 6));
         date.setDate(1);
         date.setHours(0, 0, 0, 0);
-        categories.push(date.toISOString().split('T')[0]);
+        categories.push(localDateStr(date));
       }
       break;
     }
-    
+
     case 'J': {
-      // Jahr: Jeden 2. Monat über 12 Monate + offset
-      for (let i = 11; i >= 0; i -= 2) {
+      // Jahr: Alle 12 Monate + offset
+      for (let i = 11; i >= 0; i--) {
         const date = new Date(now);
         date.setMonth(now.getMonth() - i + (offset * 12));
         date.setDate(1);
         date.setHours(0, 0, 0, 0);
-        categories.push(date.toISOString().split('T')[0]);
+        categories.push(localDateStr(date));
       }
       break;
     }
@@ -212,30 +262,39 @@ export function generateCategories(
  * @param timeRange - Zeitraum (T/W/M/6M/J)
  * @returns Formatierter Label-String
  */
-export function formatXAxisLabel(value: string, timeRange: 'T' | 'W' | 'M' | '6M' | 'J'): string {
+export function formatXAxisLabel(
+  value: string,
+  timeRange: 'T' | 'W' | 'M' | '6M' | 'J',
+  categories?: string[]
+): string {
   const date = new Date(value);
-  
+
   switch (timeRange) {
-    case 'T':
-      // Tag: 0h, 8h, 16h, 24h
-      return `${date.getHours()}h`;
-    
+    case 'T': {
+      const hour = date.getHours();
+      // "24h"-Tick: Mitternacht des Folgetags = letzter Eintrag in categories mit hour=0
+      if (hour === 0 && categories && categories.length > 0 && value === categories[categories.length - 1]) {
+        return '24h';
+      }
+      return `${hour}h`;
+    }
+
     case 'W':
       // Woche: Mo, Di, Mi, Do, Fr, Sa, So
       return format(date, 'EEE', { locale: de });
-    
+
     case 'M':
       // Monat: 1., 5., 10., 15., 20., 25., 31.
       return `${date.getDate()}.`;
-    
+
     case '6M':
-      // 6 Monate: Aug, Sep, Okt, Nov, Dez, Jan
-      return format(date, 'MMM', { locale: de });
-    
+      // 6 Monate: numerisch 01–12
+      return format(date, 'MM', { locale: de });
+
     case 'J':
-      // Jahr: Jan, Mär, Mai, Jul, Sep, Nov
-      return format(date, 'MMM', { locale: de });
-    
+      // Jahr: numerisch 01–12
+      return format(date, 'MM', { locale: de });
+
     default:
       return value;
   }

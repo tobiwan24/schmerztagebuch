@@ -2,12 +2,23 @@ import Dexie, { type EntityTable } from 'dexie';
 import type { Block } from './types/blocks';
 import type { Template, Entry, Settings } from './types/database';
 import { generateUUID } from './utils/uuid';
+import { AVAILABLE_ICON_NAMES } from './utils/iconUtils';
+import { decryptData, encryptData } from './utils/crypto';
 
 const db = new Dexie('PainDiaryDB') as Dexie & {
   templates: EntityTable<Template, 'id'>;
   entries: EntityTable<Entry, 'id'>;
   settings: EntityTable<Settings, 'key'>;
 };
+
+// Stubs v8–v13: Abwärtskompatibilität für Altversionen
+const _legacySchema = { templates: '++id, name, order', entries: '++id, templateId, timestamp, encrypted', settings: 'key' };
+db.version(8).stores(_legacySchema);
+db.version(9).stores(_legacySchema);
+db.version(10).stores(_legacySchema);
+db.version(11).stores(_legacySchema);
+db.version(12).stores(_legacySchema);
+db.version(13).stores(_legacySchema);
 
 // Version 14: Lucide Icon System Integration
 db.version(14).stores({
@@ -100,6 +111,39 @@ db.version(17).stores({
   settings: 'key'
 });
 
+// Version 18: 'history'-Encryption-Mode entfernt → auf 'none' migrieren
+db.version(18).stores({
+  templates: '++id, name, order',
+  entries: '++id, templateId, timestamp, encrypted, *tags',
+  settings: 'key'
+}).upgrade(async tx => {
+  const setting = await tx.table('settings').get('encryptionMode');
+  if (setting?.value === 'history') {
+    await tx.table('settings').put({ key: 'encryptionMode', value: 'none' });
+    console.log('🔄 DB v18: encryptionMode "history" → "none" migriert');
+  }
+});
+
+// Version 19: Template icon/color Defaults als Dexie-Upgrade (war zuvor migrateTemplateStyles())
+db.version(19).stores({
+  templates: '++id, name, order',
+  entries: '++id, templateId, timestamp, encrypted, *tags',
+  settings: 'key'
+}).upgrade(async tx => {
+  const templates = await tx.table('templates').toArray();
+  let colorIndex = 0;
+  for (const template of templates) {
+    const iconInvalid = !template.icon || !AVAILABLE_ICON_NAMES.includes(template.icon);
+    const colorInvalid = !template.color;
+    if (iconInvalid || colorInvalid) {
+      const updates: Partial<Template> = {};
+      if (iconInvalid) updates.icon = getDefaultIconForTemplate(template.name);
+      if (colorInvalid) { updates.color = DEFAULT_COLORS[colorIndex % DEFAULT_COLORS.length]; colorIndex++; }
+      await tx.table('templates').put({ ...template, ...updates });
+    }
+  }
+});
+
 // ========== MIGRATIONS ==========
 
 // Standard-Icons basierend auf Template-Namen - Lucide Icon Names (CamelCase)
@@ -172,31 +216,6 @@ function getDefaultIconForTemplate(name: string): string {
     }
   }
   return 'Book'; // Fallback
-}
-
-// Migration: Templates ohne icon/color mit Defaults versehen
-export async function migrateTemplateStyles(): Promise<void> {
-  const templates = await db.templates.toArray();
-  let colorIndex = 0;
-  
-  for (const template of templates) {
-    if (!template.icon || !template.color) {
-      const updates: Partial<Template> = {};
-      
-      if (!template.icon) {
-        updates.icon = getDefaultIconForTemplate(template.name);
-      }
-      
-      if (!template.color) {
-        updates.color = DEFAULT_COLORS[colorIndex % DEFAULT_COLORS.length];
-        colorIndex++;
-      }
-      
-      if (template.id) {
-        await db.templates.update(template.id, updates);
-      }
-    }
-  }
 }
 
 // ========== TEMPLATE CRUD ==========
@@ -348,29 +367,101 @@ export async function setSetting(key: string, value: string): Promise<void> {
 }
 
 export async function getAppSettings(): Promise<{
-  encryptionMode: 'none' | 'history' | 'full';
+  encryptionMode: 'none' | 'full';
   biometricEnabled: boolean;
   setupCompleted: boolean;
 }> {
   const mode = await getSetting('encryptionMode');
   const biometric = await getSetting('biometricEnabled');
   const setup = await getSetting('setupCompleted');
-  
+
   return {
-    encryptionMode: (mode as 'none' | 'history' | 'full') || 'none',
+    encryptionMode: (mode as 'none' | 'full') || 'none',
     biometricEnabled: biometric === 'true',
     setupCompleted: setup === 'true'
   };
 }
 
 
+// ========== ENCRYPTION MIGRATION ==========
+
+/**
+ * EC1: Alle verschlüsselten Einträge entschlüsseln (full → none).
+ * Wird aufgerufen bevor encryptionMode auf 'none' gesetzt wird.
+ */
+export async function decryptAllEntries(
+  password: string,
+  onProgress?: (done: number, total: number) => void
+): Promise<void> {
+  const entries = await db.entries.toArray();
+  const encrypted = entries.filter(e => e.encrypted);
+  const total = encrypted.length;
+
+  for (let i = 0; i < encrypted.length; i++) {
+    const entry = encrypted[i];
+    const decrypted = await decryptData(entry.data, password);
+    await db.entries.update(entry.id!, { data: decrypted, encrypted: false });
+    onProgress?.(i + 1, total);
+  }
+}
+
+/**
+ * EC2: Alle unverschlüsselten Einträge verschlüsseln (none → full).
+ * Wird aufgerufen nachdem Passwort gesetzt und encryptionMode auf 'full' gesetzt wurde.
+ */
+export async function encryptAllEntries(
+  password: string,
+  onProgress?: (done: number, total: number) => void
+): Promise<void> {
+  const entries = await db.entries.toArray();
+  const unencrypted = entries.filter(e => !e.encrypted);
+  const total = unencrypted.length;
+
+  for (let i = 0; i < unencrypted.length; i++) {
+    const entry = unencrypted[i];
+    const encryptedData = await encryptData(entry.data, password);
+    await db.entries.update(entry.id!, { data: encryptedData, encrypted: true });
+    onProgress?.(i + 1, total);
+  }
+}
+
+/**
+ * EC3: Alle verschlüsselten Einträge mit neuem Passwort re-encrypten.
+ * Wird aufgerufen beim Passwort-Wechsel.
+ */
+export async function reEncryptAllEntries(
+  oldPassword: string,
+  newPassword: string,
+  onProgress?: (done: number, total: number) => void
+): Promise<void> {
+  const entries = await db.entries.toArray();
+  const encrypted = entries.filter(e => e.encrypted);
+  const total = encrypted.length;
+
+  for (let i = 0; i < encrypted.length; i++) {
+    const entry = encrypted[i];
+    const decrypted = await decryptData(entry.data, oldPassword);
+    const reEncrypted = await encryptData(decrypted, newPassword);
+    await db.entries.update(entry.id!, { data: reEncrypted });
+    onProgress?.(i + 1, total);
+  }
+}
+
+
 // ========== INITIALISIERUNG ==========
 
+export const DB_TARGET_VERSION = 19;
+
+export async function getCurrentDBVersion(): Promise<number> {
+  return new Promise((resolve) => {
+    const req = indexedDB.open('PainDiaryDB');
+    req.onsuccess = () => { const v = req.result.version; req.result.close(); resolve(v); };
+    req.onerror = () => resolve(0);
+  });
+}
+
 export async function initializeDB(): Promise<void> {
-  // Migration ausführen
-  await migrateTemplateStyles();
-  
-  // Keine Default-Vorlagen mehr: werden im SetupWizard vom User gewählt
+  await db.open();
 }
 
 export default db;

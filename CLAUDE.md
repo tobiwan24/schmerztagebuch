@@ -18,8 +18,8 @@ git status              # Any open changes?
 ```
 
 Then read:
-1. `.claude/context/PRD.md` — project status overview
-2. The relevant feature file in `.claude/context/features/` for the current task
+1. `_planning/PRD.md` — project status overview
+2. The relevant feature file in `_planning/features/` for the current task
 
 ## Rules
 
@@ -27,6 +27,58 @@ Full behavior conventions are in `.claude/rules/conventions.md`. Key points:
 - Use `EnterPlanMode` when >2 files are affected, for new features, or architectural decisions
 - Keep answers short — code speaks for itself
 - Never invent functions/variables; use `Grep`/`Glob` to verify
+
+## _planning/ Conventions
+
+### File Structure
+
+| Path | Type | Format |
+|---|---|---|
+| `_planning/PRD.md` | Project overview | Prose + status tables |
+| `_planning/roadmap.md` | Roadmap overview | Prose + link table to RDM files |
+| `_planning/roadmap/RDM-NNN.md` | Individual roadmap item | Frontmatter + description |
+| `_planning/issues.md` | Issues index | Frontmatter + link table |
+| `_planning/issues/ISS-NNN.md` | Individual issue | Frontmatter + description |
+| `_planning/features/FEAT-NNN.md` | Feature detail | Frontmatter + prose |
+| `_planning/Notizen_obsidian/inbox.md` | Raw unstructured ideas | Plain text, processed on demand |
+
+### ID Prefixes & Required Frontmatter Fields
+
+| Prefix | Type | Required fields |
+|---|---|---|
+| `ISS-NNN` | Issue | `id`, `title`, `type: issue`, `area`, `priority`, `status`, `created` |
+| `FEAT-NNN` | Feature | `id`, `title`, `type: feature`, `area`, `status`, `priority`, `created`, `updated` |
+| `RDM-NNN` | Roadmap entry | `id`, `title`, `type: roadmap`, `area`, `status`, `priority`, `branch`, `refs`, `created`, `updated` (individual file in `_planning/roadmap/`) |
+
+Valid `area` values: `dashboard`, `ui`, `pwa`, `encryption`, `export`, `templates`
+Valid `status` values (issue): `open`, `in-progress`, `resolved`
+Valid `status` values (feature): `planned`, `in-progress`, `done`
+Valid `priority` values: `low`, `medium`, `high`
+
+### Behavior Rules
+
+- **Issues:** When an issue is resolved, delete the `ISS-NNN.md` file and remove its row from `issues.md` index.
+- **Features:** When starting work on a feature, update `status` and `updated` in its frontmatter.
+- **Roadmap RDM entries:** Individual files in `_planning/roadmap/RDM-NNN.md`. When done: set `status: done`, move to `_planning/archive/roadmap/`, update table in `roadmap.md`.
+- **New roadmap items:** Create `RDM-NNN.md` in `_planning/roadmap/` and add a row to `roadmap.md`.
+- **New issues:** Create `ISS-NNN.md` in `_planning/issues/` and add a row to `issues.md` index. Use next sequential ID.
+- **Inbox processing:** When asked to process `_planning/Notizen_obsidian/inbox.md`, create Issues/Features/RDM entries from the content, then archive to `_planning/archive/inbox-YYYY-MM-DD.md` and clear inbox.
+- **Cross-references:** Use IDs (`ISS-001`, `FEAT-003`) — never file paths — when referencing across documents.
+
+### Local Git Versioning
+
+`_planning/` is a fully independent local git repository — no remote, never pushed to GitHub.
+It contains planning documents only and is completely separate from the main repo.
+
+**Two-task rule after plan mode:** When a plan has been agreed on, always perform two separate tasks:
+1. Write plan changes to `_planning/` and commit there:
+   ```bash
+   cd _planning && git add -A && git commit -m "docs: ..."
+   ```
+2. Implement the plan in the main repo, commit and push:
+   ```bash
+   git add <files> && git commit -m "..." && git push
+   ```
 
 ---
 

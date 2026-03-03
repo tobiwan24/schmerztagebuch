@@ -27,3 +27,8 @@ dist-ssr
 
 CLAUDE.md
 .claude/
+
+# Obsidian & Planning (versioniert in _planning/ git)
+.obsidian/
+.trash/
+_planning/

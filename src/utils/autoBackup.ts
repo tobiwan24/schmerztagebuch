@@ -1,7 +1,10 @@
 // src/utils/autoBackup.ts
 // Automatisches Backup in LocalStorage via nativer CompressionStream-API (kein pako!)
 
+import Dexie from 'dexie';
 import db from '../db';
+import type { Entry } from '../types/database';
+import type { TextAreaBlockValue } from '../types/blocks';
 
 const AUTO_BACKUP_KEY = 'auto_backup';
 const BACKUP_TIMESTAMP_KEY = 'backup_timestamp';
@@ -38,23 +41,47 @@ async function decompress(base64: string): Promise<string> {
 
 // ── Daten sammeln ─────────────────────────────────────────────────────────────
 
+function stripImagesFromEntry(entry: Entry): Entry {
+  if (entry.encrypted) return entry; // verschlüsselt → nicht anfassbar
+  try {
+    const blocks: { type: string; value?: string }[] = JSON.parse(entry.data);
+    const stripped = blocks.map(b => {
+      if (b.type === 'textarea' && b.value) {
+        const val = JSON.parse(b.value) as TextAreaBlockValue;
+        if (val.attachedFiles?.some(f => f.type === 'image')) {
+          return {
+            ...b,
+            value: JSON.stringify({
+              ...val,
+              attachedFiles: val.attachedFiles.filter(f => f.type !== 'image'),
+            }),
+          };
+        }
+      }
+      return b;
+    });
+    return { ...entry, data: JSON.stringify(stripped) };
+  } catch {
+    return entry;
+  }
+}
+
 async function collectData() {
-  const [templates, entries, settings] = await Promise.all([
-    db.templates.toArray(),
-    db.entries.toArray(),
-    db.settings.toArray()
-  ]);
-  return {
-    version: db.verno,
-    exportedAt: new Date().toISOString(),
-    templates,
-    entries,
-    // ⚠️ Limitation Phase 11.4: entries.data enthält ggf. noch Bild-Base64,
-    // da der separate images-Store erst in Phase 11.5 eingeführt wird.
-    // Große Bilder können das 5 MB LocalStorage-Limit überschreiten →
-    // Fallback: Trimmen auf letzte 100 Entries.
-    settings,
-  };
+  return db.transaction('r', [db.templates, db.entries, db.settings], async () => {
+    const [templates, rawEntries, settings] = await Promise.all([
+      db.templates.toArray(),
+      db.entries.toArray(),
+      db.settings.toArray()
+    ]);
+    const entries = rawEntries.map(stripImagesFromEntry);
+    return {
+      version: db.verno,
+      exportedAt: new Date().toISOString(),
+      templates,
+      entries,
+      settings,
+    };
+  });
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -139,16 +166,27 @@ export function clearAutoBackup(): void {
 // Vermeidet zirkuläre Imports zwischen db.ts und autoBackup.ts
 
 export function initAutoBackupHooks(): void {
-  db.entries.hook('creating', () => {
-    createAutoBackup().catch(err => console.warn('Auto-Backup (creating) fehlgeschlagen:', err));
-  });
-  db.entries.hook('updating', () => {
-    createAutoBackup().catch(err => console.warn('Auto-Backup (updating) fehlgeschlagen:', err));
-  });
-  db.templates.hook('creating', () => {
-    createAutoBackup().catch(err => console.warn('Auto-Backup Template (creating) fehlgeschlagen:', err));
-  });
-  db.templates.hook('updating', () => {
-    createAutoBackup().catch(err => console.warn('Auto-Backup Template (updating) fehlgeschlagen:', err));
-  });
+  // Dexie hooks fire within the active IDB transaction.
+  // setTimeout(0) schedules a macrotask – ensures the transaction is fully
+  // committed before collectData() opens a new read transaction.
+  // Debounce (500 ms) prevents redundant backups during rapid bulk operations
+  // (e.g. SetupWizard creating multiple templates in quick succession).
+  let backupTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const scheduleBackup = () => {
+    if (backupTimer) clearTimeout(backupTimer);
+    backupTimer = setTimeout(() => {
+      backupTimer = null;
+      // Dexie.ignoreTransaction escapes the hook's transaction zone so
+      // collectData() can open a fresh read transaction on all three stores.
+      Dexie.ignoreTransaction(() => {
+        createAutoBackup().catch(err => console.warn('Auto-Backup fehlgeschlagen:', err));
+      });
+    }, 500);
+  };
+
+  db.entries.hook('creating', scheduleBackup);
+  db.entries.hook('updating', scheduleBackup);
+  db.templates.hook('creating', scheduleBackup);
+  db.templates.hook('updating', scheduleBackup);
 }
