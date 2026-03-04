@@ -4,7 +4,11 @@ import type { Entry, Template } from '../types/database';
 import Header from '../components/Header';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, CircleSlash2, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronLeft, ChevronRight, TrendingUpDown, ChartArea } from 'lucide-react';
+import { TrendingUp, CircleSlash2, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronLeft, ChevronRight, TrendingUpDown, ChartArea, Download } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { downloadChartPNG, downloadChartPDF, saveChartAsEntry, buildExportFilename } from '../utils/dashboardExport';
 import { ApexLineChart } from '../components/charts/ApexLineChart';
 import PageTutorial from '../components/tutorial/PageTutorial';
 import {
@@ -183,6 +187,11 @@ export default function DashboardView() {
   const [visibleTemplates, setVisibleTemplates] = useState<Set<number>>(new Set());
   const [dailyFunctionData, setDailyFunctionData] = useState<DailyFunctionData[]>([]);
   const [visibleFunctionSeries, setVisibleFunctionSeries] = useState<Set<number>>(new Set());
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportLabel, setExportLabel] = useState('');
+  const [exportSelectedTemplateId, setExportSelectedTemplateId] = useState<number>(0);
+  const [exportMessage, setExportMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -430,6 +439,54 @@ export default function DashboardView() {
     setTimeRangeOffset(0);
   };
 
+  const openExportDialog = () => {
+    setExportLabel(`Schmerzdiagramm – ${formatCurrentTimeRange(false)}`);
+    setExportMessage(null);
+    setShowExportDialog(true);
+  };
+
+  const handleExportPNG = async () => {
+    setExportLoading(true);
+    setExportMessage(null);
+    try {
+      await downloadChartPNG(buildExportFilename('schmerzdiagramm', formatCurrentTimeRange(true), 'png'));
+      setExportMessage({ type: 'success', text: 'PNG gespeichert.' });
+    } catch {
+      setExportMessage({ type: 'error', text: 'PNG-Export fehlgeschlagen.' });
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    setExportLoading(true);
+    setExportMessage(null);
+    try {
+      await downloadChartPDF(
+        exportLabel,
+        buildExportFilename('schmerzdiagramm', formatCurrentTimeRange(true), 'pdf')
+      );
+      setExportMessage({ type: 'success', text: 'PDF gespeichert.' });
+    } catch {
+      setExportMessage({ type: 'error', text: 'PDF-Export fehlgeschlagen.' });
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleExportToDb = async () => {
+    setExportLoading(true);
+    setExportMessage(null);
+    try {
+      await saveChartAsEntry(exportSelectedTemplateId, exportLabel);
+      setExportMessage({ type: 'success', text: 'Als Eintrag gespeichert.' });
+    } catch {
+      setExportMessage({ type: 'error', text: 'Speichern fehlgeschlagen.' });
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   // Formatiere aktuellen Zeitraum für Anzeige
   const formatCurrentTimeRange = (short: boolean = false): string => {
     const now = new Date();
@@ -668,6 +725,14 @@ export default function DashboardView() {
                 </div>
               )}
 
+              {/* Export-Button */}
+              <div className="flex justify-center mt-2">
+                <Button variant="outline" size="sm" onClick={openExportDialog} className="gap-1.5">
+                  <Download size={14} />
+                  Exportieren
+                </Button>
+              </div>
+
               {/* Template + Funktionswert Toggles */}
               <div className="flex gap-2 flex-wrap justify-center mt-3">
                 {dashboardTemplates.map((template, index) => {
@@ -755,6 +820,82 @@ export default function DashboardView() {
           )}
         </div>
       </div>
+      {/* Export Dialog */}
+      <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chart exportieren</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="export-label">Titel / Bezeichnung</Label>
+              <Input
+                id="export-label"
+                value={exportLabel}
+                onChange={e => setExportLabel(e.target.value)}
+                placeholder="z. B. Schmerzdiagramm – März 2026"
+              />
+            </div>
+
+            {/* PNG + PDF */}
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium">Herunterladen</p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1.5"
+                  onClick={handleExportPNG}
+                  disabled={exportLoading}
+                >
+                  <Download size={13} />
+                  PNG
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1.5"
+                  onClick={handleExportPDF}
+                  disabled={exportLoading}
+                >
+                  <Download size={13} />
+                  PDF
+                </Button>
+              </div>
+            </div>
+
+            {/* Als Eintrag speichern */}
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium">In Datenbank speichern</p>
+              <select
+                value={exportSelectedTemplateId}
+                onChange={e => setExportSelectedTemplateId(Number(e.target.value))}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value={0}>Allgemeiner Eintrag</option>
+                {templates.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+              <Button
+                className="w-full gap-1.5"
+                size="sm"
+                onClick={handleExportToDb}
+                disabled={exportLoading}
+              >
+                Als Eintrag speichern
+              </Button>
+            </div>
+
+            {exportMessage && (
+              <p className={`text-sm ${exportMessage.type === 'error' ? 'text-destructive' : 'text-green-600'}`}>
+                {exportMessage.text}
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Tutorial - DashboardView */}
       <PageTutorial
         page="dashboard"
