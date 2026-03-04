@@ -5,8 +5,8 @@ import { useNavigation } from '../contexts/NavigationContext';
 import { exportToPDF } from '../utils/pdfExport';
 import type { ImageSize } from '../utils/pdfExport';
 import { getIconComponent } from '../utils/iconUtils';
-import { encryptData } from '../utils/crypto';
-import { getSessionPassword } from '../utils/auth';
+import { encryptWithKey } from '../utils/crypto';
+import { getSessionKey } from '../utils/auth';
 import type { Entry, Template } from '../types/database';
 import type { Block, TextAreaBlockValue } from '../types/blocks';
 import { Button } from "@/components/ui/button";
@@ -121,49 +121,17 @@ function extractEntryMeta(blocks: Block[]) {
   return { previewText, avgPain, hasEvent, hasDoctor, hasBodyMap, hasPhoto, hasPdf };
 }
 
-// ─── EntryCard (lazy decrypt via IntersectionObserver) ───────────────────────
+// ─── EntryCard (meta via prop — eager decrypt in HistoryView) ────────────────
 
 interface EntryCardProps {
   entry: Entry;
   template: Template | undefined;
   onClick: () => void;
-  onMetaReady?: (id: number, meta: ReturnType<typeof extractEntryMeta>) => void;
+  meta?: ReturnType<typeof extractEntryMeta>;
+  decryptError?: string;
 }
 
-function EntryCard({ entry, template, onClick, onMetaReady }: EntryCardProps) {
-  const { decrypt } = useDecrypt();
-  const [meta, setMeta] = useState<ReturnType<typeof extractEntryMeta> | null>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const decryptedRef = useRef(false);
-
-  useEffect(() => {
-    const el = cardRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      async (entries) => {
-        if (entries[0].isIntersecting && !decryptedRef.current) {
-          decryptedRef.current = true;
-          observer.disconnect();
-
-          try {
-            const blocks = await decrypt(entry);
-            if (blocks === null) return;
-            const m = extractEntryMeta(blocks);
-            setMeta(m);
-            if (entry.id) onMetaReady?.(entry.id, m);
-          } catch {
-            // Entschlüsselung fehlgeschlagen – kein Preview
-          }
-        }
-      },
-      { rootMargin: '100px' }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [entry, decrypt, onMetaReady]);
-
+function EntryCard({ entry, template, onClick, meta, decryptError }: EntryCardProps) {
   const date = new Date(entry.timestamp);
   const dateStr = date.toLocaleDateString('de-DE', {
     weekday: 'short',
@@ -178,7 +146,6 @@ function EntryCard({ entry, template, onClick, onMetaReady }: EntryCardProps) {
 
   return (
     <div
-      ref={cardRef}
       className="history-entry-card"
       onClick={onClick}
       role="button"
@@ -195,11 +162,13 @@ function EntryCard({ entry, template, onClick, onMetaReady }: EntryCardProps) {
 
       {/* Content */}
       <div className="history-entry-content">
-        {/* Zeile 1: Vorschautext */}
+        {/* Zeile 1: Vorschautext / Fehler */}
         <p className="history-entry-preview">
-          {meta?.previewText
-            ? meta.previewText.slice(0, 80) + (meta.previewText.length > 80 ? '…' : '')
-            : (template?.name ?? 'Eintrag')}
+          {decryptError
+            ? <span className="text-destructive text-xs">{decryptError}</span>
+            : meta?.previewText
+              ? meta.previewText.slice(0, 80) + (meta.previewText.length > 80 ? '…' : '')
+              : (template?.name ?? 'Eintrag')}
         </p>
 
         {/* Zeile 2: Datum + Inline-Icons */}
@@ -398,42 +367,45 @@ export default function HistoryView() {
   const [editedBlocks, setEditedBlocks] = useState<Block[] | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
-  // Metadaten-Cache für Content-Filter (befüllt via EntryCard.onMetaReady + Eager-Load)
-  const [metaCache, setMetaCache] = useState<Map<number, ReturnType<typeof extractEntryMeta>>>(new Map());
+  // Block-Cache: alle entschlüsselten Blöcke, befüllt per Eager Decrypt
+  const [blockCache, setBlockCache] = useState<Map<number, Block[]>>(new Map());
+  const [decryptErrors, setDecryptErrors] = useState<Map<number, string>>(new Map());
 
-  const handleMetaReady = useCallback((id: number, meta: ReturnType<typeof extractEntryMeta>) => {
-    setMetaCache(prev => {
-      if (prev.has(id)) return prev;
-      const next = new Map(prev);
-      next.set(id, meta);
-      return next;
-    });
-  }, []);
-
-  // Eager-Load: wenn Content-Filter aktiv, alle Einträge vorab dekryptieren
+  // Eager Decrypt: alle Einträge sofort entschlüsseln wenn entries sich ändert
   useEffect(() => {
-    if (contentFilters.length === 0) return;
     let cancelled = false;
-    async function eagerLoad() {
+    async function decryptAll() {
+      const newCache = new Map<number, Block[]>();
+      const newErrors = new Map<number, string>();
       for (const entry of entries) {
-        if (cancelled || !entry.id || metaCache.has(entry.id)) continue;
+        if (cancelled || !entry.id) continue;
         try {
           const blocks = await decrypt(entry);
-          if (cancelled || blocks === null || !entry.id) continue;
-          const m = extractEntryMeta(blocks);
-          setMetaCache(prev => {
-            const next = new Map(prev);
-            next.set(entry.id!, m);
-            return next;
-          });
-        } catch { /* ignorieren */ }
+          if (cancelled) break;
+          if (blocks === null) {
+            if (entry.encrypted) newErrors.set(entry.id, 'Verschlüsselt – bitte neu anmelden');
+          } else {
+            newCache.set(entry.id, blocks);
+          }
+        } catch {
+          if (entry.id) newErrors.set(entry.id, 'Entschlüsselung fehlgeschlagen');
+        }
+      }
+      if (!cancelled) {
+        setBlockCache(newCache);
+        setDecryptErrors(newErrors);
       }
     }
-    eagerLoad();
+    decryptAll();
     return () => { cancelled = true; };
-  // metaCache bewusst ausgelassen — kein Loop
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contentFilters, entries, decrypt]);
+  }, [entries, decrypt]);
+
+  // Metadaten-Cache: aus blockCache abgeleitet (kein eigener State nötig)
+  const metaCache = useMemo(() => {
+    const map = new Map<number, ReturnType<typeof extractEntryMeta>>();
+    blockCache.forEach((blocks, id) => map.set(id, extractEntryMeta(blocks)));
+    return map;
+  }, [blockCache]);
 
   // Content-Filter anwenden (client-seitig, da Metadaten entschlüsselte Daten brauchen)
   const visibleEntries = useMemo(() => {
@@ -567,20 +539,22 @@ export default function HistoryView() {
       const dataString = JSON.stringify(editedBlocks);
       let encrypted = false;
       let data = dataString;
+      let encryptionVersion: number | undefined;
 
       if (selectedEntry.encrypted) {
-        const password = getSessionPassword();
-        if (!password) {
+        const key = await getSessionKey();
+        if (!key) {
           alert('Session abgelaufen – bitte neu anmelden');
           setIsSavingEdit(false);
           return;
         }
-        data = await encryptData(dataString, password);
+        data = await encryptWithKey(dataString, key);
         encrypted = true;
+        encryptionVersion = 2;
       }
 
       const editedAt = new Date().toISOString();
-      await updateEntry(selectedEntry.id, data, encrypted, editedAt);
+      await updateEntry(selectedEntry.id, data, encrypted, editedAt, encryptionVersion);
 
       // Update local state
       const updatedEntry: Entry = { ...selectedEntry, data, encrypted, editedAt };
@@ -654,13 +628,18 @@ export default function HistoryView() {
       const decryptedData = new Map<number, Block[]>();
       for (const entry of visibleEntries) {
         if (!entry.id) continue;
-        const blocks = await decrypt(entry);
-        if (blocks === null) {
-          alert('Session abgelaufen – bitte neu anmelden');
-          setIsExporting(false);
-          return;
+        // Gecachte Blöcke verwenden — kein Re-decrypt nötig (ISS-026 Fix)
+        if (blockCache.has(entry.id)) {
+          decryptedData.set(entry.id, blockCache.get(entry.id)!);
+        } else {
+          const blocks = await decrypt(entry);
+          if (blocks === null) {
+            alert('Session abgelaufen – bitte neu anmelden');
+            setIsExporting(false);
+            return;
+          }
+          decryptedData.set(entry.id, blocks);
         }
-        decryptedData.set(entry.id, blocks);
       }
       await exportToPDF({
         entries,
@@ -912,7 +891,8 @@ export default function HistoryView() {
                   entry={entry}
                   template={templates.find(t => t.id === entry.templateId)}
                   onClick={() => setSelectedEntry(entry)}
-                  onMetaReady={handleMetaReady}
+                  meta={entry.id ? metaCache.get(entry.id) : undefined}
+                  decryptError={entry.id ? decryptErrors.get(entry.id) : undefined}
                 />
               ))}
             </div>

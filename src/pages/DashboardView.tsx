@@ -30,8 +30,8 @@ import {
 import styles from '../styles/DashboardView.module.css';
 import { useNavigation } from '../contexts/NavigationContext';
 import { getIconComponent } from '../utils/iconUtils';
-import { decryptData } from '../utils/crypto';
-import { getSessionPassword } from '../utils/auth';
+import { decryptData, decryptWithKey } from '../utils/crypto';
+import { getSessionPassword, getSessionKey } from '../utils/auth';
 import { getISOWeek } from 'date-fns';
 
 // Vordefinierte Farbpalette für Charts (optimiert für Light & Dark Mode)
@@ -155,8 +155,16 @@ function calculateTrendFrom(
 export default function DashboardView() {
   const { goHome: onBack, navigate: onNavigate } = useNavigation();
 
-  // Decrypt function for encrypted entries
+  // Decrypt function for encrypted entries (v2 zuerst, Fallback auf v1)
   const decryptFn = useCallback(async (data: string): Promise<string> => {
+    const key = await getSessionKey();
+    if (key) {
+      try {
+        return await decryptWithKey(data, key);
+      } catch {
+        // v1-Format — weiter mit Password-Decrypt
+      }
+    }
     const password = getSessionPassword();
     if (!password) throw new Error('Keine aktive Session');
     return decryptData(data, password);
