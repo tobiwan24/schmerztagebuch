@@ -144,6 +144,35 @@ db.version(19).stores({
   }
 });
 
+// Version 20: Orphaned Encrypted Entries reparieren (Folge von unvollständiger v18-Migration)
+// Betrifft Geräte, die Einträge unter encryptionMode='history' gespeichert hatten —
+// die v18-Migration hat nur das Setting auf 'none' gesetzt, nicht die Einträge selbst.
+db.version(20).stores({
+  templates: '++id, name, order',
+  entries: '++id, templateId, timestamp, encrypted, *tags',
+  settings: 'key'
+}).upgrade(async tx => {
+  const modeSetting = await tx.table('settings').get('encryptionMode');
+  if (modeSetting?.value !== 'none') return;
+
+  const candidates = await tx.table('entries')
+    .filter((e: Entry) => e.encrypted === true)
+    .toArray();
+
+  let fixed = 0;
+  for (const entry of candidates) {
+    try {
+      JSON.parse(entry.data);
+      // Erfolgreich → war plain JSON, nur falsch geflaggt → encrypted: false setzen
+      await tx.table('entries').update(entry.id, { encrypted: false });
+      fixed++;
+    } catch {
+      // Wirklich AES-GCM verschlüsselt → ohne Passwort nicht reparierbar
+    }
+  }
+  if (fixed > 0) console.log(`✅ DB v20: ${fixed} orphaned encrypted ${fixed === 1 ? 'entry' : 'entries'} repaired`);
+});
+
 // ========== MIGRATIONS ==========
 
 // Standard-Icons basierend auf Template-Namen - Lucide Icon Names (CamelCase)
