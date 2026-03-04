@@ -3,7 +3,7 @@ import type { Block } from './types/blocks';
 import type { Template, Entry, Settings } from './types/database';
 import { generateUUID } from './utils/uuid';
 import { AVAILABLE_ICON_NAMES } from './utils/iconUtils';
-import { decryptData, encryptData } from './utils/crypto';
+import { decryptData, encryptData, encryptWithKey, decryptWithKey, createPasswordTestWithKey } from './utils/crypto';
 
 const db = new Dexie('PainDiaryDB') as Dexie & {
   templates: EntityTable<Template, 'id'>;
@@ -142,6 +142,35 @@ db.version(19).stores({
       await tx.table('templates').put({ ...template, ...updates });
     }
   }
+});
+
+// Version 20: Orphaned Encrypted Entries reparieren (Folge von unvollständiger v18-Migration)
+// Betrifft Geräte, die Einträge unter encryptionMode='history' gespeichert hatten —
+// die v18-Migration hat nur das Setting auf 'none' gesetzt, nicht die Einträge selbst.
+db.version(20).stores({
+  templates: '++id, name, order',
+  entries: '++id, templateId, timestamp, encrypted, *tags',
+  settings: 'key'
+}).upgrade(async tx => {
+  const modeSetting = await tx.table('settings').get('encryptionMode');
+  if (modeSetting?.value !== 'none') return;
+
+  const candidates = await tx.table('entries')
+    .filter((e: Entry) => e.encrypted === true)
+    .toArray();
+
+  let fixed = 0;
+  for (const entry of candidates) {
+    try {
+      JSON.parse(entry.data);
+      // Erfolgreich → war plain JSON, nur falsch geflaggt → encrypted: false setzen
+      await tx.table('entries').update(entry.id, { encrypted: false });
+      fixed++;
+    } catch {
+      // Wirklich AES-GCM verschlüsselt → ohne Passwort nicht reparierbar
+    }
+  }
+  if (fixed > 0) console.log(`✅ DB v20: ${fixed} orphaned encrypted ${fixed === 1 ? 'entry' : 'entries'} repaired`);
 });
 
 // ========== MIGRATIONS ==========
@@ -349,9 +378,12 @@ export async function updateEntry(
   id: number,
   data: string,
   encrypted: boolean,
-  editedAt: string
+  editedAt: string,
+  encryptionVersion?: number
 ): Promise<void> {
-  await db.entries.update(id, { data, encrypted, editedAt });
+  const changes: Partial<Entry> = { data, encrypted, editedAt };
+  if (encryptionVersion !== undefined) changes.encryptionVersion = encryptionVersion;
+  await db.entries.update(id, changes);
 }
 
 
@@ -391,6 +423,7 @@ export async function getAppSettings(): Promise<{
  */
 export async function decryptAllEntries(
   password: string,
+  key?: CryptoKey,
   onProgress?: (done: number, total: number) => void
 ): Promise<void> {
   const entries = await db.entries.toArray();
@@ -399,7 +432,9 @@ export async function decryptAllEntries(
 
   for (let i = 0; i < encrypted.length; i++) {
     const entry = encrypted[i];
-    const decrypted = await decryptData(entry.data, password);
+    const decrypted = (entry.encryptionVersion === 2 && key)
+      ? await decryptWithKey(entry.data, key)
+      : await decryptData(entry.data, password);
     await db.entries.update(entry.id!, { data: decrypted, encrypted: false });
     onProgress?.(i + 1, total);
   }
@@ -408,9 +443,11 @@ export async function decryptAllEntries(
 /**
  * EC2: Alle unverschlüsselten Einträge verschlüsseln (none → full).
  * Wird aufgerufen nachdem Passwort gesetzt und encryptionMode auf 'full' gesetzt wurde.
+ * key: wenn vorhanden, wird v2-Format (encryptWithKey) verwendet.
  */
 export async function encryptAllEntries(
   password: string,
+  key?: CryptoKey,
   onProgress?: (done: number, total: number) => void
 ): Promise<void> {
   const entries = await db.entries.toArray();
@@ -419,8 +456,14 @@ export async function encryptAllEntries(
 
   for (let i = 0; i < unencrypted.length; i++) {
     const entry = unencrypted[i];
-    const encryptedData = await encryptData(entry.data, password);
-    await db.entries.update(entry.id!, { data: encryptedData, encrypted: true });
+    const changes: Partial<Entry> = { encrypted: true };
+    if (key) {
+      changes.data = await encryptWithKey(entry.data, key);
+      changes.encryptionVersion = 2;
+    } else {
+      changes.data = await encryptData(entry.data, password);
+    }
+    await db.entries.update(entry.id!, changes);
     onProgress?.(i + 1, total);
   }
 }
@@ -428,10 +471,13 @@ export async function encryptAllEntries(
 /**
  * EC3: Alle verschlüsselten Einträge mit neuem Passwort re-encrypten.
  * Wird aufgerufen beim Passwort-Wechsel.
+ * oldKey/newKey: wenn vorhanden, werden v1→v2 und v2→v2 Pfade genutzt.
  */
 export async function reEncryptAllEntries(
   oldPassword: string,
   newPassword: string,
+  oldKey?: CryptoKey,
+  newKey?: CryptoKey,
   onProgress?: (done: number, total: number) => void
 ): Promise<void> {
   const entries = await db.entries.toArray();
@@ -440,11 +486,43 @@ export async function reEncryptAllEntries(
 
   for (let i = 0; i < encrypted.length; i++) {
     const entry = encrypted[i];
-    const decrypted = await decryptData(entry.data, oldPassword);
-    const reEncrypted = await encryptData(decrypted, newPassword);
-    await db.entries.update(entry.id!, { data: reEncrypted });
+    const decrypted = (entry.encryptionVersion === 2 && oldKey)
+      ? await decryptWithKey(entry.data, oldKey)
+      : await decryptData(entry.data, oldPassword);
+
+    const changes: Partial<Entry> = {};
+    if (newKey) {
+      changes.data = await encryptWithKey(decrypted, newKey);
+      changes.encryptionVersion = 2;
+    } else {
+      changes.data = await encryptData(decrypted, newPassword);
+    }
+    await db.entries.update(entry.id!, changes);
     onProgress?.(i + 1, total);
   }
+}
+
+/**
+ * EC4: Alle v1-Einträge auf v2-Format migrieren (Background-Migration nach Login).
+ * Läuft asynchron, blockiert den User nicht.
+ */
+export async function runCryptoMigration(password: string, key: CryptoKey): Promise<void> {
+  const entries = await db.entries.toArray();
+  const v1Entries = entries.filter(e => e.encrypted && e.encryptionVersion !== 2);
+
+  for (const entry of v1Entries) {
+    try {
+      const decrypted = await decryptData(entry.data, password);
+      const reEncrypted = await encryptWithKey(decrypted, key);
+      await db.entries.update(entry.id!, { data: reEncrypted, encryptionVersion: 2 });
+    } catch (error) {
+      console.error('[runCryptoMigration] Fehler bei Entry', entry.id, error);
+    }
+  }
+
+  const testV2 = await createPasswordTestWithKey(key);
+  await setSetting('passwordTestV2', testV2);
+  await setSetting('cryptoVersion', 'v2');
 }
 
 

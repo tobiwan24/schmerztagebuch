@@ -5,8 +5,8 @@ import { useNavigation } from '../contexts/NavigationContext';
 import { exportToPDF } from '../utils/pdfExport';
 import type { ImageSize } from '../utils/pdfExport';
 import { getIconComponent } from '../utils/iconUtils';
-import { encryptData } from '../utils/crypto';
-import { getSessionPassword } from '../utils/auth';
+import { encryptWithKey } from '../utils/crypto';
+import { getSessionKey } from '../utils/auth';
 import type { Entry, Template } from '../types/database';
 import type { Block, TextAreaBlockValue } from '../types/blocks';
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,14 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
+  Pagination, PaginationContent, PaginationEllipsis,
+  PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   ArrowLeft, Trash2, ChevronRight, X, Download,
   Filter, ArrowUpDown, Check, ChevronDown,
   Calendar, Stethoscope, Map as MapIcon, ImageIcon, FileText,
-  CalendarDays, Tag, Pencil, Save
+  CalendarDays, Tag, Pencil, Save, AlertTriangle, CheckCircle2
 } from 'lucide-react';
 import BlockRenderer from '../components/BlockRenderer';
 import PageTutorial from '../components/tutorial/PageTutorial';
@@ -38,7 +42,24 @@ type ContentFilter =
   | 'photo'
   | 'pdf';
 
+type ExportPhase =
+  | 'settings'
+  | 'decrypting'
+  | 'generating'
+  | 'partial-error'
+  | 'full-error'
+  | 'success';
+
 // ─── Hilfsfunktionen ─────────────────────────────────────────────────────────
+
+const ITEMS_PER_PAGE = 20;
+
+function generatePageNumbers(current: number, total: number): (number | '...')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (current <= 4) return [1, 2, 3, 4, 5, '...', total];
+  if (current >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+  return [1, '...', current - 1, current, current + 1, '...', total];
+}
 
 function getPainColor(value: number): string {
   if (value <= 3) return '#22c55e';
@@ -121,49 +142,17 @@ function extractEntryMeta(blocks: Block[]) {
   return { previewText, avgPain, hasEvent, hasDoctor, hasBodyMap, hasPhoto, hasPdf };
 }
 
-// ─── EntryCard (lazy decrypt via IntersectionObserver) ───────────────────────
+// ─── EntryCard (meta via prop — eager decrypt in HistoryView) ────────────────
 
 interface EntryCardProps {
   entry: Entry;
   template: Template | undefined;
   onClick: () => void;
-  onMetaReady?: (id: number, meta: ReturnType<typeof extractEntryMeta>) => void;
+  meta?: ReturnType<typeof extractEntryMeta>;
+  decryptError?: string;
 }
 
-function EntryCard({ entry, template, onClick, onMetaReady }: EntryCardProps) {
-  const { decrypt } = useDecrypt();
-  const [meta, setMeta] = useState<ReturnType<typeof extractEntryMeta> | null>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const decryptedRef = useRef(false);
-
-  useEffect(() => {
-    const el = cardRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      async (entries) => {
-        if (entries[0].isIntersecting && !decryptedRef.current) {
-          decryptedRef.current = true;
-          observer.disconnect();
-
-          try {
-            const blocks = await decrypt(entry);
-            if (blocks === null) return;
-            const m = extractEntryMeta(blocks);
-            setMeta(m);
-            if (entry.id) onMetaReady?.(entry.id, m);
-          } catch {
-            // Entschlüsselung fehlgeschlagen – kein Preview
-          }
-        }
-      },
-      { rootMargin: '100px' }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [entry, decrypt, onMetaReady]);
-
+function EntryCard({ entry, template, onClick, meta, decryptError }: EntryCardProps) {
   const date = new Date(entry.timestamp);
   const dateStr = date.toLocaleDateString('de-DE', {
     weekday: 'short',
@@ -178,7 +167,6 @@ function EntryCard({ entry, template, onClick, onMetaReady }: EntryCardProps) {
 
   return (
     <div
-      ref={cardRef}
       className="history-entry-card"
       onClick={onClick}
       role="button"
@@ -195,11 +183,13 @@ function EntryCard({ entry, template, onClick, onMetaReady }: EntryCardProps) {
 
       {/* Content */}
       <div className="history-entry-content">
-        {/* Zeile 1: Vorschautext */}
+        {/* Zeile 1: Vorschautext / Fehler */}
         <p className="history-entry-preview">
-          {meta?.previewText
-            ? meta.previewText.slice(0, 80) + (meta.previewText.length > 80 ? '…' : '')
-            : (template?.name ?? 'Eintrag')}
+          {decryptError
+            ? <span className="text-destructive text-xs">{decryptError}</span>
+            : meta?.previewText
+              ? meta.previewText.slice(0, 80) + (meta.previewText.length > 80 ? '…' : '')
+              : (template?.name ?? 'Eintrag')}
         </p>
 
         {/* Zeile 2: Datum + Inline-Icons */}
@@ -281,10 +271,13 @@ interface PdfDialogProps {
   entryCount: number;
   onClose: () => void;
   onExport: (opts: { imageSize: ImageSize; password: string }) => void;
-  isExporting: boolean;
+  exportPhase: ExportPhase;
+  skippedCount: number;
+  onExportWithout: () => void;
+  onRetry: () => void;
 }
 
-function PdfDialog({ entryCount, onClose, onExport, isExporting }: PdfDialogProps) {
+function PdfDialog({ entryCount, onClose, onExport, exportPhase, skippedCount, onExportWithout, onRetry }: PdfDialogProps) {
   const [imageSize, setImageSize] = useState<ImageSize>('a5');
   const [pw1, setPw1] = useState('');
   const [pw2, setPw2] = useState('');
@@ -297,72 +290,148 @@ function PdfDialog({ entryCount, onClose, onExport, isExporting }: PdfDialogProp
     { value: 'none', label: 'Bilder weglassen' },
   ];
 
+  const isSpinning = exportPhase === 'decrypting' || exportPhase === 'generating';
+  const showCloseBtn = exportPhase === 'settings' || exportPhase === 'partial-error' || exportPhase === 'full-error';
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+      onClick={isSpinning ? undefined : onClose}
+    >
       <Card className="w-full max-w-sm" onClick={e => e.stopPropagation()}>
         <CardHeader className="border-b pb-3">
           <div className="flex justify-between items-center">
             <CardTitle className="text-base">PDF exportieren</CardTitle>
-            <Button variant="ghost" size="icon" onClick={onClose}><X size={18} /></Button>
-          </div>
-          <CardDescription>{entryCount} {entryCount === 1 ? 'Eintrag' : 'Einträge'} · Format A4</CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-4 pt-4">
-          {/* Bildgröße */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Bildgröße im Anhang</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {imageSizeOptions.map(opt => (
-                <button
-                  key={opt.value}
-                  className={`pdf-size-btn${imageSize === opt.value ? ' selected' : ''}`}
-                  onClick={() => setImageSize(opt.value)}
-                >
-                  {imageSize === opt.value && <Check size={12} />}
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Passwortschutz */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Passwortschutz (optional)</Label>
-            <Input
-              type="password"
-              placeholder="Passwort"
-              value={pw1}
-              onChange={e => setPw1(e.target.value)}
-              className="h-9"
-            />
-            <Input
-              type="password"
-              placeholder="Passwort wiederholen"
-              value={pw2}
-              onChange={e => setPw2(e.target.value)}
-              className={`h-9 ${pw1 && !pwMatch ? 'border-destructive' : ''}`}
-            />
-            {pw1 && !pwMatch && (
-              <p className="text-xs text-destructive">Passwörter stimmen nicht überein</p>
+            {showCloseBtn && (
+              <Button variant="ghost" size="icon" onClick={onClose}><X size={18} /></Button>
             )}
           </div>
+          {exportPhase === 'settings' && (
+            <CardDescription>{entryCount} {entryCount === 1 ? 'Eintrag' : 'Einträge'} · Format A4</CardDescription>
+          )}
+        </CardHeader>
 
-          <Button
-            className="w-full"
-            disabled={isExporting || (pw1.length > 0 && !pwMatch)}
-            onClick={() => onExport({ imageSize, password: pwMatch ? pw1 : '' })}
-          >
-            <Download size={16} className="mr-2" />
-            {isExporting ? 'Exportiere…' : 'PDF erstellen'}
-          </Button>
+        <CardContent className="pt-4">
+
+          {/* Settings-Form */}
+          {exportPhase === 'settings' && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Bildgröße im Anhang</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {imageSizeOptions.map(opt => (
+                    <button
+                      key={opt.value}
+                      className={`pdf-size-btn${imageSize === opt.value ? ' selected' : ''}`}
+                      onClick={() => setImageSize(opt.value)}
+                    >
+                      {imageSize === opt.value && <Check size={12} />}
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Passwortschutz (optional)</Label>
+                <Input
+                  type="password"
+                  placeholder="Passwort"
+                  value={pw1}
+                  onChange={e => setPw1(e.target.value)}
+                  className="h-9"
+                />
+                <Input
+                  type="password"
+                  placeholder="Passwort wiederholen"
+                  value={pw2}
+                  onChange={e => setPw2(e.target.value)}
+                  className={`h-9 ${pw1 && !pwMatch ? 'border-destructive' : ''}`}
+                />
+                {pw1 && !pwMatch && (
+                  <p className="text-xs text-destructive">Passwörter stimmen nicht überein</p>
+                )}
+              </div>
+              <Button
+                className="w-full"
+                disabled={pw1.length > 0 && !pwMatch}
+                onClick={() => onExport({ imageSize, password: pwMatch ? pw1 : '' })}
+              >
+                <Download size={16} className="mr-2" />
+                PDF erstellen
+              </Button>
+            </div>
+          )}
+
+          {/* Spinner */}
+          {isSpinning && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+              <p className="text-sm text-muted-foreground">
+                {exportPhase === 'decrypting' ? 'Lade Einträge…' : 'Erstelle PDF…'}
+              </p>
+            </div>
+          )}
+
+          {/* Partial Error */}
+          {exportPhase === 'partial-error' && (
+            <div className="space-y-3">
+              <div className="flex items-start gap-2 p-3 bg-destructive/10 rounded-md">
+                <AlertTriangle size={16} className="text-destructive mt-0.5 shrink-0" />
+                <p className="text-sm">
+                  {skippedCount} {skippedCount === 1 ? 'Eintrag konnte' : 'Einträge konnten'} nicht
+                  geladen werden.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Button variant="outline" className="w-full" onClick={onRetry}>
+                  Erneut starten
+                </Button>
+                <Button className="w-full" onClick={onExportWithout}>
+                  Ohne diese Einträge exportieren
+                </Button>
+                <Button variant="ghost" className="w-full" onClick={onClose}>
+                  Abbrechen
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Full Error */}
+          {exportPhase === 'full-error' && (
+            <div className="space-y-3">
+              <div className="flex items-start gap-2 p-3 bg-destructive/10 rounded-md">
+                <AlertTriangle size={16} className="text-destructive mt-0.5 shrink-0" />
+                <p className="text-sm">Keine Einträge lesbar – bitte neu anmelden.</p>
+              </div>
+              <Button variant="outline" className="w-full" onClick={onClose}>
+                Schließen
+              </Button>
+            </div>
+          )}
+
+          {/* Success */}
+          {exportPhase === 'success' && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <CheckCircle2 size={40} className="text-green-500" />
+              <p className="text-sm font-medium">PDF wurde erstellt</p>
+            </div>
+          )}
+
         </CardContent>
       </Card>
     </div>
   );
 }
+
+// Virtuelles Template für Dashboard-Export-Einträge (templateId === 0)
+const DASHBOARD_EXPORT_TEMPLATE: Template = {
+  name: 'Dashboardgrafik',
+  icon: 'BarChart2',
+  color: '#8B5CF6',
+  order: -1,
+  blocks: [],
+};
 
 // ─── Hauptkomponente ──────────────────────────────────────────────────────────
 
@@ -385,55 +454,57 @@ export default function HistoryView() {
   // Sortierung
   const [sortOption, setSortOption] = useState<SortOption>('newest');
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+
   // UI
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
   const [decryptedBlocks, setDecryptedBlocks] = useState<Block[] | null>(null);
   const [decryptError, setDecryptError] = useState<string | null>(null);
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [showPdfDialog, setShowPdfDialog] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
+  const [exportPhase, setExportPhase] = useState<ExportPhase>('settings');
+  const [exportSkipped, setExportSkipped] = useState(0);
+  const exportDecryptedRef = useRef<Map<number, Block[]>>(new Map());
+  const exportOptsRef = useRef<{ imageSize: ImageSize; password: string } | null>(null);
 
   // Edit mode
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedBlocks, setEditedBlocks] = useState<Block[] | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
-  // Metadaten-Cache für Content-Filter (befüllt via EntryCard.onMetaReady + Eager-Load)
+  // Metadaten-Cache: nur extrahierte Metadaten, keine Block[]-Arrays im Speicher
   const [metaCache, setMetaCache] = useState<Map<number, ReturnType<typeof extractEntryMeta>>>(new Map());
+  const [decryptErrors, setDecryptErrors] = useState<Map<number, string>>(new Map());
 
-  const handleMetaReady = useCallback((id: number, meta: ReturnType<typeof extractEntryMeta>) => {
-    setMetaCache(prev => {
-      if (prev.has(id)) return prev;
-      const next = new Map(prev);
-      next.set(id, meta);
-      return next;
-    });
-  }, []);
-
-  // Eager-Load: wenn Content-Filter aktiv, alle Einträge vorab dekryptieren
+  // Eager Decrypt: Metadaten extrahieren, Block[]-Arrays sofort verwerfen
   useEffect(() => {
-    if (contentFilters.length === 0) return;
     let cancelled = false;
-    async function eagerLoad() {
+    async function decryptAll() {
+      const newMeta = new Map<number, ReturnType<typeof extractEntryMeta>>();
+      const newErrors = new Map<number, string>();
       for (const entry of entries) {
-        if (cancelled || !entry.id || metaCache.has(entry.id)) continue;
+        if (cancelled || !entry.id) continue;
         try {
           const blocks = await decrypt(entry);
-          if (cancelled || blocks === null || !entry.id) continue;
-          const m = extractEntryMeta(blocks);
-          setMetaCache(prev => {
-            const next = new Map(prev);
-            next.set(entry.id!, m);
-            return next;
-          });
-        } catch { /* ignorieren */ }
+          if (cancelled) break;
+          if (blocks === null) {
+            if (entry.encrypted) newErrors.set(entry.id, 'Verschlüsselt – bitte neu anmelden');
+          } else {
+            newMeta.set(entry.id, extractEntryMeta(blocks));
+          }
+        } catch {
+          if (entry.id) newErrors.set(entry.id, 'Entschlüsselung fehlgeschlagen');
+        }
+      }
+      if (!cancelled) {
+        setMetaCache(newMeta);
+        setDecryptErrors(newErrors);
       }
     }
-    eagerLoad();
+    decryptAll();
     return () => { cancelled = true; };
-  // metaCache bewusst ausgelassen — kein Loop
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contentFilters, entries, decrypt]);
+  }, [entries, decrypt]);
 
   // Content-Filter anwenden (client-seitig, da Metadaten entschlüsselte Daten brauchen)
   const visibleEntries = useMemo(() => {
@@ -453,6 +524,16 @@ export default function HistoryView() {
       });
     });
   }, [entries, contentFilters, metaCache]);
+
+  // Pagination: Seite zurücksetzen bei Filter-/Sortierungs-Änderung
+  useEffect(() => { setCurrentPage(1); }, [visibleEntries]);
+
+  const totalPages = Math.ceil(visibleEntries.length / ITEMS_PER_PAGE);
+
+  const paginatedEntries = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return visibleEntries.slice(start, start + ITEMS_PER_PAGE);
+  }, [visibleEntries, currentPage]);
 
   // Alle verfügbaren Tags aus Einträgen
   const allTags = [...new Set(entries.flatMap(e => e.tags ?? []))];
@@ -567,20 +648,22 @@ export default function HistoryView() {
       const dataString = JSON.stringify(editedBlocks);
       let encrypted = false;
       let data = dataString;
+      let encryptionVersion: number | undefined;
 
       if (selectedEntry.encrypted) {
-        const password = getSessionPassword();
-        if (!password) {
+        const key = await getSessionKey();
+        if (!key) {
           alert('Session abgelaufen – bitte neu anmelden');
           setIsSavingEdit(false);
           return;
         }
-        data = await encryptData(dataString, password);
+        data = await encryptWithKey(dataString, key);
         encrypted = true;
+        encryptionVersion = 2;
       }
 
       const editedAt = new Date().toISOString();
-      await updateEntry(selectedEntry.id, data, encrypted, editedAt);
+      await updateEntry(selectedEntry.id, data, encrypted, editedAt, encryptionVersion);
 
       // Update local state
       const updatedEntry: Entry = { ...selectedEntry, data, encrypted, editedAt };
@@ -647,23 +730,11 @@ export default function HistoryView() {
     setSelectedTags([]);
   }
 
-  async function handleExportPDF({ imageSize, password }: { imageSize: ImageSize; password: string }) {
-    if (visibleEntries.length === 0) return;
-    setIsExporting(true);
+  async function runExport(decryptedData: Map<number, Block[]>, imageSize: ImageSize, password: string) {
+    setExportPhase('generating');
     try {
-      const decryptedData = new Map<number, Block[]>();
-      for (const entry of visibleEntries) {
-        if (!entry.id) continue;
-        const blocks = await decrypt(entry);
-        if (blocks === null) {
-          alert('Session abgelaufen – bitte neu anmelden');
-          setIsExporting(false);
-          return;
-        }
-        decryptedData.set(entry.id, blocks);
-      }
       await exportToPDF({
-        entries,
+        entries: visibleEntries,
         templates,
         decryptedData,
         startDate,
@@ -674,12 +745,54 @@ export default function HistoryView() {
         imageSize,
         password,
       });
-      setShowPdfDialog(false);
-    } catch (error) {
-      alert('Fehler beim Exportieren: ' + (error instanceof Error ? error.message : 'Unbekannt'));
-    } finally {
-      setIsExporting(false);
+      setExportPhase('success');
+      setTimeout(() => { setShowPdfDialog(false); setExportPhase('settings'); }, 1500);
+    } catch {
+      setExportPhase('full-error');
     }
+  }
+
+  async function handleExportPDF({ imageSize, password }: { imageSize: ImageSize; password: string }) {
+    if (visibleEntries.length === 0) return;
+    exportOptsRef.current = { imageSize, password };
+    setExportPhase('decrypting');
+
+    const decryptedData = new Map<number, Block[]>();
+    let skipped = 0;
+    for (const entry of visibleEntries) {
+      if (!entry.id) continue;
+      const blocks = await decrypt(entry);
+      if (blocks === null) { skipped++; continue; }
+      decryptedData.set(entry.id, blocks);
+    }
+
+    if (decryptedData.size === 0) {
+      setExportPhase('full-error');
+      return;
+    }
+    if (skipped > 0) {
+      exportDecryptedRef.current = decryptedData;
+      setExportSkipped(skipped);
+      setExportPhase('partial-error');
+      return;
+    }
+
+    await runExport(decryptedData, imageSize, password);
+  }
+
+  function handleExportWithout() {
+    const opts = exportOptsRef.current;
+    if (!opts) return;
+    runExport(exportDecryptedRef.current, opts.imageSize, opts.password);
+  }
+
+  function handleRetryExport() {
+    setExportPhase('settings');
+  }
+
+  function handleClosePdfDialog() {
+    setShowPdfDialog(false);
+    setExportPhase('settings');
   }
 
   const sortLabels: Record<SortOption, string> = {
@@ -897,7 +1010,12 @@ export default function HistoryView() {
         {/* ── Einträge ── */}
         <div>
           <p className="text-sm text-muted-foreground mb-3">
-            {visibleEntries.length} {visibleEntries.length === 1 ? 'Eintrag' : 'Einträge'}
+            {visibleEntries.length === 1
+              ? '1 Eintrag'
+              : totalPages > 1
+                ? `${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(currentPage * ITEMS_PER_PAGE, visibleEntries.length)} von ${visibleEntries.length} Einträgen`
+                : `${visibleEntries.length} Einträge`
+            }
           </p>
 
           {visibleEntries.length === 0 ? (
@@ -906,18 +1024,54 @@ export default function HistoryView() {
             </Card>
           ) : (
             <div className="space-y-2 history-list">
-              {visibleEntries.map(entry => (
+              {paginatedEntries.map(entry => (
                 <EntryCard
                   key={entry.id}
                   entry={entry}
-                  template={templates.find(t => t.id === entry.templateId)}
+                  template={entry.templateId === 0 ? DASHBOARD_EXPORT_TEMPLATE : templates.find(t => t.id === entry.templateId)}
                   onClick={() => setSelectedEntry(entry)}
-                  onMetaReady={handleMetaReady}
+                  meta={entry.id ? metaCache.get(entry.id) : undefined}
+                  decryptError={entry.id ? decryptErrors.get(entry.id) : undefined}
                 />
               ))}
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Pagination className="mt-4">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  aria-disabled={currentPage === 1}
+                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+              {generatePageNumbers(currentPage, totalPages).map((page, i) =>
+                page === '...'
+                  ? <PaginationItem key={`ellipsis-${i}`}><PaginationEllipsis /></PaginationItem>
+                  : <PaginationItem key={page}>
+                      <PaginationLink
+                        isActive={page === currentPage}
+                        onClick={() => setCurrentPage(page as number)}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+              )}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  aria-disabled={currentPage === totalPages}
+                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
 
         {/* Tutorial */}
         <PageTutorial
@@ -933,10 +1087,13 @@ export default function HistoryView() {
       {/* ── PDF-Dialog ── */}
       {showPdfDialog && (
         <PdfDialog
-          entryCount={entries.length}
-          onClose={() => setShowPdfDialog(false)}
+          entryCount={visibleEntries.length}
+          onClose={handleClosePdfDialog}
           onExport={handleExportPDF}
-          isExporting={isExporting}
+          exportPhase={exportPhase}
+          skippedCount={exportSkipped}
+          onExportWithout={handleExportWithout}
+          onRetry={handleRetryExport}
         />
       )}
 
@@ -948,7 +1105,7 @@ export default function HistoryView() {
               <div className="flex justify-between items-start">
                 <div>
                   <CardTitle>
-                    {templates.find(t => t.id === selectedEntry.templateId)?.name}
+                    {selectedEntry.templateId === 0 ? DASHBOARD_EXPORT_TEMPLATE.name : templates.find(t => t.id === selectedEntry.templateId)?.name}
                     {isEditMode && <span className="ml-2 text-sm font-normal text-muted-foreground">(Bearbeiten)</span>}
                   </CardTitle>
                   <CardDescription className="mt-1">

@@ -20,6 +20,7 @@ export interface Entry {
   data: string;  // JSON string (plain oder verschlüsselt)
   tags?: string[];
   editedAt?: string;  // ISO timestamp der letzten Bearbeitung
+  encryptionVersion?: number;  // 2 = v2 (Key-Caching); undefined/1 = v1 (Legacy per-entry PBKDF2)
 }
 
 // Settings: App-Konfiguration
