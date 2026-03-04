@@ -367,15 +367,15 @@ export default function HistoryView() {
   const [editedBlocks, setEditedBlocks] = useState<Block[] | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
-  // Block-Cache: alle entschlüsselten Blöcke, befüllt per Eager Decrypt
-  const [blockCache, setBlockCache] = useState<Map<number, Block[]>>(new Map());
+  // Metadaten-Cache: nur extrahierte Metadaten, keine Block[]-Arrays im Speicher
+  const [metaCache, setMetaCache] = useState<Map<number, ReturnType<typeof extractEntryMeta>>>(new Map());
   const [decryptErrors, setDecryptErrors] = useState<Map<number, string>>(new Map());
 
-  // Eager Decrypt: alle Einträge sofort entschlüsseln wenn entries sich ändert
+  // Eager Decrypt: Metadaten extrahieren, Block[]-Arrays sofort verwerfen
   useEffect(() => {
     let cancelled = false;
     async function decryptAll() {
-      const newCache = new Map<number, Block[]>();
+      const newMeta = new Map<number, ReturnType<typeof extractEntryMeta>>();
       const newErrors = new Map<number, string>();
       for (const entry of entries) {
         if (cancelled || !entry.id) continue;
@@ -385,27 +385,20 @@ export default function HistoryView() {
           if (blocks === null) {
             if (entry.encrypted) newErrors.set(entry.id, 'Verschlüsselt – bitte neu anmelden');
           } else {
-            newCache.set(entry.id, blocks);
+            newMeta.set(entry.id, extractEntryMeta(blocks));
           }
         } catch {
           if (entry.id) newErrors.set(entry.id, 'Entschlüsselung fehlgeschlagen');
         }
       }
       if (!cancelled) {
-        setBlockCache(newCache);
+        setMetaCache(newMeta);
         setDecryptErrors(newErrors);
       }
     }
     decryptAll();
     return () => { cancelled = true; };
   }, [entries, decrypt]);
-
-  // Metadaten-Cache: aus blockCache abgeleitet (kein eigener State nötig)
-  const metaCache = useMemo(() => {
-    const map = new Map<number, ReturnType<typeof extractEntryMeta>>();
-    blockCache.forEach((blocks, id) => map.set(id, extractEntryMeta(blocks)));
-    return map;
-  }, [blockCache]);
 
   // Content-Filter anwenden (client-seitig, da Metadaten entschlüsselte Daten brauchen)
   const visibleEntries = useMemo(() => {
@@ -628,21 +621,16 @@ export default function HistoryView() {
       const decryptedData = new Map<number, Block[]>();
       for (const entry of visibleEntries) {
         if (!entry.id) continue;
-        // Gecachte Blöcke verwenden — kein Re-decrypt nötig (ISS-026 Fix)
-        if (blockCache.has(entry.id)) {
-          decryptedData.set(entry.id, blockCache.get(entry.id)!);
-        } else {
-          const blocks = await decrypt(entry);
-          if (blocks === null) {
-            alert('Session abgelaufen – bitte neu anmelden');
-            setIsExporting(false);
-            return;
-          }
-          decryptedData.set(entry.id, blocks);
+        const blocks = await decrypt(entry);
+        if (blocks === null) {
+          alert('Session abgelaufen – bitte neu anmelden');
+          setIsExporting(false);
+          return;
         }
+        decryptedData.set(entry.id, blocks);
       }
       await exportToPDF({
-        entries,
+        entries: visibleEntries,
         templates,
         decryptedData,
         startDate,
