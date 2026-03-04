@@ -619,15 +619,23 @@ export default function HistoryView() {
     setIsExporting(true);
     try {
       const decryptedData = new Map<number, Block[]>();
+      let skippedCount = 0;
       for (const entry of visibleEntries) {
         if (!entry.id) continue;
         const blocks = await decrypt(entry);
         if (blocks === null) {
-          alert('Session abgelaufen – bitte neu anmelden');
-          setIsExporting(false);
-          return;
+          skippedCount++;
+          continue;
         }
         decryptedData.set(entry.id, blocks);
+      }
+      if (decryptedData.size === 0) {
+        alert('Keine lesbaren Einträge – bitte neu anmelden.');
+        setIsExporting(false);
+        return;
+      }
+      if (skippedCount > 0) {
+        alert(`${skippedCount} verschlüsselte ${skippedCount === 1 ? 'Eintrag konnte' : 'Einträge konnten'} nicht exportiert werden.`);
       }
       await exportToPDF({
         entries: visibleEntries,
