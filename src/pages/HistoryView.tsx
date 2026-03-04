@@ -424,6 +424,15 @@ function PdfDialog({ entryCount, onClose, onExport, exportPhase, skippedCount, o
   );
 }
 
+// Virtuelles Template für Dashboard-Export-Einträge (templateId === 0)
+const DASHBOARD_EXPORT_TEMPLATE: Template = {
+  name: 'Dashboardgrafik',
+  icon: 'BarChart2',
+  color: '#8B5CF6',
+  order: -1,
+  blocks: [],
+};
+
 // ─── Hauptkomponente ──────────────────────────────────────────────────────────
 
 export default function HistoryView() {
@@ -1019,7 +1028,7 @@ export default function HistoryView() {
                 <EntryCard
                   key={entry.id}
                   entry={entry}
-                  template={templates.find(t => t.id === entry.templateId)}
+                  template={entry.templateId === 0 ? DASHBOARD_EXPORT_TEMPLATE : templates.find(t => t.id === entry.templateId)}
                   onClick={() => setSelectedEntry(entry)}
                   meta={entry.id ? metaCache.get(entry.id) : undefined}
                   decryptError={entry.id ? decryptErrors.get(entry.id) : undefined}
@@ -1096,7 +1105,7 @@ export default function HistoryView() {
               <div className="flex justify-between items-start">
                 <div>
                   <CardTitle>
-                    {templates.find(t => t.id === selectedEntry.templateId)?.name}
+                    {selectedEntry.templateId === 0 ? DASHBOARD_EXPORT_TEMPLATE.name : templates.find(t => t.id === selectedEntry.templateId)?.name}
                     {isEditMode && <span className="ml-2 text-sm font-normal text-muted-foreground">(Bearbeiten)</span>}
                   </CardTitle>
                   <CardDescription className="mt-1">
