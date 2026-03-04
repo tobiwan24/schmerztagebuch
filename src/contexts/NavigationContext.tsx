@@ -1,8 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
-import { initializeDB, getAppSettings, getCurrentDBVersion, DB_TARGET_VERSION } from '../db';
+import { initializeDB, getAppSettings, getCurrentDBVersion, DB_TARGET_VERSION, getSetting, runCryptoMigration } from '../db';
 import db from '../db';
-import { getEncryptionMode, requiresAuth, checkPassword, setSession, clearSession, isSessionValid, refreshSession, INACTIVITY_TIMEOUT } from '../utils/auth';
+import { getEncryptionMode, requiresAuth, checkPassword, setSession, getSessionKey, clearSession, isSessionValid, refreshSession, INACTIVITY_TIMEOUT } from '../utils/auth';
 import type { Template } from '../types/database';
 import {
   requestPersistentStorage,
@@ -253,12 +253,20 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
   const handleAuthenticate = useCallback(async (password: string): Promise<boolean> => {
     const valid = await checkPassword(password);
     if (valid) {
-      setSession(password);
+      await setSession(password);
       setShowAuthModal(false);
       if (pendingView) {
         setCurrentView(pendingView);
         setPendingView(null);
       }
+
+      // Background-Migration: v1 → v2 (blockiert nicht)
+      const cryptoVersion = await getSetting('cryptoVersion');
+      if (cryptoVersion !== 'v2') {
+        const key = await getSessionKey();
+        if (key) runCryptoMigration(password, key).catch(console.error);
+      }
+
       return true;
     }
     return false;

@@ -1,11 +1,13 @@
 // Authentifizierungs- und Session-Management
 
 import { getSetting, setSetting } from '../db';
-import { verifyPassword, createPasswordTest } from './crypto';
+import { verifyPassword, createPasswordTest, deriveKey, createPasswordTestWithKey, verifyPasswordWithKey } from './crypto';
 
 export type EncryptionMode = 'none' | 'full';
 
 const PASSWORD_TEST_KEY = 'passwordTest';
+const PASSWORD_TEST_V2_KEY = 'passwordTestV2';
+const APP_SALT_KEY = 'appSalt';
 const ENCRYPTION_MODE_KEY = 'encryptionMode';
 const BIOMETRIC_ENABLED_KEY = 'biometricEnabled';
 const BIOMETRIC_CREDENTIAL_KEY = 'biometricCredential';
@@ -39,15 +41,59 @@ function base64ToArrayBuffer(base64: string): Uint8Array {
 
 interface AuthSession {
   password: string;
+  keyBytes?: string;  // Base64 der 32-Byte AES-Key-Rohdaten (v2)
   timestamp: number;
 }
 
 /**
- * Setzt das Passwort (speichert verschlüsselten Test-String)
+ * Gibt app_salt zurück (wird einmalig generiert und in Settings gespeichert)
+ */
+export async function getOrCreateAppSalt(): Promise<Uint8Array> {
+  const stored = await getSetting(APP_SALT_KEY);
+  if (stored) {
+    return base64ToArrayBuffer(stored);
+  }
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  await setSetting(APP_SALT_KEY, arrayBufferToBase64(salt.buffer));
+  return salt;
+}
+
+/**
+ * Importiert den CryptoKey aus der aktuellen Session (v2)
+ */
+export async function getSessionKey(): Promise<CryptoKey | null> {
+  if (!isSessionValid()) return null;
+  const data = sessionStorage.getItem(SESSION_KEY);
+  if (!data) return null;
+
+  try {
+    const session: AuthSession = JSON.parse(data);
+    if (!session.keyBytes) return null;
+
+    const keyBytes = base64ToArrayBuffer(session.keyBytes);
+    return await crypto.subtle.importKey(
+      'raw',
+      keyBytes.buffer as ArrayBuffer,
+      { name: 'AES-GCM' },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Setzt das Passwort (speichert verschlüsselten Test-String, v1 + v2)
  */
 export async function setPassword(password: string): Promise<void> {
   const testData = await createPasswordTest(password);
   await setSetting(PASSWORD_TEST_KEY, testData);
+
+  const appSalt = await getOrCreateAppSalt();
+  const key = await deriveKey(password, appSalt, false);
+  const testDataV2 = await createPasswordTestWithKey(key);
+  await setSetting(PASSWORD_TEST_V2_KEY, testDataV2);
 }
 
 /**
@@ -59,12 +105,22 @@ export async function hasPassword(): Promise<boolean> {
 }
 
 /**
- * Verifiziert ein Passwort
+ * Verifiziert ein Passwort (v2 zuerst, Fallback auf v1)
  */
 export async function checkPassword(password: string): Promise<boolean> {
+  const testDataV2 = await getSetting(PASSWORD_TEST_V2_KEY);
+  if (testDataV2) {
+    try {
+      const appSalt = await getOrCreateAppSalt();
+      const key = await deriveKey(password, appSalt, false);
+      return await verifyPasswordWithKey(testDataV2, key);
+    } catch {
+      return false;
+    }
+  }
+
   const testData = await getSetting(PASSWORD_TEST_KEY);
   if (!testData) return false;
-  
   return await verifyPassword(testData, password);
 }
 
@@ -84,11 +140,17 @@ export async function getEncryptionMode(): Promise<EncryptionMode> {
 }
 
 /**
- * Speichert Passwort in SessionStorage
+ * Speichert Passwort + PBKDF2-Key in SessionStorage (einmalige Key-Ableitung)
  */
-export function setSession(password: string): void {
+export async function setSession(password: string): Promise<void> {
+  const appSalt = await getOrCreateAppSalt();
+  const key = await deriveKey(password, appSalt, true);  // extractable=true für Export
+  const rawKey = await crypto.subtle.exportKey('raw', key);
+  const keyBytes = arrayBufferToBase64(rawKey);
+
   const session: AuthSession = {
     password,
+    keyBytes,
     timestamp: Date.now(),
   };
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
@@ -139,12 +201,17 @@ export function clearSession(): void {
 }
 
 /**
- * Aktualisiert Session-Timestamp (bei Aktivität)
+ * Aktualisiert Session-Timestamp (bei Aktivität) — kein erneutes Key-Ableiten
  */
 export function refreshSession(): void {
-  const password = getSessionPassword();
-  if (password) {
-    setSession(password);
+  const data = sessionStorage.getItem(SESSION_KEY);
+  if (!data) return;
+  try {
+    const session: AuthSession = JSON.parse(data);
+    session.timestamp = Date.now();
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  } catch {
+    // ignore
   }
 }
 

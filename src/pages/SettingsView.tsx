@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getEncryptionMode, setEncryptionMode, isBiometricEnabled, isBiometricAvailable, disableBiometric, registerBiometric, validatePassword, setPassword as updatePassword, checkPassword, getSessionPassword, setSession, clearSession } from '../utils/auth';
+import { getEncryptionMode, setEncryptionMode, isBiometricEnabled, isBiometricAvailable, disableBiometric, registerBiometric, validatePassword, setPassword as updatePassword, checkPassword, getSessionPassword, getSessionKey, setSession, clearSession } from '../utils/auth';
 import type { EncryptionMode } from '../utils/auth';
 import Header from '../components/Header';
 import AuthModal from '../components/AuthModal';
@@ -131,7 +131,8 @@ export default function SettingsView() {
 
       // Passwort existiert → bestehende Einträge verschlüsseln
       const password = getSessionPassword();
-      if (!password) {
+      const key = await getSessionKey();
+      if (!password || !key) {
         setPendingMode(newMode);
         setAuthAction('changeMode');
         setShowAuthModal(true);
@@ -142,7 +143,7 @@ export default function SettingsView() {
       setCurrentMode(newMode);
       setMigration({ done: 0, total: 0 });
       try {
-        await encryptAllEntries(password, (done, total) => setMigration({ done, total }));
+        await encryptAllEntries(password, key, (done, total) => setMigration({ done, total }));
       } finally {
         setMigration(null);
       }
@@ -187,9 +188,9 @@ export default function SettingsView() {
       
       try {
         await updatePassword(newPassword);
-        setSession(newPassword);
+        await setSession(newPassword);
         setPasswordExists(true);
-        
+
         alert('Passwort erfolgreich erstellt!');
         
         setShowChangePassword(false);
@@ -239,9 +240,12 @@ export default function SettingsView() {
       }
       
       // EC3: Alle verschlüsselten Einträge mit neuem Passwort re-encrypten
+      const oldKey = await getSessionKey();
+      await setSession(newPassword);  // leitet neuen Key ab und speichert ihn in Session
+      const newKey = await getSessionKey();
       setMigration({ done: 0, total: 0 });
       try {
-        await reEncryptAllEntries(oldPassword, newPassword, (done, total) =>
+        await reEncryptAllEntries(oldPassword, newPassword, oldKey || undefined, newKey || undefined, (done, total) =>
           setMigration({ done, total })
         );
       } finally {
@@ -249,7 +253,6 @@ export default function SettingsView() {
       }
 
       await updatePassword(newPassword);
-      setSession(newPassword);
 
       // Biometrie deaktivieren — sie ist mit dem alten Passwort verknüpft
       const bioEnabled = await isBiometricEnabled();
@@ -315,7 +318,8 @@ export default function SettingsView() {
     const valid = await checkPassword(password);
 
     if (valid) {
-      setSession(password);
+      await setSession(password);
+      const key = await getSessionKey();
       setShowAuthModal(false);
 
       if (authAction === 'changeMode' && pendingMode) {
@@ -323,7 +327,7 @@ export default function SettingsView() {
         if (pendingMode === 'none') {
           setMigration({ done: 0, total: 0 });
           try {
-            await decryptAllEntries(password, (done, total) => setMigration({ done, total }));
+            await decryptAllEntries(password, key || undefined, (done, total) => setMigration({ done, total }));
           } finally {
             setMigration(null);
           }
@@ -335,7 +339,7 @@ export default function SettingsView() {
           // EC2: none → full (Passwort war vorhanden, Session kam von Auth-Modal)
           setMigration({ done: 0, total: 0 });
           try {
-            await encryptAllEntries(password, (done, total) => setMigration({ done, total }));
+            await encryptAllEntries(password, key || undefined, (done, total) => setMigration({ done, total }));
           } finally {
             setMigration(null);
           }

@@ -68,8 +68,9 @@ function generateIV(): Uint8Array {
 
 /**
  * Leitet einen Schlüssel aus dem Passwort ab (PBKDF2)
+ * @param extractable - true: Key kann exportiert werden (für Key-Caching); false: nicht exportierbar (Standard)
  */
-async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
+export async function deriveKey(password: string, salt: Uint8Array, extractable = false): Promise<CryptoKey> {
   const encoder = new TextEncoder();
   const passwordBuffer = encoder.encode(password);
 
@@ -90,9 +91,67 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey>
     },
     importedKey,
     { name: 'AES-GCM', length: KEY_LENGTH },
-    false,
+    extractable,
     ['encrypt', 'decrypt']
   );
+}
+
+/**
+ * Verschlüsselt Daten mit einem vorhandenen CryptoKey (v2-Format: IV + Ciphertext, kein Salt)
+ * @returns Base64(IV[12] + AES-GCM-ciphertext)
+ */
+export async function encryptWithKey(data: string, key: CryptoKey): Promise<string> {
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(data);
+  const iv = generateIV();
+
+  const encryptedBuffer = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv: iv.buffer as ArrayBuffer },
+    key,
+    dataBuffer.buffer as ArrayBuffer
+  );
+
+  const combined = new Uint8Array(IV_LENGTH + encryptedBuffer.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(encryptedBuffer), IV_LENGTH);
+  return arrayBufferToBase64(combined);
+}
+
+/**
+ * Entschlüsselt Daten mit einem vorhandenen CryptoKey (v2-Format: IV + Ciphertext)
+ * @param encryptedData - Base64(IV[12] + AES-GCM-ciphertext)
+ */
+export async function decryptWithKey(encryptedData: string, key: CryptoKey): Promise<string> {
+  const combined = base64ToArrayBuffer(encryptedData);
+  const iv = combined.slice(0, IV_LENGTH);
+  const encrypted = combined.slice(IV_LENGTH);
+
+  const decryptedBuffer = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: iv.buffer as ArrayBuffer },
+    key,
+    encrypted.buffer as ArrayBuffer
+  );
+
+  return new TextDecoder().decode(decryptedBuffer);
+}
+
+/**
+ * Erstellt einen verschlüsselten Test-String mit einem CryptoKey (für passwordTestV2 in Settings)
+ */
+export async function createPasswordTestWithKey(key: CryptoKey): Promise<string> {
+  return await encryptWithKey('PASSWORD_VERIFICATION_TEST', key);
+}
+
+/**
+ * Verifiziert ein Passwort über passwordTestV2 (v2-Format)
+ */
+export async function verifyPasswordWithKey(encryptedTestData: string, key: CryptoKey): Promise<boolean> {
+  try {
+    await decryptWithKey(encryptedTestData, key);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**

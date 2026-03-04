@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import type { Block, BlockValue } from '../types/blocks';
 import type { Template } from '../types/database';
 import db, { createTemplate } from '../db';
-import { getEncryptionMode, getSessionPassword, refreshSession } from '../utils/auth';
-import { encryptData } from '../utils/crypto';
+import { getEncryptionMode, getSessionKey, refreshSession } from '../utils/auth';
+import { encryptWithKey } from '../utils/crypto';
 import BlockRenderer from '../components/BlockRenderer';
 import { getIconComponent } from '../utils/iconUtils';
 import { Button } from "@/components/ui/button";
@@ -444,18 +444,18 @@ export default function DiaryView() {
       let encrypted = false;
       
       if (mode !== 'none') {
-        const password = getSessionPassword();
-        
-        if (!password) {
+        const key = await getSessionKey();
+
+        if (!key) {
           alert('⚠️ Fehler: Session nicht vorhanden. Bitte App neu starten.');
           setIsSaving(false);
           return;
         }
-        
+
         refreshSession();
-        
+
         const jsonData = JSON.stringify(blocksToSave);
-        data = await encryptData(jsonData, password);
+        data = await encryptWithKey(jsonData, key);
         encrypted = true;
       } else {
         data = JSON.stringify(blocksToSave);
@@ -473,7 +473,8 @@ export default function DiaryView() {
         timestamp: new Date(),
         encrypted,
         data,
-        tags
+        tags,
+        ...(encrypted ? { encryptionVersion: 2 } : {})
       };
       
       await db.entries.add(entryToSave);
