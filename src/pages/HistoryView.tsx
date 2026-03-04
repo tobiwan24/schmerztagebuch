@@ -15,6 +15,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
+  Pagination, PaginationContent, PaginationEllipsis,
+  PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   ArrowLeft, Trash2, ChevronRight, X, Download,
   Filter, ArrowUpDown, Check, ChevronDown,
   Calendar, Stethoscope, Map as MapIcon, ImageIcon, FileText,
@@ -47,6 +51,15 @@ type ExportPhase =
   | 'success';
 
 // ─── Hilfsfunktionen ─────────────────────────────────────────────────────────
+
+const ITEMS_PER_PAGE = 20;
+
+function generatePageNumbers(current: number, total: number): (number | '...')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (current <= 4) return [1, 2, 3, 4, 5, '...', total];
+  if (current >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+  return [1, '...', current - 1, current, current + 1, '...', total];
+}
 
 function getPainColor(value: number): string {
   if (value <= 3) return '#22c55e';
@@ -432,6 +445,9 @@ export default function HistoryView() {
   // Sortierung
   const [sortOption, setSortOption] = useState<SortOption>('newest');
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+
   // UI
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
   const [decryptedBlocks, setDecryptedBlocks] = useState<Block[] | null>(null);
@@ -499,6 +515,16 @@ export default function HistoryView() {
       });
     });
   }, [entries, contentFilters, metaCache]);
+
+  // Pagination: Seite zurücksetzen bei Filter-/Sortierungs-Änderung
+  useEffect(() => { setCurrentPage(1); }, [visibleEntries]);
+
+  const totalPages = Math.ceil(visibleEntries.length / ITEMS_PER_PAGE);
+
+  const paginatedEntries = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return visibleEntries.slice(start, start + ITEMS_PER_PAGE);
+  }, [visibleEntries, currentPage]);
 
   // Alle verfügbaren Tags aus Einträgen
   const allTags = [...new Set(entries.flatMap(e => e.tags ?? []))];
@@ -975,7 +1001,12 @@ export default function HistoryView() {
         {/* ── Einträge ── */}
         <div>
           <p className="text-sm text-muted-foreground mb-3">
-            {visibleEntries.length} {visibleEntries.length === 1 ? 'Eintrag' : 'Einträge'}
+            {visibleEntries.length === 1
+              ? '1 Eintrag'
+              : totalPages > 1
+                ? `${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(currentPage * ITEMS_PER_PAGE, visibleEntries.length)} von ${visibleEntries.length} Einträgen`
+                : `${visibleEntries.length} Einträge`
+            }
           </p>
 
           {visibleEntries.length === 0 ? (
@@ -984,7 +1015,7 @@ export default function HistoryView() {
             </Card>
           ) : (
             <div className="space-y-2 history-list">
-              {visibleEntries.map(entry => (
+              {paginatedEntries.map(entry => (
                 <EntryCard
                   key={entry.id}
                   entry={entry}
@@ -997,6 +1028,41 @@ export default function HistoryView() {
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Pagination className="mt-4">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  aria-disabled={currentPage === 1}
+                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+              {generatePageNumbers(currentPage, totalPages).map((page, i) =>
+                page === '...'
+                  ? <PaginationItem key={`ellipsis-${i}`}><PaginationEllipsis /></PaginationItem>
+                  : <PaginationItem key={page}>
+                      <PaginationLink
+                        isActive={page === currentPage}
+                        onClick={() => setCurrentPage(page as number)}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+              )}
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  aria-disabled={currentPage === totalPages}
+                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
 
         {/* Tutorial */}
         <PageTutorial
