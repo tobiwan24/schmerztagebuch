@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import type { Entry, Template } from '../types/database';
-import type { Block } from '../types/blocks';
+import type { Block, TextAreaBlockValue } from '../types/blocks';
 
 interface PainPoint {
   x: number;
@@ -291,9 +291,34 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
         
         switch (block.type) {
           case 'text':
-          case 'textarea':
             valueText = String(block.value || '—');
             break;
+          case 'textarea': {
+            if (block.value && typeof block.value === 'object') {
+              const taValue = block.value as TextAreaBlockValue;
+              valueText = taValue.text || '—';
+              if (taValue.attachedFiles && taValue.attachedFiles.length > 0) {
+                taValue.attachedFiles.forEach(file => {
+                  if (file.data) {
+                    imageAttachments.push({
+                      entryId: entry.id!,
+                      entryTitle: `${template?.name || 'Unbekannt'}`,
+                      entryDate: dateText,
+                      blockLabel: `${block.label} - ${file.name || (file.type === 'pdf' ? 'PDF' : 'Foto')}`,
+                      imageData: file.data,
+                      type: file.type === 'pdf' ? 'bodymap' : 'image',
+                    });
+                  }
+                });
+                const count = taValue.attachedFiles.length;
+                valueText += (valueText && valueText !== '—' ? '\n' : '') +
+                  `${count} Datei${count === 1 ? '' : 'en'} – siehe Anhang ab Seite ${imageAttachments.length - count + 1}`;
+              }
+            } else {
+              valueText = String(block.value || '—');
+            }
+            break;
+          }
           case 'slider':
             valueText = String(block.value ?? '—');
             break;
