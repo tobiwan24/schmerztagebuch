@@ -322,9 +322,29 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
           case 'slider':
             valueText = String(block.value ?? '—');
             break;
-          case 'date':
-            valueText = block.value ? new Date(String(block.value)).toLocaleDateString('de-DE') : '—';
+          case 'date': {
+            if (!block.value) {
+              valueText = '—';
+            } else {
+              const raw = String(block.value);
+              try {
+                const parsed = JSON.parse(raw) as { mode: string; startDate: string; endDate?: string; time?: string; startTime?: string; endTime?: string };
+                const fmt = (d: string, t?: string) => {
+                  const date = new Date(d + 'T00:00:00').toLocaleDateString('de-DE');
+                  return t ? `${date}, ${t} Uhr` : date;
+                };
+                if (parsed.mode === 'range' && parsed.endDate) {
+                  valueText = `${fmt(parsed.startDate, parsed.startTime)} – ${fmt(parsed.endDate, parsed.endTime)}`;
+                } else {
+                  valueText = fmt(parsed.startDate, parsed.time);
+                }
+              } catch {
+                // Legacy: plain date string
+                valueText = new Date(raw + 'T00:00:00').toLocaleDateString('de-DE');
+              }
+            }
             break;
+          }
           case 'checkbox':
             valueText = block.value ? '☑ Ja' : '☐ Nein';
             break;
