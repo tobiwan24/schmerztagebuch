@@ -12,8 +12,28 @@ import type { Block } from '../types/blocks';
 const CHART_ID = 'pain-chart-poc';
 
 async function getChartDataURI(): Promise<string> {
-  const result = await ApexCharts.exec(CHART_ID, 'dataURI', [{ scale: 2 }]);
-  return (result as { imgURI: string }).imgURI;
+  // WICHTIG: exec(..., opts) via rest-param → {scale:2} direkt übergeben, KEIN Array-Wrapper
+  // Array-Wrapper würde options.scale = undefined → scale = NaN → korruptes 300×150-Bild erzeugen
+  const result = await ApexCharts.exec(CHART_ID, 'dataURI', { scale: 2 }) as
+    | { imgURI: string; blob?: undefined }
+    | { blob: Blob; imgURI?: undefined }
+    | null;
+
+  if (!result) throw new Error(`Chart-Instanz nicht gefunden (ID: ${CHART_ID})`);
+
+  if (result.imgURI) return result.imgURI;
+
+  // Edge-Legacy-Fallback: msToBlob → Blob → DataURL
+  if (result.blob) {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(result.blob!);
+    });
+  }
+
+  throw new Error('dataURI-Export fehlgeschlagen: kein imgURI und kein blob');
 }
 
 export async function downloadChartPNG(filename: string): Promise<void> {
