@@ -19,7 +19,6 @@ export default function DiaryView() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [currentBlocks, setCurrentBlocks] = useState<Block[]>([]);
-  const [originalBlocks, setOriginalBlocks] = useState<Block[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -34,6 +33,8 @@ export default function DiaryView() {
   const accumulatedDeltaRef = useRef(0);
   const inactivityTimeoutRef = useRef<number | null>(null);
   const showPersonalizeBtnRef = useRef(showPersonalizeBtn);
+  const isInitializingRef = useRef(false);
+  const pendingResetsRef = useRef(0);
 
   // Update ref when state changes
   useEffect(() => {
@@ -67,8 +68,9 @@ export default function DiaryView() {
   useEffect(() => {
     if (templates.length > 0 && activeTabIndex < templates.length) {
       const newBlocks = JSON.parse(JSON.stringify(templates[activeTabIndex].blocks));
+      pendingResetsRef.current += 1;
+      isInitializingRef.current = true;
       setCurrentBlocks(newBlocks);
-      setOriginalBlocks(newBlocks);
       setHasUnsavedChanges(false);
       setShowPersonalizeBtn(false);
       setIsHidingBtn(false);
@@ -76,20 +78,15 @@ export default function DiaryView() {
     }
   }, [activeTabIndex, templates]);
 
-  // Detect unsaved changes
+  // Clearing: nach Blocks-Mount und Reset-Form-Effect (Reihenfolge durch Deklarationsreihenfolge garantiert)
   useEffect(() => {
-    const hasChanges = currentBlocks.some(block => {
-      const original = originalBlocks.find(b => b.id === block.id);
-      if (!original) return false;
-      
-      if (block.value === undefined || block.value === null || block.value === '') return false;
-      if (Array.isArray(block.value) && block.value.length === 0) return false;
-      
-      return JSON.stringify(block.value) !== JSON.stringify(original.value);
-    });
-    
-    setHasUnsavedChanges(hasChanges);
-  }, [currentBlocks, originalBlocks]);
+    if (pendingResetsRef.current > 0) {
+      pendingResetsRef.current -= 1;
+      if (pendingResetsRef.current === 0) {
+        isInitializingRef.current = false;
+      }
+    }
+  }, [currentBlocks]);
 
   // Pull-to-Reveal Logic
   useLayoutEffect(() => {
@@ -289,11 +286,17 @@ export default function DiaryView() {
   }
 
   function handleBlockChange(blockId: string, value: BlockValue) {
-    setCurrentBlocks(prev => 
-      prev.map(block => 
+    setCurrentBlocks(prev =>
+      prev.map(block =>
         block.id === blockId ? { ...block, value } : block
       )
     );
+    // Nur echte User-Interaktionen als Dirty markieren.
+    // Block-Mount-Effects (DatePickerBlock, BodyMapBlock) feuern onChange während
+    // isInitializingRef.current === true → werden ignoriert.
+    if (!isInitializingRef.current) {
+      setHasUnsavedChanges(true);
+    }
   }
 
   function handleDashboardConfigChange(blockId: string, config: { eventCategory: 'event' | 'doctor'; eventTitle: string }) {
@@ -318,11 +321,12 @@ export default function DiaryView() {
 
   function handlePresetSaved() {
     // Reset DiaryView nach Preset-Speichern
+    isInitializingRef.current = true;
+    pendingResetsRef.current += 1;
     setFormKey(prev => prev + 1);
     setCurrentBlocks(JSON.parse(JSON.stringify(templates[activeTabIndex].blocks)));
-    setOriginalBlocks(JSON.parse(JSON.stringify(templates[activeTabIndex].blocks)));
     setHasUnsavedChanges(false);
-    
+
     if (contentRef.current) {
       contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -482,11 +486,12 @@ export default function DiaryView() {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
       
+      isInitializingRef.current = true;
+      pendingResetsRef.current += 1;
       setFormKey(prev => prev + 1);
       setCurrentBlocks(JSON.parse(JSON.stringify(templates[activeTabIndex].blocks)));
-      setOriginalBlocks(JSON.parse(JSON.stringify(templates[activeTabIndex].blocks)));
       setHasUnsavedChanges(false);
-      
+
       if (contentRef.current) {
         contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
       }
