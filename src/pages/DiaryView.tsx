@@ -33,8 +33,6 @@ export default function DiaryView() {
   const accumulatedDeltaRef = useRef(0);
   const inactivityTimeoutRef = useRef<number | null>(null);
   const showPersonalizeBtnRef = useRef(showPersonalizeBtn);
-  const isInitializingRef = useRef(false);
-  const pendingResetsRef = useRef(0);
 
   // Update ref when state changes
   useEffect(() => {
@@ -68,8 +66,6 @@ export default function DiaryView() {
   useEffect(() => {
     if (templates.length > 0 && activeTabIndex < templates.length) {
       const newBlocks = JSON.parse(JSON.stringify(templates[activeTabIndex].blocks));
-      pendingResetsRef.current += 1;
-      isInitializingRef.current = true;
       setCurrentBlocks(newBlocks);
       setHasUnsavedChanges(false);
       setShowPersonalizeBtn(false);
@@ -77,16 +73,6 @@ export default function DiaryView() {
       accumulatedDeltaRef.current = 0;
     }
   }, [activeTabIndex, templates]);
-
-  // Clearing: nach Blocks-Mount und Reset-Form-Effect (Reihenfolge durch Deklarationsreihenfolge garantiert)
-  useEffect(() => {
-    if (pendingResetsRef.current > 0) {
-      pendingResetsRef.current -= 1;
-      if (pendingResetsRef.current === 0) {
-        isInitializingRef.current = false;
-      }
-    }
-  }, [currentBlocks]);
 
   // Pull-to-Reveal Logic
   useLayoutEffect(() => {
@@ -285,16 +271,13 @@ export default function DiaryView() {
     }
   }
 
-  function handleBlockChange(blockId: string, value: BlockValue) {
+  function handleBlockChange(blockId: string, value: BlockValue, isAutoInit?: boolean) {
     setCurrentBlocks(prev =>
       prev.map(block =>
         block.id === blockId ? { ...block, value } : block
       )
     );
-    // Nur echte User-Interaktionen als Dirty markieren.
-    // Block-Mount-Effects (DatePickerBlock, BodyMapBlock) feuern onChange während
-    // isInitializingRef.current === true → werden ignoriert.
-    if (!isInitializingRef.current) {
+    if (!isAutoInit) {
       setHasUnsavedChanges(true);
     }
   }
@@ -321,8 +304,6 @@ export default function DiaryView() {
 
   function handlePresetSaved() {
     // Reset DiaryView nach Preset-Speichern
-    isInitializingRef.current = true;
-    pendingResetsRef.current += 1;
     setFormKey(prev => prev + 1);
     setCurrentBlocks(JSON.parse(JSON.stringify(templates[activeTabIndex].blocks)));
     setHasUnsavedChanges(false);
@@ -346,6 +327,16 @@ export default function DiaryView() {
           : block
       )
     );
+  }
+
+  function handleNavigateAway(action: () => void) {
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        '⚠️ Du hast ungespeicherte Änderungen!\n\nMöchtest du die Seite wirklich verlassen? Alle Änderungen gehen verloren.'
+      );
+      if (!confirmed) return;
+    }
+    action();
   }
 
   function handleTemplateChange(newIndex: number) {
@@ -486,8 +477,6 @@ export default function DiaryView() {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
       
-      isInitializingRef.current = true;
-      pendingResetsRef.current += 1;
       setFormKey(prev => prev + 1);
       setCurrentBlocks(JSON.parse(JSON.stringify(templates[activeTabIndex].blocks)));
       setHasUnsavedChanges(false);
@@ -572,7 +561,7 @@ export default function DiaryView() {
 
       <div className="fixed top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
-          <button className="floating-btn-glass" onClick={() => goHome()}>
+          <button className="floating-btn-glass" onClick={() => handleNavigateAway(goHome)}>
             <ArrowLeft size={22} />
           </button>
           <h1 className="text-base font-semibold">{activeTemplate?.name || 'Tagebuch'}</h1>
@@ -594,7 +583,7 @@ export default function DiaryView() {
               <BlockRenderer
                 key={block.id}
                 block={block}
-                onChange={(value) => handleBlockChange(block.id, value)}
+                onChange={(value, isAutoInit) => handleBlockChange(block.id, value, isAutoInit)}
                 onDashboardConfigChange={handleDashboardConfigChange}
                 onPresetSaved={handlePresetSaved}
                 onConfigChange={(config) => handleBlockConfigChange(block.id, config)}
@@ -717,13 +706,13 @@ export default function DiaryView() {
               <Button onClick={() => { setShowMenu(false); handlePersonalize(); }} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <Paintbrush size={22} /><span className="font-medium">Seite personalisieren</span>
               </Button>
-              <Button onClick={() => { setShowMenu(false); navigate('history'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+              <Button onClick={() => handleNavigateAway(() => { setShowMenu(false); navigate('history'); })} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <History size={22} /><span className="font-medium">Verlauf anzeigen</span>
               </Button>
-              <Button onClick={() => { setShowMenu(false); navigate('dashboard'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+              <Button onClick={() => handleNavigateAway(() => { setShowMenu(false); navigate('dashboard'); })} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <TrendingUp size={22} /><span className="font-medium">Dashboard</span>
               </Button>
-              <Button onClick={() => { setShowMenu(false); navigate('settings'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+              <Button onClick={() => handleNavigateAway(() => { setShowMenu(false); navigate('settings'); })} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <Settings size={22} /><span className="font-medium">Einstellungen</span>
               </Button>
             </div>
