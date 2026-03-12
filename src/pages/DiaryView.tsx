@@ -329,6 +329,16 @@ export default function DiaryView() {
     );
   }
 
+  function handleNavigateAway(action: () => void) {
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        '⚠️ Du hast ungespeicherte Änderungen!\n\nMöchtest du die Seite wirklich verlassen? Alle Änderungen gehen verloren.'
+      );
+      if (!confirmed) return;
+    }
+    action();
+  }
+
   function handleTemplateChange(newIndex: number) {
     if (hasUnsavedChanges) {
       const confirmed = window.confirm(
@@ -551,7 +561,7 @@ export default function DiaryView() {
 
       <div className="fixed top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
-          <button className="floating-btn-glass" onClick={() => goHome()}>
+          <button className="floating-btn-glass" onClick={() => handleNavigateAway(goHome)}>
             <ArrowLeft size={22} />
           </button>
           <h1 className="text-base font-semibold">{activeTemplate?.name || 'Tagebuch'}</h1>
@@ -696,13 +706,13 @@ export default function DiaryView() {
               <Button onClick={() => { setShowMenu(false); handlePersonalize(); }} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <Paintbrush size={22} /><span className="font-medium">Seite personalisieren</span>
               </Button>
-              <Button onClick={() => { setShowMenu(false); navigate('history'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+              <Button onClick={() => handleNavigateAway(() => { setShowMenu(false); navigate('history'); })} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <History size={22} /><span className="font-medium">Verlauf anzeigen</span>
               </Button>
-              <Button onClick={() => { setShowMenu(false); navigate('dashboard'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+              <Button onClick={() => handleNavigateAway(() => { setShowMenu(false); navigate('dashboard'); })} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <TrendingUp size={22} /><span className="font-medium">Dashboard</span>
               </Button>
-              <Button onClick={() => { setShowMenu(false); navigate('settings'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+              <Button onClick={() => handleNavigateAway(() => { setShowMenu(false); navigate('settings'); })} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <Settings size={22} /><span className="font-medium">Einstellungen</span>
               </Button>
             </div>
