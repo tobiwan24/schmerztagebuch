@@ -11,7 +11,7 @@ import BodyMapBlock from './blocks/BodyMapBlock';
 
 interface BlockRendererProps {
   block: Block;
-  onChange: (value: BlockValue) => void;
+  onChange: (value: BlockValue, isAutoInit?: boolean) => void;
   onDashboardConfigChange?: (blockId: string, config: { eventCategory: 'event' | 'doctor'; eventTitle: string }) => void;
   onPresetSaved?: () => void;
   onConfigChange?: (config: { defaultPresetId?: string }) => void;
