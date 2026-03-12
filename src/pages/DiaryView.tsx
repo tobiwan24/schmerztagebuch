@@ -34,6 +34,7 @@ export default function DiaryView() {
   const accumulatedDeltaRef = useRef(0);
   const inactivityTimeoutRef = useRef<number | null>(null);
   const showPersonalizeBtnRef = useRef(showPersonalizeBtn);
+  const isInitializingRef = useRef(false);
 
   // Update ref when state changes
   useEffect(() => {
@@ -67,12 +68,17 @@ export default function DiaryView() {
   useEffect(() => {
     if (templates.length > 0 && activeTabIndex < templates.length) {
       const newBlocks = JSON.parse(JSON.stringify(templates[activeTabIndex].blocks));
+      isInitializingRef.current = true;
       setCurrentBlocks(newBlocks);
       setOriginalBlocks(newBlocks);
       setHasUnsavedChanges(false);
       setShowPersonalizeBtn(false);
       setIsHidingBtn(false);
       accumulatedDeltaRef.current = 0;
+      // Block-Komponenten (z.B. DatePickerBlock, BodyMapBlock) können beim Mount onChange
+      // aufrufen — setTimeout(0) stellt sicher, dass alle diese Init-Calls abgeschlossen
+      // sind, bevor das Flag zurückgesetzt wird.
+      setTimeout(() => { isInitializingRef.current = false; }, 0);
     }
   }, [activeTabIndex, templates]);
 
@@ -289,11 +295,20 @@ export default function DiaryView() {
   }
 
   function handleBlockChange(blockId: string, value: BlockValue) {
-    setCurrentBlocks(prev => 
-      prev.map(block => 
+    setCurrentBlocks(prev =>
+      prev.map(block =>
         block.id === blockId ? { ...block, value } : block
       )
     );
+    // Während der Initialisierung (Block-Mount-Effects) originalBlocks synchron halten,
+    // damit diese automatischen Default-Werte nicht als Dirty erkannt werden.
+    if (isInitializingRef.current) {
+      setOriginalBlocks(prev =>
+        prev.map(block =>
+          block.id === blockId ? { ...block, value } : block
+        )
+      );
+    }
   }
 
   function handleDashboardConfigChange(blockId: string, config: { eventCategory: 'event' | 'doctor'; eventTitle: string }) {
