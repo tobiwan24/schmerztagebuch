@@ -19,7 +19,6 @@ export default function DiaryView() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [currentBlocks, setCurrentBlocks] = useState<Block[]>([]);
-  const [originalBlocks, setOriginalBlocks] = useState<Block[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -70,7 +69,6 @@ export default function DiaryView() {
       const newBlocks = JSON.parse(JSON.stringify(templates[activeTabIndex].blocks));
       isInitializingRef.current = true;
       setCurrentBlocks(newBlocks);
-      setOriginalBlocks(newBlocks);
       setHasUnsavedChanges(false);
       setShowPersonalizeBtn(false);
       setIsHidingBtn(false);
@@ -81,21 +79,6 @@ export default function DiaryView() {
       setTimeout(() => { isInitializingRef.current = false; }, 0);
     }
   }, [activeTabIndex, templates]);
-
-  // Detect unsaved changes
-  useEffect(() => {
-    const hasChanges = currentBlocks.some(block => {
-      const original = originalBlocks.find(b => b.id === block.id);
-      if (!original) return false;
-      
-      if (block.value === undefined || block.value === null || block.value === '') return false;
-      if (Array.isArray(block.value) && block.value.length === 0) return false;
-      
-      return JSON.stringify(block.value) !== JSON.stringify(original.value);
-    });
-    
-    setHasUnsavedChanges(hasChanges);
-  }, [currentBlocks, originalBlocks]);
 
   // Pull-to-Reveal Logic
   useLayoutEffect(() => {
@@ -300,14 +283,11 @@ export default function DiaryView() {
         block.id === blockId ? { ...block, value } : block
       )
     );
-    // Während der Initialisierung (Block-Mount-Effects) originalBlocks synchron halten,
-    // damit diese automatischen Default-Werte nicht als Dirty erkannt werden.
-    if (isInitializingRef.current) {
-      setOriginalBlocks(prev =>
-        prev.map(block =>
-          block.id === blockId ? { ...block, value } : block
-        )
-      );
+    // Nur echte User-Interaktionen als Dirty markieren.
+    // Block-Mount-Effects (DatePickerBlock, BodyMapBlock) feuern onChange während
+    // isInitializingRef.current === true → werden ignoriert.
+    if (!isInitializingRef.current) {
+      setHasUnsavedChanges(true);
     }
   }
 
@@ -335,9 +315,8 @@ export default function DiaryView() {
     // Reset DiaryView nach Preset-Speichern
     setFormKey(prev => prev + 1);
     setCurrentBlocks(JSON.parse(JSON.stringify(templates[activeTabIndex].blocks)));
-    setOriginalBlocks(JSON.parse(JSON.stringify(templates[activeTabIndex].blocks)));
     setHasUnsavedChanges(false);
-    
+
     if (contentRef.current) {
       contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -499,7 +478,6 @@ export default function DiaryView() {
       
       setFormKey(prev => prev + 1);
       setCurrentBlocks(JSON.parse(JSON.stringify(templates[activeTabIndex].blocks)));
-      setOriginalBlocks(JSON.parse(JSON.stringify(templates[activeTabIndex].blocks)));
       setHasUnsavedChanges(false);
       
       if (contentRef.current) {
