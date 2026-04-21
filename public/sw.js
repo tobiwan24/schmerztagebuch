@@ -3,7 +3,7 @@
 
 // WICHTIG: VERSION hier manuell synchron halten mit APP_VERSION in src/utils/version.ts
 // (SW kann keine ES-Module importieren)
-const VERSION = '1.12';
+const VERSION = '1.13';
 const CACHE_NAME = `schmerztagebuch-v${VERSION}`;
 const RUNTIME_CACHE = `schmerztagebuch-runtime-v${VERSION}`;
 
