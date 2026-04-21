@@ -3,7 +3,15 @@ import { getEntries, getTemplates, deleteEntry, updateEntry } from '../db';
 import { useDecrypt } from '../hooks/useDecrypt';
 import { useNavigation } from '../contexts/NavigationContext';
 import { exportToPDF } from '../utils/pdfExport';
-import type { ImageSize } from '../utils/pdfExport';
+import type { ImageSize, PdfLayout } from '../utils/pdfExport';
+import { getChartDataURI, EXPORT_CHART_ID } from '../utils/dashboardExport';
+import { ApexLineChart } from '../components/charts/ApexLineChart';
+import {
+  extractPainData, aggregatePainByDay, aggregateDataByTimeRange,
+  getDashboardEnabledTemplates,
+} from '../utils/dashboardData';
+import { convertToApexSeries, generateCategories } from '../utils/apexChartHelpers';
+import type { ChartConfig } from '../utils/apexChartHelpers';
 import { getIconComponent } from '../utils/iconUtils';
 import { encryptWithKey } from '../utils/crypto';
 import { getSessionKey } from '../utils/auth';
@@ -270,15 +278,18 @@ function Dropdown({ label, icon, badge, children }: DropdownProps) {
 interface PdfDialogProps {
   entryCount: number;
   onClose: () => void;
-  onExport: (opts: { imageSize: ImageSize; password: string }) => void;
+  onExport: (opts: { imageSize: ImageSize; password: string; layout: PdfLayout; selectedMultiselects: string[] }) => void;
   exportPhase: ExportPhase;
   skippedCount: number;
   onExportWithout: () => void;
   onRetry: () => void;
+  availableMultiselects: { id: string; label: string }[];
 }
 
-function PdfDialog({ entryCount, onClose, onExport, exportPhase, skippedCount, onExportWithout, onRetry }: PdfDialogProps) {
+function PdfDialog({ entryCount, onClose, onExport, exportPhase, skippedCount, onExportWithout, onRetry, availableMultiselects }: PdfDialogProps) {
   const [imageSize, setImageSize] = useState<ImageSize>('a5');
+  const [layout, setLayout] = useState<PdfLayout>('table');
+  const [selectedMultiselects, setSelectedMultiselects] = useState<string[]>([]);
   const [pw1, setPw1] = useState('');
   const [pw2, setPw2] = useState('');
   const pwMatch = pw1 === pw2;
@@ -316,6 +327,56 @@ function PdfDialog({ entryCount, onClose, onExport, exportPhase, skippedCount, o
           {/* Settings-Form */}
           {exportPhase === 'settings' && (
             <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Layout</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { value: 'table', label: 'Tabelle' },
+                    { value: 'cards', label: 'Karten' },
+                    { value: 'dashboard', label: 'Dashboard' },
+                  ] as { value: PdfLayout; label: string }[]).map(opt => (
+                    <button
+                      key={opt.value}
+                      className={`pdf-size-btn${layout === opt.value ? ' selected' : ''}`}
+                      onClick={() => setLayout(opt.value)}
+                    >
+                      {layout === opt.value && <Check size={12} />}
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {layout === 'table' && 'Zeitreihen-Vergleich als Tabelle'}
+                  {layout === 'cards' && 'Jeder Eintrag als Karte (Hochformat)'}
+                  {layout === 'dashboard' && 'Grafik + Statistik + Einträge'}
+                </p>
+              </div>
+
+              {layout === 'dashboard' && availableMultiselects.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Häufigkeiten anzeigen</Label>
+                    <div className="space-y-1">
+                      {availableMultiselects.map(ms => (
+                        <label key={ms.id} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedMultiselects.includes(ms.id)}
+                            onChange={e => setSelectedMultiselects(prev =>
+                              e.target.checked ? [...prev, ms.id] : prev.filter(id => id !== ms.id)
+                            )}
+                            className="h-4 w-4 rounded border-gray-300"
+                          />
+                          <span className="text-sm">{ms.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <Separator />
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Bildgröße im Anhang</Label>
                 <div className="grid grid-cols-2 gap-2">
@@ -355,7 +416,7 @@ function PdfDialog({ entryCount, onClose, onExport, exportPhase, skippedCount, o
               <Button
                 className="w-full"
                 disabled={pw1.length > 0 && !pwMatch}
-                onClick={() => onExport({ imageSize, password: pwMatch ? pw1 : '' })}
+                onClick={() => onExport({ imageSize, password: pwMatch ? pw1 : '', layout, selectedMultiselects })}
               >
                 <Download size={16} className="mr-2" />
                 PDF erstellen
@@ -466,7 +527,14 @@ export default function HistoryView() {
   const [exportPhase, setExportPhase] = useState<ExportPhase>('settings');
   const [exportSkipped, setExportSkipped] = useState(0);
   const exportDecryptedRef = useRef<Map<number, Block[]>>(new Map());
-  const exportOptsRef = useRef<{ imageSize: ImageSize; password: string } | null>(null);
+  const exportOptsRef = useRef<{ imageSize: ImageSize; password: string; layout: PdfLayout; selectedMultiselects: string[] } | null>(null);
+
+  // Chart-Export-State (für Dashboard-Layout)
+  const [showExportChart, setShowExportChart] = useState(false);
+  const [exportChartSeries, setExportChartSeries] = useState<{ name: string; data: { x: number; y: number }[] }[]>([]);
+  const [exportChartCategories, setExportChartCategories] = useState<string[]>([]);
+  const [exportChartColors, setExportChartColors] = useState<string[]>(['#ef4444']);
+  const [exportChartTimeRange, setExportChartTimeRange] = useState<'T' | 'W' | 'M' | '6M' | 'J'>('M');
 
   // Edit mode
   const [isEditMode, setIsEditMode] = useState(false);
@@ -537,6 +605,21 @@ export default function HistoryView() {
 
   // Alle verfügbaren Tags aus Einträgen
   const allTags = [...new Set(entries.flatMap(e => e.tags ?? []))];
+
+  // Multiselect-Blöcke aus allen Templates (für Dashboard-PDF-Export)
+  const availableMultiselects = useMemo(() => {
+    const seen = new Set<string>();
+    const result: { id: string; label: string }[] = [];
+    for (const template of templates) {
+      for (const block of template.blocks) {
+        if (block.type === 'multiselect' && !seen.has(block.id)) {
+          seen.add(block.id);
+          result.push({ id: block.id, label: block.label });
+        }
+      }
+    }
+    return result;
+  }, [templates]);
 
   // Aktive Filter zählen (für Badge)
   const activeFilterCount =
@@ -730,8 +813,77 @@ export default function HistoryView() {
     setSelectedTags([]);
   }
 
-  async function runExport(decryptedData: Map<number, Block[]>, imageSize: ImageSize, password: string) {
+  function deriveChartTimeRange(entries: Entry[], start: string, end: string): 'W' | 'M' | '6M' | 'J' {
+    let days: number;
+    if (start && end) {
+      days = (new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24);
+    } else if (entries.length >= 2) {
+      const timestamps = entries.map(e => new Date(e.timestamp).getTime());
+      days = (Math.max(...timestamps) - Math.min(...timestamps)) / (1000 * 60 * 60 * 24);
+    } else {
+      return 'M';
+    }
+    if (days <= 7) return 'W';
+    if (days <= 31) return 'M';
+    if (days <= 180) return '6M';
+    return 'J';
+  }
+
+  async function runExport(
+    decryptedData: Map<number, Block[]>,
+    imageSize: ImageSize,
+    password: string,
+    layout: PdfLayout,
+    selectedMultis: string[],
+  ) {
     setExportPhase('generating');
+
+    let chartImageUri: string | undefined;
+
+    if (layout === 'dashboard') {
+      // Synthetic unencrypted entries aus bereits entschlüsselten Daten
+      const syntheticEntries = visibleEntries
+        .filter(e => e.id !== undefined && decryptedData.has(e.id!))
+        .map(e => ({ ...e, encrypted: false, data: JSON.stringify(decryptedData.get(e.id!)!) }));
+
+      const painData = await extractPainData(syntheticEntries, templates);
+      const allDaily = aggregatePainByDay(painData);
+      const chartRange = deriveChartTimeRange(visibleEntries, startDate, endDate);
+      const chartNow = endDate ? new Date(endDate) : new Date();
+      const categories = generateCategories(chartRange, chartNow, 0);
+      const aggregated = aggregateDataByTimeRange(allDaily, chartRange);
+
+      const dashTemplates = getDashboardEnabledTemplates(templates);
+      const allTemplateIds = new Set(painData.map(p => p.templateId));
+      const visTemplates = new Set(allTemplateIds);
+      const chartConfig: ChartConfig = {};
+      dashTemplates.forEach(t => {
+        if (t.id) chartConfig[`template_${t.id}_avg`] = { label: t.name, color: t.color ?? '#ef4444' };
+      });
+
+      const series = convertToApexSeries(aggregated, chartConfig, visTemplates);
+      const colors = dashTemplates
+        .filter(t => t.id && allTemplateIds.has(t.id))
+        .map(t => t.color ?? '#ef4444');
+
+      setExportChartSeries(series);
+      setExportChartCategories(categories);
+      setExportChartColors(colors.length > 0 ? colors : ['#ef4444']);
+      setExportChartTimeRange(chartRange);
+      setShowExportChart(true);
+
+      await new Promise(r => setTimeout(r, 900));
+
+      try {
+        chartImageUri = await getChartDataURI(EXPORT_CHART_ID);
+      } catch {
+        await new Promise(r => setTimeout(r, 500));
+        try { chartImageUri = await getChartDataURI(EXPORT_CHART_ID); } catch { /* chart nicht verfügbar */ }
+      }
+
+      setShowExportChart(false);
+    }
+
     try {
       await exportToPDF({
         entries: visibleEntries,
@@ -744,6 +896,9 @@ export default function HistoryView() {
           : undefined,
         imageSize,
         password,
+        layout,
+        selectedMultiselects: selectedMultis,
+        chartImageUri,
       });
       setExportPhase('success');
       setTimeout(() => { setShowPdfDialog(false); setExportPhase('settings'); }, 1500);
@@ -752,9 +907,9 @@ export default function HistoryView() {
     }
   }
 
-  async function handleExportPDF({ imageSize, password }: { imageSize: ImageSize; password: string }) {
+  async function handleExportPDF({ imageSize, password, layout, selectedMultiselects: selectedMultis }: { imageSize: ImageSize; password: string; layout: PdfLayout; selectedMultiselects: string[] }) {
     if (visibleEntries.length === 0) return;
-    exportOptsRef.current = { imageSize, password };
+    exportOptsRef.current = { imageSize, password, layout, selectedMultiselects: selectedMultis };
     setExportPhase('decrypting');
 
     const decryptedData = new Map<number, Block[]>();
@@ -777,13 +932,13 @@ export default function HistoryView() {
       return;
     }
 
-    await runExport(decryptedData, imageSize, password);
+    await runExport(decryptedData, imageSize, password, layout, selectedMultis);
   }
 
   function handleExportWithout() {
     const opts = exportOptsRef.current;
     if (!opts) return;
-    runExport(exportDecryptedRef.current, opts.imageSize, opts.password);
+    runExport(exportDecryptedRef.current, opts.imageSize, opts.password, opts.layout, opts.selectedMultiselects);
   }
 
   function handleRetryExport() {
@@ -1094,7 +1249,22 @@ export default function HistoryView() {
           skippedCount={exportSkipped}
           onExportWithout={handleExportWithout}
           onRetry={handleRetryExport}
+          availableMultiselects={availableMultiselects}
         />
+      )}
+
+      {/* Verstecktes ApexChart für Dashboard-PDF-Export */}
+      {showExportChart && (
+        <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', width: '800px', height: '350px', visibility: 'hidden' }}>
+          <ApexLineChart
+            chartId={EXPORT_CHART_ID}
+            series={exportChartSeries}
+            categories={exportChartCategories}
+            timeRange={exportChartTimeRange}
+            colors={exportChartColors}
+            height={350}
+          />
+        </div>
       )}
 
       {/* ── Detail-Modal ── */}
