@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import type { Block, BlockValue } from '../types/blocks';
 import type { Template } from '../types/database';
-import db, { createTemplate } from '../db';
+import db, { createTemplate, getTemplates } from '../db';
 import { getEncryptionMode, getSessionKey, refreshSession } from '../utils/auth';
 import { encryptWithKey } from '../utils/crypto';
+import { generateUUID } from '../utils/uuid';
+import { getCloudEncryptionKey } from '../utils/entryEncryption';
 import BlockRenderer from '../components/BlockRenderer';
 import { getIconComponent } from '../utils/iconUtils';
 import { Button } from "@/components/ui/button";
@@ -42,7 +44,7 @@ export default function DiaryView() {
   // Load templates on mount and when returning from editor
   useEffect(() => {
     let cancelled = false;
-    db.templates.orderBy('order').toArray().then(allTemplates => {
+    getTemplates().then(allTemplates => {
       if (!cancelled) setTemplates(allTemplates);
     });
     return () => { cancelled = true; };
@@ -246,7 +248,7 @@ export default function DiaryView() {
   }, []);
 
   async function loadTemplates() {
-    const allTemplates = await db.templates.orderBy('order').toArray();
+    const allTemplates = await getTemplates();
     setTemplates(allTemplates);
   }
 
@@ -437,8 +439,17 @@ export default function DiaryView() {
       
       let data: string;
       let encrypted = false;
-      
-      if (mode !== 'none') {
+
+      // Cloud-DEK hat Vorrang vor der lokalen Passwort-Verschlüsselung (siehe
+      // utils/entryEncryption.ts) — nach der Cloud-Migration sind Bestands-Entries
+      // bereits DEK-verschlüsselt, neue Einträge müssen mit demselben Schlüssel folgen.
+      const cloudKey = await getCloudEncryptionKey();
+
+      if (cloudKey) {
+        const jsonData = JSON.stringify(blocksToSave);
+        data = await encryptWithKey(jsonData, cloudKey);
+        encrypted = true;
+      } else if (mode !== 'none') {
         const key = await getSessionKey();
 
         if (!key) {
@@ -469,9 +480,12 @@ export default function DiaryView() {
         encrypted,
         data,
         tags,
+        syncId: generateUUID(),
+        updatedAt: new Date().toISOString(),
+        deleted: false,
         ...(encrypted ? { encryptionVersion: 2 } : {})
       };
-      
+
       await db.entries.add(entryToSave);
       
       setShowSuccess(true);

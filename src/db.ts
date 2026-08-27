@@ -173,6 +173,41 @@ db.version(20).stores({
   if (fixed > 0) console.log(`✅ DB v20: ${fixed} orphaned encrypted ${fixed === 1 ? 'entry' : 'entries'} repaired`);
 });
 
+// Version 21: Cloud-Sync-Datenmodell — syncId (UUID), updatedAt (ISO), deleted (Tombstone) auf templates+entries
+db.version(21).stores({
+  templates: '++id, name, order, syncId',
+  entries: '++id, templateId, timestamp, encrypted, *tags, syncId',
+  settings: 'key'
+}).upgrade(async tx => {
+  const nowIso = new Date().toISOString();
+
+  const templates = await tx.table('templates').toArray();
+  for (const template of templates) {
+    if (!template.syncId || !template.updatedAt || template.deleted === undefined) {
+      await tx.table('templates').update(template.id, {
+        syncId: template.syncId ?? generateUUID(),
+        updatedAt: template.updatedAt ?? nowIso,
+        deleted: template.deleted ?? false,
+      });
+    }
+  }
+
+  const entries = await tx.table('entries').toArray();
+  for (const entry of entries) {
+    if (!entry.syncId || !entry.updatedAt || entry.deleted === undefined) {
+      const fallbackUpdatedAt = entry.editedAt ??
+        (entry.timestamp instanceof Date ? entry.timestamp.toISOString() : new Date(entry.timestamp).toISOString());
+      await tx.table('entries').update(entry.id, {
+        syncId: entry.syncId ?? generateUUID(),
+        updatedAt: entry.updatedAt ?? fallbackUpdatedAt,
+        deleted: entry.deleted ?? false,
+      });
+    }
+  }
+
+  console.log(`✅ DB v21: ${templates.length} Vorlagen und ${entries.length} Einträge mit syncId/updatedAt/deleted versehen`);
+});
+
 // ========== MIGRATIONS ==========
 
 // Standard-Icons basierend auf Template-Namen - Lucide Icon Names (CamelCase)
@@ -259,9 +294,12 @@ export async function createTemplate(name: string, blocks: Block[] = []): Promis
     blocks,
     tags: [],
     icon: getDefaultIconForTemplate(name),
-    color: DEFAULT_COLORS[order % DEFAULT_COLORS.length]
+    color: DEFAULT_COLORS[order % DEFAULT_COLORS.length],
+    syncId: generateUUID(),
+    updatedAt: new Date().toISOString(),
+    deleted: false
   });
-  
+
   return id as number;
 }
 
@@ -314,16 +352,18 @@ function migrateImageBlocksToTextArea(template: Template): Template {
 }
 
 export async function getTemplates(): Promise<Template[]> {
-  const templates = await db.templates.orderBy('order').toArray();
+  const templates = await db.templates.orderBy('order').filter(t => !t.deleted).toArray();
   return templates.map(migrateImageBlocksToTextArea);
 }
 
 export async function updateTemplate(id: number, changes: Partial<Template>): Promise<void> {
-  await db.templates.update(id, changes);
+  await db.templates.update(id, { ...changes, updatedAt: new Date().toISOString() });
 }
 
+// Soft-Delete (Tombstone) statt Hard-Delete: Datensatz bleibt in der DB, damit Cloud-Sync
+// die Löschung als Tombstone auf andere Geräte propagieren kann.
 export async function deleteTemplate(id: number): Promise<void> {
-  await db.templates.delete(id);
+  await db.templates.update(id, { deleted: true, updatedAt: new Date().toISOString() });
 }
 
 
@@ -349,9 +389,12 @@ export async function createEntry(
     timestamp: new Date(),
     encrypted,
     data,
-    tags
+    tags,
+    syncId: generateUUID(),
+    updatedAt: new Date().toISOString(),
+    deleted: false
   });
-  
+
   return id as number;
 }
 
@@ -360,18 +403,21 @@ export async function getEntries(templateId?: number): Promise<Entry[]> {
     return await db.entries
       .where('templateId')
       .equals(templateId)
+      .filter(e => !e.deleted)
       .reverse()
       .sortBy('timestamp');
   }
-  return await db.entries.orderBy('timestamp').reverse().toArray();
+  return await db.entries.orderBy('timestamp').reverse().filter(e => !e.deleted).toArray();
 }
 
 export async function getEntry(id: number): Promise<Entry | undefined> {
   return await db.entries.get(id);
 }
 
+// Soft-Delete (Tombstone) statt Hard-Delete: Datensatz bleibt in der DB, damit Cloud-Sync
+// die Löschung als Tombstone auf andere Geräte propagieren kann.
 export async function deleteEntry(id: number): Promise<void> {
-  await db.entries.delete(id);
+  await db.entries.update(id, { deleted: true, updatedAt: new Date().toISOString() });
 }
 
 export async function updateEntry(
@@ -381,7 +427,7 @@ export async function updateEntry(
   editedAt: string,
   encryptionVersion?: number
 ): Promise<void> {
-  const changes: Partial<Entry> = { data, encrypted, editedAt };
+  const changes: Partial<Entry> = { data, encrypted, editedAt, updatedAt: editedAt };
   if (encryptionVersion !== undefined) changes.encryptionVersion = encryptionVersion;
   await db.entries.update(id, changes);
 }
@@ -528,7 +574,7 @@ export async function runCryptoMigration(password: string, key: CryptoKey): Prom
 
 // ========== INITIALISIERUNG ==========
 
-export const DB_TARGET_VERSION = 19;
+export const DB_TARGET_VERSION = 21;
 
 export async function getCurrentDBVersion(): Promise<number> {
   return new Promise((resolve) => {

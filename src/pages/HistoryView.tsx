@@ -15,6 +15,7 @@ import type { ChartConfig } from '../utils/apexChartHelpers';
 import { getIconComponent } from '../utils/iconUtils';
 import { encryptWithKey } from '../utils/crypto';
 import { getSessionKey } from '../utils/auth';
+import { getCloudEncryptionKey } from '../utils/entryEncryption';
 import type { Entry, Template } from '../types/database';
 import type { Block, TextAreaBlockValue } from '../types/blocks';
 import { Button } from "@/components/ui/button";
@@ -733,7 +734,15 @@ export default function HistoryView() {
       let data = dataString;
       let encryptionVersion: number | undefined;
 
-      if (selectedEntry.encrypted) {
+      // Cloud-DEK hat Vorrang (siehe utils/entryEncryption.ts) — nach der Cloud-Migration
+      // sind Bestands-Entries bereits DEK-verschlüsselt und müssen es beim Bearbeiten bleiben.
+      const cloudKey = await getCloudEncryptionKey();
+
+      if (cloudKey) {
+        data = await encryptWithKey(dataString, cloudKey);
+        encrypted = true;
+        encryptionVersion = 2;
+      } else if (selectedEntry.encrypted) {
         const key = await getSessionKey();
         if (!key) {
           alert('Session abgelaufen – bitte neu anmelden');

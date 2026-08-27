@@ -9,16 +9,29 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Trash2, Shield, Key, Fingerprint, Info, RotateCcw, Bell, RefreshCw } from 'lucide-react';
+import { AlertCircle, Trash2, Shield, Key, Fingerprint, Info, RotateCcw, Bell, RefreshCw, Cloud } from 'lucide-react';
 import { ManualBackupCard } from '../components/ManualBackupCard';
 import { NotificationSettingsManager } from '../components/NotificationSettingsManager';
 import PageTutorial from '../components/tutorial/PageTutorial';
 import { useTutorial } from '../contexts/TutorialContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import { APP_VERSION } from '../utils/version';
+import BackupCodeReveal from '../components/cloud/BackupCodeReveal';
+import {
+  isCloudSyncEnabled,
+  getCloudUsername,
+  unlinkCloudDevice,
+  logoutFromCloud,
+  rotateBackupCode as rotateCloudBackupCode,
+} from '../services/cloudAuthService';
+import { runSync } from '../services/syncService';
 
 export default function SettingsView() {
-  const { goHome: onBack } = useNavigation();
+  const { goHome: onBack, navigate } = useNavigation();
+  const [cloudLinked, setCloudLinked] = useState(false);
+  const [cloudUsername, setCloudUsername] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [rotatedBackupCode, setRotatedBackupCode] = useState<string | null>(null);
   const { resetTutorials } = useTutorial();
   const [currentMode, setCurrentMode] = useState<EncryptionMode>('none');
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
@@ -100,11 +113,52 @@ export default function SettingsView() {
       
       const debugMode = localStorage.getItem('debugEnabled');
       setDebugEnabled(debugMode === 'true');
+
+      const cloudEnabled = await isCloudSyncEnabled();
+      setCloudLinked(cloudEnabled);
+      setCloudUsername(cloudEnabled ? await getCloudUsername() : null);
     } catch (error) {
       console.error('Fehler beim Laden der Settings:', error);
     } finally {
       setIsLoading(false);
     }
+  }
+
+  async function handleSyncNow() {
+    setIsSyncing(true);
+    try {
+      const outcome = await runSync();
+      if (outcome.ok) {
+        alert(`Synchronisiert! ${outcome.pushed} hochgeladen, ${outcome.pulled} empfangen.`);
+      } else if (outcome.error === 'no-session') {
+        alert('Cloud-Session abgelaufen. Bitte App neu laden und mit Face ID entsperren.');
+      } else {
+        alert(`Sync fehlgeschlagen: ${outcome.error ?? 'Unbekannter Fehler'}`);
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  }
+
+  async function handleRotateBackupCode() {
+    try {
+      const { backupCode } = await rotateCloudBackupCode();
+      setRotatedBackupCode(backupCode);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Backup-Code-Rotation fehlgeschlagen.');
+    }
+  }
+
+  async function handleUnlinkDevice() {
+    const confirmed = window.confirm(
+      'Dieses Gerät wird von der Cloud getrennt. Deine Daten bleiben lokal und im Cloud-Account ' +
+      'erhalten — du kannst dich jederzeit erneut anmelden. Fortfahren?'
+    );
+    if (!confirmed) return;
+    await logoutFromCloud();
+    await unlinkCloudDevice();
+    setCloudLinked(false);
+    setCloudUsername(null);
   }
 
   async function handleModeChange(newMode: EncryptionMode) {
@@ -423,6 +477,56 @@ export default function SettingsView() {
                 {currentMode === 'full' && 'App-Start erfordert Passwort, alle Daten verschlüsselt'}
               </p>
             </div>
+          </Card>
+
+          {/* Cloud-Sync */}
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Cloud size={20} className="text-primary" />
+              <h3 className="text-lg font-semibold">Cloud-Sync</h3>
+            </div>
+
+            {cloudLinked ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Dieses Gerät ist verknüpft als <strong>{cloudUsername}</strong>.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={handleSyncNow} disabled={isSyncing}>
+                    <RefreshCw size={14} className={`mr-1.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                    {isSyncing ? 'Synchronisiere…' : 'Jetzt synchronisieren'}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleRotateBackupCode}>
+                    Neuen Backup-Code erzeugen
+                  </Button>
+                </div>
+
+                {rotatedBackupCode && (
+                  <BackupCodeReveal
+                    code={rotatedBackupCode}
+                    onConfirmed={() => setRotatedBackupCode(null)}
+                    confirmLabel="Fertig"
+                  />
+                )}
+
+                <Separator />
+
+                <Button variant="destructive" size="sm" onClick={handleUnlinkDevice}>
+                  Dieses Gerät von der Cloud trennen
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Noch nicht eingerichtet — synchronisiere deine Daten Ende-zu-Ende-verschlüsselt
+                  über mehrere Geräte hinweg, abgesichert per Face ID.
+                </p>
+                <Button size="sm" onClick={() => navigate('cloudSetup')}>
+                  <Cloud size={14} className="mr-1.5" />
+                  Cloud-Sync einrichten
+                </Button>
+              </div>
+            )}
           </Card>
 
           {/* Passwort */}
