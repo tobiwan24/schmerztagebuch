@@ -14,7 +14,7 @@ import { getSetting, setSetting } from '../db';
 import {
   generateDEK, exportDEKRaw, importDEKRaw,
   deriveKekFromPrf, deriveBackupAuthVerifier, deriveKekFromBackupCode,
-  wrapDEK, unwrapDEK, generateKdfSalt, generateBackupCode,
+  wrapDEK, unwrapDEK, generateBackupCode,
 } from '../utils/keyManagement';
 import { registerPasskeyWithPrf, authenticatePasskeyWithPrf } from '../utils/webauthnPrf';
 import * as api from './cloudSyncApi';
@@ -105,13 +105,21 @@ export function clearCloudSession(): void {
 
 export interface RegisterAccountResult {
   dek: CryptoKey;
+  /**
+   * Server-seitig bei Registrierung erzeugter kdf_salt (siehe register-verify-Response,
+   * routes/auth.ts). Muss unverändert an generateAndRegisterBackupCode() durchgereicht
+   * werden — GET /api/auth/salt liefert später (Recovery, Rotation) exakt diesen Wert
+   * zurück, ein hier stattdessen clientseitig neu generierter Salt würde bei der
+   * Backup-Code-Ableitung dauerhaft vom Server-Wert abweichen und Recovery unmöglich machen.
+   */
+  kdfSalt: string;
 }
 
 /**
  * Schritt 1: Passkey-Registrierung + DEK-Erzeugung + Wrapping mit KEK_passkey.
  * Setzt die Cloud-Session, damit die App sofort mit dem DEK weiterarbeiten kann.
  * Der Backup-Code (Pflichtschritt, kein Überspringen) folgt separat über
- * generateAndRegisterBackupCode().
+ * generateAndRegisterBackupCode() — mit dem hier zurückgegebenen kdfSalt.
  */
 export async function registerAccount(username: string): Promise<RegisterAccountResult> {
   const optionsJSON = await api.getRegistrationOptions(username);
@@ -128,12 +136,34 @@ export async function registerAccount(username: string): Promise<RegisterAccount
   const kek = await deriveKekFromPrf(prfOutput);
   const wrappedDekPasskey = await wrapDEK(dek, kek);
 
-  await api.verifyRegistration(username, response, wrappedDekPasskey);
+  const { kdf_salt: kdfSalt } = await api.verifyRegistration(username, response, wrappedDekPasskey);
 
   await setCloudLinked(username);
   await setCloudSession(dek);
 
-  return { dek };
+  return { dek, kdfSalt };
+}
+
+/**
+ * Pflichtschritt nach Backup-Code-Recovery (Spec: "App fordert danach aktiv (a) neuen
+ * Passkey auf diesem Gerät registrieren"). Fügt dem BEREITS eingeloggten Account einen
+ * weiteren Passkey hinzu — im Unterschied zu registerAccount() wird KEIN neuer User
+ * angelegt (der User existiert schon; register-verify würde mit 409 ablehnen).
+ */
+export async function addPasskeyToCurrentAccount(dek: CryptoKey): Promise<void> {
+  const optionsJSON = await api.getAddCredentialOptions();
+  const { response, prfOutput } = await registerPasskeyWithPrf(optionsJSON);
+
+  if (!prfOutput) {
+    throw new Error(
+      'Der Passkey liefert kein PRF-Ergebnis. Bitte Face ID/iCloud-Schlüsselbund als Plattform-' +
+      'Passkey verwenden.'
+    );
+  }
+
+  const kek = await deriveKekFromPrf(prfOutput);
+  const wrappedDekPasskey = await wrapDEK(dek, kek);
+  await api.verifyAddCredential(response, wrappedDekPasskey);
 }
 
 export interface BackupCodeSetupResult {
@@ -143,11 +173,11 @@ export interface BackupCodeSetupResult {
 
 /**
  * Schritt 2 (Pflicht, direkt nach Passkey-Registrierung, kein Überspringen möglich):
- * Backup-Code generieren, authVerifier + wrapped_dek_backup + kdf_salt an den Server übertragen.
+ * Backup-Code generieren, authVerifier + wrapped_dek_backup an den Server übertragen.
+ * `kdfSalt` MUSS der server-seitig erzeugte Wert aus registerAccount() sein (siehe dort).
  */
-export async function generateAndRegisterBackupCode(dek: CryptoKey): Promise<BackupCodeSetupResult> {
+export async function generateAndRegisterBackupCode(dek: CryptoKey, kdfSalt: string): Promise<BackupCodeSetupResult> {
   const backupCode = generateBackupCode();
-  const kdfSalt = generateKdfSalt();
 
   const authVerifier = await deriveBackupAuthVerifier(backupCode, kdfSalt);
   const kekBackup = await deriveKekFromBackupCode(backupCode, kdfSalt);

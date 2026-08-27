@@ -19,6 +19,8 @@ import {
   registerAccount,
   generateAndRegisterBackupCode,
   recoverWithBackupCode,
+  addPasskeyToCurrentAccount,
+  rotateBackupCode,
 } from '../services/cloudAuthService';
 import { migrateLocalEntriesToCloud, type MigrationProgress } from '../services/cloudMigrationService';
 import { runInitialSync } from '../services/syncService';
@@ -57,9 +59,9 @@ export default function CloudSyncSetup() {
     setError('');
     setIsLoading(true);
     try {
-      const { dek: newDek } = await registerAccount(username.trim());
+      const { dek: newDek, kdfSalt } = await registerAccount(username.trim());
       setDek(newDek);
-      const { backupCode: code } = await generateAndRegisterBackupCode(newDek);
+      const { backupCode: code } = await generateAndRegisterBackupCode(newDek, kdfSalt);
       setBackupCode(code);
       await requestPersistentStorage();
       setMode('register-backupcode');
@@ -111,8 +113,10 @@ export default function CloudSyncSetup() {
     setIsLoading(true);
     try {
       // Pflicht nach Recovery (Spec: "App fordert danach aktiv (a) neuen Passkey ... (b) neuen Backup-Code").
-      await registerAccount(username.trim());
-      const { backupCode: code } = await generateAndRegisterBackupCode(dek);
+      // Der User existiert bereits (aus der Recovery-Session) — addPasskeyToCurrentAccount()
+      // fügt nur eine weitere Credential hinzu, statt einen neuen Account anzulegen.
+      await addPasskeyToCurrentAccount(dek);
+      const { backupCode: code } = await rotateBackupCode();
       setBackupCode(code);
       setMode('recover-newbackupcode');
     } catch (err) {

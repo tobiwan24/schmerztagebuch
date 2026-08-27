@@ -111,6 +111,68 @@ export function registerAuthRoutes(app: FastifyInstance): void {
     return reply.send({ userId: user.id, username: user.username, kdf_salt: user.kdf_salt });
   });
 
+  // POST /api/auth/webauthn/add-credential-options -> Registrierungs-Challenge für einen
+  // ZUSÄTZLICHEN Passkey auf einem bereits authentifizierten Account (Pflichtschritt nach
+  // Backup-Code-Recovery, siehe Spec "Backup-Code-Wiederherstellung" Schritt 5a: "neuen
+  // Passkey auf diesem Gerät registrieren"). Im Unterschied zu register-options/-verify
+  // wird hier KEIN neuer User angelegt, sondern nur eine weitere Zeile in `credentials`
+  // für request.userId. Nicht in der Spec einzeln benannt, aber technisch zwingend, da
+  // register-verify für einen bereits existierenden Username sonst 409 zurückgibt.
+  app.post('/api/auth/webauthn/add-credential-options', { preHandler: requireAuth }, async (request, reply) => {
+    const user = findUserById(request.userId!);
+    if (!user) {
+      return reply.code(401).send({ error: 'unauthorized' });
+    }
+    const options = await buildRegistrationOptions(user.username);
+    return reply.send(options);
+  });
+
+  // POST /api/auth/webauthn/add-credential-verify { response, wrapped_dek_passkey, device_label? }
+  // -> legt eine weitere credentials-Zeile für den aktuell eingeloggten User an.
+  app.post<{
+    Body: {
+      response?: RegistrationResponseJSON;
+      wrapped_dek_passkey?: string;
+      device_label?: string;
+    };
+  }>(
+    '/api/auth/webauthn/add-credential-verify',
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const user = findUserById(request.userId!);
+      if (!user) {
+        return reply.code(401).send({ error: 'unauthorized' });
+      }
+      const { response, wrapped_dek_passkey, device_label } = request.body ?? {};
+      if (!response || !wrapped_dek_passkey) {
+        return reply.code(400).send({ error: 'invalid_request' });
+      }
+
+      let verification;
+      try {
+        verification = await verifyRegistration(user.username, response);
+      } catch (err) {
+        request.log.warn({ err }, 'webauthn add-credential verification failed');
+        return reply.code(400).send({ error: 'verification_failed' });
+      }
+      if (!verification.verified || !verification.registrationInfo) {
+        return reply.code(400).send({ error: 'verification_failed' });
+      }
+
+      const { credential } = verification.registrationInfo;
+      createCredential({
+        userId: user.id,
+        credentialId: credential.id,
+        publicKey: Buffer.from(credential.publicKey),
+        signCount: credential.counter,
+        wrappedDekPasskey: wrapped_dek_passkey,
+        deviceLabel: device_label,
+      });
+
+      return reply.send({ ok: true });
+    },
+  );
+
   // POST /api/auth/backup-code/init { authVerifier, wrapped_dek_backup } -> speichert backup_auth_hash + wrapped_dek_backup
   app.post<{ Body: { authVerifier?: string; wrapped_dek_backup?: string } }>(
     '/api/auth/backup-code/init',

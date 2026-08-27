@@ -68,10 +68,28 @@ export async function verifyRegistration(
   username: string,
   response: RegistrationResponseJSON,
   wrappedDekPasskey: string
-): Promise<{ userId: string; username: string }> {
+): Promise<{ userId: string; username: string; kdf_salt: string }> {
   return apiFetch('/auth/webauthn/register-verify', {
     method: 'POST',
     body: JSON.stringify({ username, response, wrapped_dek_passkey: wrappedDekPasskey }),
+  });
+}
+
+/**
+ * Fügt dem bereits eingeloggten Account einen weiteren Passkey hinzu (kein neuer User) —
+ * Pflichtschritt nach Backup-Code-Recovery (Spec: "neuen Passkey auf diesem Gerät registrieren").
+ */
+export async function getAddCredentialOptions(): Promise<PublicKeyCredentialCreationOptionsJSON> {
+  return apiFetch('/auth/webauthn/add-credential-options', { method: 'POST' });
+}
+
+export async function verifyAddCredential(
+  response: RegistrationResponseJSON,
+  wrappedDekPasskey: string
+): Promise<void> {
+  await apiFetch('/auth/webauthn/add-credential-verify', {
+    method: 'POST',
+    body: JSON.stringify({ response, wrapped_dek_passkey: wrappedDekPasskey }),
   });
 }
 
