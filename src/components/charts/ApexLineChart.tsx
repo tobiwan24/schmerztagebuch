@@ -17,6 +17,7 @@ interface ApexLineChartProps {
   visibleTemplates?: Set<number>;
   dashboardTemplates?: Array<{ id?: number; name: string }>;
   functionSeries?: { name: string; data: { x: number; y: number }[] }[];
+  chartId?: string;
 }
 
 export const ApexLineChart: React.FC<ApexLineChartProps> = ({
@@ -29,6 +30,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
   visibleTemplates = new Set(),
   dashboardTemplates = [],
   functionSeries,
+  chartId = 'pain-chart-poc',
 }) => {
   const [isDarkMode, setIsDarkMode] = useState(
     () => document.documentElement.classList.contains('dark')
@@ -100,7 +102,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
 
     return {
       chart: {
-        id: 'pain-chart-poc',
+        id: chartId,
         type: 'line',
         height,
         toolbar: { show: false },

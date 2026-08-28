@@ -7,8 +7,10 @@ import EditorMode from './pages/EditorMode';
 import HistoryView from './pages/HistoryView';
 import DashboardView from './pages/DashboardView';
 import AuthModal from './components/AuthModal';
+import CloudUnlockModal from './components/CloudUnlockModal';
 import DebugPanel from './components/DebugPanel';
 import SettingsView from './pages/SettingsView';
+import CloudSyncSetup from './pages/CloudSyncSetup';
 import InstallPrompt from './components/InstallPrompt';
 import UpdateBanner from './components/UpdateBanner';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -85,6 +87,15 @@ function AppInner() {
     );
   }
 
+  if (currentView === 'cloudSetup') {
+    return (
+      <>
+        <ErrorBoundary><CloudSyncSetup /></ErrorBoundary>
+        {debugEnabled && <DebugPanel />}
+      </>
+    );
+  }
+
   if (currentView === 'dashboard') {
     return (
       <>
@@ -117,11 +128,18 @@ function AppInner() {
   );
 }
 
+function CloudUnlockGate() {
+  const { showCloudUnlockModal, handleCloudUnlock, handleDismissCloudUnlock } = useNavigation();
+  if (!showCloudUnlockModal) return null;
+  return <CloudUnlockModal onUnlock={handleCloudUnlock} onCancel={handleDismissCloudUnlock} />;
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
       <NavigationProvider>
         <AppInner />
+        <CloudUnlockGate />
         <UpdateBanner />
       </NavigationProvider>
     </ErrorBoundary>

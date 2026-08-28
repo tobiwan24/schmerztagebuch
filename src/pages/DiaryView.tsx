@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import type { Block, BlockValue } from '../types/blocks';
 import type { Template } from '../types/database';
-import db, { createTemplate } from '../db';
+import db, { createTemplate, getTemplates } from '../db';
 import { getEncryptionMode, getSessionKey, refreshSession } from '../utils/auth';
 import { encryptWithKey } from '../utils/crypto';
+import { generateUUID } from '../utils/uuid';
+import { getCloudEncryptionKey } from '../utils/entryEncryption';
 import BlockRenderer from '../components/BlockRenderer';
 import { getIconComponent } from '../utils/iconUtils';
 import { Button } from "@/components/ui/button";
@@ -19,7 +21,6 @@ export default function DiaryView() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [currentBlocks, setCurrentBlocks] = useState<Block[]>([]);
-  const [originalBlocks, setOriginalBlocks] = useState<Block[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -43,7 +44,7 @@ export default function DiaryView() {
   // Load templates on mount and when returning from editor
   useEffect(() => {
     let cancelled = false;
-    db.templates.orderBy('order').toArray().then(allTemplates => {
+    getTemplates().then(allTemplates => {
       if (!cancelled) setTemplates(allTemplates);
     });
     return () => { cancelled = true; };
@@ -68,28 +69,12 @@ export default function DiaryView() {
     if (templates.length > 0 && activeTabIndex < templates.length) {
       const newBlocks = JSON.parse(JSON.stringify(templates[activeTabIndex].blocks));
       setCurrentBlocks(newBlocks);
-      setOriginalBlocks(newBlocks);
       setHasUnsavedChanges(false);
       setShowPersonalizeBtn(false);
       setIsHidingBtn(false);
       accumulatedDeltaRef.current = 0;
     }
   }, [activeTabIndex, templates]);
-
-  // Detect unsaved changes
-  useEffect(() => {
-    const hasChanges = currentBlocks.some(block => {
-      const original = originalBlocks.find(b => b.id === block.id);
-      if (!original) return false;
-      
-      if (block.value === undefined || block.value === null || block.value === '') return false;
-      if (Array.isArray(block.value) && block.value.length === 0) return false;
-      
-      return JSON.stringify(block.value) !== JSON.stringify(original.value);
-    });
-    
-    setHasUnsavedChanges(hasChanges);
-  }, [currentBlocks, originalBlocks]);
 
   // Pull-to-Reveal Logic
   useLayoutEffect(() => {
@@ -263,7 +248,7 @@ export default function DiaryView() {
   }, []);
 
   async function loadTemplates() {
-    const allTemplates = await db.templates.orderBy('order').toArray();
+    const allTemplates = await getTemplates();
     setTemplates(allTemplates);
   }
 
@@ -288,12 +273,15 @@ export default function DiaryView() {
     }
   }
 
-  function handleBlockChange(blockId: string, value: BlockValue) {
-    setCurrentBlocks(prev => 
-      prev.map(block => 
+  function handleBlockChange(blockId: string, value: BlockValue, isAutoInit?: boolean) {
+    setCurrentBlocks(prev =>
+      prev.map(block =>
         block.id === blockId ? { ...block, value } : block
       )
     );
+    if (!isAutoInit) {
+      setHasUnsavedChanges(true);
+    }
   }
 
   function handleDashboardConfigChange(blockId: string, config: { eventCategory: 'event' | 'doctor'; eventTitle: string }) {
@@ -320,9 +308,8 @@ export default function DiaryView() {
     // Reset DiaryView nach Preset-Speichern
     setFormKey(prev => prev + 1);
     setCurrentBlocks(JSON.parse(JSON.stringify(templates[activeTabIndex].blocks)));
-    setOriginalBlocks(JSON.parse(JSON.stringify(templates[activeTabIndex].blocks)));
     setHasUnsavedChanges(false);
-    
+
     if (contentRef.current) {
       contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -342,6 +329,16 @@ export default function DiaryView() {
           : block
       )
     );
+  }
+
+  function handleNavigateAway(action: () => void) {
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        '⚠️ Du hast ungespeicherte Änderungen!\n\nMöchtest du die Seite wirklich verlassen? Alle Änderungen gehen verloren.'
+      );
+      if (!confirmed) return;
+    }
+    action();
   }
 
   function handleTemplateChange(newIndex: number) {
@@ -442,8 +439,17 @@ export default function DiaryView() {
       
       let data: string;
       let encrypted = false;
-      
-      if (mode !== 'none') {
+
+      // Cloud-DEK hat Vorrang vor der lokalen Passwort-Verschlüsselung (siehe
+      // utils/entryEncryption.ts) — nach der Cloud-Migration sind Bestands-Entries
+      // bereits DEK-verschlüsselt, neue Einträge müssen mit demselben Schlüssel folgen.
+      const cloudKey = await getCloudEncryptionKey();
+
+      if (cloudKey) {
+        const jsonData = JSON.stringify(blocksToSave);
+        data = await encryptWithKey(jsonData, cloudKey);
+        encrypted = true;
+      } else if (mode !== 'none') {
         const key = await getSessionKey();
 
         if (!key) {
@@ -474,9 +480,12 @@ export default function DiaryView() {
         encrypted,
         data,
         tags,
+        syncId: generateUUID(),
+        updatedAt: new Date().toISOString(),
+        deleted: false,
         ...(encrypted ? { encryptionVersion: 2 } : {})
       };
-      
+
       await db.entries.add(entryToSave);
       
       setShowSuccess(true);
@@ -484,9 +493,8 @@ export default function DiaryView() {
       
       setFormKey(prev => prev + 1);
       setCurrentBlocks(JSON.parse(JSON.stringify(templates[activeTabIndex].blocks)));
-      setOriginalBlocks(JSON.parse(JSON.stringify(templates[activeTabIndex].blocks)));
       setHasUnsavedChanges(false);
-      
+
       if (contentRef.current) {
         contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
       }
@@ -567,7 +575,7 @@ export default function DiaryView() {
 
       <div className="fixed top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
-          <button className="floating-btn-glass" onClick={() => goHome()}>
+          <button className="floating-btn-glass" onClick={() => handleNavigateAway(goHome)}>
             <ArrowLeft size={22} />
           </button>
           <h1 className="text-base font-semibold">{activeTemplate?.name || 'Tagebuch'}</h1>
@@ -589,7 +597,7 @@ export default function DiaryView() {
               <BlockRenderer
                 key={block.id}
                 block={block}
-                onChange={(value) => handleBlockChange(block.id, value)}
+                onChange={(value, isAutoInit) => handleBlockChange(block.id, value, isAutoInit)}
                 onDashboardConfigChange={handleDashboardConfigChange}
                 onPresetSaved={handlePresetSaved}
                 onConfigChange={(config) => handleBlockConfigChange(block.id, config)}
@@ -712,13 +720,13 @@ export default function DiaryView() {
               <Button onClick={() => { setShowMenu(false); handlePersonalize(); }} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <Paintbrush size={22} /><span className="font-medium">Seite personalisieren</span>
               </Button>
-              <Button onClick={() => { setShowMenu(false); navigate('history'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+              <Button onClick={() => handleNavigateAway(() => { setShowMenu(false); navigate('history'); })} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <History size={22} /><span className="font-medium">Verlauf anzeigen</span>
               </Button>
-              <Button onClick={() => { setShowMenu(false); navigate('dashboard'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+              <Button onClick={() => handleNavigateAway(() => { setShowMenu(false); navigate('dashboard'); })} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <TrendingUp size={22} /><span className="font-medium">Dashboard</span>
               </Button>
-              <Button onClick={() => { setShowMenu(false); navigate('settings'); }} variant="ghost" className="w-full justify-start gap-3 h-11">
+              <Button onClick={() => handleNavigateAway(() => { setShowMenu(false); navigate('settings'); })} variant="ghost" className="w-full justify-start gap-3 h-11">
                 <Settings size={22} /><span className="font-medium">Einstellungen</span>
               </Button>
             </div>

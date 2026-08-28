@@ -1,0 +1,40 @@
+# Nur für lokalen Test von Phase 1 (Backend-Grundgerüst). Die spätere
+# VM-Deploy-Konfiguration (Bind-Mounts nach /mnt/data/schmerztagebuch/...,
+# finale Caddy-Anbindung, Tailnet-Origin) ist eine separate spätere Phase
+# außerhalb dieses Worktrees (siehe Spec Phase 6).
+#
+# ACHTUNG lokaler Test: Die Session-Cookie ist laut Spec zwingend
+# `Secure` — moderne Browser behandeln `http://localhost` als potenziell
+# vertrauenswürdigen Kontext und akzeptieren Secure-Cookies dort trotzdem
+# (Chrome/Edge). Für den vollständigen Auth-Flow lokal daher am besten über
+# http://localhost:18060 testen, nicht über die LAN-IP.
+services:
+  api:
+    build:
+      context: ./server
+    image: schmerztagebuch-api:local
+    restart: unless-stopped
+    environment:
+      DB_PATH: /data/app.db
+      RP_ID: localhost
+      RP_NAME: Schmerztagebuch
+      ORIGIN: http://localhost:18060
+      SESSION_COOKIE_NAME: stb_session
+    volumes:
+      - api-data:/data
+    expose:
+      - "3000"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    image: schmerztagebuch-web:local
+    restart: unless-stopped
+    ports:
+      - "18060:80"
+    depends_on:
+      - api
+
+volumes:
+  api-data:

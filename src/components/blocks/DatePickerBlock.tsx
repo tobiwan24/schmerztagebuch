@@ -36,7 +36,7 @@ function parseLocalDate(dateStr: string): Date {
 
 interface DatePickerBlockProps {
   block: Block;
-  onChange: (value: string) => void;
+  onChange: (value: string, isAutoInit?: boolean) => void;
   readOnly?: boolean;
   hideLabel?: boolean;
 }
@@ -73,7 +73,7 @@ export default function DatePickerBlock({ block, onChange, readOnly = false, hid
   // Neuer Block: initiale Uhrzeit beim ersten Render automatisch speichern
   useEffect(() => {
     if (isNew) {
-      onChange(JSON.stringify(value));
+      onChange(JSON.stringify(value), true);
     }
     // Nur beim Mount
     // eslint-disable-next-line react-hooks/exhaustive-deps

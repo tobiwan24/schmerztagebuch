@@ -1,0 +1,14 @@
+# Build-Kontext für Dockerfile.web (Vite-PWA) — server/ hat einen eigenen
+# .dockerignore und wird über einen eigenen Build-Context (./server) gebaut,
+# taucht hier also ohnehin nicht auf, wird aber zur Klarheit trotzdem
+# ausgeschlossen.
+node_modules
+dist
+dist-ssr
+server/node_modules
+server/dist
+server/data
+.git
+.claude
+_planning
+*.log

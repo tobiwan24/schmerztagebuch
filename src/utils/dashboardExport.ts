@@ -7,6 +7,7 @@ import db from '../db';
 import { encryptWithKey } from './crypto';
 import { getEncryptionMode, getSessionKey, refreshSession } from './auth';
 import { generateUUID } from './uuid';
+import { getCloudEncryptionKey } from './entryEncryption';
 import type { Block } from '../types/blocks';
 
 const CHART_ID = 'pain-chart-poc';
@@ -76,14 +77,22 @@ export async function saveChartAsEntry(templateId: number, label: string): Promi
   let encrypted = false;
   let encryptionVersion: number | undefined;
 
-  const encMode = await getEncryptionMode();
-  if (encMode === 'full') {
-    const key = await getSessionKey();
-    if (key) {
-      refreshSession();
-      data = await encryptWithKey(data, key);
-      encrypted = true;
-      encryptionVersion = 2;
+  // Cloud-DEK hat Vorrang vor der lokalen Passwort-Verschlüsselung (siehe utils/entryEncryption.ts).
+  const cloudKey = await getCloudEncryptionKey();
+  if (cloudKey) {
+    data = await encryptWithKey(data, cloudKey);
+    encrypted = true;
+    encryptionVersion = 2;
+  } else {
+    const encMode = await getEncryptionMode();
+    if (encMode === 'full') {
+      const key = await getSessionKey();
+      if (key) {
+        refreshSession();
+        data = await encryptWithKey(data, key);
+        encrypted = true;
+        encryptionVersion = 2;
+      }
     }
   }
 
@@ -93,6 +102,9 @@ export async function saveChartAsEntry(templateId: number, label: string): Promi
     encrypted,
     data,
     tags: [],
+    syncId: generateUUID(),
+    updatedAt: new Date().toISOString(),
+    deleted: false,
     ...(encryptionVersion !== undefined ? { encryptionVersion } : {}),
   });
 }
