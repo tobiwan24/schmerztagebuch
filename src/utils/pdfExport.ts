@@ -10,6 +10,7 @@ interface PainPoint {
   comment: string;
   type: 'point' | 'brush';
   path?: { x: number; y: number }[];
+  number: number;
 }
 
 interface BodyMapData {
@@ -25,8 +26,8 @@ async function renderBodyMapToImage(data: BodyMapData): Promise<string> {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
       const ctx = canvas.getContext('2d');
 
       if (!ctx) {
@@ -35,6 +36,9 @@ async function renderBodyMapToImage(data: BodyMapData): Promise<string> {
       }
 
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const cw = canvas.width;
+      const ch = canvas.height;
 
       function getColorForIntensity(intensity: number): string {
         if (intensity <= 3) return '#22c55e';
@@ -45,23 +49,41 @@ async function renderBodyMapToImage(data: BodyMapData): Promise<string> {
 
       data.points.forEach(point => {
         const color = getColorForIntensity(point.intensity);
-        const radius = point.diameter / 2;
+        const px = point.x * cw;
+        const py = point.y * ch;
+        const radius = (point.diameter * cw) / 2;
+        const fontSize = Math.max(12, Math.min(20, radius * 0.9));
 
         if (point.type === 'brush' && point.path && point.path.length > 0) {
-          point.path.forEach(pos => {
-            ctx.beginPath();
-            ctx.arc(pos.x, pos.y, radius, 0, 2 * Math.PI);
-            ctx.fillStyle = color + '60';
-            ctx.fill();
-          });
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(point.path[0].x * cw, point.path[0].y * ch);
+          for (let i = 1; i < point.path.length; i++) {
+            ctx.lineTo(point.path[i].x * cw, point.path[i].y * ch);
+          }
+          ctx.strokeStyle = color + '80';
+          ctx.lineWidth = radius * 2;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+          ctx.restore();
+
+          ctx.fillStyle = 'white';
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 3;
+          ctx.font = `bold ${fontSize}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.strokeText(`#${point.number}`, px, py);
+          ctx.fillText(`#${point.number}`, px, py);
         } else {
           ctx.beginPath();
-          ctx.arc(point.x, point.y, radius + 5, 0, 2 * Math.PI);
+          ctx.arc(px, py, radius + 5, 0, 2 * Math.PI);
           ctx.fillStyle = color + '40';
           ctx.fill();
 
           ctx.beginPath();
-          ctx.arc(point.x, point.y, radius, 0, 2 * Math.PI);
+          ctx.arc(px, py, radius, 0, 2 * Math.PI);
           ctx.fillStyle = color + 'CC';
           ctx.fill();
 
@@ -70,10 +92,13 @@ async function renderBodyMapToImage(data: BodyMapData): Promise<string> {
           ctx.stroke();
 
           ctx.fillStyle = 'white';
-          ctx.font = 'bold 14px sans-serif';
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 3;
+          ctx.font = `bold ${fontSize}px sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(point.intensity.toString(), point.x, point.y);
+          ctx.strokeText(`#${point.number}`, px, py);
+          ctx.fillText(`#${point.number}`, px, py);
         }
       });
 
@@ -86,6 +111,7 @@ async function renderBodyMapToImage(data: BodyMapData): Promise<string> {
 }
 
 export type ImageSize = 'a6' | 'a5' | 'a4' | 'none';
+export type PdfLayout = 'table' | 'cards' | 'dashboard';
 
 const IMAGE_SIZE_MM: Record<Exclude<ImageSize, 'none'>, { w: number; h: number }> = {
   a6: { w: 105, h: 148 },
@@ -96,12 +122,15 @@ const IMAGE_SIZE_MM: Record<Exclude<ImageSize, 'none'>, { w: number; h: number }
 interface PDFExportOptions {
   entries: Entry[];
   templates: Template[];
-  decryptedData: Map<number, Block[]>; // entryId -> decrypted blocks
+  decryptedData: Map<number, Block[]>;
   startDate?: string;
   endDate?: string;
   selectedTemplate?: string;
   imageSize?: ImageSize;
   password?: string;
+  layout?: PdfLayout;
+  selectedMultiselects?: string[];
+  chartImageUri?: string;
 }
 
 interface ImageAttachment {
@@ -181,13 +210,19 @@ interface RowData {
 interface GroupData {
   template: Template | undefined;
   columns: Block[];
+  legacyStart: number; // index ab dem Spalten aus alten Einträgen kommen (Legacy)
   rows: RowData[];
 }
 
 /**
- * Exportiert gefilterte Einträge als PDF im Querformat A4 (Tabellenlayout)
+ * Exportiert gefilterte Einträge als PDF — Layout je nach options.layout
  */
 export async function exportToPDF(options: PDFExportOptions): Promise<void> {
+  const layout = options.layout ?? 'table';
+  if (layout === 'cards') return renderCardsLayout(options);
+  if (layout === 'dashboard') return renderDashboardLayout(options);
+
+  // ── TABLE LAYOUT ─────────────────────────────────────────────────────────
   const {
     entries, templates, decryptedData,
     startDate, endDate, selectedTemplate,
@@ -229,13 +264,29 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
   for (const [templateId, groupEntries] of orderedGroups) {
     const template = templates.find(t => t.id === templateId);
 
-    // Spalten aus Template-Definition (Reihenfolge erhalten), Fallback aus erstem Eintrag
-    let columns: Block[];
-    if (template) {
-      columns = template.blocks;
-    } else {
-      columns = decryptedData.get(groupEntries[0].id!) ?? [];
+    // Haupt-Spalten aus Template (ohne text-Blöcke), Fallback auf ersten Eintrag
+    const mainColumns: Block[] = (template
+      ? template.blocks
+      : (decryptedData.get(groupEntries[0].id!) ?? [])
+    ).filter(b => b.type !== 'text');
+
+    // Legacy-Spalten: in Einträgen vorhanden, aber nicht mehr im Template
+    const knownIds    = new Set(mainColumns.map(b => b.id));
+    const knownLabels = new Set(mainColumns.map(b => b.label));
+    const legacyMap   = new Map<string, Block>(); // label → Block
+    for (const entry of groupEntries) {
+      for (const b of decryptedData.get(entry.id!) ?? []) {
+        if (b.type === 'text') continue;
+        if (knownIds.has(b.id) || knownLabels.has(b.label)) continue;
+        if (!legacyMap.has(b.label)) {
+          legacyMap.set(b.label, b);
+          knownLabels.add(b.label);
+        }
+      }
     }
+    const legacyColumns = Array.from(legacyMap.values());
+    const columns       = [...mainColumns, ...legacyColumns];
+    const legacyStart   = mainColumns.length;
 
     const rows: RowData[] = [];
     for (const entry of groupEntries) {
@@ -247,10 +298,12 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
 
       const cellTexts: string[] = [];
 
-      for (const col of columns) {
-        const block =
-          entryBlocks.find(b => b.id === col.id) ??
-          entryBlocks.find(b => b.label === col.label);
+      for (let ci = 0; ci < columns.length; ci++) {
+        const col      = columns[ci];
+        const isLegacy = ci >= legacyStart;
+        const block    = isLegacy
+          ? entryBlocks.find(b => b.label === col.label)
+          : (entryBlocks.find(b => b.id === col.id) ?? entryBlocks.find(b => b.label === col.label));
 
         if (!block) { cellTexts.push('—'); continue; }
 
@@ -343,7 +396,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
       rows.push({ entry, dateText, cellTexts });
     }
 
-    groups.push({ template, columns, rows });
+    groups.push({ template, columns, legacyStart, rows });
   }
 
   // ── RENDER ──────────────────────────────────────────────────────────────
@@ -430,12 +483,23 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
       doc.text('Datum', margin + 2, yPosition + 5);
 
       let x = margin + dateColW;
-      for (const col of group.columns) {
-        // Trennlinie vor Spalte
+      for (let ci = 0; ci < group.columns.length; ci++) {
+        const col      = group.columns[ci];
+        const isLegacy = ci >= group.legacyStart;
+
+        // Legacy-Spalten: abgedunkelter Header
+        if (isLegacy) {
+          doc.setFillColor(90, 95, 115);
+          doc.rect(x, yPosition, colW, COL_HEADER_H, 'F');
+          doc.setFont('helvetica', 'bolditalic');
+        } else {
+          doc.setFont('helvetica', 'bold');
+        }
+
         doc.setDrawColor(100, 115, 145);
         doc.line(x, yPosition, x, yPosition + COL_HEADER_H);
-        // Label (erste Zeile wenn zu lang)
         const labelLine = doc.splitTextToSize(col.label, colW - 4)[0];
+        doc.setTextColor(255, 255, 255);
         doc.text(labelLine, x + 2, yPosition + 5);
         x += colW;
       }
@@ -600,4 +664,564 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
   // ── SPEICHERN ────────────────────────────────────────────────────────────
   const fileName = `schmerztagebuch_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(fileName);
+}
+
+// ─── Hilfs-Typen für Karten/Dashboard ────────────────────────────────────────
+
+interface CardAttachment {
+  blockLabel: string;
+  imageData: string;
+  type: 'bodymap' | 'image';
+}
+
+// ─── Geteilte PDF-Hilfsfunktionen ─────────────────────────────────────────────
+
+function addPdfHeader(
+  doc: jsPDF,
+  margin: number,
+  pageWidth: number,
+  entries: Entry[],
+  startDate?: string,
+  endDate?: string,
+  selectedTemplate?: string,
+): number {
+  let y = margin;
+  doc.setFontSize(15);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0);
+  doc.text('Schmerztagebuch', margin, y);
+  y += 6;
+
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 100, 100);
+  const createdStr = `Erstellt: ${new Date().toLocaleDateString('de-DE', {
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  })}`;
+  doc.text(createdStr, margin, y);
+
+  const parts: string[] = [];
+  if (selectedTemplate) parts.push(`Template: ${selectedTemplate}`);
+  if (startDate) parts.push(`Von: ${new Date(startDate).toLocaleDateString('de-DE')}`);
+  if (endDate)   parts.push(`Bis: ${new Date(endDate).toLocaleDateString('de-DE')}`);
+  if (parts.length) doc.text(parts.join(' | '), pageWidth - margin, y, { align: 'right' });
+  y += 4;
+
+  doc.text(`${entries.length} Einträge`, margin, y);
+  y += 3.5;
+
+  doc.setDrawColor(180, 180, 190);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 5;
+  return y;
+}
+
+function addPdfFooter(doc: jsPDF, margin: number, pageWidth: number, pageHeight: number) {
+  const totalPages = doc.internal.pages.length - 1;
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(150, 150, 150);
+    doc.text('Schmerztagebuch PWA', margin, pageHeight - 6);
+    doc.text(`Seite ${i} von ${totalPages}`, pageWidth / 2, pageHeight - 6, { align: 'center' });
+  }
+}
+
+// ─── Karten-Layout ────────────────────────────────────────────────────────────
+
+async function renderCardsLayout(options: PDFExportOptions): Promise<void> {
+  const {
+    entries, templates, decryptedData,
+    startDate, endDate, selectedTemplate,
+    imageSize = 'a5', password = '',
+  } = options;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pdfOptions: any = { orientation: 'portrait', unit: 'mm', format: 'a4' };
+  if (password) {
+    pdfOptions.encryption = {
+      userPassword: password,
+      ownerPassword: password + '_owner',
+      userPermissions: ['print', 'copy'],
+    };
+  }
+  const doc      = new jsPDF(pdfOptions);
+  const pageW    = doc.internal.pageSize.getWidth();   // 210 mm
+  const pageH    = doc.internal.pageSize.getHeight();  // 297 mm
+  const mg       = 15;
+  const cW       = pageW - 2 * mg;
+  const FOOTER   = 12;
+  const LABEL_W  = 55; // Label-Spalte
+  const VAL_W    = cW - LABEL_W;
+
+  let y = addPdfHeader(doc, mg, pageW, entries, startDate, endDate, selectedTemplate);
+
+  function guard(needed: number) {
+    if (y + needed > pageH - FOOTER) { doc.addPage(); y = mg; }
+  }
+
+  for (const entry of entries) {
+    if (!entry.id) continue;
+    const blocks   = decryptedData.get(entry.id) ?? [];
+    const template = templates.find(t => t.id === entry.templateId);
+
+    // Karten-Trennlinie + Datum
+    guard(20);
+    doc.setDrawColor(55, 65, 90);
+    doc.setLineWidth(0.5);
+    doc.line(mg, y, pageW - mg, y);
+    y += 4;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(40, 40, 90);
+    doc.text(
+      new Date(entry.timestamp).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }),
+      mg, y,
+    );
+    if (template?.name) {
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(120, 120, 150);
+      doc.text(template.name, pageW - mg, y, { align: 'right' });
+    }
+    y += 6;
+    doc.setLineWidth(0.2);
+    doc.setTextColor(15, 15, 20);
+
+    const cardAttachments: CardAttachment[] = [];
+
+    for (const block of blocks) {
+      if (block.type === 'text') continue;
+
+      // Bodymap: inline rendern
+      if (block.type === 'bodymap' && block.value && typeof block.value === 'string') {
+        guard(10);
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(80, 80, 100);
+        doc.text(block.label + ':', mg, y);
+        y += 4;
+        try {
+          const bData = JSON.parse(block.value);
+          if (bData.image && bData.points) {
+            const rendered = await renderBodyMapToImage(bData);
+            const imgH = 60;
+            const imgW = imgH * 0.75;
+            guard(imgH + 5);
+            doc.addImage(rendered, 'PNG', mg, y, imgW, imgH);
+            y += imgH + 3;
+          }
+        } catch { /* skip */ }
+        continue;
+      }
+
+      // Textarea: Text inline, Anhänge sammeln
+      if (block.type === 'textarea' && block.value && typeof block.value === 'object') {
+        const tv = block.value as TextAreaBlockValue;
+        const text = tv.text?.trim() ?? '';
+        const lines = text ? doc.splitTextToSize(text, VAL_W - 3) : ['—'];
+        guard(Math.max(8, lines.length * 3.8 + 4));
+
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(80, 80, 100);
+        doc.text(block.label + ':', mg, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(15, 15, 20);
+        doc.text(lines, mg + LABEL_W, y);
+        y += Math.max(8, lines.length * 3.8 + 2);
+
+        if (imageSize !== 'none' && tv.attachedFiles) {
+          tv.attachedFiles.forEach(f => {
+            if (f.data) cardAttachments.push({ blockLabel: block.label, imageData: f.data, type: f.type === 'pdf' ? 'bodymap' : 'image' });
+          });
+        }
+        continue;
+      }
+
+      // Alle anderen Blöcke: Label + formatierter Wert
+      const valStr  = formatCellValue(block);
+      const valLines = doc.splitTextToSize(valStr, VAL_W - 3);
+      guard(Math.max(7, valLines.length * 3.8 + 3));
+
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(80, 80, 100);
+      doc.text(block.label + ':', mg, y);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(15, 15, 20);
+      doc.text(valLines, mg + LABEL_W, y);
+      y += Math.max(7, valLines.length * 3.8 + 2);
+    }
+
+    // Anhänge dieser Karte inline
+    for (const att of cardAttachments) {
+      const sizeMM = IMAGE_SIZE_MM[imageSize as Exclude<ImageSize, 'none'>] ?? IMAGE_SIZE_MM['a5'];
+      const maxW   = Math.min(sizeMM.w - 10, cW);
+      const maxH   = Math.min(sizeMM.h - 10, 180);
+      guard(30);
+      try {
+        let imgData = att.imageData;
+        if (!imgData.startsWith('data:')) imgData = `data:image/png;base64,${imgData}`;
+        const img = new Image();
+        img.src = imgData;
+        await new Promise<void>(r => { img.onload = () => r(); img.onerror = () => r(); setTimeout(r, 800); });
+        let iW = maxW, iH = maxH;
+        if (img.width && img.height) {
+          const ar = img.width / img.height;
+          if (ar > maxW / maxH) { iW = maxW; iH = maxW / ar; }
+          else                   { iH = maxH; iW = maxH * ar; }
+        }
+        guard(iH + 8);
+        doc.setFontSize(7);
+        doc.setTextColor(100, 100, 120);
+        doc.text(att.blockLabel, mg, y); y += 3;
+        doc.addImage(imgData, 'PNG', mg, y, iW, iH);
+        y += iH + 4;
+      } catch { /* skip */ }
+    }
+
+    y += 4;
+  }
+
+  addPdfFooter(doc, mg, pageW, pageH);
+  doc.save(`schmerztagebuch_${new Date().toISOString().split('T')[0]}_karten.pdf`);
+}
+
+// ─── Dashboard+Detail-Layout ──────────────────────────────────────────────────
+
+async function renderDashboardLayout(options: PDFExportOptions): Promise<void> {
+  const {
+    entries, templates, decryptedData,
+    startDate, endDate, selectedTemplate,
+    imageSize = 'a5', password = '',
+    selectedMultiselects = [],
+    chartImageUri,
+  } = options;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pdfOptions: any = { orientation: 'portrait', unit: 'mm', format: 'a4' };
+  if (password) {
+    pdfOptions.encryption = {
+      userPassword: password,
+      ownerPassword: password + '_owner',
+      userPermissions: ['print', 'copy'],
+    };
+  }
+  const doc    = new jsPDF(pdfOptions);
+  const pageW  = doc.internal.pageSize.getWidth();
+  const pageH  = doc.internal.pageSize.getHeight();
+  const mg     = 15;
+  const cW     = pageW - 2 * mg;
+  const FOOTER = 12;
+  let y = mg;
+
+  function guard(needed: number) {
+    if (y + needed > pageH - FOOTER) { doc.addPage(); y = mg; }
+  }
+
+  // ── SEITE 1: ZUSAMMENFASSUNG ─────────────────────────────────────────────
+
+  // Titel
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(40, 40, 90);
+  doc.text('Schmerztagebuch — Verlaufsbericht', mg, y);
+  y += 7;
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 100, 130);
+  const infoParts: string[] = [];
+  if (selectedTemplate) infoParts.push(selectedTemplate);
+  if (startDate) infoParts.push(`Von: ${new Date(startDate).toLocaleDateString('de-DE')}`);
+  if (endDate)   infoParts.push(`Bis: ${new Date(endDate).toLocaleDateString('de-DE')}`);
+  infoParts.push(`${entries.length} Einträge`);
+  doc.text(infoParts.join(' · '), mg, y);
+  y += 3;
+
+  doc.setDrawColor(55, 65, 90);
+  doc.setLineWidth(0.6);
+  doc.line(mg, y, pageW - mg, y);
+  y += 6;
+
+  // ── CHART ────────────────────────────────────────────────────────────────
+  if (chartImageUri) {
+    try {
+      const chartH = 65;
+      doc.addImage(chartImageUri, 'PNG', mg, y, cW, chartH);
+      y += chartH + 5;
+    } catch { /* chart nicht verfügbar */ }
+  } else {
+    // Platzhalter wenn kein Chart
+    doc.setFillColor(240, 242, 248);
+    doc.rect(mg, y, cW, 55, 'F');
+    doc.setFontSize(8);
+    doc.setTextColor(140, 145, 170);
+    doc.text('Schmerzdiagramm', mg + cW / 2, y + 28, { align: 'center' });
+    y += 60;
+  }
+
+  // ── STATISTIK ────────────────────────────────────────────────────────────
+  const painValues: number[] = [];
+  for (const entry of entries) {
+    if (!entry.id) continue;
+    const blocks = decryptedData.get(entry.id) ?? [];
+    for (const b of blocks) {
+      if (b.type === 'slider' && b.dashboard?.type === 'pain' && typeof b.value === 'number') {
+        painValues.push(b.value);
+      }
+    }
+  }
+  if (painValues.length > 0) {
+    const avg = (painValues.reduce((a, b) => a + b, 0) / painValues.length).toFixed(1);
+    const min = Math.min(...painValues);
+    const max = Math.max(...painValues);
+
+    doc.setFillColor(245, 246, 252);
+    doc.rect(mg, y, cW, 12, 'F');
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(40, 40, 90);
+    doc.text(`Ø ${avg}`, mg + 4, y + 8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 110);
+    doc.text(`Min: ${min}   Max: ${max}   ${painValues.length} Messung${painValues.length !== 1 ? 'en' : ''}`, mg + 22, y + 8);
+    y += 16;
+  }
+
+  // ── EVENTS + ARZTBESUCHE ─────────────────────────────────────────────────
+  type EventItem = { date: string; title: string; category: 'event' | 'doctor' };
+  const events: EventItem[] = [];
+  for (const entry of entries) {
+    if (!entry.id) continue;
+    const blocks = decryptedData.get(entry.id) ?? [];
+    for (const b of blocks) {
+      if (b.type === 'textarea' && b.value && typeof b.value === 'object') {
+        const tv = b.value as TextAreaBlockValue;
+        const dateStr = new Date(entry.timestamp).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+        (tv.events ?? []).forEach(ev => {
+          events.push({ date: dateStr, title: ev.eventTitle, category: ev.eventCategory });
+        });
+      }
+    }
+  }
+
+  const doctors = events.filter(e => e.category === 'doctor');
+  const general = events.filter(e => e.category === 'event');
+
+  const renderEventList = (label: string, items: EventItem[]) => {
+    if (items.length === 0) return;
+    guard(8 + items.length * 5);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(40, 40, 90);
+    doc.text(label, mg, y); y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 30, 50);
+    items.forEach(ev => {
+      doc.text(`• ${ev.date}  –  ${ev.title}`, mg + 2, y); y += 5;
+    });
+    y += 3;
+  };
+
+  renderEventList('Arztbesuche', doctors);
+  renderEventList('Ereignisse', general);
+
+  // ── MULTISELECT-HÄUFIGKEITEN ─────────────────────────────────────────────
+  if (selectedMultiselects.length > 0) {
+    const allTemplateBlocks = templates.flatMap(t => t.blocks);
+    const selectedBlocks = allTemplateBlocks.filter(b =>
+      b.type === 'multiselect' && selectedMultiselects.includes(b.id)
+    );
+
+    for (const msBlock of selectedBlocks) {
+      // Frequenz berechnen
+      const freq = new Map<string, number>();
+      for (const entry of entries) {
+        if (!entry.id) continue;
+        const blocks = decryptedData.get(entry.id) ?? [];
+        const found = blocks.find(b => b.id === msBlock.id || b.label === msBlock.label);
+        if (found && Array.isArray(found.value)) {
+          (found.value as string[]).forEach(v => freq.set(v, (freq.get(v) ?? 0) + 1));
+        }
+      }
+      if (freq.size === 0) continue;
+
+      const sorted = [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+      const maxCount = sorted[0][1];
+
+      guard(10 + sorted.length * 7);
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(40, 40, 90);
+      doc.text(msBlock.label, mg, y); y += 5;
+
+      const barMaxW = cW - 40;
+      for (const [label, count] of sorted) {
+        const barW = (count / maxCount) * barMaxW;
+        doc.setFillColor(55, 65, 140);
+        doc.rect(mg + 2, y - 3.5, barW, 4, 'F');
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(30, 30, 50);
+        doc.text(`${label} (${count}×)`, mg + barW + 5, y);
+        y += 6;
+      }
+      y += 3;
+    }
+  }
+
+  // ── BODYMAP HEATMAP PLATZHALTER ──────────────────────────────────────────
+  guard(35);
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(40, 40, 90);
+  doc.text('Schmerzlokalisation', mg, y); y += 5;
+  doc.setFillColor(240, 242, 248);
+  doc.rect(mg, y, cW, 28, 'F');
+  doc.setDrawColor(180, 185, 210);
+  doc.setLineWidth(0.3);
+  doc.rect(mg, y, cW, 28);
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(140, 145, 170);
+  doc.text('Bodymap-Heatmap (in Vorbereitung)', mg + cW / 2, y + 16, { align: 'center' });
+  y += 34;
+
+  // ── SEITEN 2+: VOLLSTÄNDIGE EINTRÄGE (Karten) ────────────────────────────
+  doc.addPage();
+  y = mg;
+
+  // Sub-Header
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(40, 40, 90);
+  doc.text('Vollständige Einträge', mg, y); y += 5;
+  doc.setDrawColor(180, 180, 190);
+  doc.setLineWidth(0.3);
+  doc.line(mg, y, pageW - mg, y); y += 5;
+
+  // Karten-Rendering (gleich wie renderCardsLayout)
+  const LABEL_W = 55;
+  const VAL_W   = cW - LABEL_W;
+
+  for (const entry of entries) {
+    if (!entry.id) continue;
+    const blocks   = decryptedData.get(entry.id) ?? [];
+    const template = templates.find(t => t.id === entry.templateId);
+
+    guard(20);
+    doc.setDrawColor(55, 65, 90);
+    doc.setLineWidth(0.5);
+    doc.line(mg, y, pageW - mg, y); y += 4;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(40, 40, 90);
+    doc.text(
+      new Date(entry.timestamp).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }),
+      mg, y,
+    );
+    if (template?.name) {
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(120, 120, 150);
+      doc.text(template.name, pageW - mg, y, { align: 'right' });
+    }
+    y += 6;
+    doc.setLineWidth(0.2);
+    doc.setTextColor(15, 15, 20);
+
+    const cardAttachments: CardAttachment[] = [];
+
+    for (const block of blocks) {
+      if (block.type === 'text') continue;
+
+      if (block.type === 'bodymap' && block.value && typeof block.value === 'string') {
+        guard(10);
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(80, 80, 100);
+        doc.text(block.label + ':', mg, y); y += 4;
+        try {
+          const bData = JSON.parse(block.value);
+          if (bData.image && bData.points) {
+            const rendered = await renderBodyMapToImage(bData);
+            const imgH = 60; const imgW = imgH * 0.75;
+            guard(imgH + 5);
+            doc.addImage(rendered, 'PNG', mg, y, imgW, imgH);
+            y += imgH + 3;
+          }
+        } catch { /* skip */ }
+        continue;
+      }
+
+      if (block.type === 'textarea' && block.value && typeof block.value === 'object') {
+        const tv = block.value as TextAreaBlockValue;
+        const text = tv.text?.trim() ?? '';
+        const lines = text ? doc.splitTextToSize(text, VAL_W - 3) : ['—'];
+        guard(Math.max(8, lines.length * 3.8 + 4));
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(80, 80, 100);
+        doc.text(block.label + ':', mg, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(15, 15, 20);
+        doc.text(lines, mg + LABEL_W, y);
+        y += Math.max(8, lines.length * 3.8 + 2);
+        if (imageSize !== 'none' && tv.attachedFiles) {
+          tv.attachedFiles.forEach(f => {
+            if (f.data) cardAttachments.push({ blockLabel: block.label, imageData: f.data, type: f.type === 'pdf' ? 'bodymap' : 'image' });
+          });
+        }
+        continue;
+      }
+
+      const valStr   = formatCellValue(block);
+      const valLines = doc.splitTextToSize(valStr, VAL_W - 3);
+      guard(Math.max(7, valLines.length * 3.8 + 3));
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(80, 80, 100);
+      doc.text(block.label + ':', mg, y);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(15, 15, 20);
+      doc.text(valLines, mg + LABEL_W, y);
+      y += Math.max(7, valLines.length * 3.8 + 2);
+    }
+
+    for (const att of cardAttachments) {
+      const sizeMM = IMAGE_SIZE_MM[imageSize as Exclude<ImageSize, 'none'>] ?? IMAGE_SIZE_MM['a5'];
+      const maxW = Math.min(sizeMM.w - 10, cW);
+      const maxH = Math.min(sizeMM.h - 10, 180);
+      guard(30);
+      try {
+        let imgData = att.imageData;
+        if (!imgData.startsWith('data:')) imgData = `data:image/png;base64,${imgData}`;
+        const img = new Image();
+        img.src = imgData;
+        await new Promise<void>(r => { img.onload = () => r(); img.onerror = () => r(); setTimeout(r, 800); });
+        let iW = maxW, iH = maxH;
+        if (img.width && img.height) {
+          const ar = img.width / img.height;
+          if (ar > maxW / maxH) { iW = maxW; iH = maxW / ar; }
+          else                   { iH = maxH; iW = maxH * ar; }
+        }
+        guard(iH + 8);
+        doc.setFontSize(7);
+        doc.setTextColor(100, 100, 120);
+        doc.text(att.blockLabel, mg, y); y += 3;
+        doc.addImage(imgData, 'PNG', mg, y, iW, iH);
+        y += iH + 4;
+      } catch { /* skip */ }
+    }
+
+    y += 4;
+  }
+
+  addPdfFooter(doc, mg, pageW, pageH);
+  doc.save(`schmerztagebuch_${new Date().toISOString().split('T')[0]}_bericht.pdf`);
 }
