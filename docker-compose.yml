@@ -32,7 +32,7 @@ services:
     image: schmerztagebuch-web:local
     restart: unless-stopped
     ports:
-      - "18060:80"
+      - "127.0.0.1:18060:80"
     depends_on:
       - api
 
