@@ -161,6 +161,7 @@ async function applyPulledEntries(entries: SyncEntryDTO[]): Promise<void> {
       timestamp: new Date(dto.timestamp),
       encrypted: true,
       encryptionVersion: 2,
+      encryptionSource: 'cloud',
       data: dto.data,
       tags: dto.tags,
       editedAt: dto.editedAt,

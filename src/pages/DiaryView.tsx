@@ -439,6 +439,7 @@ export default function DiaryView() {
       
       let data: string;
       let encrypted = false;
+      let encryptionSource: 'cloud' | 'local' | undefined;
 
       // Cloud-DEK hat Vorrang vor der lokalen Passwort-Verschlüsselung (siehe
       // utils/entryEncryption.ts) — nach der Cloud-Migration sind Bestands-Entries
@@ -449,6 +450,7 @@ export default function DiaryView() {
         const jsonData = JSON.stringify(blocksToSave);
         data = await encryptWithKey(jsonData, cloudKey);
         encrypted = true;
+        encryptionSource = 'cloud';
       } else if (mode !== 'none') {
         const key = await getSessionKey();
 
@@ -463,6 +465,7 @@ export default function DiaryView() {
         const jsonData = JSON.stringify(blocksToSave);
         data = await encryptWithKey(jsonData, key);
         encrypted = true;
+        encryptionSource = 'local';
       } else {
         data = JSON.stringify(blocksToSave);
       }
@@ -483,7 +486,8 @@ export default function DiaryView() {
         syncId: generateUUID(),
         updatedAt: new Date().toISOString(),
         deleted: false,
-        ...(encrypted ? { encryptionVersion: 2 } : {})
+        ...(encrypted ? { encryptionVersion: 2 } : {}),
+        ...(encryptionSource !== undefined ? { encryptionSource } : {})
       };
 
       await db.entries.add(entryToSave);

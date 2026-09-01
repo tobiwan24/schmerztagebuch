@@ -24,6 +24,9 @@ export interface Entry {
   tags?: string[];
   editedAt?: string;  // ISO timestamp der letzten Bearbeitung
   encryptionVersion?: number;  // 2 = v2 (Key-Caching); undefined/1 = v1 (Legacy per-entry PBKDF2)
+  encryptionSource?: 'cloud' | 'local';  // Welcher Schlüssel verschlüsselt hat — Cloud-DEK oder lokales Passwort.
+                                          // undefined = 'local' (Rückwärtskompatibilität, Alt-Einträge vor diesem Feld).
+                                          // Lokale Passwort-Migrationen (db.ts) überspringen 'cloud'-Einträge.
   syncId?: string;     // UUID v4 — geräteübergreifende ID für Cloud-Sync (Server-PK-Bestandteil)
   updatedAt?: string;  // ISO-Timestamp der letzten Änderung — Basis für LWW-Konfliktauflösung
   deleted?: boolean;   // Tombstone (Soft-Delete) — Datensatz bleibt in der DB, damit Löschung sync-fähig ist

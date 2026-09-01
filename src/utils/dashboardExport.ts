@@ -78,6 +78,7 @@ export async function saveChartAsEntry(templateId: number, label: string): Promi
   let data = JSON.stringify([block]);
   let encrypted = false;
   let encryptionVersion: number | undefined;
+  let encryptionSource: 'cloud' | 'local' | undefined;
 
   // Cloud-DEK hat Vorrang vor der lokalen Passwort-Verschlüsselung (siehe utils/entryEncryption.ts).
   const cloudKey = await getCloudEncryptionKey();
@@ -85,6 +86,7 @@ export async function saveChartAsEntry(templateId: number, label: string): Promi
     data = await encryptWithKey(data, cloudKey);
     encrypted = true;
     encryptionVersion = 2;
+    encryptionSource = 'cloud';
   } else {
     const encMode = await getEncryptionMode();
     if (encMode === 'full') {
@@ -94,6 +96,7 @@ export async function saveChartAsEntry(templateId: number, label: string): Promi
         data = await encryptWithKey(data, key);
         encrypted = true;
         encryptionVersion = 2;
+        encryptionSource = 'local';
       }
     }
   }
@@ -108,6 +111,7 @@ export async function saveChartAsEntry(templateId: number, label: string): Promi
     updatedAt: new Date().toISOString(),
     deleted: false,
     ...(encryptionVersion !== undefined ? { encryptionVersion } : {}),
+    ...(encryptionSource !== undefined ? { encryptionSource } : {}),
   });
 }
 

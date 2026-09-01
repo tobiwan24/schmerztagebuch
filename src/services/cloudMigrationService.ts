@@ -64,6 +64,7 @@ export async function migrateLocalEntriesToCloud(
       data: reEncrypted,
       encrypted: true,
       encryptionVersion: 2,
+      encryptionSource: 'cloud',
       updatedAt: new Date().toISOString(),
     });
     migratedCount++;
