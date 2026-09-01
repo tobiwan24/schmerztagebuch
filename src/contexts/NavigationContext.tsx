@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
-import { initializeDB, getAppSettings, getCurrentDBVersion, DB_TARGET_VERSION, getSetting, runCryptoMigration } from '../db';
+import { initializeDB, getAppSettings, getCurrentDBVersion, DB_TARGET_VERSION, getSetting, runCryptoMigration, getTemplates } from '../db';
 import db from '../db';
 import { getEncryptionMode, requiresAuth, checkPassword, setSession, getSessionKey, clearSession, isSessionValid, refreshSession, INACTIVITY_TIMEOUT } from '../utils/auth';
 import type { Template } from '../types/database';
@@ -17,8 +17,10 @@ import {
   initAutoBackupHooks,
 } from '../utils/autoBackup';
 import { initializeNotifications } from '../services/notificationService';
+import { initSyncTriggers, runSync } from '../services/syncService';
+import { isCloudSyncEnabled, isCloudSessionValid, getCloudUsername, loginWithPasskey } from '../services/cloudAuthService';
 
-export type ViewType = 'setup' | 'home' | 'diary' | 'editor' | 'history' | 'settings' | 'dashboard';
+export type ViewType = 'setup' | 'home' | 'diary' | 'editor' | 'history' | 'settings' | 'dashboard' | 'cloudSetup';
 
 interface NavigationContextValue {
   currentView: ViewType;
@@ -33,6 +35,9 @@ interface NavigationContextValue {
   showAuthModal: boolean;
   handleAuthenticate: (password: string) => Promise<boolean>;
   handleCancelAuth: () => void;
+  showCloudUnlockModal: boolean;
+  handleCloudUnlock: () => Promise<boolean>;
+  handleDismissCloudUnlock: () => void;
   templates: Template[];
   reloadTemplates: () => Promise<void>;
   activeTemplateId: number | undefined;
@@ -56,6 +61,7 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
   const [isAppLoading, setIsAppLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showCloudUnlockModal, setShowCloudUnlockModal] = useState(false);
   const [pendingView, setPendingView] = useState<ViewType | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activeTemplateId, setActiveTemplateId] = useState<number | undefined>(undefined);
@@ -80,6 +86,14 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
 
         // Auto-Backup Hooks einmalig registrieren
         initAutoBackupHooks();
+
+        // Cloud-Sync-Trigger einmalig registrieren (visibilitychange/online/debounced writes);
+        // der eigentliche Sync läuft nur, wenn eine gültige Cloud-Session vorliegt (siehe
+        // runSync() in syncService.ts) — für Nutzer ohne Cloud-Sync ist das ein No-Op.
+        initSyncTriggers();
+        if (await isCloudSyncEnabled()) {
+          runSync().catch(err => console.warn('App-Start Cloud-Sync fehlgeschlagen:', err));
+        }
 
         // Notification-Scheduling initialisieren
         await initializeNotifications();
@@ -134,6 +148,12 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
             setShowAuthModal(true);
           } else {
             setCurrentView('home');
+          }
+
+          // Cloud-Sync ist ein unabhängiger, paralleler Schutzmechanismus zur lokalen
+          // Passwort-Verschlüsselung — eigenes Modal, blockiert die lokale Ansicht nicht.
+          if (await isCloudSyncEnabled() && !isCloudSessionValid()) {
+            setShowCloudUnlockModal(true);
           }
         } else {
           setCurrentView('setup');
@@ -202,7 +222,7 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
   }, [currentView]);
 
   const reloadTemplates = useCallback(async () => {
-    const allTemplates = await db.templates.orderBy('order').toArray();
+    const allTemplates = await getTemplates();
     setTemplates(allTemplates);
   }, []);
 
@@ -273,8 +293,29 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
   }, [pendingView]);
 
   const handleCancelAuth = useCallback(() => {
+    // Abbrechen darf niemals zur zuvor angezeigten (geschützten) View zurückführen —
+    // sonst wäre die Sperre nur kosmetisch. Home ist ungeschützt und damit sicher.
     setShowAuthModal(false);
     setPendingView(null);
+    setCurrentView('home');
+  }, []);
+
+  const handleCloudUnlock = useCallback(async (): Promise<boolean> => {
+    const username = await getCloudUsername();
+    if (!username) return false;
+    try {
+      await loginWithPasskey(username);
+      setShowCloudUnlockModal(false);
+      runSync().catch(err => console.warn('Sync nach Cloud-Unlock fehlgeschlagen:', err));
+      return true;
+    } catch (error) {
+      console.error('Cloud-Unlock fehlgeschlagen:', error);
+      return false;
+    }
+  }, []);
+
+  const handleDismissCloudUnlock = useCallback(() => {
+    setShowCloudUnlockModal(false);
   }, []);
 
   return (
@@ -291,6 +332,9 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
       showAuthModal,
       handleAuthenticate,
       handleCancelAuth,
+      showCloudUnlockModal,
+      handleCloudUnlock,
+      handleDismissCloudUnlock,
       templates,
       reloadTemplates,
       activeTemplateId,

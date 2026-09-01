@@ -108,7 +108,7 @@ interface BodyMapData {
 
 interface BodyMapBlockProps {
   block: Block;
-  onChange: (value: string) => void;
+  onChange: (value: string, isAutoInit?: boolean) => void;
   onPresetSaved?: () => void;
   onConfigChange?: (config: { defaultPresetId?: string }) => void;
   readOnly?: boolean;
@@ -156,9 +156,9 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [selectedAspect, setSelectedAspect] = useState<number | undefined>(3 / 4); // Default: 3:4 (Portrait)
 
-  function updateData(newData: BodyMapData) {
+  function updateData(newData: BodyMapData, isAutoInit?: boolean) {
     setData(newData);
-    onChange(JSON.stringify(newData));
+    onChange(JSON.stringify(newData), isAutoInit);
   }
 
   function getColorForIntensity(intensity: number): string {
@@ -270,8 +270,8 @@ export default function BodyMapBlock({ block, onChange, onPresetSaved, onConfigC
           // Default-Preset gefunden → lazy resizen und laden
           const src = preset.imageUrl ?? preset.image;
           resizeAndOptimizeImage(src)
-            .then(resized => updateData({ image: resized, points: [] }))
-            .catch(() => updateData({ image: src, points: [] }));
+            .then(resized => updateData({ image: resized, points: [] }, true))
+            .catch(() => updateData({ image: src, points: [] }, true));
         }
         // Preset gelöscht → Fallback zu normaler Ansicht
       }

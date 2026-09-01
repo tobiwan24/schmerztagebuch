@@ -7,6 +7,7 @@ import { useNavigation } from '../contexts/NavigationContext';
 import { RestoreBackupBanner } from '../components/RestoreBackupBanner';
 import { BackupReminder } from '../components/BackupReminder';
 import { DataProtectionBanner } from '../components/DataProtectionBanner';
+import { CloudSyncBanner } from '../components/CloudSyncBanner';
 
 export default function HomePage() {
   const { templates, selectTemplate, navigate } = useNavigation();
@@ -71,6 +72,7 @@ export default function HomePage() {
       <div className="home-content">
         <RestoreBackupBanner />
         <DataProtectionBanner />
+        <CloudSyncBanner />
         <BackupReminder />
         <header className="home-header">
           <h1 className="home-greeting">

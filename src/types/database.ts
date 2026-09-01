@@ -9,6 +9,9 @@ export interface Template {
   blocks: Block[];
   icon?: string;      // Icon-Name aus Lucide-Bibliothek
   color?: string;     // Hex-Farbcode für Button-Hintergrund
+  syncId?: string;     // UUID v4 — geräteübergreifende ID für Cloud-Sync (Server-PK-Bestandteil)
+  updatedAt?: string;  // ISO-Timestamp der letzten Änderung — Basis für LWW-Konfliktauflösung
+  deleted?: boolean;   // Tombstone (Soft-Delete) — Datensatz bleibt in der DB, damit Löschung sync-fähig ist
 }
 
 // Entry: Ausgefülltes Template (verschlüsselt gespeichert)
@@ -21,6 +24,9 @@ export interface Entry {
   tags?: string[];
   editedAt?: string;  // ISO timestamp der letzten Bearbeitung
   encryptionVersion?: number;  // 2 = v2 (Key-Caching); undefined/1 = v1 (Legacy per-entry PBKDF2)
+  syncId?: string;     // UUID v4 — geräteübergreifende ID für Cloud-Sync (Server-PK-Bestandteil)
+  updatedAt?: string;  // ISO-Timestamp der letzten Änderung — Basis für LWW-Konfliktauflösung
+  deleted?: boolean;   // Tombstone (Soft-Delete) — Datensatz bleibt in der DB, damit Löschung sync-fähig ist
 }
 
 // Settings: App-Konfiguration

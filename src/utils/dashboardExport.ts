@@ -7,19 +7,22 @@ import db from '../db';
 import { encryptWithKey } from './crypto';
 import { getEncryptionMode, getSessionKey, refreshSession } from './auth';
 import { generateUUID } from './uuid';
+import { getCloudEncryptionKey } from './entryEncryption';
 import type { Block } from '../types/blocks';
 
 const CHART_ID = 'pain-chart-poc';
+/** ID der versteckten Chart-Instanz in HistoryView, nur für PDF-Dashboard-Layout-Export (RDM-019). */
+export const EXPORT_CHART_ID = 'pain-chart-export';
 
-async function getChartDataURI(): Promise<string> {
+export async function getChartDataURI(chartId: string = CHART_ID): Promise<string> {
   // WICHTIG: exec(..., opts) via rest-param → {scale:2} direkt übergeben, KEIN Array-Wrapper
   // Array-Wrapper würde options.scale = undefined → scale = NaN → korruptes 300×150-Bild erzeugen
-  const result = await ApexCharts.exec(CHART_ID, 'dataURI', { scale: 2 }) as
+  const result = await ApexCharts.exec(chartId, 'dataURI', { scale: 2 }) as
     | { imgURI: string; blob?: undefined }
     | { blob: Blob; imgURI?: undefined }
     | null;
 
-  if (!result) throw new Error(`Chart-Instanz nicht gefunden (ID: ${CHART_ID})`);
+  if (!result) throw new Error(`Chart-Instanz nicht gefunden (ID: ${chartId})`);
 
   if (result.imgURI) return result.imgURI;
 
@@ -76,14 +79,22 @@ export async function saveChartAsEntry(templateId: number, label: string): Promi
   let encrypted = false;
   let encryptionVersion: number | undefined;
 
-  const encMode = await getEncryptionMode();
-  if (encMode === 'full') {
-    const key = await getSessionKey();
-    if (key) {
-      refreshSession();
-      data = await encryptWithKey(data, key);
-      encrypted = true;
-      encryptionVersion = 2;
+  // Cloud-DEK hat Vorrang vor der lokalen Passwort-Verschlüsselung (siehe utils/entryEncryption.ts).
+  const cloudKey = await getCloudEncryptionKey();
+  if (cloudKey) {
+    data = await encryptWithKey(data, cloudKey);
+    encrypted = true;
+    encryptionVersion = 2;
+  } else {
+    const encMode = await getEncryptionMode();
+    if (encMode === 'full') {
+      const key = await getSessionKey();
+      if (key) {
+        refreshSession();
+        data = await encryptWithKey(data, key);
+        encrypted = true;
+        encryptionVersion = 2;
+      }
     }
   }
 
@@ -93,6 +104,9 @@ export async function saveChartAsEntry(templateId: number, label: string): Promi
     encrypted,
     data,
     tags: [],
+    syncId: generateUUID(),
+    updatedAt: new Date().toISOString(),
+    deleted: false,
     ...(encryptionVersion !== undefined ? { encryptionVersion } : {}),
   });
 }
