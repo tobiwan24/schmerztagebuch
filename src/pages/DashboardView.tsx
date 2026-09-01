@@ -36,6 +36,7 @@ import { useNavigation } from '../contexts/NavigationContext';
 import { getIconComponent } from '../utils/iconUtils';
 import { decryptData, decryptWithKey } from '../utils/crypto';
 import { getSessionPassword, getSessionKey } from '../utils/auth';
+import { getCloudEncryptionKey } from '../utils/entryEncryption';
 import { getISOWeek } from 'date-fns';
 
 // Vordefinierte Farbpalette für Charts (optimiert für Light & Dark Mode)
@@ -159,8 +160,18 @@ function calculateTrendFrom(
 export default function DashboardView() {
   const { goHome: onBack, navigate: onNavigate } = useNavigation();
 
-  // Decrypt function for encrypted entries (v2 zuerst, Fallback auf v1)
+  // Decrypt function for encrypted entries (Cloud-DEK zuerst, dann Session-Key, Fallback auf v1)
   const decryptFn = useCallback(async (data: string): Promise<string> => {
+    // Cloud-DEK hat Vorrang (siehe utils/entryEncryption.ts / hooks/useDecrypt.ts): Cloud-verknüpfte
+    // Geräte entschlüsseln zuerst mit dem DEK, unabhängig von der lokalen Passwort-Session.
+    const cloudKey = await getCloudEncryptionKey();
+    if (cloudKey) {
+      try {
+        return await decryptWithKey(data, cloudKey);
+      } catch {
+        // fällt durch auf den lokalen Entschlüsselungspfad unten
+      }
+    }
     const key = await getSessionKey();
     if (key) {
       try {
