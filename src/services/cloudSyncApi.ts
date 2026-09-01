@@ -187,10 +187,53 @@ export interface SyncPullResult {
   cursor: string;
 }
 
+/**
+ * Wire-Format der "verlierenden" Konflikt-Seite bei einem Push (server/src/services/sync.ts,
+ * `templateRowToRecord`/`entryRowToRecord`). Feldnamen bewusst identisch zum Server gespiegelt —
+ * Achtung: Templates tragen den verschlüsselten Payload hier unter `blocks`, nicht `data` (anders
+ * als `SyncTemplateDTO`, das Feld für Push/Pull von Entries/Templates auf Client-Seite).
+ */
+export interface TemplateSyncRecord {
+  syncId: string;
+  name: string | null;
+  order: number | null;
+  icon: string | null;
+  color: string | null;
+  blocks: string | null;
+  updatedAt: string;
+  deleted: boolean;
+}
+
+export interface EntrySyncRecord {
+  syncId: string;
+  templateSyncId: string | null;
+  timestamp: string | null;
+  editedAt: string | null;
+  tags: string[];
+  encrypted: boolean;
+  data: string | null;
+  updatedAt: string;
+  deleted: boolean;
+}
+
+export interface AppliedRef {
+  type: 'template' | 'entry';
+  syncId: string;
+  serverSeq: number;
+}
+
+export interface ConflictRef {
+  type: 'template' | 'entry';
+  syncId: string;
+  reason: 'stale';
+  /** Die serverseitig gewinnende Version — muss lokal übernommen werden (siehe syncService.ts). */
+  server: TemplateSyncRecord | EntrySyncRecord;
+}
+
 export interface SyncPushResult {
-  applied: string[];
-  conflicts: string[];
-  cursor: string;
+  applied: AppliedRef[];
+  conflicts: ConflictRef[];
+  cursor: number;
 }
 
 export async function pullSync(since: string | null): Promise<SyncPullResult> {

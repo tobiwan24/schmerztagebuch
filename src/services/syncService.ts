@@ -13,7 +13,12 @@ import type { Template, Entry } from '../types/database';
 import { encryptWithKey, decryptWithKey } from '../utils/crypto';
 import { getCloudSessionDEK, isCloudSyncEnabled } from './cloudAuthService';
 import { pullSync, pushSync, CloudApiError } from './cloudSyncApi';
-import type { SyncTemplateDTO, SyncEntryDTO } from './cloudSyncApi';
+import type {
+  SyncTemplateDTO,
+  SyncEntryDTO,
+  TemplateSyncRecord,
+  EntrySyncRecord,
+} from './cloudSyncApi';
 
 const CURSOR_KEY = 'cloudSyncCursor';
 const DEBOUNCE_MS = 3000;
@@ -172,6 +177,40 @@ async function applyPulledEntries(entries: SyncEntryDTO[]): Promise<void> {
   }
 }
 
+// ── Push-Konflikte: gewinnende Server-Version zurückspielen ────────────────
+//
+// Bei einem Push-Konflikt (clientWins === false) gewinnt die bereits auf dem Server
+// gespeicherte Version. Da sich `server_seq` dabei nicht ändert, würde `pull()` diesen
+// Datensatz nie liefern (Cursor kennt den Wert schon) — die gewinnende Version muss daher
+// explizit aus `conflicts[].server` übernommen werden, über denselben Apply-Pfad wie ein
+// normaler Pull-Record (LWW-Vergleich inklusive).
+
+function conflictTemplateToDTO(rec: TemplateSyncRecord): SyncTemplateDTO {
+  return {
+    syncId: rec.syncId,
+    name: rec.name ?? '',
+    order: rec.order ?? 0,
+    icon: rec.icon ?? undefined,
+    color: rec.color ?? undefined,
+    data: rec.blocks ?? '', // Server-Feldname für Templates ist `blocks`, nicht `data`
+    updatedAt: rec.updatedAt,
+    deleted: rec.deleted,
+  };
+}
+
+function conflictEntryToDTO(rec: EntrySyncRecord): SyncEntryDTO {
+  return {
+    syncId: rec.syncId,
+    templateSyncId: rec.templateSyncId ?? '',
+    timestamp: rec.timestamp ?? '',
+    editedAt: rec.editedAt ?? undefined,
+    tags: rec.tags,
+    data: rec.data ?? '',
+    updatedAt: rec.updatedAt,
+    deleted: rec.deleted,
+  };
+}
+
 // ── Orchestrierung ───────────────────────────────────────────────────────────
 
 /** Führt einen Push-then-Pull-Zyklus aus. Läuft niemals parallel zu sich selbst (dedupliziert laufende Aufrufe). */
@@ -188,6 +227,17 @@ export async function runSync(): Promise<SyncOutcome> {
 
       const { templates, entries } = await buildPushPayload(dek);
       const pushResult = await pushSync(templates, entries);
+
+      // Verlorene LWW-Konflikte lokal zurückspielen, BEVOR der nächste Pull läuft (Bug #3):
+      // sonst bleibt die unterlegene, lokale Alt-Version dauerhaft bestehen.
+      const conflictTemplates: SyncTemplateDTO[] = [];
+      const conflictEntries: SyncEntryDTO[] = [];
+      for (const c of pushResult.conflicts) {
+        if (c.type === 'template') conflictTemplates.push(conflictTemplateToDTO(c.server as TemplateSyncRecord));
+        else conflictEntries.push(conflictEntryToDTO(c.server as EntrySyncRecord));
+      }
+      await applyPulledTemplates(conflictTemplates, dek);
+      await applyPulledEntries(conflictEntries);
 
       const cursor = await getCursor();
       const pullResult = await pullSync(cursor);
