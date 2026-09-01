@@ -110,6 +110,6 @@ export function buildExportFilename(
   ext: 'png' | 'pdf'
 ): string {
   const date = new Date().toISOString().slice(0, 10);
-  const safe = timeRangeLabel.replace(/[^a-zA-Z0-9äöüÄÖÜ\-]/g, '_').toLowerCase();
+  const safe = timeRangeLabel.replace(/[^a-zA-Z0-9äöüÄÖÜ-]/g, '_').toLowerCase();
   return `${prefix}-${date}-${safe}.${ext}`;
 }

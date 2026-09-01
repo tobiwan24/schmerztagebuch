@@ -1,26 +1,5 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
-
-export type TutorialPage = 'home' | 'diary' | 'editor' | 'dashboard' | 'history' | 'settings';
-
-interface TutorialState {
-  globalDisabled: boolean;
-  /** Seiten, für die das Tutorial abgeschlossen / übersprungen wurde */
-  donepages: Partial<Record<TutorialPage, boolean>>;
-}
-
-interface TutorialContextType {
-  state: TutorialState;
-  /** Gibt true zurück wenn das Tutorial für diese Seite fertig ist */
-  isPageTutorialDone: (page: TutorialPage) => boolean;
-  /** Markiert das Tutorial einer Seite als abgeschlossen */
-  markPageTutorialDone: (page: TutorialPage) => void;
-  /** Überspringt nur diese Seite */
-  dismissPage: (page: TutorialPage) => void;
-  /** Überspringt alle Seiten global */
-  dismissGlobally: () => void;
-  /** Setzt alles zurück */
-  resetTutorials: () => void;
-}
+import { useState, useCallback, useEffect, type ReactNode } from 'react';
+import { TutorialContext, type TutorialState, type TutorialPage } from './useTutorial';
 
 const STORAGE_KEY = 'tutorial_state_v2';
 
@@ -51,8 +30,6 @@ function saveState(state: TutorialState): void {
     // ignore
   }
 }
-
-const TutorialContext = createContext<TutorialContextType | null>(null);
 
 export function TutorialProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<TutorialState>(() => loadState());
@@ -105,10 +82,4 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       {children}
     </TutorialContext.Provider>
   );
-}
-
-export function useTutorial(): TutorialContextType {
-  const ctx = useContext(TutorialContext);
-  if (!ctx) throw new Error('useTutorial must be used within TutorialProvider');
-  return ctx;
 }

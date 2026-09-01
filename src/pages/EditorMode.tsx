@@ -201,7 +201,6 @@ export default function EditorMode() {
     setEditingBlocks(editingBlocks.filter(b => b.id !== blockId));
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handleBlockChange(_value: BlockValue) {
     // Editor ändert nur Struktur, nicht Werte
   }

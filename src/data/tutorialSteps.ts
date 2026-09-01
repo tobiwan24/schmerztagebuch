@@ -1,4 +1,4 @@
-import type { TutorialPage } from '../contexts/TutorialContext';
+import type { TutorialPage } from '../contexts/useTutorial';
 
 export type TutorialStepType = 'spotlight' | 'banner';
 
