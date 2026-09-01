@@ -3,7 +3,7 @@
 
 import ApexCharts from 'apexcharts';
 import jsPDF from 'jspdf';
-import db from '../db';
+import { createEntry } from '../db';
 import { encryptWithKey } from './crypto';
 import { getEncryptionMode, getSessionKey, refreshSession } from './auth';
 import { generateUUID } from './uuid';
@@ -101,18 +101,7 @@ export async function saveChartAsEntry(templateId: number, label: string): Promi
     }
   }
 
-  await db.entries.add({
-    templateId,
-    timestamp: new Date(),
-    encrypted,
-    data,
-    tags: [],
-    syncId: generateUUID(),
-    updatedAt: new Date().toISOString(),
-    deleted: false,
-    ...(encryptionVersion !== undefined ? { encryptionVersion } : {}),
-    ...(encryptionSource !== undefined ? { encryptionSource } : {}),
-  });
+  await createEntry(templateId, [block], encrypted, encryptionVersion, encryptionSource, data);
 }
 
 export function buildExportFilename(

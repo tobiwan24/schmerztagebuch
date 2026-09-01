@@ -9,8 +9,7 @@
 // potenziell lokal verschlüsselte Datenmenge) muss hier einmalig vom alten lokalen Schema
 // auf DEK-Verschlüsselung umgestellt werden.
 
-import db from '../db';
-import { getEntries } from '../db';
+import { getEntries, updateEntry } from '../db';
 import { getSessionKey, getSessionPassword, getEncryptionMode } from '../utils/auth';
 import { decryptData, decryptWithKey, encryptWithKey } from '../utils/crypto';
 
@@ -60,13 +59,7 @@ export async function migrateLocalEntriesToCloud(
     }
 
     const reEncrypted = await encryptWithKey(plaintext, dek);
-    await db.entries.update(entry.id!, {
-      data: reEncrypted,
-      encrypted: true,
-      encryptionVersion: 2,
-      encryptionSource: 'cloud',
-      updatedAt: new Date().toISOString(),
-    });
+    await updateEntry(entry.id!, reEncrypted, true, undefined, 2, 'cloud');
     migratedCount++;
     onProgress?.({ done: i + 1, total });
   }
