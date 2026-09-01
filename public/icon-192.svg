@@ -1,4 +1,25 @@
-<svg width="192" height="192" xmlns="http://www.w3.org/2000/svg">
-  <rect width="192" height="192" fill="#3b82f6"/>
-  <text x="96" y="96" font-family="Arial" font-size="80" fill="white" text-anchor="middle" dominant-baseline="middle">📋</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg2b" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3E5A63"></stop>
+      <stop offset="0.6" stop-color="#8A5A4E"></stop>
+      <stop offset="1" stop-color="#C8553D"></stop>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg2b)"></rect>
+
+  <g>
+    <rect x="120" y="108" width="272" height="300" rx="16" fill="#1F1B19" opacity="0.35"></rect>
+    <rect x="132" y="120" width="260" height="288" rx="14" fill="#F6EDE2"></rect>
+    <rect x="140" y="120" width="7" height="288" fill="#2B2320" opacity="0.2"></rect>
+    <g stroke="#B7A48F" stroke-width="3" stroke-linecap="round" opacity="0.85">
+      <line x1="176" y1="192" x2="352" y2="192"></line>
+      <line x1="176" y1="226" x2="322" y2="226"></line>
+      <line x1="176" y1="260" x2="338" y2="260"></line>
+    </g>
+  </g>
+  <g transform="translate(256, 330)">
+    <path d="M 0 22&#xA;             C -44 -18 -60 10 -38 38&#xA;             C -20 60 0 70 0 70&#xA;             C 0 70 20 60 38 38&#xA;             C 60 10 44 -18 0 22 Z" fill="#2B2320"></path>
+    <path d="M -46 32 L -26 32 L -16 14 L -6 50 L 6 20 L 16 32 L 46 32" fill="none" stroke="#F6EDE2" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+  </g>
 </svg>

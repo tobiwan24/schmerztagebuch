@@ -293,8 +293,11 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
   }, [pendingView]);
 
   const handleCancelAuth = useCallback(() => {
+    // Abbrechen darf niemals zur zuvor angezeigten (geschützten) View zurückführen —
+    // sonst wäre die Sperre nur kosmetisch. Home ist ungeschützt und damit sicher.
     setShowAuthModal(false);
     setPendingView(null);
+    setCurrentView('home');
   }, []);
 
   const handleCloudUnlock = useCallback(async (): Promise<boolean> => {

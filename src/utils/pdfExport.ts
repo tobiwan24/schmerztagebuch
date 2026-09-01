@@ -265,10 +265,12 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
     const template = templates.find(t => t.id === templateId);
 
     // Haupt-Spalten aus Template (ohne text-Blöcke), Fallback auf ersten Eintrag
+    // date-Blöcke werden ausgeschlossen — ihr Wert erscheint bereits in der eigenen Datumsspalte,
+    // sonst würde das Datum doppelt auftauchen.
     const mainColumns: Block[] = (template
       ? template.blocks
       : (decryptedData.get(groupEntries[0].id!) ?? [])
-    ).filter(b => b.type !== 'text');
+    ).filter(b => b.type !== 'text' && b.type !== 'date');
 
     // Legacy-Spalten: in Einträgen vorhanden, aber nicht mehr im Template
     const knownIds    = new Set(mainColumns.map(b => b.id));
@@ -276,7 +278,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
     const legacyMap   = new Map<string, Block>(); // label → Block
     for (const entry of groupEntries) {
       for (const b of decryptedData.get(entry.id!) ?? []) {
-        if (b.type === 'text') continue;
+        if (b.type === 'text' || b.type === 'date') continue;
         if (knownIds.has(b.id) || knownLabels.has(b.label)) continue;
         if (!legacyMap.has(b.label)) {
           legacyMap.set(b.label, b);
@@ -793,7 +795,8 @@ async function renderCardsLayout(options: PDFExportOptions): Promise<void> {
     const cardAttachments: CardAttachment[] = [];
 
     for (const block of blocks) {
-      if (block.type === 'text') continue;
+      // text- und date-Blöcke: date erscheint bereits im Karten-Header als Datum, sonst Duplikat.
+      if (block.type === 'text' || block.type === 'date') continue;
 
       // Bodymap: inline rendern
       if (block.type === 'bodymap' && block.value && typeof block.value === 'string') {
@@ -1138,7 +1141,8 @@ async function renderDashboardLayout(options: PDFExportOptions): Promise<void> {
     const cardAttachments: CardAttachment[] = [];
 
     for (const block of blocks) {
-      if (block.type === 'text') continue;
+      // text- und date-Blöcke: date erscheint bereits im Karten-Header als Datum, sonst Duplikat.
+      if (block.type === 'text' || block.type === 'date') continue;
 
       if (block.type === 'bodymap' && block.value && typeof block.value === 'string') {
         guard(10);
