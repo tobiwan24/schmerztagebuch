@@ -8,8 +8,9 @@ Eine sichere, verschlüsselte Progressive Web App zur Dokumentation von Schmerze
 - **AES-GCM 256-bit Verschlüsselung** für sensible Gesundheitsdaten
 - **Drei Verschlüsselungsmodi**: Keine, Historie oder Volle Verschlüsselung
 - **Biometrische Authentifizierung** (Fingerabdruck/Face ID) auf unterstützten Geräten
-- **Lokale Datenspeicherung** - alle Daten bleiben auf dem Gerät (IndexedDB)
+- **Lokale Datenspeicherung** - alle Daten bleiben primär auf dem Gerät (IndexedDB)
 - **Session-Management** mit automatischem Timeout
+- **Optionaler Cloud-Sync** (Ende-zu-Ende-verschlüsselt, siehe unten) für Mehrgeräte-Nutzung
 
 ### 📱 Progressive Web App
 - **Offline-Funktionalität** - funktioniert ohne Internetverbindung
@@ -45,13 +46,14 @@ Eine sichere, verschlüsselte Progressive Web App zur Dokumentation von Schmerze
 ## 🚀 Technologie-Stack
 
 - **Frontend**: React 18 + TypeScript
-- **Styling**: Vanilla CSS (Custom Properties)
-- **Datenbank**: IndexedDB
+- **Styling**: Vanilla CSS (Custom Properties) + shadcn/ui (Tailwind)
+- **Datenbank**: IndexedDB (Dexie)
 - **Verschlüsselung**: Web Crypto API (AES-GCM, PBKDF2)
 - **PWA**: Service Worker + Web App Manifest
 - **PDF-Generierung**: jsPDF
 - **Build-Tool**: Vite
-- **Deployment**: Vercel
+- **Deployment**: Vercel (Client) + Docker/Homelab (Cloud-Sync-Backend, optional)
+- **Cloud-Sync-Backend** (`server/`, optional): Fastify + better-sqlite3, WebAuthn/Passkey-Auth (`@simplewebauthn`), Envelope-Encryption
 
 ## 📦 Installation & Entwicklung
 
@@ -102,6 +104,23 @@ Die App nutzt moderne Web-Standards für maximale Sicherheit:
 2. **Historie verschlüsseln**: Nur gespeicherte Einträge werden verschlüsselt
 3. **Volle Verschlüsselung**: Einträge + Templates werden verschlüsselt
 
+## ☁️ Cloud-Sync (optional)
+
+Für die geräteübergreifende Nutzung gibt es ein optionales, Ende-zu-Ende-verschlüsseltes
+Sync-Backend (eigenständiger Homelab-Dienst, `server/`):
+
+- **Login per Passkey** (Face ID / Fingerabdruck via WebAuthn, PRF-Extension) — kein Passwort nötig
+- **Ende-zu-Ende-Verschlüsselung**: Der Server sieht zu keinem Zeitpunkt Klartext-Daten
+  (Envelope-Encryption, Data-Encryption-Key wird lokal mit dem Passkey ent-/verschlüsselt)
+- **Verpflichtender Backup-Code** beim Enrollment als Recovery-Anker, falls das Passkey-Gerät
+  verloren geht
+- **Last-Write-Wins-Sync** mit Konfliktauflösung zwischen mehreren Geräten
+- Lokale Offline-Fähigkeit (IndexedDB, Service Worker) bleibt vollständig erhalten — Cloud-Sync
+  ist ein optionaler Zusatz-Layer, kein Ersatz für lokal-first
+
+Cloud-Sync ist rein optional und muss aktiv in den Einstellungen eingerichtet werden; ohne
+Einrichtung verhält sich die App weiterhin komplett lokal.
+
 ## 🌐 PWA Installation
 
 ### Desktop (Chrome/Edge)
@@ -149,6 +168,10 @@ public/
 ├── sw.js               # Service Worker
 ├── manifest.json       # PWA Manifest
 └── icons/              # App Icons
+
+server/                 # Optionales Cloud-Sync-Backend (Fastify, eigenständig deploybar)
+├── src/services/       # WebAuthn, Sessions, Sync-API, Credentials
+└── src/routes/         # HTTP-Routen (/api/auth/*, /api/sync/*)
 ```
 
 ### Wichtige Scripts
@@ -163,15 +186,15 @@ npm run lint         # ESLint Check
 ## 🔐 Sicherheits-Hinweise
 
 - **HTTPS erforderlich**: Verschlüsselung und Biometrie funktionieren nur über HTTPS
-- **Keine Cloud-Sync**: Alle Daten bleiben lokal auf dem Gerät
-- **Passwort-Recovery**: Es gibt KEINE Passwort-Wiederherstellung - bei Verlust sind verschlüsselte Daten unwiederbringlich!
+- **Lokal-first**: Ohne aktivierten Cloud-Sync bleiben alle Daten ausschließlich auf dem Gerät
+- **Passwort-Recovery (lokale Verschlüsselung)**: Es gibt KEINE Wiederherstellung des lokalen Passworts - bei Verlust sind so verschlüsselte Daten unwiederbringlich!
+- **Passwort-Recovery (Cloud-Sync)**: Bei aktiviertem Passkey-Login existiert ein verpflichtender Backup-Code als Recovery-Anker, falls das Passkey-Gerät verloren geht
 - **Backup-Empfehlung**: Nutze den PDF-Export für regelmäßige Backups
 
 ## 📄 Lizenz
 
 MIT License - siehe [LICENSE](LICENSE) Datei
 
-<<<<<<< HEAD
 ## 🤝 Contributing
 
 Contributions sind willkommen! Bitte:
@@ -184,9 +207,6 @@ Contributions sind willkommen! Bitte:
 ## 📞 Support
 
 Bei Fragen oder Problemen öffne bitte ein [Issue](https://github.com/tobiwan24/schmerztagebuch/issues).
-=======
-
->>>>>>> 16055110fc4b06db16a9c6c4c69da1f6e5aacd8e
 
 ## 🙏 Danksagungen
 
