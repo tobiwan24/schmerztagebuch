@@ -101,12 +101,14 @@ There is no test framework configured in this project.
 The app uses **manual view-state routing** — no React Router. `App.tsx` holds a `currentView` state that switches between: `setup | home | diary | editor | history | settings | dashboard`. Navigation is done by calling `setCurrentView` through handler functions passed as props.
 
 ### Database (`src/db.ts`)
-Dexie (IndexedDB wrapper) with database name `PainDiaryDB` at schema **version 16**. Three tables:
+Dexie (IndexedDB wrapper) with database name `PainDiaryDB` at schema **version 21**. Three tables:
 - `templates` — reusable diary templates with ordered blocks
 - `entries` — filled-in template submissions (data stored as JSON string, optionally encrypted)
 - `settings` — key/value pairs for app configuration
 
-When adding a schema change, increment the version number. Auto-migration logic lives in `db.ts` (e.g. `migrateTemplateStyles`, `migrateImageBlocksToTextArea`).
+`entries` also carries sync-related fields (`syncId`, `updatedAt`, `deleted` soft-delete, `encryptionSource: 'cloud' | 'local'`) added for Cloud-Sync (see below).
+
+When adding a schema change, increment the version number. Auto-migration logic lives in `db.ts` (e.g. `migrateTemplateStyles`, `migrateImageBlocksToTextArea`). DB writes go exclusively through `db.ts` functions (`createEntry`/`updateEntry`/…) — never call `db.entries.*`/`db.templates.*` directly from components or utils.
 
 ### Block System
 All diary content is composed of **blocks** (`src/types/blocks.ts`). The `BlockType` union is: `text | checkbox | image | slider | date | multiselect | textarea | bodymap`. `image` blocks are legacy and are transparently auto-migrated to `textarea` blocks on read.
@@ -119,6 +121,13 @@ Three encryption modes stored in settings: `none | history | full`.
 - Active session stores the password in `sessionStorage` with a 24-hour timeout.
 - Encryption format: `Base64(salt[16] + iv[12] + ciphertext)` using AES-GCM 256-bit + PBKDF2 (100k iterations).
 - Biometric auth uses WebAuthn (`navigator.credentials`) and only works on real HTTPS domains (not localhost/IP).
+
+### Cloud-Sync (optional, `src/services/syncService.ts` + `server/`)
+Optional E2E-encrypted multi-device sync against a self-hosted backend (`server/`, Fastify + better-sqlite3, deployed separately via Docker — see Homelab repo). Client-side:
+- Login via WebAuthn Passkey (PRF extension) derives a Data-Encryption-Key (DEK) client-side; the server never sees plaintext. `src/utils/keyManagement.ts` handles HKDF/AES-KW envelope encryption, `src/utils/entryEncryption.ts` exposes `getCloudEncryptionKey()`.
+- Decryption call sites must check the Cloud-DEK first (see `src/hooks/useDecrypt.ts` for the canonical priority order: Cloud-DEK → local session password), since Passkey-only users never have a local session password set.
+- `runSync()` (push-then-pull, LWW conflict resolution) is triggered explicitly right after a successful entry/template save (`DiaryView.tsx`, `HistoryView.tsx`, `EditorMode.tsx`) plus `visibilitychange`/`online` events and app start (`NavigationContext.tsx`) as a safety net — there are no generic Dexie write-hooks anymore (removed to avoid self-retriggering on pull-applied writes).
+- A mandatory backup code (recoverable KEK) is the recovery path if the Passkey device is lost.
 
 ### Styling
 Hybrid approach:

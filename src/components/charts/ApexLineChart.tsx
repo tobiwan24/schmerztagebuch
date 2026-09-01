@@ -363,7 +363,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
         },
       ],
     };
-  }, [categories, timeRange, colors, height, events, visibleTemplates, dashboardTemplates, series, isDarkMode, functionSeries]);
+  }, [categories, timeRange, colors, height, events, visibleTemplates, dashboardTemplates, series, isDarkMode, functionSeries, chartId]);
 
   // ISS-002: Kein Placeholder mehr — pure line wenn kein functionSeries,
   // mixed (line + area) wenn functionSeries aktiv. key-Prop steuert Re-Mount.

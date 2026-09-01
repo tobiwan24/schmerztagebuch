@@ -19,7 +19,7 @@ export function findUserById(id: number): UserRow | undefined {
  * register-verify-Response zurück (siehe routes/auth.ts).
  */
 export function createUser(username: string): UserRow {
-  const kdfSalt = randomBytes(16).toString('base64url');
+  const kdfSalt = randomBytes(16).toString('base64');
   const info = db
     .prepare('INSERT INTO users (username, kdf_salt) VALUES (?, ?)')
     .run(username, kdfSalt);

@@ -3,7 +3,7 @@
 
 import ApexCharts from 'apexcharts';
 import jsPDF from 'jspdf';
-import db from '../db';
+import { createEntry } from '../db';
 import { encryptWithKey } from './crypto';
 import { getEncryptionMode, getSessionKey, refreshSession } from './auth';
 import { generateUUID } from './uuid';
@@ -78,6 +78,7 @@ export async function saveChartAsEntry(templateId: number, label: string): Promi
   let data = JSON.stringify([block]);
   let encrypted = false;
   let encryptionVersion: number | undefined;
+  let encryptionSource: 'cloud' | 'local' | undefined;
 
   // Cloud-DEK hat Vorrang vor der lokalen Passwort-Verschlüsselung (siehe utils/entryEncryption.ts).
   const cloudKey = await getCloudEncryptionKey();
@@ -85,6 +86,7 @@ export async function saveChartAsEntry(templateId: number, label: string): Promi
     data = await encryptWithKey(data, cloudKey);
     encrypted = true;
     encryptionVersion = 2;
+    encryptionSource = 'cloud';
   } else {
     const encMode = await getEncryptionMode();
     if (encMode === 'full') {
@@ -94,21 +96,12 @@ export async function saveChartAsEntry(templateId: number, label: string): Promi
         data = await encryptWithKey(data, key);
         encrypted = true;
         encryptionVersion = 2;
+        encryptionSource = 'local';
       }
     }
   }
 
-  await db.entries.add({
-    templateId,
-    timestamp: new Date(),
-    encrypted,
-    data,
-    tags: [],
-    syncId: generateUUID(),
-    updatedAt: new Date().toISOString(),
-    deleted: false,
-    ...(encryptionVersion !== undefined ? { encryptionVersion } : {}),
-  });
+  await createEntry(templateId, [block], encrypted, encryptionVersion, encryptionSource, data);
 }
 
 export function buildExportFilename(
@@ -117,6 +110,6 @@ export function buildExportFilename(
   ext: 'png' | 'pdf'
 ): string {
   const date = new Date().toISOString().slice(0, 10);
-  const safe = timeRangeLabel.replace(/[^a-zA-Z0-9äöüÄÖÜ\-]/g, '_').toLowerCase();
+  const safe = timeRangeLabel.replace(/[^a-zA-Z0-9äöüÄÖÜ-]/g, '_').toLowerCase();
   return `${prefix}-${date}-${safe}.${ext}`;
 }

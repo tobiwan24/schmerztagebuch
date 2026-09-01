@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { useTutorial, type TutorialPage } from '../../contexts/TutorialContext';
+import { useTutorial, type TutorialPage } from '../../contexts/useTutorial';
 import styles from './PageTutorial.module.css';
 
 // ─── Typen ───────────────────────────────────────────────────────────────────

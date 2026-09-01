@@ -370,12 +370,17 @@ export async function deleteTemplate(id: number): Promise<void> {
 // ========== ENTRY CRUD ==========
 
 export async function createEntry(
-  templateId: number, 
-  blocks: Block[], 
-  encrypted = false
+  templateId: number,
+  blocks: Block[],
+  encrypted = false,
+  encryptionVersion?: number,
+  encryptionSource?: 'cloud' | 'local',
+  overrideData?: string
 ): Promise<number> {
-  const data = JSON.stringify(blocks);
-  
+  // overrideData: für Aufrufer, die data bereits selbst (ggf. verschlüsselt) serialisiert
+  // haben (z. B. saveChartAsEntry) — blocks dient dann nur noch der Tag-Extraktion.
+  const data = overrideData ?? JSON.stringify(blocks);
+
   // Tags aus MultiSelect-Blöcken extrahieren
   const tags: string[] = [];
   blocks.forEach(block => {
@@ -383,7 +388,7 @@ export async function createEntry(
       tags.push(...block.value);
     }
   });
-  
+
   const id = await db.entries.add({
     templateId,
     timestamp: new Date(),
@@ -392,7 +397,9 @@ export async function createEntry(
     tags,
     syncId: generateUUID(),
     updatedAt: new Date().toISOString(),
-    deleted: false
+    deleted: false,
+    ...(encryptionVersion !== undefined ? { encryptionVersion } : {}),
+    ...(encryptionSource !== undefined ? { encryptionSource } : {})
   });
 
   return id as number;
@@ -424,11 +431,16 @@ export async function updateEntry(
   id: number,
   data: string,
   encrypted: boolean,
-  editedAt: string,
-  encryptionVersion?: number
+  editedAt?: string,
+  encryptionVersion?: number,
+  encryptionSource?: 'cloud' | 'local'
 ): Promise<void> {
-  const changes: Partial<Entry> = { data, encrypted, editedAt, updatedAt: editedAt };
+  // editedAt optional: interne Re-Verschlüsselungen (z. B. Cloud-Migration) sollen
+  // updatedAt für Sync-Konvergenz bumpen, aber kein "bearbeitet am" für den Nutzer setzen.
+  const changes: Partial<Entry> = { data, encrypted, updatedAt: editedAt ?? new Date().toISOString() };
+  if (editedAt !== undefined) changes.editedAt = editedAt;
   if (encryptionVersion !== undefined) changes.encryptionVersion = encryptionVersion;
+  if (encryptionSource !== undefined) changes.encryptionSource = encryptionSource;
   await db.entries.update(id, changes);
 }
 
@@ -473,7 +485,9 @@ export async function decryptAllEntries(
   onProgress?: (done: number, total: number) => void
 ): Promise<void> {
   const entries = await db.entries.toArray();
-  const encrypted = entries.filter(e => e.encrypted);
+  // Cloud-DEK-verschlüsselte Einträge gehören nicht zur lokalen Passwort-Migration
+  // (anderer Schlüssel, siehe Entry.encryptionSource) — überspringen.
+  const encrypted = entries.filter(e => e.encrypted && e.encryptionSource !== 'cloud');
   const total = encrypted.length;
 
   for (let i = 0; i < encrypted.length; i++) {
@@ -481,7 +495,7 @@ export async function decryptAllEntries(
     const decrypted = (entry.encryptionVersion === 2 && key)
       ? await decryptWithKey(entry.data, key)
       : await decryptData(entry.data, password);
-    await db.entries.update(entry.id!, { data: decrypted, encrypted: false });
+    await db.entries.update(entry.id!, { data: decrypted, encrypted: false, updatedAt: new Date().toISOString() });
     onProgress?.(i + 1, total);
   }
 }
@@ -497,12 +511,14 @@ export async function encryptAllEntries(
   onProgress?: (done: number, total: number) => void
 ): Promise<void> {
   const entries = await db.entries.toArray();
-  const unencrypted = entries.filter(e => !e.encrypted);
+  // Cloud-DEK-verschlüsselte Einträge gehören nicht zur lokalen Passwort-Migration
+  // (anderer Schlüssel, siehe Entry.encryptionSource) — überspringen.
+  const unencrypted = entries.filter(e => !e.encrypted && e.encryptionSource !== 'cloud');
   const total = unencrypted.length;
 
   for (let i = 0; i < unencrypted.length; i++) {
     const entry = unencrypted[i];
-    const changes: Partial<Entry> = { encrypted: true };
+    const changes: Partial<Entry> = { encrypted: true, encryptionSource: 'local', updatedAt: new Date().toISOString() };
     if (key) {
       changes.data = await encryptWithKey(entry.data, key);
       changes.encryptionVersion = 2;
@@ -527,7 +543,9 @@ export async function reEncryptAllEntries(
   onProgress?: (done: number, total: number) => void
 ): Promise<void> {
   const entries = await db.entries.toArray();
-  const encrypted = entries.filter(e => e.encrypted);
+  // Cloud-DEK-verschlüsselte Einträge gehören nicht zur lokalen Passwort-Migration
+  // (anderer Schlüssel, siehe Entry.encryptionSource) — überspringen.
+  const encrypted = entries.filter(e => e.encrypted && e.encryptionSource !== 'cloud');
   const total = encrypted.length;
 
   for (let i = 0; i < encrypted.length; i++) {
@@ -536,7 +554,7 @@ export async function reEncryptAllEntries(
       ? await decryptWithKey(entry.data, oldKey)
       : await decryptData(entry.data, oldPassword);
 
-    const changes: Partial<Entry> = {};
+    const changes: Partial<Entry> = { encryptionSource: 'local', updatedAt: new Date().toISOString() };
     if (newKey) {
       changes.data = await encryptWithKey(decrypted, newKey);
       changes.encryptionVersion = 2;
@@ -554,13 +572,16 @@ export async function reEncryptAllEntries(
  */
 export async function runCryptoMigration(password: string, key: CryptoKey): Promise<void> {
   const entries = await db.entries.toArray();
-  const v1Entries = entries.filter(e => e.encrypted && e.encryptionVersion !== 2);
+  // Cloud-DEK-verschlüsselte Einträge gehören nicht zur lokalen Passwort-Migration
+  // (anderer Schlüssel, siehe Entry.encryptionSource) — überspringen. (In der Praxis ohnehin
+  // bereits durch encryptionVersion !== 2 ausgeschlossen, da Cloud-Einträge immer v2 sind.)
+  const v1Entries = entries.filter(e => e.encrypted && e.encryptionVersion !== 2 && e.encryptionSource !== 'cloud');
 
   for (const entry of v1Entries) {
     try {
       const decrypted = await decryptData(entry.data, password);
       const reEncrypted = await encryptWithKey(decrypted, key);
-      await db.entries.update(entry.id!, { data: reEncrypted, encryptionVersion: 2 });
+      await db.entries.update(entry.id!, { data: reEncrypted, encryptionVersion: 2, encryptionSource: 'local', updatedAt: new Date().toISOString() });
     } catch (error) {
       console.error('[runCryptoMigration] Fehler bei Entry', entry.id, error);
     }

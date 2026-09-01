@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getEntries, getTemplates, deleteEntry, updateEntry } from '../db';
+import { runSync } from '../services/syncService';
 import { useDecrypt } from '../hooks/useDecrypt';
 import { useNavigation } from '../contexts/NavigationContext';
 import { exportToPDF } from '../utils/pdfExport';
@@ -733,6 +734,7 @@ export default function HistoryView() {
       let encrypted = false;
       let data = dataString;
       let encryptionVersion: number | undefined;
+      let encryptionSource: 'cloud' | 'local' | undefined;
 
       // Cloud-DEK hat Vorrang (siehe utils/entryEncryption.ts) — nach der Cloud-Migration
       // sind Bestands-Entries bereits DEK-verschlüsselt und müssen es beim Bearbeiten bleiben.
@@ -742,6 +744,7 @@ export default function HistoryView() {
         data = await encryptWithKey(dataString, cloudKey);
         encrypted = true;
         encryptionVersion = 2;
+        encryptionSource = 'cloud';
       } else if (selectedEntry.encrypted) {
         const key = await getSessionKey();
         if (!key) {
@@ -752,10 +755,15 @@ export default function HistoryView() {
         data = await encryptWithKey(dataString, key);
         encrypted = true;
         encryptionVersion = 2;
+        encryptionSource = 'local';
       }
 
       const editedAt = new Date().toISOString();
-      await updateEntry(selectedEntry.id, data, encrypted, editedAt, encryptionVersion);
+      await updateEntry(selectedEntry.id, data, encrypted, editedAt, encryptionVersion, encryptionSource);
+
+      // Fire-and-forget: Netzwerklatenz soll die Save-UX nicht verzögern.
+      // runSync() prüft intern selbst, ob Cloud-Sync aktiv ist.
+      runSync().catch(err => console.warn('Sync nach Eintrag-Bearbeiten fehlgeschlagen:', err));
 
       // Update local state
       const updatedEntry: Entry = { ...selectedEntry, data, encrypted, editedAt };

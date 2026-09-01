@@ -1,7 +1,8 @@
 // src/services/syncService.ts
 // Sync-Service: Push-then-Pull, getriggert bei App-Start, `visibilitychange` → Foreground,
-// `online`-Event und debounced nach lokalen Writes. KEIN Verlass auf die Background-Sync-API
-// (auf iOS nicht verfügbar, siehe Spec "Explizit NICHT nutzen").
+// `online`-Event und explizit nach jedem erfolgreichen Eintrag-/Template-Speichern (Aufrufer-Ebene,
+// siehe DiaryView/HistoryView/EditorMode). KEIN Verlass auf die Background-Sync-API (auf iOS nicht
+// verfügbar, siehe Spec "Explizit NICHT nutzen").
 //
 // Cursor wird gerätelokal in der settings-Tabelle gehalten (Entscheidungstabelle #6: Settings
 // werden nicht synchronisiert). LWW-Konfliktauflösung: ein Pull-Record überschreibt den
@@ -13,10 +14,14 @@ import type { Template, Entry } from '../types/database';
 import { encryptWithKey, decryptWithKey } from '../utils/crypto';
 import { getCloudSessionDEK, isCloudSyncEnabled } from './cloudAuthService';
 import { pullSync, pushSync, CloudApiError } from './cloudSyncApi';
-import type { SyncTemplateDTO, SyncEntryDTO } from './cloudSyncApi';
+import type {
+  SyncTemplateDTO,
+  SyncEntryDTO,
+  TemplateSyncRecord,
+  EntrySyncRecord,
+} from './cloudSyncApi';
 
 const CURSOR_KEY = 'cloudSyncCursor';
-const DEBOUNCE_MS = 3000;
 
 export interface SyncOutcome {
   ok: boolean;
@@ -27,7 +32,6 @@ export interface SyncOutcome {
 }
 
 let syncInFlight: Promise<SyncOutcome> | null = null;
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let triggersInitialized = false;
 let onOutcomeListeners: Array<(outcome: SyncOutcome) => void> = [];
 
@@ -156,6 +160,7 @@ async function applyPulledEntries(entries: SyncEntryDTO[]): Promise<void> {
       timestamp: new Date(dto.timestamp),
       encrypted: true,
       encryptionVersion: 2,
+      encryptionSource: 'cloud',
       data: dto.data,
       tags: dto.tags,
       editedAt: dto.editedAt,
@@ -170,6 +175,40 @@ async function applyPulledEntries(entries: SyncEntryDTO[]): Promise<void> {
       await db.entries.add(record);
     }
   }
+}
+
+// ── Push-Konflikte: gewinnende Server-Version zurückspielen ────────────────
+//
+// Bei einem Push-Konflikt (clientWins === false) gewinnt die bereits auf dem Server
+// gespeicherte Version. Da sich `server_seq` dabei nicht ändert, würde `pull()` diesen
+// Datensatz nie liefern (Cursor kennt den Wert schon) — die gewinnende Version muss daher
+// explizit aus `conflicts[].server` übernommen werden, über denselben Apply-Pfad wie ein
+// normaler Pull-Record (LWW-Vergleich inklusive).
+
+function conflictTemplateToDTO(rec: TemplateSyncRecord): SyncTemplateDTO {
+  return {
+    syncId: rec.syncId,
+    name: rec.name ?? '',
+    order: rec.order ?? 0,
+    icon: rec.icon ?? undefined,
+    color: rec.color ?? undefined,
+    data: rec.blocks ?? '', // Server-Feldname für Templates ist `blocks`, nicht `data`
+    updatedAt: rec.updatedAt,
+    deleted: rec.deleted,
+  };
+}
+
+function conflictEntryToDTO(rec: EntrySyncRecord): SyncEntryDTO {
+  return {
+    syncId: rec.syncId,
+    templateSyncId: rec.templateSyncId ?? '',
+    timestamp: rec.timestamp ?? '',
+    editedAt: rec.editedAt ?? undefined,
+    tags: rec.tags,
+    data: rec.data ?? '',
+    updatedAt: rec.updatedAt,
+    deleted: rec.deleted,
+  };
 }
 
 // ── Orchestrierung ───────────────────────────────────────────────────────────
@@ -189,12 +228,23 @@ export async function runSync(): Promise<SyncOutcome> {
       const { templates, entries } = await buildPushPayload(dek);
       const pushResult = await pushSync(templates, entries);
 
+      // Verlorene LWW-Konflikte lokal zurückspielen, BEVOR der nächste Pull läuft (Bug #3):
+      // sonst bleibt die unterlegene, lokale Alt-Version dauerhaft bestehen.
+      const conflictTemplates: SyncTemplateDTO[] = [];
+      const conflictEntries: SyncEntryDTO[] = [];
+      for (const c of pushResult.conflicts) {
+        if (c.type === 'template') conflictTemplates.push(conflictTemplateToDTO(c.server as TemplateSyncRecord));
+        else conflictEntries.push(conflictEntryToDTO(c.server as EntrySyncRecord));
+      }
+      await applyPulledTemplates(conflictTemplates, dek);
+      await applyPulledEntries(conflictEntries);
+
       const cursor = await getCursor();
       const pullResult = await pullSync(cursor);
 
       await applyPulledTemplates(pullResult.templates, dek);
       await applyPulledEntries(pullResult.entries);
-      await setCursor(pullResult.cursor);
+      await setCursor(String(pullResult.cursor));
 
       const outcome: SyncOutcome = {
         ok: true,
@@ -223,19 +273,11 @@ export async function runInitialSync(): Promise<SyncOutcome> {
   return runSync();
 }
 
-/** Debounced Sync nach lokalen Writes (Dexie-Hooks, siehe initSyncTriggers). */
-export function scheduleDebouncedSync(): void {
-  if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    debounceTimer = null;
-    runSync();
-  }, DEBOUNCE_MS);
-}
-
 /**
  * Registriert die Sync-Trigger (App-Start-Aufruf obliegt dem Aufrufer, z.B. NavigationContext):
- * visibilitychange → Foreground, online-Event, debounced nach lokalen entries/templates-Writes.
- * Einmalig aufrufen (z.B. beim App-Start neben initAutoBackupHooks).
+ * visibilitychange → Foreground, online-Event. Dienen als Sicherheitsnetz für den Fall, dass ein
+ * expliziter Sync beim Speichern (siehe DiaryView/HistoryView/EditorMode) mangels Verbindung
+ * fehlgeschlagen ist. Einmalig aufrufen (z.B. beim App-Start neben initAutoBackupHooks).
  */
 export function initSyncTriggers(): void {
   if (triggersInitialized) return;
@@ -248,10 +290,4 @@ export function initSyncTriggers(): void {
   window.addEventListener('online', () => {
     runSync();
   });
-
-  const scheduleOnWrite = () => scheduleDebouncedSync();
-  db.entries.hook('creating', scheduleOnWrite);
-  db.entries.hook('updating', scheduleOnWrite);
-  db.templates.hook('creating', scheduleOnWrite);
-  db.templates.hook('updating', scheduleOnWrite);
 }

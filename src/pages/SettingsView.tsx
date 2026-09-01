@@ -13,7 +13,7 @@ import { AlertCircle, Trash2, Shield, Key, Fingerprint, Info, RotateCcw, Bell, R
 import { ManualBackupCard } from '../components/ManualBackupCard';
 import { NotificationSettingsManager } from '../components/NotificationSettingsManager';
 import PageTutorial from '../components/tutorial/PageTutorial';
-import { useTutorial } from '../contexts/TutorialContext';
+import { useTutorial } from '../contexts/useTutorial';
 import { useNavigation } from '../contexts/NavigationContext';
 import { APP_VERSION } from '../utils/version';
 import BackupCodeReveal from '../components/cloud/BackupCodeReveal';

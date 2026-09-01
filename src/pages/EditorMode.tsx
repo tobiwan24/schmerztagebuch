@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getPresets, deletePreset } from '../utils/bodymapPresets';
 import type { BodyMapPreset } from '../utils/bodymapPresets';
 import { getTemplates, updateTemplate, createTemplate, deleteTemplate } from '../db';
+import { runSync } from '../services/syncService';
 import { generateUUID } from '../utils/uuid';
 import type { Template } from '../types/database';
 import type { Block, BlockType, BlockValue } from '../types/blocks';
@@ -200,7 +201,6 @@ export default function EditorMode() {
     setEditingBlocks(editingBlocks.filter(b => b.id !== blockId));
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handleBlockChange(_value: BlockValue) {
     // Editor ändert nur Struktur, nicht Werte
   }
@@ -221,7 +221,11 @@ export default function EditorMode() {
       icon: selectedTemplate.icon || 'book',
       color: selectedTemplate.color || ''
     });
-    
+
+    // Fire-and-forget: Netzwerklatenz soll die Save-UX nicht verzögern.
+    // runSync() prüft intern selbst, ob Cloud-Sync aktiv ist.
+    runSync().catch(err => console.warn('Sync nach Template-Speichern fehlgeschlagen:', err));
+
     // Templates neu laden und zur DiaryView mit aktuellem Template
     await loadTemplates();
     onBack(selectedTemplate.id);
@@ -281,6 +285,11 @@ export default function EditorMode() {
 
     try {
       const newTemplateId = await createTemplate(name, blocks);
+
+      // Fire-and-forget: Netzwerklatenz soll die Save-UX nicht verzögern.
+      // runSync() prüft intern selbst, ob Cloud-Sync aktiv ist.
+      runSync().catch(err => console.warn('Sync nach Template-Erstellen fehlgeschlagen:', err));
+
       setDialog({ type: 'none' });
       await loadTemplates();
       const allTemplates = await getTemplates();
