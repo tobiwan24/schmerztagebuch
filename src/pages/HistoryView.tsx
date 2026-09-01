@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getEntries, getTemplates, deleteEntry, updateEntry } from '../db';
+import { runSync } from '../services/syncService';
 import { useDecrypt } from '../hooks/useDecrypt';
 import { useNavigation } from '../contexts/NavigationContext';
 import { exportToPDF } from '../utils/pdfExport';
@@ -759,6 +760,10 @@ export default function HistoryView() {
 
       const editedAt = new Date().toISOString();
       await updateEntry(selectedEntry.id, data, encrypted, editedAt, encryptionVersion, encryptionSource);
+
+      // Fire-and-forget: Netzwerklatenz soll die Save-UX nicht verzögern.
+      // runSync() prüft intern selbst, ob Cloud-Sync aktiv ist.
+      runSync().catch(err => console.warn('Sync nach Eintrag-Bearbeiten fehlgeschlagen:', err));
 
       // Update local state
       const updatedEntry: Entry = { ...selectedEntry, data, encrypted, editedAt };

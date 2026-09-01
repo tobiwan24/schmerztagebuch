@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import type { Block, BlockValue } from '../types/blocks';
 import type { Template } from '../types/database';
-import db, { createTemplate, getTemplates } from '../db';
+import { createEntry, createTemplate, getTemplates } from '../db';
 import { getEncryptionMode, getSessionKey, refreshSession } from '../utils/auth';
 import { encryptWithKey } from '../utils/crypto';
-import { generateUUID } from '../utils/uuid';
 import { getCloudEncryptionKey } from '../utils/entryEncryption';
+import { runSync } from '../services/syncService';
 import BlockRenderer from '../components/BlockRenderer';
 import { getIconComponent } from '../utils/iconUtils';
 import { Button } from "@/components/ui/button";
@@ -470,28 +470,19 @@ export default function DiaryView() {
         data = JSON.stringify(blocksToSave);
       }
       
-      const tags: string[] = [];
-      blocksToSave.forEach(block => {
-        if (block.type === 'multiselect' && Array.isArray(block.value)) {
-          tags.push(...block.value);
-        }
-      });
-      
-      const entryToSave = {
-        templateId: templates[activeTabIndex].id!,
-        timestamp: new Date(),
+      await createEntry(
+        templates[activeTabIndex].id!,
+        blocksToSave,
         encrypted,
-        data,
-        tags,
-        syncId: generateUUID(),
-        updatedAt: new Date().toISOString(),
-        deleted: false,
-        ...(encrypted ? { encryptionVersion: 2 } : {}),
-        ...(encryptionSource !== undefined ? { encryptionSource } : {})
-      };
+        encrypted ? 2 : undefined,
+        encryptionSource,
+        data
+      );
 
-      await db.entries.add(entryToSave);
-      
+      // Fire-and-forget: Netzwerklatenz soll die Save-UX nicht verzögern.
+      // runSync() prüft intern selbst, ob Cloud-Sync aktiv ist.
+      runSync().catch(err => console.warn('Sync nach Eintrag-Speichern fehlgeschlagen:', err));
+
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
       

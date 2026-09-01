@@ -1,7 +1,8 @@
 // src/services/syncService.ts
 // Sync-Service: Push-then-Pull, getriggert bei App-Start, `visibilitychange` → Foreground,
-// `online`-Event und debounced nach lokalen Writes. KEIN Verlass auf die Background-Sync-API
-// (auf iOS nicht verfügbar, siehe Spec "Explizit NICHT nutzen").
+// `online`-Event und explizit nach jedem erfolgreichen Eintrag-/Template-Speichern (Aufrufer-Ebene,
+// siehe DiaryView/HistoryView/EditorMode). KEIN Verlass auf die Background-Sync-API (auf iOS nicht
+// verfügbar, siehe Spec "Explizit NICHT nutzen").
 //
 // Cursor wird gerätelokal in der settings-Tabelle gehalten (Entscheidungstabelle #6: Settings
 // werden nicht synchronisiert). LWW-Konfliktauflösung: ein Pull-Record überschreibt den
@@ -21,7 +22,6 @@ import type {
 } from './cloudSyncApi';
 
 const CURSOR_KEY = 'cloudSyncCursor';
-const DEBOUNCE_MS = 3000;
 
 export interface SyncOutcome {
   ok: boolean;
@@ -32,7 +32,6 @@ export interface SyncOutcome {
 }
 
 let syncInFlight: Promise<SyncOutcome> | null = null;
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let triggersInitialized = false;
 let onOutcomeListeners: Array<(outcome: SyncOutcome) => void> = [];
 
@@ -274,19 +273,11 @@ export async function runInitialSync(): Promise<SyncOutcome> {
   return runSync();
 }
 
-/** Debounced Sync nach lokalen Writes (Dexie-Hooks, siehe initSyncTriggers). */
-export function scheduleDebouncedSync(): void {
-  if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    debounceTimer = null;
-    runSync();
-  }, DEBOUNCE_MS);
-}
-
 /**
  * Registriert die Sync-Trigger (App-Start-Aufruf obliegt dem Aufrufer, z.B. NavigationContext):
- * visibilitychange → Foreground, online-Event, debounced nach lokalen entries/templates-Writes.
- * Einmalig aufrufen (z.B. beim App-Start neben initAutoBackupHooks).
+ * visibilitychange → Foreground, online-Event. Dienen als Sicherheitsnetz für den Fall, dass ein
+ * expliziter Sync beim Speichern (siehe DiaryView/HistoryView/EditorMode) mangels Verbindung
+ * fehlgeschlagen ist. Einmalig aufrufen (z.B. beim App-Start neben initAutoBackupHooks).
  */
 export function initSyncTriggers(): void {
   if (triggersInitialized) return;
@@ -299,10 +290,4 @@ export function initSyncTriggers(): void {
   window.addEventListener('online', () => {
     runSync();
   });
-
-  const scheduleOnWrite = () => scheduleDebouncedSync();
-  db.entries.hook('creating', scheduleOnWrite);
-  db.entries.hook('updating', scheduleOnWrite);
-  db.templates.hook('creating', scheduleOnWrite);
-  db.templates.hook('updating', scheduleOnWrite);
 }
