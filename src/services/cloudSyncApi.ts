@@ -184,7 +184,7 @@ export interface SyncEntryDTO {
 export interface SyncPullResult {
   templates: SyncTemplateDTO[];
   entries: SyncEntryDTO[];
-  cursor: string;
+  cursor: number;
 }
 
 /**

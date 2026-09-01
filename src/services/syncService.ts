@@ -244,7 +244,7 @@ export async function runSync(): Promise<SyncOutcome> {
 
       await applyPulledTemplates(pullResult.templates, dek);
       await applyPulledEntries(pullResult.entries);
-      await setCursor(pullResult.cursor);
+      await setCursor(String(pullResult.cursor));
 
       const outcome: SyncOutcome = {
         ok: true,
