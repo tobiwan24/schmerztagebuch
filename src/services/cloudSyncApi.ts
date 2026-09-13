@@ -24,9 +24,13 @@ export class CloudApiError extends Error {
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  // Content-Type nur setzen, wenn tatsächlich ein Body mitgeschickt wird — sonst lehnt
+  // Fastifys Standard-JSON-Parser die Anfrage mit "Body cannot be empty when content-type
+  // is set to 'application/json'" ab, bevor die Route überhaupt erreicht wird (betraf u.a.
+  // login-options, add-credential-options, logout — alle drei bodylosen POST-Aufrufe).
   const res = await fetch(`${API_BASE}${path}`, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    headers: { ...(init?.body ? { 'Content-Type': 'application/json' } : {}), ...(init?.headers ?? {}) },
     ...init,
   });
 
