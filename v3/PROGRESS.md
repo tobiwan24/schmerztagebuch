@@ -5,11 +5,11 @@
 ## Aktuell
 
 - **Meilenstein:** M7 — UI-Grundgerüst, Onboarding, Entsperren (Gate G1 freigegeben)
-- **Nächste Aufgabe:** M7 in Teilaufgaben: (1) `apps/web` als Vite + React + TypeScript + Tailwind + shadcn/ui aufsetzen
-  (DECISIONS-Einträge für neue Abhängigkeiten), `i18n/de.ts`, Lint-Regeln UI-01 (kein eigenes CSS / Basis-Elemente nur in
-  `components/ui/`) und UI-07 (kein hart codierter Text); (2) React Router mit Ansichten-Gerüst laut Wireframes, Leer-/Fehler-
-  zustände; (3) Onboarding + Entsperren (CRY-08..12, CRY-16) inkl. `@simplewebauthn`; (4) SYN-10/SYN-15 (Update-Hinweis, SW).
-  E2E-IDs (UI-03..06 u. a.) brauchen Playwright → in Teilaufgabe (2) einführen.
+- **Nächste Aufgabe:** M7 Teilaufgabe 2: React Router (A-005) mit Ansichten-Gerüst laut Wireframes (Start, Verlauf, Auswertung,
+  Mehr, Eintrag, Onboarding, Entsperren), untere Navigation, Leer-/Fehlerzustände, Dark Mode (system|light|dark, persistiert).
+  Playwright einführen (DECISIONS) für UI-03 (375 px ohne horizontales Scrollen), UI-04 (Deep-Links + Zurück), UI-05
+  (Leer-/Fehlerzustand), UI-06 (Dark Mode). Danach Teilaufgabe 3: Onboarding/Entsperren (CRY-08..12, CRY-16), dann SYN-10/15.
+- **Erledigt in M7:** UI-01 UI-07
 - **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
 - **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016).
 - **Blocker:** keine
@@ -25,7 +25,7 @@
 | M4 | erledigt | 12/12 IDs |
 | M5 | erledigt | 10/10 IDs, Konfliktpfad nachgearbeitet |
 | M6 | erledigt | 12/12 IDs → Gate G1 |
-| M7 | in Arbeit | G1 freigegeben |
+| M7 | in Arbeit | 2/14 IDs |
 | M8 | offen | danach Gate G2 |
 | M9 | offen | erst nach UI-11 |
 | M10 | offen | |
@@ -113,3 +113,4 @@
 | 2026-11-12 | Tooling | (QA-08) | Docker-Test nur noch mit `npm run verify:docker` (A-019, `scripts/run-with-env.mjs` setzt Env plattformunabhängig). Vor Meilenstein-Abschluss/Gates einmal ausführen. Parallel: Code-Review M4–M6 per `code-reviewer`-Subagent gestartet. |
 | 2026-11-12 | Review M4–M6 | (Fixes) | `code-reviewer`-Subagent: 14 Befunde, alle im Code bestätigt und behoben. Server (d16e1fb): Intake an Mitgliedschaft des Erstellers, Editor nur eigene Keys, Rate-Limits nach Token-Prüfung + pro IP, Einladungsabruf rate-limited, Records-Schlüssel (diary_id, id) (Schema v6). Engine (7fd2771): Merge überschreibt keine parallelen Änderungen, Quarantäne statt Pull-Blockade, Fehler pro Tagebuch isoliert, HLC receive/tick, Tombstone mit frischem HLC, Modus bleibt erhalten. Intake: Text ohne Notizfeld → Eingang, deterministische IDs gegen Duplikate, Autor = Ersteller (A-020). Je Befund Regressionstest. |
 | 2026-11-12 | Gate G1 | UI-10 | Vom User freigegeben („g1 freigegeben“), kein Änderungsfeedback zu den Wireframes. M7 beginnt. |
+| 2026-11-12 | M7.1 | UI-01 UI-07 | `apps/web` als Vite 7 + React 19 + Tailwind 4 + shadcn/ui (Button, `cn`, Tokens hell/dunkel in `index.css`), `i18n/de.ts`, `@/`-Alias, tsc-Ausgabe nach `.tsbuild/`. Vite fand die PostCSS-Config von v2 im Repo-Root → explizit leere PostCSS-Config. ESLint: Basis-Elemente/`style` nur in `components/ui/` (UI-01), JSX-Text/Text-Attribute in components/pages nur aus i18n (UI-07); `check-ui-css.mjs` in `lint`. `check-deps` erlaubt mehrere Pakete pro DECISIONS-Zeile. Initiales JS 69,6 KB gzip. |

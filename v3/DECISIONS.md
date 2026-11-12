@@ -61,3 +61,11 @@ Der Loop ergänzt hier neue Annahmen und jede neue npm-Abhängigkeit.
 | `fastify` | server | HTTP-API (Spec 01) | MIT | express (kein Schema-/Typ-Fokus) |
 | `better-sqlite3` | server | SQLite synchron, Transaktionen (Spec 01) | MIT | `node:sqlite` (noch experimentell, schwächere API) |
 | `@types/better-sqlite3` | server (dev) | Typen für better-sqlite3 | MIT | — |
+| `react`, `react-dom` | web | UI (Spec 01) | MIT | Preact (shadcn/ui setzt React voraus) |
+| `vite`, `@vitejs/plugin-react` | web (dev) | Dev-Server und Build (Spec 01); Vite 7 wegen Vitest 3 | MIT | — |
+| `tailwindcss`, `@tailwindcss/vite` | web (dev) | Tailwind CSS v4 für shadcn/ui (Spec 10) | MIT | — |
+| `tw-animate-css` | web (dev) | Animationen der shadcn/ui-Komponenten (Tailwind v4) | MIT | tailwindcss-animate (nur v3) |
+| `@types/react`, `@types/react-dom` | web (dev) | Typen | MIT | — |
+| `class-variance-authority`, `clsx`, `tailwind-merge` | web | shadcn/ui-Varianten und `cn()` | Apache-2.0 / MIT / MIT | — |
+| `lucide-react` | web | Icons (shadcn-Standard, wie v2) | ISC | — |
+| `@radix-ui/react-slot` | web | `asChild` der shadcn-Button-Komponente | MIT | — |

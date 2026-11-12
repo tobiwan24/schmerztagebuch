@@ -14,9 +14,12 @@ export function parseDecisionDeps(content) {
   for (const line of section.split(/\r?\n/)) {
     const m = /^\|\s*([^|]+?)\s*\|/.exec(line.trim());
     if (!m) continue;
-    const name = m[1].replace(/`/g, '').trim();
-    if (!name || name === 'Paket' || /^-+$/.test(name) || name.startsWith('_')) continue;
-    names.add(name);
+    // Eine Zeile darf mehrere zusammengehörige Pakete nennen: `a`, `b`
+    for (const part of m[1].split(',')) {
+      const name = part.replace(/`/g, '').trim();
+      if (!name || name === 'Paket' || /^-+$/.test(name) || name.startsWith('_')) continue;
+      names.add(name);
+    }
   }
   return names;
 }

@@ -22,6 +22,11 @@ describe('check-deps.mjs', () => {
     expect(findUndocumented(manifests.slice(0, 1), decisions)).toEqual([]);
   });
 
+  it('QA-11: eine Tabellenzeile darf mehrere Pakete durch Komma getrennt nennen', () => {
+    const md = '## Abhängigkeiten\n\n| Paket | x |\n|---|---|\n| `react`, `react-dom` | web |\n';
+    expect([...parseDecisionDeps(md)]).toEqual(['react', 'react-dom']);
+  });
+
   it('QA-11: das echte Repo hat keine undokumentierten Abhängigkeiten', () => {
     const out = execFileSync(process.execPath, [join(here, 'check-deps.mjs')], { encoding: 'utf8' });
     expect(out).toContain('✓');

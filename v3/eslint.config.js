@@ -33,8 +33,26 @@ const packageBlocks = PACKAGES.map((pkg) => ({
   },
 }));
 
+/** UI-01 (Spec 10): native Basis-Elemente und Inline-CSS außerhalb von components/ui/. */
+const UI_BASE_ELEMENTS = [
+  {
+    selector: 'JSXOpeningElement[name.name=/^(button|input|select|textarea|dialog|style)$/]',
+    message: 'Basis-Elemente nur in components/ui/ — shadcn/ui-Komponente verwenden (Spec 10, UI-01).',
+  },
+  { selector: "JSXAttribute[name.name='style']", message: 'Kein Inline-CSS — Tailwind-Klassen/Tokens verwenden (Spec 10, UI-01).' },
+];
+
+/** UI-07 (Spec 10): sichtbarer Text und textuelle Attribute müssen aus i18n/de.ts kommen. */
+const UI_HARDCODED_TEXT = [
+  { selector: 'JSXText[value=/\\p{L}/u]', message: 'Kein hart codierter UI-Text — Text aus i18n/de.ts verwenden (Spec 10, UI-07).' },
+  {
+    selector: 'JSXAttribute[name.name=/^(title|placeholder|alt|label|aria-label|aria-description)$/] > Literal',
+    message: 'Kein hart codierter UI-Text in Attributen — Text aus i18n/de.ts verwenden (Spec 10, UI-07).',
+  },
+];
+
 export default tseslint.config(
-  { ignores: ['**/node_modules/**', '**/dist/**', 'reports/**', 'fixtures/**'] },
+  { ignores: ['**/node_modules/**', '**/dist/**', '**/.tsbuild/**', 'reports/**', 'fixtures/**', 'design/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -77,5 +95,17 @@ export default tseslint.config(
         ],
       }],
     },
+  },
+  // UI-01: Basis-Elemente und Inline-Styles nur in components/ui/ (shadcn), sonst shadcn-Komponenten verwenden.
+  {
+    files: ['apps/web/src/**/*.tsx'],
+    ignores: ['apps/web/src/components/ui/**'],
+    rules: { 'no-restricted-syntax': ['error', ...UI_BASE_ELEMENTS] },
+  },
+  // UI-07: kein hart codierter UI-Text in components/** und pages/** — Texte aus i18n/de.ts.
+  {
+    files: ['apps/web/src/components/**/*.tsx', 'apps/web/src/pages/**/*.tsx'],
+    ignores: ['apps/web/src/components/ui/**'],
+    rules: { 'no-restricted-syntax': ['error', ...UI_BASE_ELEMENTS, ...UI_HARDCODED_TEXT] },
   },
 );
