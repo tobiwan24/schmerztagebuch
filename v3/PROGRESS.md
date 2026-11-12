@@ -5,11 +5,11 @@
 ## Aktuell
 
 - **Meilenstein:** M4 — Server: Auth, Records, Mitglieder, Intake
-- **Nächste Aufgabe:** `apps/server` anlegen: Fastify + zod-validierte Umgebungsvariablen (`RP_ID`, `ALLOWED_ORIGINS`,
-  `DATABASE_PATH`, `BLOB_DIR`), `.env.example`, Start schlägt mit Meldung der fehlenden Variable fehl (ARC-04).
-  **Vorher prüfen:** `better-sqlite3` braucht ein natives Binary; npm `allow-scripts` blockiert Install-Skripte und lokal
-  läuft Node 26 (ggf. keine Prebuilds). Falls nicht installierbar: Alternative (z. B. `node:sqlite`) als Annahme in
-  DECISIONS eintragen statt still abzuweichen.
+- **Nächste Aufgabe:** Server-Schema (Tabellen aus Spec 02) + Sync-Endpunkte `push`/`pull` mit optimistischer
+  Nebenläufigkeit (SYN-03: veraltete `baseRev` → `conflict` mit Serverversion). Auth kommt danach (CRY-13, Sessions);
+  bis dahin Endpunkte hinter einer austauschbaren Auth-Schnittstelle testen. Danach Mitglieder/Rollen (SHR-05..08),
+  Gerätesperre (CRY-14), Intake (VOI-03/04/10), Docker (QA-08).
+- **Erledigt in M4:** ARC-04
 - **Blocker:** keine
 
 ## Meilensteine
@@ -20,7 +20,7 @@
 | M1 | erledigt | 14/14 IDs |
 | M2 | erledigt | 7/7 IDs |
 | M3 | erledigt | 6/6 IDs |
-| M4 | in Arbeit | |
+| M4 | in Arbeit | 1/12 IDs |
 | M5 | offen | |
 | M6 | offen | danach Gate G1 |
 | M7 | offen | erst nach UI-10 |
@@ -83,3 +83,4 @@ _noch keins_
 | 2026-11-12 | M3.1 | DM-10 DM-12 | `apps/web` (nur `src/data`, keine Ansichten): Dexie `stb-v3` v1 laut Spec 02, `PayloadCodec` (`plain`, `aes` über `@stb/crypto`), Codec-Registry, generisches Record-Repository (validieren+kodieren vor der Transaktion, Record+Outbox atomar, eine Op pro Record mit ältester `baseRev`, `local-only` ohne Outbox, Soft-Delete). Neue Deps dexie, fake-indexeddb. Vitest-Alias `@stb/*` → `src`. |
 | 2026-11-12 | M3.2 | DM-08 DM-09 BLK-06 | `core/entry-view.ts` (`resolveEntryView`: aktuelle Blöcke nach Order, archivierte Felder mit Wert hinten). `web/data/repositories/diary.ts` (Vorlage+Version atomar via `putMany`, Eintrag gegen seine Version validiert, `getEntryView`). Record-ID einer Version deterministisch `<templateId>.v<n>` (passt zu Spec 04: gleiche ID mit anderem Inhalt = Fehler). Repository-Tests laufen mit `plain` und `aes`. |
 | 2026-11-12 | M3.3 | BLK-08 | Perf-Test `diary.perf.test.ts`: Katalogvorlage `headache`, 50× `saveEntry` (zod + Codec + Record + Outbox) auf fake-indexeddb, Median < 100 ms. **M3 fertig.** |
+| 2026-11-12 | M4.1 | ARC-04 | `apps/server`: Fastify 5, better-sqlite3 13, zod-Config (`loadConfig` meldet alle fehlenden Variablen), `.env.example`, `startServer`, Health `GET /api/v1/health`. ARC-01 deckte auf: `npm ci` baut better-sqlite3 per node-gyp (scheitert ohne Windows SDK) → Install-Skript per `allowScripts` verweigert, mitgelieferte Prebuilds werden genutzt (A-012). |

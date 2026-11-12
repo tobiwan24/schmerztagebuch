@@ -34,6 +34,7 @@ Der Loop ergänzt hier neue Annahmen und jede neue npm-Abhängigkeit.
 | A-009 | GPS-Schalter aktiv, aber Standort nicht verfügbar (verweigert/Fehler) → Rückfall auf den festen Ort des Tagebuchs (`origin: 'diary'`); ohne festen Ort wird kein Wetter ermittelt und **kein** `weatherPending` gesetzt. | Spec 05 regelt den Fall nicht; ohne Ort kann der spätere Nachtrag nichts abfragen. Änderbar in `core/weather.ts` `resolveEntryWeather`. | offen |
 | A-010 | Der v2-Pflicht-Block „Datum" entfällt im v3-Katalog; jeder Eintrag hat `occurredAt` (Spec 02/05). Die Migration (M11) bildet den v2-Datumswert auf `occurredAt` ab. Katalog-Rollen: Schmerzstärke=`outcome`, Notizen=`note`, weitere sinngemäß; Body-Map-Standard = v2-Preset-ID `default-koerper-vorderseite`. | Ein zusätzlicher Datum-Block würde `occurredAt` doppeln und Auswertungen verwirren. | offen |
 | A-011 | Backup-Code = 128 Bit Zufall **+ 32 Bit Prüfsumme** (SHA-256-Präfix) → 32 Base32-Zeichen in 4 Gruppen à 8 (`XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX`). Die Prüfsumme erkennt Tippfehler sofort (`wrong-backup-code`) statt erst nach PBKDF2. | 128 Bit ergeben 26 Base32-Zeichen, die sich nicht in 8er-Gruppen teilen; die Prüfsumme füllt auf 4×8 und verbessert die Fehlermeldung. Entropie bleibt 128 Bit. | offen |
+| A-012 | Install-Skript von `better-sqlite3` ist per `allowScripts` in `v3/package.json` **verweigert**; das Paket lädt seine mitgelieferten N-API-Binaries (`prebuilds/`: win32/darwin/linux/linuxmusl, x64/arm64). | Sonst startet `npm ci` implizit `node-gyp rebuild`, das ohne Windows SDK bzw. Build-Tools scheitert (ARC-01 deckte es auf). Für Plattformen ohne Prebuild müsste die Freigabe zurückgenommen und eine Toolchain bereitgestellt werden. | offen |
 
 ## Abhängigkeiten
 
@@ -46,6 +47,9 @@ Der Loop ergänzt hier neue Annahmen und jede neue npm-Abhängigkeit.
 | `globals` | root (dev) | Globale Variablen je Umgebung für ESLint | MIT | manuelle Liste |
 | `vitest` | root (dev) | Unit-/Integrationstests, JSON-Report | MIT | Jest (kein natives ESM/Vite) |
 | `@types/node` | root (dev) | Node-Typen für Skripte/Server | MIT | — |
-| `zod` | core | Schemas = Typen + Laufzeitvalidierung (Spec 01) | MIT | valibot (kleiner, aber Spec 01 legt zod fest; OpenAPI-Anbindung) |
+| `zod` | core, server | Schemas = Typen + Laufzeitvalidierung (Spec 01) | MIT | valibot (kleiner, aber Spec 01 legt zod fest; OpenAPI-Anbindung) |
 | `dexie` | web | IndexedDB-Zugriff, Transaktionen (Spec 01/02) | Apache-2.0 | idb (zu niedrig, keine Indizes/Transaktions-Helfer) |
 | `fake-indexeddb` | web (dev) | IndexedDB in Node-Tests (Spec 01) | Apache-2.0 | jsdom (hat kein IndexedDB) |
+| `fastify` | server | HTTP-API (Spec 01) | MIT | express (kein Schema-/Typ-Fokus) |
+| `better-sqlite3` | server | SQLite synchron, Transaktionen (Spec 01) | MIT | `node:sqlite` (noch experimentell, schwächere API) |
+| `@types/better-sqlite3` | server (dev) | Typen für better-sqlite3 | MIT | — |
