@@ -5,9 +5,9 @@
 ## Aktuell
 
 - **Meilenstein:** M1 — Domäne `core`: IDs, Schemas, Blöcke, Vorlagenversionen
-- **Nächste Aufgabe:** zod einführen (DECISIONS-Eintrag) + Blockschemas je Typ aus Spec 05 (BLK-01 BLK-04 DM-11).
-  Danach Vorlagenversionen (DM-03 DM-06 DM-07), `toAnalysis` (BLK-02), Wetter-Regeln (BLK-13 BLK-18), Katalog (BLK-16).
-- **Erledigt in M1:** DM-01 DM-02 DM-04 DM-05
+- **Nächste Aufgabe:** Vorlagen/Einträge: `BlockDef`/`TemplateVersion`/`Entry`-Schemas + Domänenfunktion für
+  Vorlagenänderungen (DM-03 DM-06 DM-07). Danach `toAnalysis` (BLK-02), Wetter-Regeln (BLK-13 BLK-18), Katalog (BLK-16).
+- **Erledigt in M1:** DM-01 DM-02 DM-04 DM-05 BLK-01 BLK-04 DM-11
 - **Blocker:** keine
 
 ## Meilensteine
@@ -15,7 +15,7 @@
 | M | Status | Notiz |
 |---|---|---|
 | M0 | erledigt | 7/7 IDs |
-| M1 | in Arbeit | 4/14 IDs |
+| M1 | in Arbeit | 7/14 IDs |
 | M2 | offen | |
 | M3 | offen | |
 | M4 | offen | |
@@ -70,3 +70,4 @@ _noch keins_
 | 2026-11-12 | M0.2 | ARC-01 | Test kopiert Checkout-Stand (`git ls-files -co --exclude-standard`) in Temp, `npm ci` + `verify` (~10 s). Deckte Bug auf: `reports/` in `.gitignore` ignorierte `fixtures/acceptance/reports/` → auf `/reports/` verankert. **M0 fertig.** |
 | 2026-11-12 | M1.1 | DM-01 DM-02 | `createIdGenerator(clock, random?)` → `{ newId }` (12-Bit-Zähler, Uhr-Rücksprung sicher), `idTimestamp`, `isUuidV7`; `cryptoRandom` als Standard. `Clock` ist Pflicht (keine Systemuhr in `packages/*`, QA-06) — Apps reichen die Uhr herein. |
 | 2026-11-12 | M1.2 | DM-04 DM-05 | `core/fractional-index.ts`: eigene Basis-62-Implementierung (keine Abhängigkeit), `keyBetween`, `compareByOrder` (Order, dann ID, Code-Unit-Vergleich ohne Locale). |
+| 2026-11-12 | M1.3 | BLK-01 BLK-04 DM-11 | zod 4 (DECISIONS). `core/blocks/<typ>.ts` je Typ: `config`, `value(config)`, `emptyValue`, `isEmpty`, `toDisplay`; `parseBlockConfig`/`parseBlockValue`. Alle Unter-IDs UUID v7. `toAnalysis`/`toCsv` folgen. Hinweis: `npm install <pkg> -w <ws>` crasht (npm 11.16, „reading 'location'") → Abhängigkeit in Workspace-`package.json` eintragen und Root-`npm install`. |

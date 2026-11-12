@@ -43,3 +43,4 @@ Der Loop ergänzt hier neue Annahmen und jede neue npm-Abhängigkeit.
 | `globals` | root (dev) | Globale Variablen je Umgebung für ESLint | MIT | manuelle Liste |
 | `vitest` | root (dev) | Unit-/Integrationstests, JSON-Report | MIT | Jest (kein natives ESM/Vite) |
 | `@types/node` | root (dev) | Node-Typen für Skripte/Server | MIT | — |
+| `zod` | core | Schemas = Typen + Laufzeitvalidierung (Spec 01) | MIT | valibot (kleiner, aber Spec 01 legt zod fest; OpenAPI-Anbindung) |
