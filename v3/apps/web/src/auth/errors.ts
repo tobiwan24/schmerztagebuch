@@ -32,6 +32,8 @@ export function toAuthErrorCode(e: unknown, ctx: { gesture?: boolean; factor?: '
   if (e instanceof TypeError) return 'server-unreachable';
   const code = typeof e === 'object' && e !== null && 'code' in e ? String((e as { code: unknown }).code) : e instanceof Error ? e.message : '';
   if (code === 'unwrap-failed') return ctx.factor === 'password' ? 'wrong-password' : ctx.factor === 'backup' ? 'wrong-backup-code' : 'unwrap-failed';
+  // Server lehnt die Passkey-Antwort ab (z. B. veraltet) → Anmeldung neu starten.
+  if (code === 'verification-failed') return 'challenge-expired';
   if ((AUTH_ERROR_CODES as readonly string[]).includes(code)) return code as AuthErrorCode;
   return 'unwrap-failed';
 }

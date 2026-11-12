@@ -13,5 +13,7 @@ export default defineConfig({
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   build: { outDir: 'dist', sourcemap: true },
-  server: { port: 5173, strictPort: true },
+  // `/api` → Sync-Server (Dev/E2E; in Produktion übernimmt das nginx, apps/web/Dockerfile). Port per STB_API_URL änderbar.
+  server: { port: 5173, strictPort: true, proxy: { '/api': process.env.STB_API_URL ?? 'http://127.0.0.1:3901' } },
+  preview: { proxy: { '/api': process.env.STB_API_URL ?? 'http://127.0.0.1:3901' } },
 });

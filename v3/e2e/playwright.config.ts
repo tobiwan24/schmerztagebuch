@@ -30,11 +30,21 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], viewport: { width: 375, height: 812 }, isMobile: false },
     },
   ],
-  webServer: {
-    command: `npm run build -w @stb/web && npm run preview -w @stb/web -- --port ${PORT} --strictPort --host localhost`,
-    cwd: '..',
-    url: `http://localhost:${PORT}`,
-    reuseExistingServer: false,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: `npm run build -w @stb/web && npm run preview -w @stb/web -- --port ${PORT} --strictPort --host localhost`,
+      cwd: '..',
+      url: `http://localhost:${PORT}`,
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+    // Echter Sync-Server (frische DB pro Lauf); die Preview leitet /api dorthin weiter (vite.config.ts).
+    {
+      command: 'npx tsc -b apps/server && node e2e/start-server.mjs',
+      cwd: '..',
+      url: 'http://127.0.0.1:3901/api/v1/health',
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+  ],
 });

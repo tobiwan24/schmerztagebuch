@@ -101,7 +101,10 @@ export async function loginOnNewDevice(
     cloud: { userId: r.userId, username: input.username ?? '', identityPublicKey: pub.blob, identitySealed: sealed },
   };
   await db.keys.put({ id: ACCOUNT_ID, value: account });
-  for (const m of await api.listDiaries()) await db.keys.put({ id: dkRowId(m.diaryId), value: { diaryId: m.diaryId, keyEpoch: m.keyEpoch, wrappedDk: m.wrappedDk } satisfies DkRow });
+  for (const m of await api.listDiaries()) {
+    await db.keys.put({ id: dkRowId(m.diaryId), value: { diaryId: m.diaryId, keyEpoch: m.keyEpoch, wrappedDk: m.wrappedDk } satisfies DkRow });
+    await db.sync_state.put({ diaryId: m.diaryId, cursor: 0, mode: 'cloud-primary' });
+  }
   return { umk, account };
 }
 
@@ -112,6 +115,7 @@ export async function createCloudDiary(db: StbDb, api: AccountApi, account: Clou
   const wrappedDk = encodeDkWrap(wrap);
   await api.createDiary({ diaryId, wrappedDk });
   await db.keys.put({ id: dkRowId(diaryId), value: { diaryId, keyEpoch: 1, wrappedDk } satisfies DkRow });
+  await db.sync_state.put({ diaryId, cursor: 0, mode: 'cloud-primary' });
   return dk;
 }
 

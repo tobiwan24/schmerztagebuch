@@ -10,13 +10,16 @@ import { PageHeader } from '@/components/PageHeader';
 import { BackupCodeStep } from '@/components/BackupCodeStep';
 import { FactorSetup, type NewFactor } from '@/components/FactorSetup';
 import { DiaryStep, TemplateStep, type DiaryChoice } from '@/components/DiarySetup';
+import { CloudLogin, CloudRegister } from '@/components/CloudSetup';
+import { AuthErrorNotice } from '@/components/AuthErrorNotice';
+import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
 import { prepareLocalAccount, type PendingAccount } from '@/auth/local-account';
 import { useAuth } from '@/auth/AuthContext';
 import { de } from '@/i18n/de';
 
-type Step = 'install' | 'mode' | 'factor' | 'backup' | 'diary' | 'template';
+type Step = 'install' | 'mode' | 'factor' | 'cloud' | 'cloud-login' | 'backup' | 'diary' | 'template';
 const SETUP_STEPS: readonly Step[] = ['diary', 'template'];
 
 export function OnboardingPage() {
@@ -26,6 +29,7 @@ export function OnboardingPage() {
   const [pending, setPending] = useState<PendingAccount | null>(null);
   const [busy, setBusy] = useState(false);
   const [diaryChoice, setDiaryChoice] = useState<DiaryChoice | null>(null);
+  const [setupError, setSetupError] = useState<AuthErrorCode | null>(null);
   const data = useData();
   const unlocked = auth.status === 'unlocked';
   const diaries = useQuery(() => (unlocked ? data.diary.listDiaries() : Promise.resolve([])), [data, unlocked]);
@@ -60,8 +64,13 @@ export function OnboardingPage() {
       const template = catalogId
         ? instantiateCatalogTemplate(catalogId, { id: data.newId(), diaryId: diary.id, order: keyBetween(null, null), newId: data.newId }, clock)
         : undefined;
+      setSetupError(null);
+      // Konto „Mit Konto": erst auf dem Server anlegen (DK-Wrap), dann lokal — sonst gäbe es ein nicht synchronisierbares Tagebuch.
+      await auth.cloud.createDiary(diary.id);
       await data.diary.createDiary(diary, template);
       void navigate('/', { replace: true });
+    } catch (e) {
+      setSetupError(toAuthErrorCode(e));
     } finally {
       setBusy(false);
     }
@@ -93,7 +102,7 @@ export function OnboardingPage() {
               <span className="text-xs text-muted-foreground">{de.onboarding.modeLocalHint}</span>
             </span>
           </Button>
-          <Button variant="outline" className="h-auto justify-start py-3 text-left" disabled>
+          <Button variant="outline" className="h-auto justify-start py-3 text-left" onClick={() => setStep('cloud')}>
             <Cloud aria-hidden />
             <span className="flex flex-col whitespace-normal">
               <span>{de.onboarding.modeCloud}</span>
@@ -103,9 +112,19 @@ export function OnboardingPage() {
         </>
       ) : null}
       {current === 'factor' ? <FactorSetup title={de.onboarding.factorTitle} onFactor={onFactor} /> : null}
+      {current === 'cloud' ? (
+        <>
+          <CloudRegister onPending={(p) => (setPending(p), setStep('backup'))} />
+          <Button variant="link" onClick={() => setStep('cloud-login')}>
+            {de.onboarding.haveAccount}
+          </Button>
+        </>
+      ) : null}
+      {current === 'cloud-login' ? <CloudLogin onDone={() => setStep('diary')} /> : null}
       {current === 'backup' && pending ? <BackupCodeStep code={pending.backupCode} busy={busy} onConfirmed={() => void onConfirmed()} /> : null}
       {current === 'diary' ? <DiaryStep onNext={(c) => (setDiaryChoice(c), setStep('template'))} /> : null}
       {current === 'template' ? <TemplateStep busy={busy} onDone={(id) => void onTemplate(id)} /> : null}
+      {setupError ? <AuthErrorNotice code={setupError} /> : null}
     </main>
   );
 }

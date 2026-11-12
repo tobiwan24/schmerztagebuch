@@ -77,3 +77,22 @@ export async function activeVersion(page: Page): Promise<string> {
       }),
   );
 }
+
+/** Onboarding „Mit Konto" bis zur Startseite (virtueller Authenticator muss aktiv sein). Liefert den Backup-Code. */
+export async function onboardWithCloud(page: Page, username: string): Promise<string> {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Weiter' }).click();
+  await page.getByRole('button', { name: /Mit Konto/ }).click();
+  await page.getByLabel('Benutzername').fill(username);
+  await page.getByRole('button', { name: 'Weiter' }).click();
+  await page.getByRole('button', { name: 'Passkey anlegen' }).click();
+  const code = (await page.getByTestId('backup-code').textContent({ timeout: 30_000 })) ?? '';
+  await page.getByLabel('Ich habe den Code sicher aufbewahrt').check();
+  await page.getByRole('button', { name: 'Weiter' }).click();
+  await finishDiarySetup(page);
+  return code;
+}
+
+/** Eindeutiger Benutzername pro Test (eine Server-DB für den ganzen Lauf). */
+export const uniqueUser = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+

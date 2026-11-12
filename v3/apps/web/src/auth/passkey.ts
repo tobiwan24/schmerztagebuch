@@ -19,7 +19,7 @@ export class PrfUnsupportedError extends Error {
 
 type PrfResults = { results?: { first?: ArrayBuffer } };
 
-function prfOutput(cred: Credential | null): Uint8Array<ArrayBuffer> {
+export function prfOutput(cred: Credential | null): Uint8Array<ArrayBuffer> {
   const ext = (cred as PublicKeyCredential | null)?.getClientExtensionResults?.() as { prf?: PrfResults } | undefined;
   const first = ext?.prf?.results?.first;
   if (!first) throw new PrfUnsupportedError();
