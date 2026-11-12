@@ -93,6 +93,25 @@ const MIGRATIONS: readonly string[] = [
   );
   CREATE INDEX sessions_device ON sessions (device_id);
   `,
+  // 5: Intake (Spec 08)
+  `
+  CREATE TABLE intake_keys (
+    id TEXT PRIMARY KEY,
+    diary_id TEXT NOT NULL REFERENCES diaries(id),
+    public_key TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    created_by TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    revoked_at INTEGER
+  );
+  CREATE TABLE intake_items (
+    id TEXT PRIMARY KEY,
+    diary_id TEXT NOT NULL REFERENCES diaries(id),
+    sealed TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX intake_items_diary ON intake_items (diary_id);
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

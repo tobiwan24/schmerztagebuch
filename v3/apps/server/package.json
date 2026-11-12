@@ -11,7 +11,8 @@
     "better-sqlite3": "^13.1.1",
     "fastify": "^5.12.8",
     "zod": "^4.6.7",
-    "@stb/sync-protocol": "*"
+    "@stb/sync-protocol": "*",
+    "@stb/crypto": "*"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0"

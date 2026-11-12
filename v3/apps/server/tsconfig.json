@@ -5,6 +5,10 @@
     "outDir": "dist",
     "types": [
       "node"
+    ],
+    "lib": [
+      "ES2023",
+      "DOM"
     ]
   },
   "include": [
@@ -19,6 +23,9 @@
     },
     {
       "path": "../../packages/sync-protocol"
+    },
+    {
+      "path": "../../packages/crypto"
     }
   ]
 }

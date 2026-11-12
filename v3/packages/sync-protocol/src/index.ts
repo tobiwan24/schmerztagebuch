@@ -63,3 +63,25 @@ export const pullResponseSchema = z.strictObject({
   hasMore: z.boolean(),
 });
 export type PullResponse = z.infer<typeof pullResponseSchema>;
+
+// ---------------------------------------------------------------------------------------------------------------
+// Intake (Spec 08): Body des Kurzbefehls, max. 16 KB. Der Server prüft nur die Form und versiegelt sofort.
+
+export const INTAKE_BODY_MAX_BYTES = 16 * 1024;
+
+const intakeValue = z.union([z.number(), z.string(), z.boolean(), z.array(z.string())]);
+
+export const intakeBodySchema = z.strictObject({
+  templateId: z.string().min(1).max(128).optional(),
+  occurredAt: z.iso.datetime({ offset: true }).optional(),
+  text: z.string().optional(),
+  values: z.record(z.string().min(1).max(200), intakeValue).optional(),
+});
+export type IntakeBody = z.infer<typeof intakeBodySchema>;
+
+export const intakeKeyRequestSchema = z.strictObject({
+  /** ECDH-P-256-Public-Key (raw, base64url). */
+  publicKey: z.string().min(1).max(256),
+  /** SHA-256(token) als base64url — das Token selbst erreicht den Server erst beim Intake. */
+  tokenHash: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+});
