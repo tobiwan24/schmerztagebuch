@@ -4,10 +4,12 @@
 
 ## Aktuell
 
-- **Meilenstein:** M4 — Server: Auth, Records, Mitglieder, Intake
-- **Nächste Aufgabe:** QA-08 grün bekommen (Docker-Daemon nötig), dann M4 abschließen und M5 (Sync-Engine) beginnen.
-- **Erledigt in M4:** ARC-04 SYN-03 SHR-05 SHR-06 SHR-07 SHR-08 CRY-13 CRY-14 VOI-03 VOI-04 VOI-10
-- **Blocker:** QA-08 — Docker-Daemon nicht erreichbar (DECISIONS A-014, Entscheidung des Users: Docker starten oder QA-08 nach M13 verschieben).
+- **Meilenstein:** M5 — Sync-Engine
+- **Nächste Aufgabe:** HLC in `core` (Format, `tick`/`receive`, Vergleich) + Entry-Merge pro Block-ID als pure Funktion in
+  `packages/sync-protocol` (SYN-04 SYN-05, ConflictLog-Einträge für Verlierer; Tags-Vereinigung; `deleted` nur mit höherem HLC).
+  Danach SYN-02 (Outbox-Kompaktierung, ist im Repository angelegt — Test mit ID ergänzen), SYN-13 (Single-Flight),
+  dann Engine (Push/Pull gegen `fastify.inject`-Server: DM-13 SYN-01 SYN-07 SYN-08 SYN-16 SYN-12).
+- **Blocker:** keine
 
 ## Meilensteine
 
@@ -17,8 +19,8 @@
 | M1 | erledigt | 14/14 IDs |
 | M2 | erledigt | 7/7 IDs |
 | M3 | erledigt | 6/6 IDs |
-| M4 | in Arbeit | 11/12 IDs |
-| M5 | offen | |
+| M4 | erledigt | 12/12 IDs |
+| M5 | in Arbeit | |
 | M6 | offen | danach Gate G1 |
 | M7 | offen | erst nach UI-10 |
 | M8 | offen | danach Gate G2 |
@@ -91,3 +93,4 @@
 | 2026-11-12 | M4.7 | VOI-03 VOI-04 VOI-10 | `@stb/crypto` `sealForIntake`/`unsealIntake` (ECDH ephemer → HKDF `stb/v3/intake` → AES-GCM, AAD mit diaryId). Migration 5 `intake_keys`/`intake_items`. `POST /intake/:diaryId` (Bearer-Token → SHA-256, Route-`bodyLimit` 16 KB → 413, zod-Form → 400, sofort versiegeln, 202), Schlüssel anlegen/widerrufen (owner/editor). Generischer In-Memory-Rate-Limiter (gleitendes Fenster) 60/h pro Token → 429 + Retry-After. Optionaler `logStream`: Test belegt, dass Log und DB weder Klartext noch Token enthalten. |
 | 2026-11-12 | M4.8 | (QA-08 vorbereitet) | `apps/server/Dockerfile` (node:22-alpine, Prebuild statt node-gyp, User `node`), `apps/web/Dockerfile` (nginx, Platzhalterseite bis M7, `/api` → Server, no-store), `docker-compose.yml`, `.dockerignore`, Test `scripts/docker-compose.test.mjs` (nur mit Daemon; Projekt `stb-v3-qa08`, Port 18080). Daemon nicht erreichbar → Test übersprungen, QA-08 offen → **Loop angehalten** (A-014). |
 | 2026-11-12 | Feedback | (DM-03 erweitert) | `entryPeriodSchema` (ganztägig oder mit Uhrzeiten, Ende ≥ Beginn) als `Entry.period`; Specs 02/05/11, MILESTONES (BLK-19 → M8), A-010 überarbeitet, A-008–A-013 entschieden, A-014 gelöst. |
+| 2026-11-12 | M4.9 | QA-08 | Docker läuft: Server-Image scheiterte an `node-gyp` (npm 10 im Image kennt `allowScripts` nicht) → `npm ci --ignore-scripts` (A-012), `linuxmusl`-Prebuild wird geladen. `docker compose up` → Health über nginx mit Version. Test läuft bei jedem `verify` (mit Cache ~20 s). **M4 fertig.** |

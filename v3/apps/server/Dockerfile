@@ -1,10 +1,10 @@
 # v3-Server (Fastify + better-sqlite3). Build-Kontext: v3/ (Monorepo-Wurzel).
 # better-sqlite3 lädt seine mitgelieferten Prebuilds (linuxmusl-x64/arm64), das Install-Skript ist per
-# allowScripts verweigert (DECISIONS A-012) — daher keine Build-Tools nötig.
+# allowScripts verweigert (DECISIONS A-012); das npm im Image (v10) kennt allowScripts nicht, daher --ignore-scripts.
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY . .
-RUN npm ci --no-audit --no-fund && npx tsc -b apps/server && npm prune --omit=dev
+RUN npm ci --ignore-scripts --no-audit --no-fund && npx tsc -b apps/server && npm prune --omit=dev --ignore-scripts
 
 FROM node:22-alpine
 WORKDIR /app
