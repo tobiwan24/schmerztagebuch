@@ -81,7 +81,7 @@ describe('Intake abholen: Robustheit (Review M4–M6)', () => {
     expect(second.entries).toEqual(first.entries);
   });
 
-  it('SHR-10: Kurzbefehl-Einträge tragen den Ersteller des Kurzbefehls als Autor, nicht das abholende Gerät', async () => {
+  it('VOI-05: Kurzbefehl-Einträge tragen den Ersteller des Kurzbefehls als Autor, nicht das abholende Gerät', async () => {
     const { d, shortcut, pickup } = await setup();
     await shortcut({ values: { Schmerzstärke: 2 } });
     const r = await pickup({ authorId: 'abholendes-geraet' });
