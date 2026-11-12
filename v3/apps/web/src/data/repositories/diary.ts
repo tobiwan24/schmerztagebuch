@@ -34,6 +34,12 @@ export interface DiaryRepository {
   listDiaries(): Promise<Diary[]>;
   /** Speichert Vorlage und aktuelle Version gemeinsam (eine Transaktion). */
   saveTemplate(state: TemplateState): Promise<void>;
+  /** Nur Metadaten (Name, Reihenfolge, Archiv) — Blöcke unverändert, keine neue Version (Spec 02). */
+  saveTemplateMeta(template: Template): Promise<void>;
+  /** Anzahl der Einträge einer Vorlage (vor dem endgültigen Löschen anzeigen, BLK-15). */
+  countTemplateEntries(templateId: string): Promise<number>;
+  /** Endgültig löschen: Einträge (Tombstones mit neuem HLC), alle Versionen, Vorlage. */
+  deleteTemplate(templateId: string, stamp: { hlc: string; updatedAt: string }): Promise<void>;
   getTemplate(templateId: string): Promise<TemplateState | undefined>;
   getTemplateVersion(templateId: string, version: number): Promise<TemplateVersion | undefined>;
   listTemplates(diaryId: string): Promise<Template[]>;
@@ -86,6 +92,32 @@ export function createDiaryRepository(records: RecordRepository): DiaryRepositor
         { id: t.id, diaryId: t.diaryId, kind: 'template', payload: t },
         { id: templateVersionRecordId(t.id, v.version), diaryId: t.diaryId, kind: 'templateVersion', payload: v },
       ]);
+    },
+
+    async saveTemplateMeta(template) {
+      const t = templateSchema.parse(template);
+      const stored = await repo.getTemplate(t.id);
+      if (!stored) throw new RangeError(`Vorlage ${t.id} existiert nicht`);
+      if (stored.template.currentVersion !== t.currentVersion || stored.template.diaryId !== t.diaryId) {
+        throw new RangeError('Nur Metadaten änderbar: Version und Tagebuch müssen gleich bleiben');
+      }
+      await records.put({ id: t.id, diaryId: t.diaryId, kind: 'template', payload: t });
+    },
+
+    async countTemplateEntries(templateId) {
+      return (await records.listKind('entry')).filter((r) => (r.payload as Entry).templateId === templateId).length;
+    },
+
+    async deleteTemplate(templateId, stamp) {
+      const rec = await records.get(templateId);
+      if (!rec || rec.deleted || rec.kind !== 'template') return;
+      for (const e of await records.listKind('entry')) {
+        if ((e.payload as Entry).templateId === templateId) await repo.deleteEntry(e.id, stamp);
+      }
+      for (const v of await records.list(rec.diaryId, 'templateVersion')) {
+        if ((v.payload as TemplateVersion).templateId === templateId) await records.remove(v.id);
+      }
+      await records.remove(templateId);
     },
 
     async getTemplate(templateId) {

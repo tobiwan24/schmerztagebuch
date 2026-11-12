@@ -150,3 +150,35 @@ describe('Tagebücher', () => {
     expect(await repo.listDiaries()).toHaveLength(1);
   });
 });
+
+describe('Vorlagen verwalten', () => {
+  it('Metadaten ändern ohne neue Version; endgültig löschen entfernt Einträge, Versionen und Vorlage', async () => {
+    const { createDiary, instantiateCatalogTemplate } = await import('@stb/core');
+    const repo = createDiaryRepository(
+      createRecordRepository(db, { registry: createCodecRegistry([plainCodec]), writeCodec: 'plain', clock, outbox: false }),
+    );
+    const diary = createDiary({ id: newId(), name: 'T', subject: 'human', timezone: 'UTC' }, clock);
+    const tpl = instantiateCatalogTemplate('general-pain', { id: newId(), diaryId: diary.id, order: keyBetween(null, null), newId }, clock);
+    await repo.createDiary(diary, tpl);
+    const now = iso();
+    const pain = tpl.version.blocks[0]!;
+    const e: Entry = {
+      id: newId(), diaryId: diary.id, templateId: tpl.template.id, templateVersion: 1, occurredAt: now, recordedAt: now, updatedAt: now,
+      authorId: 'u', values: { [pain.id]: 3 }, tags: [], meta: { source: 'app', timezone: 'UTC' }, hlc: '0000000000001:0000:dev1',
+    };
+    await repo.saveEntry(e);
+
+    await repo.saveTemplateMeta({ ...tpl.template, archived: true, order: keyBetween(tpl.template.order, null) });
+    const after = await repo.getTemplate(tpl.template.id);
+    expect(after?.template.archived).toBe(true);
+    expect(after?.version).toEqual(tpl.version);
+    await expect(repo.saveTemplateMeta({ ...tpl.template, currentVersion: 2 })).rejects.toThrow(RangeError);
+
+    expect(await repo.countTemplateEntries(tpl.template.id)).toBe(1);
+    await repo.deleteTemplate(tpl.template.id, { hlc: '0000000000002:0000:dev1', updatedAt: iso() });
+    expect(await repo.getTemplate(tpl.template.id)).toBeUndefined();
+    expect(await repo.getTemplateVersion(tpl.template.id, 1)).toBeUndefined();
+    expect(await repo.getEntry(e.id)).toBeUndefined();
+    expect(await repo.countTemplateEntries(tpl.template.id)).toBe(0);
+  });
+});
