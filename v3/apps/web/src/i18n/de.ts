@@ -82,7 +82,14 @@ export const de = {
     today: 'Heute',
     yesterday: 'Gestern',
   },
-  quick: { title: 'Schnelleintrag' },
+  quick: {
+    title: 'Schnelleintrag',
+    now: (template: string) => `jetzt · ${template}`,
+    moreFields: 'Mehr Felder …',
+    emptyHint: 'Gib mindestens einen Wert ein.',
+    noBlocksTitle: 'Kein Feld für den Schnelleintrag',
+    noBlocksHint: 'Die Vorlage hat keinen Slider. Lege einen Eintrag über das vollständige Formular an.',
+  },
   invite: { title: 'Einladung' },
   state: {
     errorTitle: 'Das hat nicht geklappt',

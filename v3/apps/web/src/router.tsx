@@ -5,6 +5,7 @@ import { StartPage } from '@/pages/StartPage';
 import { AnalysisPage, HistoryPage, MorePage, NotFoundPage, PlaceholderPage } from '@/pages/SimplePages';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { EntryDetailPage, EntryEditorPage } from '@/pages/EntryPages';
+import { QuickPage } from '@/pages/QuickPage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { UnlockPage } from '@/pages/UnlockPage';
 import { de } from '@/i18n/de';
@@ -26,7 +27,7 @@ export const router = createBrowserRouter([
       { path: '/entry/new', element: <EntryEditorPage /> },
       { path: '/entry/:id', element: <EntryDetailPage /> },
       { path: '/entry/:id/edit', element: <EntryEditorPage /> },
-      { path: '/quick', element: <PlaceholderPage title={de.quick.title} /> },
+      { path: '/quick', element: <QuickPage /> },
       { path: '/invite', element: <PlaceholderPage title={de.invite.title} /> },
       { path: '*', element: <NotFoundPage /> },
     ],

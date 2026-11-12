@@ -5,12 +5,13 @@
 ## Aktuell
 
 - **Meilenstein:** M8 — Einträge, Vorlagen, Schnelleintrag, Sync im UI (danach **Gate G2** → Loop anhalten)
-- **Nächste Aufgabe:** M8.4 Schnelleintrag `/quick` (BLK-10): Standard-Vorlage/-Blöcke laut Diary-Settings bzw.
-  Fallback (alle `outcome`-Blöcke, sonst erster Slider), von Start in ≤ 3 Tipps gespeichert, `meta.source = 'quick'`.
-  Danach Vorlagenliste mit Drag & Drop/Archiv (BLK-05, BLK-15), Sync-UI (SYN-06/09/11/14, CRY-15).
-- **Erledigt in M8:** BLK-07 BLK-09 BLK-19 BLK-03
-- **Offen in M8:** BLK-05 BLK-10 BLK-15 SYN-06 SYN-09 SYN-11 SYN-14 CRY-15
-- **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail. Body-Map: v2-Pinsel/Punktgröße/Kommentare/eigene Bilder fehlen (v3-Wertform kennt nur Punkte mit Intensität) — bei Bedarf Spec 05 erweitern; Migration (M11) muss Pinselstriche abbilden.
+- **Nächste Aufgabe:** M8.5 Vorlagenliste `/more/templates` (BLK-05, BLK-15): Liste nach `order`, Drag & Drop
+  (Pointer + Tastatur, Fractional Index, nur `Template.order` ändern → keine neue Version), Archivieren, endgültiges
+  Löschen nur ohne Einträge bzw. mit Bestätigung + Anzahl, Katalog-Anlage. „Zweitgerät" von BLK-05 erst mit Sync-UI.
+  Danach Sync-UI (SYN-06/09/11/14, CRY-15).
+- **Erledigt in M8:** BLK-07 BLK-09 BLK-19 BLK-03 BLK-10
+- **Offen in M8:** BLK-05 BLK-15 SYN-06 SYN-09 SYN-11 SYN-14 CRY-15
+- **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail. Schnelleintrag: Einstellung pro Tagebuch (Vorlage/Blöcke) folgt mit Tagebuch-Einstellungen; bei mehreren Tagebüchern nimmt `/quick` das erste. Body-Map: v2-Pinsel/Punktgröße/Kommentare/eigene Bilder fehlen (v3-Wertform kennt nur Punkte mit Intensität) — bei Bedarf Spec 05 erweitern; Migration (M11) muss Pinselstriche abbilden.
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
 - **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016); Konto-Modus (Registrierung/Login) im Onboarding. Wetter-Ort im Onboarding → mit Tagebuch-Einstellungen (Ort-Suche).
@@ -27,7 +28,7 @@
 | M5 | erledigt | 10/10 IDs, Konfliktpfad nachgearbeitet |
 | M6 | erledigt | 12/12 IDs → Gate G1 |
 | M7 | erledigt | 14/14 IDs |
-| M8 | in Arbeit | 4/12 IDs, danach Gate G2 |
+| M8 | in Arbeit | 5/12 IDs, danach Gate G2 |
 | M9 | offen | erst nach UI-11 |
 | M10 | offen | |
 | M11 | offen | danach Gate G3 |
@@ -124,3 +125,4 @@
 | 2026-11-12 | M8.1 | (Grundlage M8) | `core/diary.ts` (`diarySchema` laut Spec 02, `createDiary`: Wetter/GPS aus bis Ort gesetzt). Repository `createDiary` (Tagebuch + erste Vorlage in einer Transaktion), `getDiary`, `listDiaries`; `DataApi.newId` (UUID v7). Onboarding um „Erstes Tagebuch“ (Name, Art) und „Vorlage wählen“ (Katalog oder leer) ergänzt; entsperrtes Konto ohne Tagebuch → Onboarding ab Tagebuch-Schritt (AppShell-Guard). E2E-Helfer `finishDiarySetup`. |
 | 2026-11-12 | M8.2 | BLK-07 BLK-09 BLK-19 | `core/entry-form.ts` (Ausgangswerte, Pflichtfelder, nur nicht-leere Werte speichern, Zeitangabe Zeitpunkt/Zeitraum ↔ `occurredAt`/`period`, Dirty-Vergleich per `canonical`). `data/identity.ts` (lokale User-ID + HLC-Knoten + letzter HLC in `device`, A-021). shadcn-Optik ohne Radix: Textarea, Slider, ToggleGroup, Dialog (natives `<dialog>`). `EntryForm` (Vorlagenwahl, Zeitangabe, `BlockField` je Typ, Body-Map-Platzhalter bis M8.3, Speichern sticky, `useBlocker` + `beforeunload` nur bei echter Änderung), `/entry/new`, `/entry/:id` (Detail mit archivierten Feldern), `/entry/:id/edit` (Version des Eintrags). Verlauf/Start nach Tagen gruppiert (Zeitraum unter Beginn), Zeilen öffnen das Detail. E2E-Fixtures setzen Pflichtfeld/zweite Vorlage per IndexedDB (Vorlagen-UI folgt). WebKit liefert `datetime-local` teils mit Sekunden → minutengenau normalisiert. |
 | 2026-11-12 | M8.3 | BLK-03 | Body-Map aus v2 portiert (`BodyMapField`): 6 Standard-Bilder (v2-IDs, als Vite-Assets gebündelt → offline im SW-Precache), Bild vorausgewählt aus `defaultPresetId`, Punkte antippen mit Intensität 1–10 (Farben wie v2), normalisierte Koordinaten, Liste mit Entfernen; Bildwechsel nur ohne Punkte. Bild + SVG-Overlay statt Canvas. |
+| 2026-11-12 | M8.4 | BLK-10 | `core/quick-entry.ts` (`quickEntrySelection`: Diary-Einstellung, sonst erste aktive Vorlage nach `order` mit allen `outcome`-Blöcken, sonst erster Slider). `/quick`: Felder der Auswahl, Zeitpunkt jetzt, `meta.source = 'quick'`, ohne Wert kein Speichern, „Mehr Felder …“ zum vollen Formular; nach Speichern zurück zum Start. E2E zählt Tipps (3) und prüft den gespeicherten Record; Ergänzen weiterer Felder behält `source`. |
