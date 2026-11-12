@@ -3,13 +3,9 @@ import { Plus, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/PageHeader';
 import { EntryListState } from '@/components/EntryListState';
-import { useData } from '@/data/DataContext';
-import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 
 export function StartPage() {
-  const { diary } = useData();
-  const entries = useQuery(() => diary.listAllEntries(), [diary]);
   return (
     <>
       <PageHeader title={de.start.title} />
@@ -19,7 +15,7 @@ export function StartPage() {
           {de.start.quickEntry}
         </Link>
       </Button>
-      <EntryListState query={entries} emptyTitle={de.start.emptyTitle} emptyHint={de.start.emptyHint} onRetry={entries.retry} />
+      <EntryListState emptyTitle={de.start.emptyTitle} emptyHint={de.start.emptyHint} />
       <Button asChild variant="outline">
         <Link to="/entry/new">
           <Plus aria-hidden />

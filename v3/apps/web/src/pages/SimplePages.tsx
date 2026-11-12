@@ -1,6 +1,6 @@
 // Ansichten-Gerüst laut Wireframes (G1). Inhalte folgen mit den jeweiligen Meilensteinen (M8, M9, M12).
-import { Link, useParams } from 'react-router';
-import { ChevronRight } from 'lucide-react';
+import { Link } from 'react-router';
+import { ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
@@ -11,12 +11,16 @@ import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 
 export function HistoryPage() {
-  const { diary } = useData();
-  const entries = useQuery(() => diary.listAllEntries(), [diary]);
   return (
     <>
       <PageHeader title={de.history.title} />
-      <EntryListState query={entries} emptyTitle={de.history.emptyTitle} emptyHint={de.history.emptyHint} onRetry={entries.retry} />
+      <EntryListState emptyTitle={de.history.emptyTitle} emptyHint={de.history.emptyHint} />
+      <Button asChild variant="outline">
+        <Link to="/entry/new">
+          <Plus aria-hidden />
+          {de.start.newEntry}
+        </Link>
+      </Button>
     </>
   );
 }
@@ -58,11 +62,6 @@ export function MorePage() {
 
 export function PlaceholderPage({ title }: { title: string }) {
   return <PageHeader title={title} back />;
-}
-
-export function EntryPage() {
-  const { id } = useParams();
-  return <PageHeader title={id === 'new' ? de.entry.newTitle : de.entry.title} back />;
 }
 
 export function NotFoundPage() {

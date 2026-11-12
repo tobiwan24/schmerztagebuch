@@ -7,6 +7,7 @@ export * from './diary.js';
 export * from './weather.js';
 export * from './catalog.js';
 export * from './entry-view.js';
+export * from './entry-form.js';
 export { canonical, deepEqual } from './canonical.js';
 export { createHlcClock, compareHlc, formatHlc, parseHlc, maxHlc, type HlcClock, type HlcParts } from './hlc.js';
 export { mapIntakeToValues, buildShortcutPrompt, normalizeLabel, type IntakeInput, type IntakeMapping } from './intake.js';

@@ -2,8 +2,9 @@
 import { createBrowserRouter } from 'react-router';
 import { AppShell } from '@/components/AppShell';
 import { StartPage } from '@/pages/StartPage';
-import { AnalysisPage, EntryPage, HistoryPage, MorePage, NotFoundPage, PlaceholderPage } from '@/pages/SimplePages';
+import { AnalysisPage, HistoryPage, MorePage, NotFoundPage, PlaceholderPage } from '@/pages/SimplePages';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { EntryDetailPage, EntryEditorPage } from '@/pages/EntryPages';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { UnlockPage } from '@/pages/UnlockPage';
 import { de } from '@/i18n/de';
@@ -22,7 +23,9 @@ export const router = createBrowserRouter([
       { path: '/more/templates', element: <PlaceholderPage title={de.more.templates} /> },
       { path: '/more/diaries', element: <PlaceholderPage title={de.more.diaries} /> },
       { path: '/more/export', element: <PlaceholderPage title={de.more.export} /> },
-      { path: '/entry/:id', element: <EntryPage /> },
+      { path: '/entry/new', element: <EntryEditorPage /> },
+      { path: '/entry/:id', element: <EntryDetailPage /> },
+      { path: '/entry/:id/edit', element: <EntryEditorPage /> },
       { path: '/quick', element: <PlaceholderPage title={de.quick.title} /> },
       { path: '/invite', element: <PlaceholderPage title={de.invite.title} /> },
       { path: '*', element: <NotFoundPage /> },

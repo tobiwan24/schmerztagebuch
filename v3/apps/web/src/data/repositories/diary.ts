@@ -1,6 +1,7 @@
 // Fachliche Repositories für Vorlagen, Vorlagenversionen und Einträge auf Basis des Record-Repositorys.
 // Validierung mit den zod-Schemas aus @stb/core; Komponenten greifen nur hierüber auf Daten zu (Spec 01).
 import {
+  compareByOrder,
   diarySchema,
   entrySchemaFor,
   resolveEntryView,
@@ -36,6 +37,8 @@ export interface DiaryRepository {
   getTemplate(templateId: string): Promise<TemplateState | undefined>;
   getTemplateVersion(templateId: string, version: number): Promise<TemplateVersion | undefined>;
   listTemplates(diaryId: string): Promise<Template[]>;
+  /** Vorlagen aller Tagebücher (Ansicht „Alle“), nach `order`. */
+  listAllTemplates(): Promise<Template[]>;
   /** Validiert gegen die referenzierte Vorlagenversion (DM-03) und speichert. */
   saveEntry(entry: Entry): Promise<void>;
   getEntry(entryId: string): Promise<Entry | undefined>;
@@ -101,6 +104,10 @@ export function createDiaryRepository(records: RecordRepository): DiaryRepositor
 
     async listTemplates(diaryId) {
       return (await records.list(diaryId, 'template')).map((r) => templateSchema.parse(r.payload));
+    },
+
+    async listAllTemplates() {
+      return (await records.listKind('template')).map((r) => templateSchema.parse(r.payload)).sort(compareByOrder);
     },
 
     async saveEntry(entry) {

@@ -6,12 +6,16 @@ import { plainCodec } from './codec/plain';
 import { createCodecRegistry } from './codec/registry';
 import { createRecordRepository, type RecordRepository } from './repositories/records';
 import { createDiaryRepository, type DiaryRepository } from './repositories/diary';
+import { createStamper, type Stamper } from './identity';
 
 export interface DataApi {
   records: RecordRepository;
   diary: DiaryRepository;
   /** Neue UUID v7 (Spec 02). */
   newId: () => string;
+  /** HLC-Stempel und Autor für lokale Änderungen. */
+  stamper: Stamper;
+  now: () => number;
 }
 
 const DataContext = createContext<DataApi | null>(null);
@@ -22,7 +26,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // v3.0: lokal `plain`; Outbox erst mit Modus „Mit Konto" (M8). Im Modus „nur auf diesem Gerät" keine Outbox (Spec 04).
     const records = createRecordRepository(db, { registry: createCodecRegistry([plainCodec]), writeCodec: 'plain', clock: { now }, outbox: false });
     const { newId } = createIdGenerator({ now });
-    return { records, diary: createDiaryRepository(records), newId };
+    return { records, diary: createDiaryRepository(records), newId, stamper: createStamper(db, { now }, newId), now };
   }, [db, now]);
   return <DataContext.Provider value={api}>{children}</DataContext.Provider>;
 }

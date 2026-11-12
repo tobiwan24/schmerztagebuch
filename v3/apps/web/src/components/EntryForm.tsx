@@ -1,0 +1,236 @@
+// Eintragsformular (Spec 05 „Einträge", Wireframe eintrag.html): Vorlage, Zeitangabe Zeitpunkt/Zeitraum, Blöcke,
+// Pflichtfelder (BLK-07), Warnung bei ungespeicherten Änderungen nur nach echter Änderung (BLK-09), Speichern unten fixiert.
+import { useEffect, useRef, useState } from 'react';
+import { useBlocker, useNavigate } from 'react-router';
+import {
+  initialValues,
+  isDirty,
+  missingRequired,
+  nowTimeInput,
+  sortedBlocks,
+  timeInputFrom,
+  timeToEntry,
+  validateTime,
+  valuesToSave,
+  type Entry,
+  type FormSnapshot,
+  type FormValues,
+  type Template,
+  type TemplateVersion,
+  type TimeInput,
+} from '@stb/core';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { BlockField } from '@/components/blocks/BlockField';
+import { useData } from '@/data/DataContext';
+import { de } from '@/i18n/de';
+
+interface Loaded {
+  template: Template;
+  version: TemplateVersion;
+}
+
+export function EntryForm({ templates, entry }: { templates: Template[]; entry?: Entry }) {
+  const data = useData();
+  const navigate = useNavigate();
+  const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [initial, setInitial] = useState<FormSnapshot | null>(null);
+  const [current, setCurrent] = useState<FormSnapshot | null>(null);
+  const [showErrors, setShowErrors] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const leaving = useRef(false);
+
+  // Vorlage laden. Neu: aktuelle Version. Bearbeiten: Version des Eintrags (Werte bleiben gültig, Spec 02).
+  async function selectTemplate(templateId: string) {
+    const template = templates.find((t) => t.id === templateId);
+    if (!template) return;
+    const version = entry
+      ? await data.diary.getTemplateVersion(entry.templateId, entry.templateVersion)
+      : (await data.diary.getTemplate(templateId))?.version;
+    if (!version) return;
+    const next: FormSnapshot = entry
+      ? { templateId, values: { ...entry.values }, time: timeInputFrom(entry), tags: entry.tags }
+      : { templateId, values: initialValues(version), time: current?.time ?? nowTimeInput(data.now()), tags: current?.tags ?? [] };
+    setLoaded({ template, version });
+    // Vorlagenwechsel ohne Eingabe ist keine Änderung (BLK-09): Ausgangszustand wandert mit.
+    setInitial((prev) => (prev && current && isDirty(prev, current) ? prev : next));
+    setCurrent(next);
+    setShowErrors(false);
+  }
+
+  useEffect(() => {
+    const first = entry?.templateId ?? templates[0]?.id;
+    if (first) void selectTemplate(first);
+    // Nur beim Öffnen; spätere Wechsel über die Auswahl.
+  }, []);
+
+  const dirty = initial !== null && current !== null && isDirty(initial, current);
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => dirty && !leaving.current && currentLocation.pathname !== nextLocation.pathname);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+
+  if (!loaded || !current) return <p className="text-muted-foreground">{de.app.loading}</p>;
+  const { template, version } = loaded;
+  const missing = new Set(showErrors ? missingRequired(version, current.values) : []);
+  const timeError = showErrors ? validateTime(current.time) : null;
+
+  const setValues = (values: FormValues) => setCurrent({ ...current, values });
+  const setTime = (time: TimeInput) => setCurrent({ ...current, time });
+
+  async function save() {
+    if (!current || !loaded) return;
+    const miss = missingRequired(loaded.version, current.values);
+    const tErr = validateTime(current.time);
+    if (miss.length || tErr) {
+      setShowErrors(true);
+      document.getElementById(miss.length ? `block-${miss[0]}` : 'entry-time')?.focus();
+      return;
+    }
+    setSaving(true);
+    try {
+      const s = await data.stamper.stamp();
+      const time = timeToEntry(current.time);
+      const values = valuesToSave(loaded.version, current.values);
+      let next: Entry;
+      if (entry) {
+        const rest: Omit<Entry, 'period'> & { period?: Entry['period'] } = { ...entry };
+        delete rest.period;
+        next = { ...rest, ...time, values, tags: [...current.tags], updatedAt: s.at, hlc: s.hlc };
+      } else {
+        next = {
+          id: data.newId(), diaryId: loaded.template.diaryId, templateId: loaded.template.id, templateVersion: loaded.version.version,
+          ...time, recordedAt: s.at, updatedAt: s.at, authorId: s.authorId, values, tags: [...current.tags],
+          meta: { source: 'app', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' }, hlc: s.hlc,
+        };
+      }
+      await data.diary.saveEntry(next);
+      leaving.current = true;
+      void navigate(`/entry/${next.id}`, { replace: true });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form className="flex flex-col gap-6" noValidate onSubmit={(e) => (e.preventDefault(), void save())}>
+      {!entry && templates.length > 1 ? (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-2 text-sm font-medium">{de.entry.template}</legend>
+          <div className="flex flex-wrap gap-2">
+            {templates.map((t) => (
+              <Button key={t.id} type="button" size="sm" variant={t.id === template.id ? 'default' : 'outline'} aria-pressed={t.id === template.id} onClick={() => void selectTemplate(t.id)}>
+                {t.name}
+              </Button>
+            ))}
+          </div>
+        </fieldset>
+      ) : (
+        <p className="text-sm text-muted-foreground">{template.name}</p>
+      )}
+
+      <TimeField time={current.time} error={timeError} onChange={setTime} />
+
+      {sortedBlocks(version).map((def) => (
+        <BlockField key={def.id} def={def} value={current.values[def.id]} invalid={missing.has(def.id)} onChange={(v) => setValues({ ...current.values, [def.id]: v })} />
+      ))}
+
+      {missing.size > 0 ? (
+        <p role="alert" className="text-sm text-destructive">
+          {de.entry.requiredSummary}
+        </p>
+      ) : null}
+
+      <div className="sticky bottom-20 z-10 bg-background/95 py-2 backdrop-blur">
+        <Button type="submit" size="lg" className="w-full" disabled={saving}>
+          {saving ? de.entry.saving : de.entry.save}
+        </Button>
+      </div>
+
+      <Dialog open={blocker.state === 'blocked'} onClose={() => blocker.reset?.()} aria-labelledby="discard-title">
+        <DialogTitle id="discard-title">{de.entry.discardTitle}</DialogTitle>
+        <DialogDescription>{de.entry.discardHint}</DialogDescription>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => blocker.reset?.()}>
+            {de.entry.keepEditing}
+          </Button>
+          <Button type="button" variant="destructive" onClick={() => blocker.proceed?.()}>
+            {de.entry.discard}
+          </Button>
+        </DialogFooter>
+      </Dialog>
+    </form>
+  );
+}
+
+/** Browser liefern `datetime-local` teils mit Sekunden (WebKit) — minutengenau vergleichen und speichern. */
+const minutes = (v: string) => (v.length > 16 ? v.slice(0, 16) : v);
+
+function TimeField({ time, error, onChange }: { time: TimeInput; error: ReturnType<typeof validateTime>; onChange: (t: TimeInput) => void }) {
+  const toPoint = (): TimeInput => (time.mode === 'point' ? time : { mode: 'point', at: time.withTime ? time.start : `${time.start}T12:00` });
+  const toPeriod = (): TimeInput => {
+    if (time.mode === 'period') return time;
+    const day = time.at.slice(0, 10);
+    return { mode: 'period', start: day, end: day, withTime: false };
+  };
+  const setWithTime = (on: boolean) => {
+    if (time.mode !== 'period' || time.withTime === on) return;
+    onChange(
+      on
+        ? { mode: 'period', start: `${time.start}T00:00`, end: `${time.end}T23:59`, withTime: true }
+        : { mode: 'period', start: time.start.slice(0, 10), end: time.end.slice(0, 10), withTime: false },
+    );
+  };
+  const invalid = error ? { 'aria-invalid': true as const, 'aria-describedby': 'entry-time-error' } : {};
+  return (
+    <fieldset className="flex flex-col gap-3">
+      <legend className="mb-2 text-sm font-medium">{de.entry.timeLabel}</legend>
+      <ToggleGroup aria-label={de.entry.timeLabel}>
+        <ToggleGroupItem pressed={time.mode === 'point'} onClick={() => onChange(toPoint())}>
+          {de.entry.modePoint}
+        </ToggleGroupItem>
+        <ToggleGroupItem pressed={time.mode === 'period'} onClick={() => onChange(toPeriod())}>
+          {de.entry.modePeriod}
+        </ToggleGroupItem>
+      </ToggleGroup>
+      {time.mode === 'point' ? (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="entry-time">{de.entry.pointLabel}</Label>
+          <Input id="entry-time" type="datetime-local" value={time.at} onChange={(e) => onChange({ mode: 'point', at: minutes(e.target.value) })} {...invalid} />
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="entry-time">{de.entry.periodStart}</Label>
+              <Input id="entry-time" type={time.withTime ? 'datetime-local' : 'date'} value={time.start} onChange={(e) => onChange({ ...time, start: minutes(e.target.value) })} {...invalid} />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="entry-time-end">{de.entry.periodEnd}</Label>
+              <Input id="entry-time-end" type={time.withTime ? 'datetime-local' : 'date'} value={time.end} onChange={(e) => onChange({ ...time, end: minutes(e.target.value) })} {...invalid} />
+            </div>
+          </div>
+          <div className="flex min-h-11 items-center gap-3">
+            <Checkbox id="entry-with-time" checked={time.withTime} onChange={(e) => setWithTime(e.target.checked)} />
+            <Label htmlFor="entry-with-time" className="font-normal">
+              {de.entry.withTime}
+            </Label>
+          </div>
+        </>
+      )}
+      {error ? (
+        <p id="entry-time-error" role="alert" className="text-sm text-destructive">
+          {error === 'missing' ? de.entry.timeMissing : de.entry.endBeforeStart}
+        </p>
+      ) : null}
+    </fieldset>
+  );
+}

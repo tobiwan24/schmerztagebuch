@@ -5,11 +5,12 @@
 ## Aktuell
 
 - **Meilenstein:** M8 — Einträge, Vorlagen, Schnelleintrag, Sync im UI (danach **Gate G2** → Loop anhalten)
-- **Nächste Aufgabe:** M8.2 Eintragsformular `/entry/new` + `/entry/:id` — Vorlagenwahl (Tagebuch/Vorlage), Blöcke
-  rendern (Slider, Checkbox, Multiselect, Text, Textarea, Datum; Body-Map als eigener Schritt M8.3 für BLK-03),
-  Zeitangabe Zeitpunkt/Zeitraum (BLK-19), Pflichtfelder (BLK-07), Dirty-Warnung nur bei echter Änderung (BLK-09),
-  Speichern mit HLC/`authorId`/`meta.source='app'`; Anzeige in Verlauf (nach Tagen) und Detail.
-- **Offen in M8:** BLK-03 BLK-05 BLK-07 BLK-09 BLK-10 BLK-15 BLK-19 SYN-06 SYN-09 SYN-11 SYN-14 CRY-15
+- **Nächste Aufgabe:** M8.3 Body-Map aus v2 portieren (`src/components/blocks/BodyMapBlock.tsx` + Presets → shadcn,
+  normalisierte Punkte 0..1, Intensität) — BLK-03: neuer Eintrag zeigt `defaultPresetId` vorausgewählt. Danach
+  Schnelleintrag (BLK-10), Vorlagenliste mit Drag & Drop/Archiv (BLK-05, BLK-15), Sync-UI (SYN-06/09/11/14, CRY-15).
+- **Erledigt in M8:** BLK-07 BLK-09 BLK-19
+- **Offen in M8:** BLK-03 BLK-05 BLK-10 BLK-15 SYN-06 SYN-09 SYN-11 SYN-14 CRY-15
+- **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail.
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
 - **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016); Konto-Modus (Registrierung/Login) im Onboarding. Wetter-Ort im Onboarding → mit Tagebuch-Einstellungen (Ort-Suche).
@@ -26,7 +27,7 @@
 | M5 | erledigt | 10/10 IDs, Konfliktpfad nachgearbeitet |
 | M6 | erledigt | 12/12 IDs → Gate G1 |
 | M7 | erledigt | 14/14 IDs |
-| M8 | in Arbeit | 0/12 IDs, danach Gate G2 |
+| M8 | in Arbeit | 3/12 IDs, danach Gate G2 |
 | M9 | offen | erst nach UI-11 |
 | M10 | offen | |
 | M11 | offen | danach Gate G3 |
@@ -121,3 +122,4 @@
 | 2026-11-12 | M7.6 | UI-04 UI-05 | `DataProvider` (Repositories über der Konto-DB, local-only ohne Outbox), `useQuery` (Laden/ok/Fehler + retry), Start/Verlauf/Auswertung laden Einträge (`listAllEntries`), `EntryListState`. Deep-Links behalten Hash (`/invite#…`); Entsperr-Links ersetzen den gesperrten Historieneintrag. E2E: Deep-Links nach Entsperren + Zurück; Leerzustand mit leerer DB; Fehlerzustand per IndexedDB-Patch nur im Test (`records`-Store). |
 | 2026-11-12 | M7.7 | SYN-15 | `version.ts` (`APP_VERSION`, einzige Quelle) → Vite-Plugin `sw/build-sw.ts` erzeugt `sw.js` aus `sw.template.js` mit Version + Asset-Liste. SW: Navigation network-first mit Shell-Fallback, `/assets/*` cache-first (`ignoreVary`, sonst kein Treffer in Chromium), `/api/*` nie; alte Caches beim Aktivieren weg. `sw-client.ts` + `UpdateBanner` („Neue Version verfügbar“ → Neu starten → SKIP_WAITING → Reload nur nach Nutzeraktion, nicht bei `clients.claim()` beim Erst-Install). E2E offline (Chromium + WebKit); Update-Test als Playwright-Projekt `deploy` nach allen anderen (tauscht `dist/sw.js` gleich lang aus, da `context.route` das SW-Skript nicht abfängt). **M7 abgeschlossen** (14/14). |
 | 2026-11-12 | M8.1 | (Grundlage M8) | `core/diary.ts` (`diarySchema` laut Spec 02, `createDiary`: Wetter/GPS aus bis Ort gesetzt). Repository `createDiary` (Tagebuch + erste Vorlage in einer Transaktion), `getDiary`, `listDiaries`; `DataApi.newId` (UUID v7). Onboarding um „Erstes Tagebuch“ (Name, Art) und „Vorlage wählen“ (Katalog oder leer) ergänzt; entsperrtes Konto ohne Tagebuch → Onboarding ab Tagebuch-Schritt (AppShell-Guard). E2E-Helfer `finishDiarySetup`. |
+| 2026-11-12 | M8.2 | BLK-07 BLK-09 BLK-19 | `core/entry-form.ts` (Ausgangswerte, Pflichtfelder, nur nicht-leere Werte speichern, Zeitangabe Zeitpunkt/Zeitraum ↔ `occurredAt`/`period`, Dirty-Vergleich per `canonical`). `data/identity.ts` (lokale User-ID + HLC-Knoten + letzter HLC in `device`, A-021). shadcn-Optik ohne Radix: Textarea, Slider, ToggleGroup, Dialog (natives `<dialog>`). `EntryForm` (Vorlagenwahl, Zeitangabe, `BlockField` je Typ, Body-Map-Platzhalter bis M8.3, Speichern sticky, `useBlocker` + `beforeunload` nur bei echter Änderung), `/entry/new`, `/entry/:id` (Detail mit archivierten Feldern), `/entry/:id/edit` (Version des Eintrags). Verlauf/Start nach Tagen gruppiert (Zeitraum unter Beginn), Zeilen öffnen das Detail. E2E-Fixtures setzen Pflichtfeld/zweite Vorlage per IndexedDB (Vorlagen-UI folgt). WebKit liefert `datetime-local` teils mit Sekunden → minutengenau normalisiert. |
