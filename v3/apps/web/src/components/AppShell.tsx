@@ -23,7 +23,7 @@ export function AppShell() {
   if (status === 'loading') return <p className="p-4 text-muted-foreground">{de.app.loading}</p>;
   if (status === 'no-account') return <Navigate to="/onboarding" replace />;
   const locked = status === 'locked';
-  const here = location.pathname + location.search;
+  const here = location.pathname + location.search + location.hash;
   const unlockHref = `/unlock?next=${encodeURIComponent(here)}`;
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
@@ -34,7 +34,9 @@ export function AppShell() {
             {de.lock.bannerText}
           </span>
           <Button asChild size="sm">
-            <Link to={unlockHref}>{de.lock.bannerAction}</Link>
+            <Link to={unlockHref} replace>
+              {de.lock.bannerAction}
+            </Link>
           </Button>
         </div>
       ) : null}
@@ -44,7 +46,9 @@ export function AppShell() {
             <h1 className="text-xl font-semibold">{de.lock.lockedTitle}</h1>
             <p className="text-muted-foreground">{de.lock.lockedHint}</p>
             <Button asChild>
-              <Link to={unlockHref}>{de.lock.bannerAction}</Link>
+              <Link to={unlockHref} replace>
+                {de.lock.bannerAction}
+              </Link>
             </Button>
           </section>
         ) : (

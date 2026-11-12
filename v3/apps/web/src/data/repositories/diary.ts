@@ -36,6 +36,8 @@ export interface DiaryRepository {
   /** Löscht einen Eintrag (Tombstone) mit neuem HLC, damit eine spätere Löschung gegen ältere Bearbeitungen gewinnt. */
   deleteEntry(entryId: string, stamp: { hlc: string; updatedAt: string }): Promise<void>;
   listEntries(diaryId: string): Promise<Entry[]>;
+  /** Einträge aller Tagebücher, neueste zuerst. */
+  listAllEntries(): Promise<Entry[]>;
   /** Eintrag mit Feldern der aktuellen Vorlagenversion inkl. archivierter Felder (DM-08). */
   getEntryView(entryId: string): Promise<EntryView | undefined>;
 }
@@ -86,6 +88,11 @@ export function createDiaryRepository(records: RecordRepository): DiaryRepositor
       const entry = await repo.getEntry(entryId);
       if (!entry) return;
       await records.remove(entryId, { ...entry, hlc: stamp.hlc, updatedAt: stamp.updatedAt });
+    },
+
+    async listAllEntries() {
+      const all = (await records.listKind('entry')).map((r) => r.payload as Entry);
+      return all.sort((a, b) => (a.occurredAt < b.occurredAt ? 1 : a.occurredAt > b.occurredAt ? -1 : 0));
     },
 
     async listEntries(diaryId) {

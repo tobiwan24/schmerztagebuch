@@ -4,23 +4,31 @@ import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
-import { EmptyState } from '@/components/StateView';
+import { EmptyState, ErrorState } from '@/components/StateView';
+import { EntryListState } from '@/components/EntryListState';
+import { useData } from '@/data/DataContext';
+import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 
 export function HistoryPage() {
+  const { diary } = useData();
+  const entries = useQuery(() => diary.listAllEntries(), [diary]);
   return (
     <>
       <PageHeader title={de.history.title} />
-      <EmptyState title={de.history.emptyTitle} hint={de.history.emptyHint} />
+      <EntryListState query={entries} emptyTitle={de.history.emptyTitle} emptyHint={de.history.emptyHint} onRetry={entries.retry} />
     </>
   );
 }
 
 export function AnalysisPage() {
+  const { diary } = useData();
+  const entries = useQuery(() => diary.listAllEntries(), [diary]);
   return (
     <>
       <PageHeader title={de.analysis.title} />
-      <EmptyState title={de.analysis.emptyTitle} hint={de.analysis.emptyHint} />
+      {entries.status === 'error' ? <ErrorState onRetry={entries.retry} /> : null}
+      {entries.status === 'ok' && entries.data.length === 0 ? <EmptyState title={de.analysis.emptyTitle} hint={de.analysis.emptyHint} /> : null}
     </>
   );
 }

@@ -32,6 +32,8 @@ export interface RecordRepository {
   get(id: string): Promise<DecodedRecord | undefined>;
   /** Nicht gelöschte Records eines Tagebuchs und einer Art. */
   list(diaryId: string, kind: string): Promise<DecodedRecord[]>;
+  /** Nicht gelöschte Records einer Art über alle Tagebücher (Ansicht „Alle", Spec 10). */
+  listKind(kind: string): Promise<DecodedRecord[]>;
 }
 
 export interface RecordRepositoryOptions {
@@ -128,6 +130,11 @@ export function createRecordRepository(db: StbDb, o: RecordRepositoryOptions): R
     async list(diaryId, kind) {
       const rows = await db.records.where('[diaryId+kind]').equals([diaryId, kind]).toArray();
       return Promise.all(rows.filter((r) => r.deleted === 0).map(decode));
+    },
+
+    async listKind(kind) {
+      const rows = await db.records.filter((r) => r.kind === kind && r.deleted === 0).toArray();
+      return Promise.all(rows.map(decode));
     },
   };
 }
