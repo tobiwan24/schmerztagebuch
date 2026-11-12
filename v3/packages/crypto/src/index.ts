@@ -15,3 +15,4 @@ export { generateUmk, wrapUmk, unwrapUmk, deriveKek, PBKDF2_ITERATIONS, KDF_SALT
 export { normalizeBackupCode, generateBackupCode, parseBackupCode, BACKUP_CODE_ENTROPY_BITS } from './backup-code.js';
 export { generateIdentityEcdhKeyPair, exportPublicKey, importPublicKey, wrapDkForMember, unwrapDkForMember, type MemberDkWrap, type DkWrapContext } from './share.js';
 export { sealForIntake, unsealIntake, type IntakeSeal } from './intake.js';
+export { createInvitationSecret, encryptInvitation, decryptInvitation, invitationMac, verifyInvitationMac, safetyNumber, updateVerification, type InvitationDetails, type VerificationState } from './invitation.js';

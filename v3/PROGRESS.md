@@ -5,10 +5,12 @@
 ## Aktuell
 
 - **Meilenstein:** M6 — Client-Logik Teilen, Intake, Wetter (danach Gate G1)
-- **Nächste Aufgabe:** SHR-03 SHR-04 — Einladungs-Kryptografie im Client (`@stb/crypto`): Einladungs-Secret (128 Bit),
-  Chiffretext für Name/Rolle, HMAC(secret, identityPub) prüfen → ausgetauschter Key wird abgelehnt, kein DK-Wrap (SHR-03,
-  Integration gegen Server); Sicherheitsnummer (12 Zifferngruppen aus SHA-256(`stb/v3/fingerprint` | sortierte Pubkeys)),
-  „verifiziert" entfällt bei Key-Wechsel (SHR-04). Danach SHR-11, VOI-01 VOI-05..08, BLK-11 BLK-12 BLK-14 BLK-17.
+- **Nächste Aufgabe:** SHR-11 (Austreten löscht lokale Daten des Tagebuchs: Records, Outbox, sync_state, Schlüssel) +
+  Intake im Client: VOI-01 (Einrichten: ECDH-Schlüsselpaar, privater Schlüssel als `intakeKey`-Record verschlüsselt
+  synchronisiert, Server kennt nur Public Key + Token-Hash), VOI-05 (Items abholen, entsiegeln, Eintrag `source: 'shortcut'`,
+  Abholung bestätigen → Server löscht; Server-Endpunkte für Items-Liste/Bestätigung ergänzen), VOI-06/07/08 (Zuordnung,
+  Eingang bei ungültigen Werten, Kurzbefehl-Prompt). Danach Wetter BLK-11 BLK-12 BLK-14 BLK-17.
+- **Erledigt in M6:** SHR-03 SHR-04
 - **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016).
 - **Blocker:** keine
 
@@ -22,7 +24,7 @@
 | M3 | erledigt | 6/6 IDs |
 | M4 | erledigt | 12/12 IDs |
 | M5 | erledigt | 10/10 IDs, Konfliktpfad nachgearbeitet |
-| M6 | in Arbeit | danach Gate G1 |
+| M6 | in Arbeit | 2/12 IDs, danach Gate G1 |
 | M7 | offen | erst nach UI-10 |
 | M8 | offen | danach Gate G2 |
 | M9 | offen | erst nach UI-11 |
@@ -101,3 +103,4 @@
 | 2026-11-12 | M5.4 | SYN-07 SYN-08 SYN-16 | Engine `pullDiary`: Seiten (≤ 500) außerhalb der Transaktion entschlüsseln/kodieren, dann Records + Cursor (`sync_state`) gemeinsam schreiben; Records mit ausstehender Op werden nicht überschrieben (Konflikt beim nächsten Push). `sync()` = Push → Pull je Tagebuch. Tests: 1.100 Records über 3 Seiten, Abbruch beim Anwenden und beim Netz, Tombstones. |
 | 2026-11-12 | M5.5 | SYN-12 | `web/sync/mode.ts`: `switchToLocalOnly` (erst vollständiger Pull, dann leere Outbox prüfen → sonst `outbox-not-empty`/`server-unreachable`), `switchToCloudPrimary` (alle lokalen Records in die Outbox, Erst-Push), `getSyncMode` (Standard local-only). **M5 Akzeptanz OK**; Konfliktpfad der Engine als Nacharbeit vor M6 eingeplant. |
 | 2026-11-12 | M5.6 | (SYN-04 SYN-05 Integration) | Konfliktpfad: `web/sync/resolve.ts` (entry → `mergeEntry`; template feldweise; sonst ganzer Datensatz; templateVersion-Kollision → nicht auflösbar), Engine löst Konflikte nach Push auf (Server entschlüsseln, `base` = Serverstand, `baseRev = server.rev`, ConflictLog lokal), bis zu 3 Runden; identisches Ergebnis → Serverstand übernehmen ohne Push. Zwei-Geräte-Tests konvergieren. A-016. |
+| 2026-11-12 | M6.1 | SHR-03 SHR-04 | `@stb/crypto/invitation.ts`: Einladungs-Secret (128 Bit), HKDF → AES-GCM (Chiffretext Name/Rolle) und HMAC (Bindung identityPub), Sicherheitsnummer (SHA-256 über `stb/v3/fingerprint` + sortierte Keys → 12×5 Ziffern aus je 20 Bit), `updateVerification` (Key-Wechsel → nicht mehr verifiziert + Hinweis). `web/sharing/invitations.ts` `confirmAcceptances`: nur bei gültiger HMAC DK-Wrap + Bestätigung. Integrationstest mit vom Server ausgetauschtem Key. |
