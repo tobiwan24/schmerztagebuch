@@ -10,6 +10,7 @@ export default defineConfig({
       '@stb/core': src('core'),
       '@stb/crypto': src('crypto'),
       '@stb/sync-protocol': src('sync-protocol'),
+      '@': fileURLToPath(new URL('./apps/web/src', import.meta.url)),
     },
   },
   test: {

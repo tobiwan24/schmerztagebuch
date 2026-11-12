@@ -10,7 +10,7 @@
   Tagebuch + Vorlage) und Entsperren (CRY-08..12, CRY-16); Server-Endpunkte Registrierung/Login (Challenges aus CRY-13,
   Sessions aus CRY-14). Danach UI-04 (Deep-Links nach Entsperren), UI-05 (Leer/Fehler mit leerer DB bzw. simuliertem
   Repository-Fehler), SYN-10, SYN-15.
-- **Erledigt in M7:** UI-01 UI-07 UI-03 UI-06
+- **Erledigt in M7:** UI-01 UI-07 UI-03 UI-06 CRY-11 CRY-12
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
 - **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016).
@@ -27,7 +27,7 @@
 | M4 | erledigt | 12/12 IDs |
 | M5 | erledigt | 10/10 IDs, Konfliktpfad nachgearbeitet |
 | M6 | erledigt | 12/12 IDs → Gate G1 |
-| M7 | in Arbeit | 4/14 IDs |
+| M7 | in Arbeit | 6/14 IDs |
 | M8 | offen | danach Gate G2 |
 | M9 | offen | erst nach UI-11 |
 | M10 | offen | |
@@ -117,3 +117,4 @@
 | 2026-11-12 | Gate G1 | UI-10 | Vom User freigegeben („g1 freigegeben“), kein Änderungsfeedback zu den Wireframes. M7 beginnt. |
 | 2026-11-12 | M7.1 | UI-01 UI-07 | `apps/web` als Vite 7 + React 19 + Tailwind 4 + shadcn/ui (Button, `cn`, Tokens hell/dunkel in `index.css`), `i18n/de.ts`, `@/`-Alias, tsc-Ausgabe nach `.tsbuild/`. Vite fand die PostCSS-Config von v2 im Repo-Root → explizit leere PostCSS-Config. ESLint: Basis-Elemente/`style` nur in `components/ui/` (UI-01), JSX-Text/Text-Attribute in components/pages nur aus i18n (UI-07); `check-ui-css.mjs` in `lint`. `check-deps` erlaubt mehrere Pakete pro DECISIONS-Zeile. Initiales JS 69,6 KB gzip. |
 | 2026-11-12 | M7.2 | UI-03 UI-06 | React Router 7 (Library-Modus), `AppShell` mit unterer Navigation (4 Ziele, ≥ 44 px), Seitenkopf mit Zurück (Historie), Ansichten-Gerüst laut Wireframes, Leer-/Fehlerzustand-Komponenten (shadcn Card), Theme `system|light|dark` (localStorage, `.dark`). Playwright 1.65 (Chromium + WebKit, 375 px), `npm run test:e2e` → `reports/playwright.json`. Initiales JS 115,8 KB gzip. |
+| 2026-11-12 | M7.3 | CRY-11 CRY-12 | `web/auth/errors.ts`: 9 Fehlercodes mit je eigenem Text (`de.authErrors`, Snapshots), `toAuthErrorCode` (DOMException/Netz/Krypto → Code, `unwrap-failed` je Faktor → wrong-password/wrong-backup-code). `web/data/crypto-session.ts`: UMK/DKs nur im Speicher, `keys` als DiaryKeyProvider, „entsperrt bleiben" per nicht-extrahierbarem AES-KW-Device-Key (IndexedDB), Ablauf 7 Tage (einstellbar), Widerruf. Vitest-Alias `@` → apps/web/src. |
