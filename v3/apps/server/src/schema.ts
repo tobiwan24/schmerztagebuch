@@ -56,6 +56,18 @@ const MIGRATIONS: readonly string[] = [
   );
   CREATE INDEX invitations_diary ON invitations (diary_id);
   `,
+  // 3: WebAuthn-Challenges (Spec 03 „Server-Auth")
+  `
+  CREATE TABLE challenges (
+    id TEXT PRIMARY KEY,
+    challenge TEXT NOT NULL,
+    purpose TEXT NOT NULL,
+    user_id TEXT,
+    expires_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX challenges_expires ON challenges (expires_at);
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

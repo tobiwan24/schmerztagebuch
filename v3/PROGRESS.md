@@ -5,10 +5,10 @@
 ## Aktuell
 
 - **Meilenstein:** M4 — Server: Auth, Records, Mitglieder, Intake
-- **Nächste Aufgabe:** Auth-Grundlage: Challenges in SQLite mit TTL 5 min, pro Challenge-ID, überleben Neustart;
-  abgelaufen → `challenge-expired` (CRY-13). Dafür `@simplewebauthn/server` prüfen (DECISIONS-Eintrag) oder Challenge-Store
-  zunächst unabhängig davon bauen. Danach Gerätesperre (CRY-14), Intake (VOI-03/04/10), Docker (QA-08).
-- **Erledigt in M4:** ARC-04 SYN-03 SHR-05 SHR-06 SHR-07 SHR-08
+- **Nächste Aufgabe:** Gerätesperre (CRY-14): Tabellen `users`/`devices`/`sessions` (Session-Cookie-Grundlage,
+  HttpOnly/Secure/SameSite=Strict, 30 Tage) + `AuthProvider` auf Session-Basis; `devices.revoked_at` → keine Records, kein
+  Push, Sitzung beendet. Danach Intake (VOI-03/04/10), Docker (QA-08).
+- **Erledigt in M4:** ARC-04 SYN-03 SHR-05 SHR-06 SHR-07 SHR-08 CRY-13
 - **Blocker:** keine
 
 ## Meilensteine
@@ -19,7 +19,7 @@
 | M1 | erledigt | 14/14 IDs |
 | M2 | erledigt | 7/7 IDs |
 | M3 | erledigt | 6/6 IDs |
-| M4 | in Arbeit | 6/12 IDs |
+| M4 | in Arbeit | 7/12 IDs |
 | M5 | offen | |
 | M6 | offen | danach Gate G1 |
 | M7 | offen | erst nach UI-10 |
@@ -86,3 +86,4 @@ _noch keins_
 | 2026-11-12 | M4.2 | SYN-03 | Neues Paket `@stb/sync-protocol` (zod-DTOs Push/Pull, Limits 500). Server: Schema-Migrationen über `user_version` (diaries, memberships, records, sync_counter), `applyPush` (rev-Prüfung je Op in einer Transaktion, fremdes Tagebuch → conflict ohne Inhalt), `pull` (seq-Cursor, `hasMore`), `Cache-Control: no-store`. Austauschbares `AuthProvider`: Tests `headerAuth`, Server bis CRY-13 `noAuth` (alles 401). |
 | 2026-11-12 | M4.3 | SHR-05 SHR-06 SHR-07 | `members/service.ts`: `mayPushKind` (editor: entry/attachmentMeta, A-013), `changeRole`/`revokeMember` mit Letzter-Owner-Schutz (409 `last-owner`) in Transaktionen. Routen PATCH/DELETE `/diaries/:id/members/:principalId`; Push prüft Rolle je Op (eine verbotene → ganzer Push 403). |
 | 2026-11-12 | M4.4 | SHR-08 | Migration 2 `invitations` (+ role, accepted_by, identity_pub, mac, confirmed_at, revoked_at). Endpunkte laut Spec 09 + `GET /diaries/:id/invitations` (angenommene, unbestätigte für den Owner-Client — nötig für den Ablauf, in Spec 09 nicht aufgeführt). Einladung: 7 Tage, einmalig, widerrufbar (410 `gone`); Bestätigung legt Mitgliedschaft mit `key_epoch` des Owners an. Rate-Limit für den öffentlichen Abruf folgt (VOI-10-Infrastruktur). |
+| 2026-11-12 | M4.5 | CRY-13 | Migration 3 `challenges`; `createChallenge` (32 Byte base64url, TTL 5 min, räumt Abgelaufene auf), `consumeChallenge` (atomar `DELETE … RETURNING`, an Zweck gebunden, einmalig; unbekannt/abgelaufen → `challenge-expired`). WebAuthn-Verifikation (`@simplewebauthn/server`) folgt mit den Login-IDs in M7. |
