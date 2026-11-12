@@ -15,8 +15,17 @@ export async function onboardWithPassword(page: Page, password = PASSWORD): Prom
   const code = (await page.getByTestId('backup-code').textContent({ timeout: 30_000 })) ?? '';
   await page.getByLabel('Ich habe den Code sicher aufbewahrt').check();
   await page.getByRole('button', { name: 'Weiter' }).click();
-  await expect(page.getByRole('heading', { name: 'Start' })).toBeVisible({ timeout: 30_000 });
+  await finishDiarySetup(page);
   return code;
+}
+
+/** Onboarding-Schritte „Erstes Tagebuch" und „Vorlage" (Standard: Mein Tagebuch, Mensch, erste Katalogvorlage). */
+export async function finishDiarySetup(page: Page, template = 'Allgemeines Schmerz-Tagebuch'): Promise<void> {
+  await expect(page.getByLabel('Name')).toHaveValue('Mein Tagebuch', { timeout: 30_000 });
+  await page.getByRole('button', { name: 'Weiter' }).click();
+  await page.getByRole('radio', { name: new RegExp(template) }).click();
+  await page.getByRole('button', { name: 'Fertig' }).click();
+  await expect(page.getByRole('heading', { name: 'Start' })).toBeVisible({ timeout: 30_000 });
 }
 
 /**

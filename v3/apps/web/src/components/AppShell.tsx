@@ -3,6 +3,8 @@ import { Link, Navigate, NavLink, Outlet, useLocation } from 'react-router';
 import { Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/auth/AuthContext';
+import { useData } from '@/data/DataContext';
+import { useQuery } from '@/data/useQuery';
 import { BarChart3, Home, List, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { de } from '@/i18n/de';
@@ -19,9 +21,13 @@ const OPEN_WHEN_LOCKED = ['/more', '/more/settings'];
 
 export function AppShell() {
   const { status } = useAuth();
+  const { diary } = useData();
   const location = useLocation();
+  // Entsperrt, aber noch kein Tagebuch → Onboarding fortsetzen. Bei Lesefehler normal weiter (Fehlerzustand der Ansicht).
+  const diaries = useQuery(() => (status === 'unlocked' ? diary.listDiaries() : Promise.resolve(null)), [diary, status]);
   if (status === 'loading') return <p className="p-4 text-muted-foreground">{de.app.loading}</p>;
   if (status === 'no-account') return <Navigate to="/onboarding" replace />;
+  if (status === 'unlocked' && diaries.status === 'ok' && diaries.data?.length === 0) return <Navigate to="/onboarding" replace />;
   const locked = status === 'locked';
   const here = location.pathname + location.search + location.hash;
   const unlockHref = `/unlock?next=${encodeURIComponent(here)}`;

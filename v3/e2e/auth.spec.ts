@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PASSWORD, addVirtualAuthenticator, go, lockViaSettings, onboardWithPassword } from './helpers';
+import { PASSWORD, addVirtualAuthenticator, finishDiarySetup, go, lockViaSettings, onboardWithPassword } from './helpers';
 
 test.describe('Onboarding und Entsperren (nur auf diesem Gerät)', () => {
   test('CRY-08: Registrierung ist ohne Bestätigung des Backup-Codes nicht abschließbar', async ({ page }) => {
@@ -29,7 +29,7 @@ test.describe('Onboarding und Entsperren (nur auf diesem Gerät)', () => {
     await expect(page.getByTestId('backup-code')).toBeVisible({ timeout: 30_000 });
     await page.getByLabel('Ich habe den Code sicher aufbewahrt').check();
     await page.getByRole('button', { name: 'Weiter' }).click();
-    await expect(page.getByRole('heading', { name: 'Start' })).toBeVisible();
+    await finishDiarySetup(page);
 
     await lockViaSettings(page);
     await go(page, '/history');

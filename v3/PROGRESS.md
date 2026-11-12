@@ -5,13 +5,14 @@
 ## Aktuell
 
 - **Meilenstein:** M8 — Einträge, Vorlagen, Schnelleintrag, Sync im UI (danach **Gate G2** → Loop anhalten)
-- **Nächste Aufgabe:** M8.1 Eintragsformular — Vorlagen aus dem Katalog anlegen, Blöcke rendern (shadcn), Speichern über
-  Repository; Pflichtfeld-Prüfung (BLK-07), „Ungespeicherte Änderungen" nur nach echter Eingabe (BLK-09), Umschalter
-  Zeitpunkt/Zeitraum mit Nachtragen (BLK-19) inkl. Anzeige in Verlauf/Detail.
+- **Nächste Aufgabe:** M8.2 Eintragsformular `/entry/new` + `/entry/:id` — Vorlagenwahl (Tagebuch/Vorlage), Blöcke
+  rendern (Slider, Checkbox, Multiselect, Text, Textarea, Datum; Body-Map als eigener Schritt M8.3 für BLK-03),
+  Zeitangabe Zeitpunkt/Zeitraum (BLK-19), Pflichtfelder (BLK-07), Dirty-Warnung nur bei echter Änderung (BLK-09),
+  Speichern mit HLC/`authorId`/`meta.source='app'`; Anzeige in Verlauf (nach Tagen) und Detail.
 - **Offen in M8:** BLK-03 BLK-05 BLK-07 BLK-09 BLK-10 BLK-15 BLK-19 SYN-06 SYN-09 SYN-11 SYN-14 CRY-15
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
-- **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016); Konto-Modus (Registrierung/Login) im Onboarding.
+- **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016); Konto-Modus (Registrierung/Login) im Onboarding. Wetter-Ort im Onboarding → mit Tagebuch-Einstellungen (Ort-Suche).
 
 ## Meilensteine
 
@@ -119,3 +120,4 @@
 | 2026-11-12 | M7.5 | CRY-08 CRY-09 CRY-10 CRY-16 SYN-10 UI-04 UI-05 | Onboarding (Install → Modus → Passkey/Passwort → Backup-Code mit Pflichtbestätigung; Konto erst nach Bestätigung gespeichert: `prepareLocalAccount`/`prepareRecovery` + `commit`), Entsperren (Passkey-Optionen beim Öffnen, Klick ruft `credentials.get` synchron; Passwort; „entsperrt bleiben"), Recovery (neuer Zugang + neuer Code), `AuthProvider` (Status no-account/locked/unlocked, memoisiert), Sperr-Banner, gesperrte Ansichten, Einstellungen → Entsperren/Sperren. shadcn Input/Label/Checkbox ohne Radix. Modus „Mit Konto" im Onboarding sichtbar, aber deaktiviert („folgt", M8). E2E: virtueller Authenticator mit PRF (Chromium/CDP), Passwort-Varianten in Chromium + WebKit; In-App-Navigation per History (Neuladen sperrt korrekt). Playwright 2 Worker (WebKit/Windows instabil bei 6). |
 | 2026-11-12 | M7.6 | UI-04 UI-05 | `DataProvider` (Repositories über der Konto-DB, local-only ohne Outbox), `useQuery` (Laden/ok/Fehler + retry), Start/Verlauf/Auswertung laden Einträge (`listAllEntries`), `EntryListState`. Deep-Links behalten Hash (`/invite#…`); Entsperr-Links ersetzen den gesperrten Historieneintrag. E2E: Deep-Links nach Entsperren + Zurück; Leerzustand mit leerer DB; Fehlerzustand per IndexedDB-Patch nur im Test (`records`-Store). |
 | 2026-11-12 | M7.7 | SYN-15 | `version.ts` (`APP_VERSION`, einzige Quelle) → Vite-Plugin `sw/build-sw.ts` erzeugt `sw.js` aus `sw.template.js` mit Version + Asset-Liste. SW: Navigation network-first mit Shell-Fallback, `/assets/*` cache-first (`ignoreVary`, sonst kein Treffer in Chromium), `/api/*` nie; alte Caches beim Aktivieren weg. `sw-client.ts` + `UpdateBanner` („Neue Version verfügbar“ → Neu starten → SKIP_WAITING → Reload nur nach Nutzeraktion, nicht bei `clients.claim()` beim Erst-Install). E2E offline (Chromium + WebKit); Update-Test als Playwright-Projekt `deploy` nach allen anderen (tauscht `dist/sw.js` gleich lang aus, da `context.route` das SW-Skript nicht abfängt). **M7 abgeschlossen** (14/14). |
+| 2026-11-12 | M8.1 | (Grundlage M8) | `core/diary.ts` (`diarySchema` laut Spec 02, `createDiary`: Wetter/GPS aus bis Ort gesetzt). Repository `createDiary` (Tagebuch + erste Vorlage in einer Transaktion), `getDiary`, `listDiaries`; `DataApi.newId` (UUID v7). Onboarding um „Erstes Tagebuch“ (Name, Art) und „Vorlage wählen“ (Katalog oder leer) ergänzt; entsperrtes Konto ohne Tagebuch → Onboarding ab Tagebuch-Schritt (AppShell-Guard). E2E-Helfer `finishDiarySetup`. |

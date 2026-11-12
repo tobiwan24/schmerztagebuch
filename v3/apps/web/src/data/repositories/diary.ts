@@ -1,17 +1,19 @@
 // Fachliche Repositories für Vorlagen, Vorlagenversionen und Einträge auf Basis des Record-Repositorys.
 // Validierung mit den zod-Schemas aus @stb/core; Komponenten greifen nur hierüber auf Daten zu (Spec 01).
 import {
+  diarySchema,
   entrySchemaFor,
   resolveEntryView,
   templateSchema,
   templateVersionSchema,
+  type Diary,
   type Entry,
   type EntryField,
   type Template,
   type TemplateState,
   type TemplateVersion,
 } from '@stb/core';
-import type { RecordRepository } from './records.js';
+import type { RecordInput, RecordRepository } from './records.js';
 
 /**
  * Record-ID einer Vorlagenversion: deterministisch aus Vorlage und Versionsnummer. So kollidieren gleiche Versionen
@@ -25,6 +27,10 @@ export interface EntryView {
 }
 
 export interface DiaryRepository {
+  /** Legt ein Tagebuch an, optional mit erster Vorlage (eine Transaktion; Onboarding). */
+  createDiary(diary: Diary, firstTemplate?: TemplateState): Promise<void>;
+  getDiary(diaryId: string): Promise<Diary | undefined>;
+  listDiaries(): Promise<Diary[]>;
   /** Speichert Vorlage und aktuelle Version gemeinsam (eine Transaktion). */
   saveTemplate(state: TemplateState): Promise<void>;
   getTemplate(templateId: string): Promise<TemplateState | undefined>;
@@ -44,6 +50,31 @@ export interface DiaryRepository {
 
 export function createDiaryRepository(records: RecordRepository): DiaryRepository {
   const repo: DiaryRepository = {
+    async createDiary(diary, firstTemplate) {
+      const d = diarySchema.parse(diary);
+      const inputs: RecordInput[] = [{ id: d.id, diaryId: d.id, kind: 'diary', payload: d }];
+      if (firstTemplate) {
+        const t = templateSchema.parse(firstTemplate.template);
+        const v = templateVersionSchema.parse(firstTemplate.version);
+        if (t.diaryId !== d.id || v.templateId !== t.id || v.version !== t.currentVersion) throw new RangeError('Vorlage passt nicht zum Tagebuch');
+        inputs.push(
+          { id: t.id, diaryId: d.id, kind: 'template', payload: t },
+          { id: templateVersionRecordId(t.id, v.version), diaryId: d.id, kind: 'templateVersion', payload: v },
+        );
+      }
+      await records.putMany(inputs);
+    },
+
+    async getDiary(diaryId) {
+      const rec = await records.get(diaryId);
+      return rec && !rec.deleted && rec.kind === 'diary' ? diarySchema.parse(rec.payload) : undefined;
+    },
+
+    async listDiaries() {
+      const all = (await records.listKind('diary')).map((r) => diarySchema.parse(r.payload));
+      return all.sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0));
+    },
+
     async saveTemplate({ template, version }) {
       const t = templateSchema.parse(template);
       const v = templateVersionSchema.parse(version);

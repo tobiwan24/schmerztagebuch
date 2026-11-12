@@ -130,3 +130,23 @@ for (const codecId of ['plain', 'aes'] as const) {
     }
   });
 }
+
+describe('Tagebücher', () => {
+  it('legt Tagebuch mit erster Katalogvorlage in einer Transaktion an und listet es', async () => {
+    const { createDiary, instantiateCatalogTemplate } = await import('@stb/core');
+    const repo = createDiaryRepository(
+      createRecordRepository(db, { registry: createCodecRegistry([plainCodec]), writeCodec: 'plain', clock, outbox: false }),
+    );
+    const diary = createDiary({ id: newId(), name: 'Mein Tagebuch', subject: 'human', timezone: 'Europe/Berlin' }, clock);
+    const tpl = instantiateCatalogTemplate('migraine', { id: newId(), diaryId: diary.id, order: keyBetween(null, null), newId }, clock);
+    await repo.createDiary(diary, tpl);
+    expect(await repo.listDiaries()).toEqual([diary]);
+    expect(await repo.getDiary(diary.id)).toEqual(diary);
+    expect((await repo.listTemplates(diary.id)).map((x) => x.name)).toEqual(['Migräne-Tracking']);
+
+    const foreign = instantiateCatalogTemplate('migraine', { id: newId(), diaryId: newId(), order: keyBetween(null, null), newId }, clock);
+    const other = createDiary({ id: newId(), name: 'Zweites', subject: 'animal', timezone: 'UTC' }, clock);
+    await expect(repo.createDiary(other, foreign)).rejects.toThrow(RangeError);
+    expect(await repo.listDiaries()).toHaveLength(1);
+  });
+});
