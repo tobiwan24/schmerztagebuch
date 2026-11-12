@@ -5,10 +5,9 @@
 ## Aktuell
 
 - **Meilenstein:** M3 — Web-Datenschicht: Dexie, Codec, Repositories
-- **Nächste Aufgabe:** Fachliche Repositories über `createRecordRepository` (Templates/Versionen/Entries mit zod aus
-  `@stb/core`), dann DM-09 (alle Repository-Tests laufen auch mit Test-`aes`-Codec; Roh-Store ohne Klartext-Marker;
-  nur erlaubte Felder außerhalb von `payload`/`base`). Danach DM-08, BLK-06, BLK-08.
-- **Erledigt in M3:** DM-10 DM-12
+- **Nächste Aufgabe:** BLK-08 — Performance-Test: Eintrag speichern (`DiaryRepository.saveEntry`, fake-indexeddb),
+  Median über 50 Vorgänge < 100 ms. Danach M3 abschließen.
+- **Erledigt in M3:** DM-10 DM-12 DM-08 DM-09 BLK-06
 - **Blocker:** keine
 
 ## Meilensteine
@@ -18,7 +17,7 @@
 | M0 | erledigt | 7/7 IDs |
 | M1 | erledigt | 14/14 IDs |
 | M2 | erledigt | 7/7 IDs |
-| M3 | in Arbeit | 2/6 IDs |
+| M3 | in Arbeit | 5/6 IDs |
 | M4 | offen | |
 | M5 | offen | |
 | M6 | offen | danach Gate G1 |
@@ -80,3 +79,4 @@ _noch keins_
 | 2026-11-12 | M2.2 | CRY-04 CRY-06 | `umk.ts`: `generateUmk`, `deriveKek` (PRF→HKDF; Backup/Passwort→PBKDF2 600k→HKDF, je eigene `info`), `wrapUmk`/`unwrapUmk` (AES-KW, `UmkWrap {v,factor,salt,wrapped}`), falscher/fremder Faktor → `unwrap-failed`. Apps bilden `unwrap-failed` je Faktor auf `wrong-password`/`wrong-backup-code` ab. `normalizeBackupCode` vorgezogen. |
 | 2026-11-12 | M2.3 | CRY-05 CRY-07 | `share.ts`: ECDH P-256 ephemer-statisch → HKDF (info `dk-wrap/ecdh|diaryId|keyEpoch`, salt `epk‖recipientPub`) → AES-KW. `backup-code.ts`: 128 Bit + 32-Bit-Prüfsumme, Base32 4×8 (A-011), tolerante Prüfung. **M2 fertig.** |
 | 2026-11-12 | M3.1 | DM-10 DM-12 | `apps/web` (nur `src/data`, keine Ansichten): Dexie `stb-v3` v1 laut Spec 02, `PayloadCodec` (`plain`, `aes` über `@stb/crypto`), Codec-Registry, generisches Record-Repository (validieren+kodieren vor der Transaktion, Record+Outbox atomar, eine Op pro Record mit ältester `baseRev`, `local-only` ohne Outbox, Soft-Delete). Neue Deps dexie, fake-indexeddb. Vitest-Alias `@stb/*` → `src`. |
+| 2026-11-12 | M3.2 | DM-08 DM-09 BLK-06 | `core/entry-view.ts` (`resolveEntryView`: aktuelle Blöcke nach Order, archivierte Felder mit Wert hinten). `web/data/repositories/diary.ts` (Vorlage+Version atomar via `putMany`, Eintrag gegen seine Version validiert, `getEntryView`). Record-ID einer Version deterministisch `<templateId>.v<n>` (passt zu Spec 04: gleiche ID mit anderem Inhalt = Fehler). Repository-Tests laufen mit `plain` und `aes`. |
