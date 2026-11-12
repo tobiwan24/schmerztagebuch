@@ -5,11 +5,12 @@
 ## Aktuell
 
 - **Meilenstein:** M7 — UI-Grundgerüst, Onboarding, Entsperren (Gate G1 freigegeben)
-- **Nächste Aufgabe:** M7 Teilaufgabe 3: App-Dienste (DB, Repositories, Crypto-Session `data/crypto-session.ts`) per Context,
-  Onboarding (Modus, Passkey via `@simplewebauthn/browser`+`/server` mit DECISIONS-Eintrag, Backup-Code Pflicht, erstes
-  Tagebuch + Vorlage) und Entsperren (CRY-08..12, CRY-16); Server-Endpunkte Registrierung/Login (Challenges aus CRY-13,
-  Sessions aus CRY-14). Danach UI-04 (Deep-Links nach Entsperren), UI-05 (Leer/Fehler mit leerer DB bzw. simuliertem
-  Repository-Fehler), SYN-10, SYN-15.
+- **Nächste Aufgabe:** Onboarding- und Entsperr-UI im Modus „nur auf diesem Gerät“ (kein Server nötig): Seiten Onboarding
+  (Install-Hinweis → Modus → Passkey/Passwort → Backup-Code mit Pflichtbestätigung → erstes Tagebuch → Vorlage) und Gesperrt
+  (Entsperren mit vorbereiteten Optionen, Backup-Code, Recovery), Routen-Schutz, Banner „Entsperren“ + Einstellungen. E2E mit
+  virtuellem Authenticator (CDP `WebAuthn.addVirtualAuthenticator`, `hasPrf`) in Chromium: CRY-08, CRY-09 (+ Unit-Spy unter
+  der ID), CRY-10, CRY-16, SYN-10 (local-only ohne Server-Requests), danach UI-04/UI-05, SYN-15. Cloud-Registrierung folgt mit
+  der Sync-UI (M8).
 - **Erledigt in M7:** UI-01 UI-07 UI-03 UI-06 CRY-11 CRY-12
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
@@ -118,3 +119,4 @@
 | 2026-11-12 | M7.1 | UI-01 UI-07 | `apps/web` als Vite 7 + React 19 + Tailwind 4 + shadcn/ui (Button, `cn`, Tokens hell/dunkel in `index.css`), `i18n/de.ts`, `@/`-Alias, tsc-Ausgabe nach `.tsbuild/`. Vite fand die PostCSS-Config von v2 im Repo-Root → explizit leere PostCSS-Config. ESLint: Basis-Elemente/`style` nur in `components/ui/` (UI-01), JSX-Text/Text-Attribute in components/pages nur aus i18n (UI-07); `check-ui-css.mjs` in `lint`. `check-deps` erlaubt mehrere Pakete pro DECISIONS-Zeile. Initiales JS 69,6 KB gzip. |
 | 2026-11-12 | M7.2 | UI-03 UI-06 | React Router 7 (Library-Modus), `AppShell` mit unterer Navigation (4 Ziele, ≥ 44 px), Seitenkopf mit Zurück (Historie), Ansichten-Gerüst laut Wireframes, Leer-/Fehlerzustand-Komponenten (shadcn Card), Theme `system|light|dark` (localStorage, `.dark`). Playwright 1.65 (Chromium + WebKit, 375 px), `npm run test:e2e` → `reports/playwright.json`. Initiales JS 115,8 KB gzip. |
 | 2026-11-12 | M7.3 | CRY-11 CRY-12 | `web/auth/errors.ts`: 9 Fehlercodes mit je eigenem Text (`de.authErrors`, Snapshots), `toAuthErrorCode` (DOMException/Netz/Krypto → Code, `unwrap-failed` je Faktor → wrong-password/wrong-backup-code). `web/data/crypto-session.ts`: UMK/DKs nur im Speicher, `keys` als DiaryKeyProvider, „entsperrt bleiben" per nicht-extrahierbarem AES-KW-Device-Key (IndexedDB), Ablauf 7 Tage (einstellbar), Widerruf. Vitest-Alias `@` → apps/web/src. |
+| 2026-11-12 | M7.4 | (Grundlage CRY-08/09/16) | `web/auth/local-account.ts` (Konto local-only: UMK + Wraps für Faktor und Pflicht-Backup-Code, Entsperren, Recovery ersetzt Faktor + Code), `web/auth/passkey.ts` (PRF mit festem Eval-Salt, Optionen vorab, `credentials.get` synchron im Handler, PRF-Nachholen bei `get`). Tests bewusst ohne M7-IDs, bis die E2E-Kriterien mit UI erfüllt sind. |
