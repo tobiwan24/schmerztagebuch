@@ -1,6 +1,7 @@
 // Sync-Engine (Spec 04): Push → (Konflikte) → Pull. Ver-/Entschlüsselung mit dem DK passiert ausschließlich hier, unmittelbar
 // vor dem Push bzw. nach dem Pull (Spec 02/04). Lokal bleibt `payload` im lokalen Codec.
 import { decryptRecord, encryptRecord, parseEnvelope } from '@stb/crypto';
+import type { HlcClock } from '@stb/core';
 import { PULL_LIMIT_MAX, PUSH_OPS_MAX, type PulledRecord, type PushOp, type PushResult } from '@stb/sync-protocol';
 import type { StbDb, OutboxOp, LocalRecord } from '../data/db.js';
 import type { CodecRegistry } from '../data/codec/registry.js';
@@ -27,7 +28,15 @@ export interface SyncEngineDeps {
   /** ID-Erzeugung (UUID v7) für lokale ConflictLog-Records. */
   newId: () => string;
   clock: { now(): number };
+  /** HLC des Geräts: `receive` für jeden empfangenen Stand, `tick` für zusammengeführte Ergebnisse (A-015). */
+  hlc: HlcClock;
 }
+
+/** Lokale Record-Art für Server-Records, die sich nicht entschlüsseln ließen (Quarantäne statt Pull-Blockade). */
+export const QUARANTINE_KIND = 'syncQuarantine';
+
+const hlcOf = (payload: unknown): string | undefined =>
+  payload && typeof payload === 'object' && typeof (payload as { hlc?: unknown }).hlc === 'string' ? (payload as { hlc: string }).hlc : undefined;
 
 /** Höchstens so viele Push-Runden je Lauf (Konflikt → zusammenführen → erneut pushen). */
 const MAX_PUSH_ROUNDS = 3;
@@ -84,6 +93,12 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
     const rec = await db.records.get(op.recordId);
     if (!rec || op.seq === undefined) return;
     if (c.server.ciphertext === null) {
+      if (op.baseRev === 0) {
+        // Schon als neu gepusht und trotzdem abgelehnt: nicht endlos wiederholen.
+        await db.outbox.update(op.seq, { lastError: 'rejected-as-new', attempts: op.attempts + 1 });
+        summary.unresolved.push(`${rec.id}: rejected-as-new`);
+        return;
+      }
       // Server kennt den Record (noch) nicht: als neu pushen.
       await db.transaction('rw', db.records, db.outbox, async () => {
         await db.records.update(rec.id, { rev: 0 });
@@ -95,6 +110,8 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
     const ctx = { diaryId: rec.diaryId, kind: rec.kind, recordId: rec.id };
     const codec = registry.get(rec.codec);
     const serverPayload = await decryptServer(rec.diaryId, rec.kind, rec.id, c.server.ciphertext);
+    const serverHlc = hlcOf(serverPayload);
+    if (serverHlc) deps.hlc.receive(serverHlc);
     const local: Side = { payload: await codec.decode(rec.payload, ctx), deleted: rec.deleted === 1 };
     const base: Side | undefined = rec.base === undefined ? undefined : { payload: await codec.decode(rec.base, ctx), deleted: false };
     const server: Side = { payload: serverPayload, deleted: c.server.deleted };
@@ -105,13 +122,22 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
       return;
     }
     const writeCodec = registry.get(deps.writeCodec);
-    const [mergedEnc, serverEnc] = await Promise.all([writeCodec.encode(r.result.payload, ctx), writeCodec.encode(serverPayload, ctx)]);
+    // Zusammengeführtes Ergebnis ist eine neue Änderung → neuer HLC über beiden Seiten (A-015).
+    const merged = !r.adoptServer && hlcOf(r.result.payload) ? { ...(r.result.payload as object), hlc: deps.hlc.tick() } : r.result.payload;
+    const [mergedEnc, serverEnc] = await Promise.all([writeCodec.encode(merged, ctx), writeCodec.encode(serverPayload, ctx)]);
     const logs = await Promise.all(r.conflicts.map(async (conflict) => {
       const id = deps.newId();
       const payload = { id, recordId: rec.id, kind: rec.kind, losingPayload: conflict, resolvedAt: new Date(deps.clock.now()).toISOString(), seenByUser: false };
       return { id, payload: await writeCodec.encode(payload, { diaryId: rec.diaryId, kind: 'conflictLog', recordId: id }) };
     }));
+    let stale = false;
     await db.transaction('rw', db.records, db.outbox, async () => {
+      // Während der Auflösung lokal erneut geändert? Dann nichts überschreiben; die nächste Runde löst neu auf.
+      const [nowRec, nowOp] = await Promise.all([db.records.get(rec.id), db.outbox.get(op.seq!)]);
+      if (!nowRec || !nowOp || nowRec.localUpdatedAt !== rec.localUpdatedAt || nowOp.createdAt !== op.createdAt) {
+        stale = true;
+        return;
+      }
       await db.records.update(rec.id, {
         payload: r.adoptServer ? serverEnc : mergedEnc, deleted: r.result.deleted ? 1 : 0, codec: writeCodec.id,
         rev: c.server.rev, base: serverEnc, localUpdatedAt: deps.clock.now(),
@@ -123,7 +149,7 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
         await db.records.put({ id: l.id, diaryId: rec.diaryId, kind: 'conflictLog', rev: 0, deleted: 0, codec: writeCodec.id, payload: l.payload, localUpdatedAt: deps.clock.now() });
       }
     });
-    summary.resolved++;
+    if (!stale) summary.resolved++;
   }
 
   async function pushDiary(diaryId: string): Promise<PushSummary> {
@@ -191,15 +217,40 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
     for (;;) {
       const page = await transport.pull({ diaryId, since: cursor, limit });
       const { key } = await keys.get(diaryId);
-      const decoded = await Promise.all(page.records.map(async (r: PulledRecord) => {
-        const { keyEpoch } = parseEnvelope(r.ciphertext);
-        const plain = await decryptRecord(key, { diaryId, kind: r.kind, recordId: r.recordId, keyEpoch }, r.ciphertext);
-        const payload = JSON.parse(decoder.decode(plain)) as unknown;
-        const encoded = await codec.encode(payload, { diaryId, kind: r.kind, recordId: r.recordId });
-        return { r, payload, encoded };
+      type Decoded = { r: PulledRecord; payload: unknown; encoded: unknown } | { r: PulledRecord; error: string; encoded: unknown };
+      const decoded: Decoded[] = await Promise.all(page.records.map(async (r: PulledRecord): Promise<Decoded> => {
+        try {
+          const { keyEpoch } = parseEnvelope(r.ciphertext);
+          const plain = await decryptRecord(key, { diaryId, kind: r.kind, recordId: r.recordId, keyEpoch }, r.ciphertext);
+          const payload = JSON.parse(decoder.decode(plain)) as unknown;
+          const encoded = await codec.encode(payload, { diaryId, kind: r.kind, recordId: r.recordId });
+          return { r, payload, encoded };
+        } catch (e) {
+          // Nicht entschlüsselbar (fremder/kaputter Chiffretext): in Quarantäne, Pull läuft weiter (Review Befund 5).
+          const error = e instanceof Error ? e.message : String(e);
+          const info = { recordId: r.recordId, kind: r.kind, seq: r.seq, rev: r.rev, error, at: new Date(deps.clock.now()).toISOString() };
+          return { r, error, encoded: await codec.encode(info, { diaryId, kind: QUARANTINE_KIND, recordId: `q:${r.recordId}` }) };
+        }
       }));
+      for (const d of decoded) {
+        const h = 'payload' in d ? hlcOf(d.payload) : undefined;
+        if (h) deps.hlc.receive(h);
+      }
+      let switchedToLocal = false;
       await db.transaction('rw', db.records, db.outbox, db.sync_state, async () => {
-        for (const { r, payload, encoded } of decoded) {
+        // Wurde inzwischen auf local-only gewechselt, nichts mehr anwenden und den Modus nicht überschreiben.
+        const state = await db.sync_state.get(diaryId);
+        if (state?.mode === 'local-only') {
+          switchedToLocal = true;
+          return;
+        }
+        for (const d of decoded) {
+          const { r, encoded } = d;
+          if (!('payload' in d)) {
+            await db.records.put({ id: `q:${r.recordId}`, diaryId, kind: QUARANTINE_KIND, rev: 0, deleted: 0, codec: codec.id, payload: encoded, localUpdatedAt: deps.clock.now() });
+            continue;
+          }
+          const { payload } = d;
           if (await db.outbox.where('recordId').equals(r.recordId).count()) {
             skippedPending++;
             continue;
@@ -209,13 +260,14 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
             : undefined;
           await db.records.put({
             id: r.recordId, diaryId, kind: r.kind, rev: r.rev, deleted: r.deleted ? 1 : 0, codec: codec.id,
-            payload: encoded, base: encoded, localUpdatedAt: Date.now(),
+            payload: encoded, base: encoded, localUpdatedAt: deps.clock.now(),
             ...(occurredAt === undefined ? {} : { occurredAt }),
           });
           applied++;
         }
-        await db.sync_state.put({ diaryId, cursor: page.nextSince, mode: 'cloud-primary' });
+        await db.sync_state.put({ diaryId, cursor: page.nextSince, mode: state?.mode ?? 'cloud-primary' });
       });
+      if (switchedToLocal) break;
       cursor = page.nextSince;
       if (!page.hasMore) break;
     }
@@ -223,10 +275,18 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
   }
 
   const flight = createSingleFlight(async () => {
+    // Ein Fehler in einem Tagebuch (offline, entfernt → 403, …) hält die anderen nicht auf (Review Befund 6).
+    const errors: unknown[] = [];
     for (const diaryId of await deps.diaryIds()) {
-      await pushDiary(diaryId);
-      await pullDiary(diaryId);
+      try {
+        await pushDiary(diaryId);
+        await pullDiary(diaryId);
+      } catch (e) {
+        errors.push(e);
+      }
     }
+    if (errors.length === 1) throw errors[0];
+    if (errors.length > 1) throw new AggregateError(errors, `Sync in ${errors.length} Tagebüchern fehlgeschlagen`);
   });
 
   return {

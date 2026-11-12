@@ -33,6 +33,8 @@ export interface DiaryRepository {
   /** Validiert gegen die referenzierte Vorlagenversion (DM-03) und speichert. */
   saveEntry(entry: Entry): Promise<void>;
   getEntry(entryId: string): Promise<Entry | undefined>;
+  /** Löscht einen Eintrag (Tombstone) mit neuem HLC, damit eine spätere Löschung gegen ältere Bearbeitungen gewinnt. */
+  deleteEntry(entryId: string, stamp: { hlc: string; updatedAt: string }): Promise<void>;
   listEntries(diaryId: string): Promise<Entry[]>;
   /** Eintrag mit Feldern der aktuellen Vorlagenversion inkl. archivierter Felder (DM-08). */
   getEntryView(entryId: string): Promise<EntryView | undefined>;
@@ -78,6 +80,12 @@ export function createDiaryRepository(records: RecordRepository): DiaryRepositor
     async getEntry(entryId) {
       const rec = await records.get(entryId);
       return rec && !rec.deleted && rec.kind === 'entry' ? (rec.payload as Entry) : undefined;
+    },
+
+    async deleteEntry(entryId, stamp) {
+      const entry = await repo.getEntry(entryId);
+      if (!entry) return;
+      await records.remove(entryId, { ...entry, hlc: stamp.hlc, updatedAt: stamp.updatedAt });
     },
 
     async listEntries(diaryId) {

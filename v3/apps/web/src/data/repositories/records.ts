@@ -27,7 +27,8 @@ export interface RecordRepository {
   put(input: RecordInput, opts?: { validate?: (payload: unknown) => void }): Promise<void>;
   /** Mehrere Records in **einer** Transaktion (z. B. Vorlage + neue Version). */
   putMany(inputs: readonly RecordInput[]): Promise<void>;
-  remove(id: string): Promise<void>;
+  /** Soft-Delete; optional mit neuem Payload (z. B. frischem HLC für die Konfliktauflösung). */
+  remove(id: string, payload?: unknown): Promise<void>;
   get(id: string): Promise<DecodedRecord | undefined>;
   /** Nicht gelöschte Records eines Tagebuchs und einer Art. */
   list(diaryId: string, kind: string): Promise<DecodedRecord[]>;
@@ -104,11 +105,16 @@ export function createRecordRepository(db: StbDb, o: RecordRepositoryOptions): R
 
     putMany: writeAll,
 
-    async remove(id) {
+    async remove(id, payload) {
+      const before = payload === undefined ? undefined : await db.records.get(id);
+      const encoded = before ? await o.registry.get(o.writeCodec).encode(payload, { diaryId: before.diaryId, kind: before.kind, recordId: id }) : undefined;
       await db.transaction('rw', db.records, db.outbox, async () => {
         const existing = await db.records.get(id);
         if (!existing) return;
-        const rec: LocalRecord = { ...existing, deleted: 1, localUpdatedAt: o.clock.now() };
+        const rec: LocalRecord = {
+          ...existing, deleted: 1, localUpdatedAt: o.clock.now(),
+          ...(encoded === undefined ? {} : { payload: encoded, codec: o.writeCodec }),
+        };
         await db.records.put(rec);
         await enqueue(rec, 'delete');
       });
