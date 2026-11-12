@@ -12,8 +12,9 @@ const PORT = '18080';
 
 function dockerAvailable() {
   try {
-    execFileSync('docker', ['info', '--format', '{{.ServerVersion}}'], { stdio: 'pipe', timeout: 15_000 });
-    return true;
+    // Docker Desktop liefert bei defekter Engine Exit 0, aber keine Server-Version → dann gilt Docker als nicht verfügbar.
+    const version = execFileSync('docker', ['info', '--format', '{{.ServerVersion}}'], { stdio: 'pipe', timeout: 15_000, encoding: 'utf8' });
+    return version.trim().length > 0;
   } catch {
     return false;
   }
