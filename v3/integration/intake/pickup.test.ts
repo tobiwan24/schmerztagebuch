@@ -20,7 +20,7 @@ async function setup() {
   const tpl = instantiateCatalogTemplate('migraine', { id: f.newId(), diaryId: f.diaryId, order: 'V', newId: f.newId }, f.clock);
   await d.repo.saveTemplate(tpl);
   const { token } = await setupIntake({
-    diaryId: f.diaryId, records: d.records, newId: f.newId, now: f.clock.now,
+    diaryId: f.diaryId, records: d.records, createdBy: 'olga', newId: f.newId, now: f.clock.now,
     api: { register: async (diaryId, body) => (await server.app.inject({ method: 'POST', url: `/api/v1/diaries/${diaryId}/intake-keys`, headers: as, payload: body })).json() },
   });
   const api: IntakeItemsApi = {
@@ -33,13 +33,61 @@ async function setup() {
   const shortcut = (body: unknown) =>
     server.app.inject({ method: 'POST', url: `/api/v1/intake/${f.diaryId}`, headers: { authorization: `Bearer ${token}` }, payload: body as object });
   const hlc = createHlcClock(f.clock, 'devA');
-  const pickup = () => pickupIntake({
+  const pickup = (over: Partial<Parameters<typeof pickupIntake>[0]> = {}) => pickupIntake({
     api, records: d.records, diary: d.repo, diaryId: f.diaryId, defaultTemplateId: tpl.template.id, authorId: 'olga',
-    timezone: 'Europe/Berlin', newId: f.newId, now: f.clock.now, nextHlc: () => hlc.tick(),
+    timezone: 'Europe/Berlin', newId: f.newId, now: f.clock.now, nextHlc: () => hlc.tick(), ...over,
   });
   const block = (label: string) => tpl.version.blocks.find((b) => b.label === label) as BlockDef;
-  return { ...f, server, d, tpl, shortcut, pickup, block };
+  return { ...f, server, d, tpl, shortcut, pickup, block, api };
 }
+
+describe('Intake abholen: Robustheit (Review M4–M6)', () => {
+  it('VOI-07: Vorlage ohne Notizfeld — Freitext geht nicht verloren, sondern in den Eingang', async () => {
+    const { d, diaryId, shortcut, pickup, newId, clock } = await setup();
+    const sliderOnly = instantiateCatalogTemplate('chronic-pain', { id: newId(), diaryId, order: 'W', newId }, clock);
+    const noNotes = { ...sliderOnly, version: { ...sliderOnly.version, blocks: sliderOnly.version.blocks.filter((b) => b.type !== 'textarea') } };
+    await d.repo.saveTemplate(noNotes);
+    await shortcut({ templateId: noNotes.template.id, text: 'nach Kaffee', values: { Schmerzstärke: 6 } });
+    const r = await pickup();
+    expect(r.entries).toEqual([]);
+    const inbox = (await d.records.list(diaryId, 'intakeInbox')).map((x) => x.payload as IntakeInboxItem);
+    expect(inbox).toHaveLength(1);
+    expect(inbox[0]?.body.text).toBe('nach Kaffee');
+    expect(inbox[0]?.problems.join(' ')).toContain('nach Kaffee');
+  });
+
+  it('VOI-05: scheitert die Bestätigung, erzeugt die nächste Abholung kein Duplikat', async () => {
+    const { d, diaryId, shortcut, pickup, api, server } = await setup();
+    await shortcut({ values: { Schmerzstärke: 4 } });
+    const flaky = { ...api, ack: async () => { throw new Error('Netz weg'); } };
+    await expect(pickup({ api: flaky })).rejects.toThrow('Netz weg');
+    expect(await d.repo.listEntries(diaryId)).toHaveLength(1);
+    const second = await pickup();
+    expect(second.entries).toEqual([]);
+    expect(await d.repo.listEntries(diaryId)).toHaveLength(1);
+    expect(server.db.prepare('SELECT COUNT(*) AS n FROM intake_items').get()).toEqual({ n: 0 });
+  });
+
+  it('VOI-05: zwei Geräte holen dasselbe Item ab → dieselbe Eintrags-ID (kein Duplikat nach dem Sync)', async () => {
+    const { d, diaryId, shortcut, pickup, api } = await setup();
+    await shortcut({ values: { Schmerzstärke: 5 } });
+    const items = await api.list(diaryId);
+    const noAck = { list: async () => items, ack: async () => undefined };
+    const first = await pickup({ api: noAck });
+    // zweites Gerät: gleiche Items, eigene leere Datenbank-Sicht simuliert durch Löschen des lokalen Eintrags
+    await d.db.records.delete(first.entries[0]!);
+    await d.db.outbox.clear();
+    const second = await pickup({ api: noAck });
+    expect(second.entries).toEqual(first.entries);
+  });
+
+  it('SHR-10: Kurzbefehl-Einträge tragen den Ersteller des Kurzbefehls als Autor, nicht das abholende Gerät', async () => {
+    const { d, shortcut, pickup } = await setup();
+    await shortcut({ values: { Schmerzstärke: 2 } });
+    const r = await pickup({ authorId: 'abholendes-geraet' });
+    expect((await d.repo.getEntry(r.entries[0]!))?.authorId).toBe('olga');
+  });
+});
 
 describe('Intake abholen', () => {
   it('VOI-05: App entsiegelt Items, legt Einträge mit source shortcut an und bestätigt die Abholung; Item ist danach serverseitig gelöscht', async () => {

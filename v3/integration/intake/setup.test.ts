@@ -17,7 +17,7 @@ describe('Intake einrichten', () => {
     closers.push(d.close);
 
     const { token, record } = await setupIntake({
-      diaryId: f.diaryId, records: d.records, newId: f.newId, now: f.clock.now,
+      diaryId: f.diaryId, records: d.records, createdBy: 'olga', newId: f.newId, now: f.clock.now,
       api: {
         async register(diaryId, body) {
           const r = await server.app.inject({ method: 'POST', url: `/api/v1/diaries/${diaryId}/intake-keys`, headers: { [TEST_AUTH_HEADER]: 'olga' }, payload: body });

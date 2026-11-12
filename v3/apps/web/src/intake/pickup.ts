@@ -2,7 +2,7 @@
 // abbilden (`meta.source = 'shortcut'`) und erst danach die Abholung bestätigen (Server löscht das Item).
 // Schlägt die Validierung fehl, verschwindet nichts: das Item kommt in den **Eingang** (Record `intakeInbox`, VOI-07).
 import { importPublicKey, unsealIntake, type IntakeSeal } from '@stb/crypto';
-import { mapIntakeToValues, type Entry, type IntakeInput } from '@stb/core';
+import { mapIntakeToValues, uuidV7FromSeed, type Entry, type IntakeInput } from '@stb/core';
 import { intakeBodySchema } from '@stb/sync-protocol';
 import type { RecordRepository } from '../data/repositories/records.js';
 import type { DiaryRepository } from '../data/repositories/diary.js';
@@ -29,6 +29,7 @@ export interface PickupDeps {
   diaryId: string;
   /** Schnelleintrags-Vorlage des Tagebuchs (falls der Kurzbefehl keine `templateId` schickt). */
   defaultTemplateId?: string;
+  /** Rückfall-Autor, falls der Intake-Schlüssel keinen Ersteller kennt (ältere Records). */
   authorId: string;
   timezone: string;
   newId: () => string;
@@ -43,20 +44,26 @@ export interface PickupResult {
   undecryptable: string[];
 }
 
-async function keyPairs(records: RecordRepository, diaryId: string): Promise<CryptoKeyPair[]> {
-  const out: CryptoKeyPair[] = [];
+interface IntakeKeyPair {
+  pair: CryptoKeyPair;
+  createdBy?: string;
+}
+
+async function keyPairs(records: RecordRepository, diaryId: string): Promise<IntakeKeyPair[]> {
+  const out: IntakeKeyPair[] = [];
   for (const r of await records.list(diaryId, 'intakeKey')) {
     const k = r.payload as IntakeKeyRecord;
     const privateKey = await globalThis.crypto.subtle.importKey('jwk', k.privateKeyJwk, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']);
-    out.push({ privateKey, publicKey: await importPublicKey(k.publicKey) });
+    out.push({ pair: { privateKey, publicKey: await importPublicKey(k.publicKey) }, ...(k.createdBy ? { createdBy: k.createdBy } : {}) });
   }
   return out;
 }
 
-async function open(seal: IntakeSeal, pairs: CryptoKeyPair[], diaryId: string): Promise<unknown | undefined> {
-  for (const pair of pairs) {
+async function open(seal: IntakeSeal, keys: IntakeKeyPair[], diaryId: string): Promise<{ raw: unknown; createdBy?: string } | undefined> {
+  for (const k of keys) {
     try {
-      return JSON.parse(new TextDecoder().decode(await unsealIntake(seal, pair, diaryId))) as unknown;
+      const raw = JSON.parse(new TextDecoder().decode(await unsealIntake(seal, k.pair, diaryId))) as unknown;
+      return k.createdBy ? { raw, createdBy: k.createdBy } : { raw };
     } catch {
       // nächster Schlüssel (z. B. nach Token-Neuerzeugung)
     }
@@ -64,13 +71,27 @@ async function open(seal: IntakeSeal, pairs: CryptoKeyPair[], diaryId: string): 
   return undefined;
 }
 
+/** Deterministische Record-ID aus der Server-Item-ID: Doppelabholungen landen auf demselben Record (Review Befund 7). */
+async function idFor(purpose: 'entry' | 'inbox', itemId: string, receivedAtMs: number): Promise<string> {
+  const seed = new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(`stb/v3/intake/${purpose}|${itemId}`)));
+  return uuidV7FromSeed(receivedAtMs, seed);
+}
+
 export async function pickupIntake(d: PickupDeps): Promise<PickupResult> {
   const result: PickupResult = { entries: [], inbox: [], undecryptable: [] };
   const pairs = await keyPairs(d.records, d.diaryId);
   for (const item of await d.api.list(d.diaryId)) {
-    const raw = await open(JSON.parse(item.sealed) as IntakeSeal, pairs, d.diaryId);
-    if (raw === undefined) {
+    const opened = await open(JSON.parse(item.sealed) as IntakeSeal, pairs, d.diaryId);
+    if (opened === undefined) {
       result.undecryptable.push(item.id);
+      continue;
+    }
+    const { raw } = opened;
+    const entryId = await idFor('entry', item.id, item.receivedAt);
+    const inboxId = await idFor('inbox', item.id, item.receivedAt);
+    if ((await d.records.get(entryId)) || (await d.records.get(inboxId))) {
+      // Schon übernommen (z. B. ack beim letzten Mal am Netz gescheitert oder anderes Gerät): nur noch bestätigen.
+      await d.api.ack(item.id);
       continue;
     }
     const receivedAt = new Date(item.receivedAt).toISOString();
@@ -87,11 +108,13 @@ export async function pickupIntake(d: PickupDeps): Promise<PickupResult> {
     if (state && !problems.length) {
       const mapping = mapIntakeToValues(body, state.version);
       problems.push(...mapping.errors.map((e) => `${e.key}: ${e.message}`));
+      // Vorlage ohne Notizfeld: Text/Restwerte hätten keinen Platz im Eintrag → Eingang statt Verlust (Review Befund 3, A-020).
+      if (mapping.note) problems.push(`Text ohne Notizfeld in der Vorlage: ${mapping.note}`);
       if (!problems.length) {
         const now = new Date(d.now()).toISOString();
         const entry: Entry = {
-          id: d.newId(), diaryId: d.diaryId, templateId: state.template.id, templateVersion: state.version.version,
-          occurredAt: body.occurredAt ?? receivedAt, recordedAt: now, updatedAt: now, authorId: d.authorId,
+          id: entryId, diaryId: d.diaryId, templateId: state.template.id, templateVersion: state.version.version,
+          occurredAt: body.occurredAt ?? receivedAt, recordedAt: now, updatedAt: now, authorId: opened.createdBy ?? d.authorId,
           values: mapping.values, tags: mapping.tags, meta: { source: 'shortcut', timezone: d.timezone }, hlc: d.nextHlc(),
         };
         try {
@@ -104,7 +127,7 @@ export async function pickupIntake(d: PickupDeps): Promise<PickupResult> {
       }
     }
     if (!saved) {
-      const inbox: IntakeInboxItem = { id: d.newId(), diaryId: d.diaryId, receivedAt, body, problems };
+      const inbox: IntakeInboxItem = { id: inboxId, diaryId: d.diaryId, receivedAt, body, problems };
       await d.records.put({ id: inbox.id, diaryId: d.diaryId, kind: 'intakeInbox', payload: inbox });
       result.inbox.push(inbox.id);
     }

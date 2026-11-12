@@ -13,6 +13,8 @@ export interface IntakeKeyRecord {
   id: string;
   diaryId: string;
   serverKeyId: string;
+  /** Wer den Kurzbefehl eingerichtet hat — wird `authorId` der daraus entstehenden Einträge (SHR-10). */
+  createdBy: string;
   publicKey: string;
   privateKeyJwk: JsonWebKey;
   createdAt: string;
@@ -26,6 +28,8 @@ export async function setupIntake(deps: {
   api: IntakeKeyApi;
   records: RecordRepository;
   diaryId: string;
+  /** Angemeldete Person, die den Kurzbefehl einrichtet. */
+  createdBy: string;
   newId: () => string;
   now: () => number;
 }): Promise<{ token: string; record: IntakeKeyRecord }> {
@@ -35,7 +39,7 @@ export async function setupIntake(deps: {
   const token = toBase64Url(globalThis.crypto.getRandomValues(new Uint8Array(32)));
   const { id: serverKeyId } = await deps.api.register(deps.diaryId, { publicKey, tokenHash: await sha256b64url(token) });
   const record: IntakeKeyRecord = {
-    id: deps.newId(), diaryId: deps.diaryId, serverKeyId, publicKey, privateKeyJwk, createdAt: new Date(deps.now()).toISOString(),
+    id: deps.newId(), diaryId: deps.diaryId, serverKeyId, createdBy: deps.createdBy, publicKey, privateKeyJwk, createdAt: new Date(deps.now()).toISOString(),
   };
   await deps.records.put({ id: record.id, diaryId: deps.diaryId, kind: 'intakeKey', payload: record });
   return { token, record };

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createIdGenerator, idTimestamp, isUuidV7 } from './ids.js';
+import { createIdGenerator, idTimestamp, isUuidV7, uuidV7FromSeed } from './ids.js';
 import type { Clock, Random } from './env.js';
 
 const fixedClock = (ms: number): Clock => ({ now: () => ms });
@@ -47,6 +47,17 @@ describe('UUID v7', () => {
     const { newId } = createIdGenerator(fixedClock(5));
     const a = createIdGenerator(fixedClock(5)).newId();
     expect(newId()).not.toBe(a);
+  });
+
+  it('DM-01: deterministische UUID v7 aus Zeit + Seed ist gültig, stabil und rekonstruiert den Zeitstempel', async () => {
+    const seed = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('item-1')));
+    const other = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('item-2')));
+    const a = uuidV7FromSeed(1_700_000_000_000, seed);
+    expect(isUuidV7(a)).toBe(true);
+    expect(uuidV7FromSeed(1_700_000_000_000, seed)).toBe(a);
+    expect(uuidV7FromSeed(1_700_000_000_000, other)).not.toBe(a);
+    expect(idTimestamp(a)).toBe(1_700_000_000_000);
+    expect(() => uuidV7FromSeed(1, new Uint8Array(4))).toThrow();
   });
 
   it('DM-02: Zeitstempel ist aus der ID rekonstruierbar (±1 ms)', () => {

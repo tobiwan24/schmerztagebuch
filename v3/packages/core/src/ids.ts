@@ -56,6 +56,27 @@ export function isUuidV7(id: string): boolean {
   return UUID_V7_RE.test(id);
 }
 
+/**
+ * Deterministische UUID v7 aus Zeitpunkt und Seed-Bytes (z. B. SHA-256 einer externen ID). Gleiche Eingaben ergeben
+ * dieselbe ID — so landen Doppelverarbeitungen (z. B. Intake-Abholung auf zwei Geräten) auf demselben Record.
+ */
+export function uuidV7FromSeed(ms: number, seed: Uint8Array): string {
+  if (seed.length < 10) throw new RangeError('Seed braucht mindestens 10 Byte');
+  if (!Number.isInteger(ms) || ms < 0 || ms > MAX_MS) throw new RangeError(`Ungültige Zeit für UUID v7: ${ms}`);
+  const b = new Uint8Array(16);
+  let t = ms;
+  for (let i = 5; i >= 0; i--) {
+    b[i] = t % 256;
+    t = Math.floor(t / 256);
+  }
+  b[6] = 0x70 | (seed[0]! & 0x0f);
+  b[7] = seed[1]!;
+  b[8] = 0x80 | (seed[2]! & 0x3f);
+  for (let i = 9; i < 16; i++) b[i] = seed[i - 6]!;
+  const hex = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 /** Unix-Millisekunden aus einer UUID v7. */
 export function idTimestamp(id: string): number {
   if (!isUuidV7(id)) throw new TypeError(`Keine UUID v7: ${id}`);
