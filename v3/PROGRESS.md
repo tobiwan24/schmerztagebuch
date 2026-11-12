@@ -5,10 +5,10 @@
 ## Aktuell
 
 - **Meilenstein:** M2 — Krypto `crypto`
-- **Nächste Aufgabe:** UMK + KEK-Ableitung und AES-KW-Wrap (CRY-04: Passkey-PRF-KEK via HKDF, Backup-Code-KEK und
-  Passwort-KEK via PBKDF2 600k; falscher Faktor → `unwrap-failed`) + Iterationskonstante (CRY-06). Danach ECDH-Share
-  (CRY-05), Backup-Code-Format (CRY-07).
-- **Erledigt in M2:** CRY-01 CRY-02 CRY-03
+- **Nächste Aufgabe:** ECDH-Share: Identity-ECDH-Schlüsselpaar, DK für ein zweites Schlüsselpaar verpacken (ephemer-statisch,
+  HKDF info `dk-wrap/ecdh`, AES-KW), nur von diesem entpackbar (CRY-05). Danach Backup-Code-Erzeugung/-Format (CRY-07),
+  dann M2 abschließen.
+- **Erledigt in M2:** CRY-01 CRY-02 CRY-03 CRY-04 CRY-06
 - **Blocker:** keine
 
 ## Meilensteine
@@ -17,7 +17,7 @@
 |---|---|---|
 | M0 | erledigt | 7/7 IDs |
 | M1 | erledigt | 14/14 IDs |
-| M2 | in Arbeit | 3/7 IDs |
+| M2 | in Arbeit | 5/7 IDs |
 | M3 | offen | |
 | M4 | offen | |
 | M5 | offen | |
@@ -77,3 +77,4 @@ _noch keins_
 | 2026-11-12 | M1.6 | BLK-13 BLK-18 | `core/weather.ts`: `planWeather`, `needsWeatherRefetch` (> 1 h), `roundLocation`, `resolveEntryWeather` mit injizierten `fetchWeather`/`currentPosition` (Apps liefern Open-Meteo/Geolocation in M6). GPS-Rückfall als A-009 notiert. |
 | 2026-11-12 | M1.7 | BLK-16 | `core/catalog.ts`: 4 v2-Katalogvorlagen portiert (IDs/Namen/Icons gleich, Rollen ergänzt, Datum-Block entfällt → A-010), `instantiateCatalogTemplate`. Test gegen Snapshot `fixtures/v2/template-catalog.json` (v2-Quelle liegt außerhalb von `v3/`, daher Snapshot). **M1 fertig.** |
 | 2026-11-12 | M2.1 | CRY-01 CRY-02 CRY-03 | `packages/crypto` angelegt (nur WebCrypto, `lib: DOM` nur für Typen). `envelope.ts` (Format + AAD laut Spec 03, `|` in AAD-Feldern verboten), eigenes base64url, `CryptoError` mit Codes, `domains.ts`. |
+| 2026-11-12 | M2.2 | CRY-04 CRY-06 | `umk.ts`: `generateUmk`, `deriveKek` (PRF→HKDF; Backup/Passwort→PBKDF2 600k→HKDF, je eigene `info`), `wrapUmk`/`unwrapUmk` (AES-KW, `UmkWrap {v,factor,salt,wrapped}`), falscher/fremder Faktor → `unwrap-failed`. Apps bilden `unwrap-failed` je Faktor auf `wrong-password`/`wrong-backup-code` ab. `normalizeBackupCode` vorgezogen. |
