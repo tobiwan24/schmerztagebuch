@@ -73,6 +73,7 @@ export async function createDevice(opts: { app: FastifyInstance; user: string; d
   const engine = createSyncEngine({
     db, registry, writeCodec: 'plain', transport: injectTransport(opts.app, opts.user, wire), pullLimit: opts.pullLimit,
     keys: { get: async () => ({ key: opts.dk, keyEpoch: 1 }) },
+    newId: createIdGenerator(opts.clock).newId, clock: opts.clock,
     diaryIds: async () => [opts.diaryId],
   });
   return { db, repo, records, engine, wire, async close() { db.close(); await db.delete(); } };

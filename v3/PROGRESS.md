@@ -5,12 +5,11 @@
 ## Aktuell
 
 - **Meilenstein:** M6 — Client-Logik Teilen, Intake, Wetter (danach Gate G1)
-- **Nächste Aufgabe:** **Nacharbeit M5 (vor den M6-IDs):** Konfliktpfad der Sync-Engine — bei `conflict` Serverstand
-  entschlüsseln, je Kind auflösen (`entry`: `mergeEntry` mit lokalem `base`; `template`: Felder per HLC; `diary`/`savedFilter`:
-  ganzer Datensatz per HLC; `templateVersion`: gleicher Inhalt → übernehmen, sonst Fehler), Verlierer als lokaler
-  `conflictLog`-Record (ohne Outbox), Ergebnis mit `baseRev = server.rev` erneut pushen (max. Runden begrenzen); leerer
-  Serverstand → `baseRev 0`. Tests mit SYN-04/SYN-05-Namen (zwei Geräte, konkurrierende Bearbeitung konvergiert).
-  Danach M6: SHR-03 SHR-04 (Einladungs-HMAC, Sicherheitsnummer), SHR-11, VOI-01 VOI-05..08, BLK-11 BLK-12 BLK-14 BLK-17.
+- **Nächste Aufgabe:** SHR-03 SHR-04 — Einladungs-Kryptografie im Client (`@stb/crypto`): Einladungs-Secret (128 Bit),
+  Chiffretext für Name/Rolle, HMAC(secret, identityPub) prüfen → ausgetauschter Key wird abgelehnt, kein DK-Wrap (SHR-03,
+  Integration gegen Server); Sicherheitsnummer (12 Zifferngruppen aus SHA-256(`stb/v3/fingerprint` | sortierte Pubkeys)),
+  „verifiziert" entfällt bei Key-Wechsel (SHR-04). Danach SHR-11, VOI-01 VOI-05..08, BLK-11 BLK-12 BLK-14 BLK-17.
+- **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016).
 - **Blocker:** keine
 
 ## Meilensteine
@@ -22,7 +21,7 @@
 | M2 | erledigt | 7/7 IDs |
 | M3 | erledigt | 6/6 IDs |
 | M4 | erledigt | 12/12 IDs |
-| M5 | erledigt | 10/10 IDs (Nacharbeit Konfliktpfad offen, s. o.) |
+| M5 | erledigt | 10/10 IDs, Konfliktpfad nachgearbeitet |
 | M6 | in Arbeit | danach Gate G1 |
 | M7 | offen | erst nach UI-10 |
 | M8 | offen | danach Gate G2 |
@@ -101,3 +100,4 @@
 | 2026-11-12 | M5.3 | DM-13 SYN-01 | `web/sync/transport.ts` (Interface + fetch-Transport), `web/sync/engine.ts` Push: Outbox nach Kind (diary/template/templateVersion zuerst), DK-Verschlüsselung mit AAD, Batches ≤ 500, `applied` → `rev` + `base` = gepushter Snapshot, Op nur löschen wenn unverändert (sonst `baseRev` nachziehen); Auslöser `online`/`visibilitychange` über Single-Flight. Neuer Ordner `integration/` (echter Server per inject + Web-Datenschicht), da apps einander nicht importieren dürfen. Hinweis: `integration/` wird gelintet, aber (wie alle Tests) nicht typgeprüft. |
 | 2026-11-12 | M5.4 | SYN-07 SYN-08 SYN-16 | Engine `pullDiary`: Seiten (≤ 500) außerhalb der Transaktion entschlüsseln/kodieren, dann Records + Cursor (`sync_state`) gemeinsam schreiben; Records mit ausstehender Op werden nicht überschrieben (Konflikt beim nächsten Push). `sync()` = Push → Pull je Tagebuch. Tests: 1.100 Records über 3 Seiten, Abbruch beim Anwenden und beim Netz, Tombstones. |
 | 2026-11-12 | M5.5 | SYN-12 | `web/sync/mode.ts`: `switchToLocalOnly` (erst vollständiger Pull, dann leere Outbox prüfen → sonst `outbox-not-empty`/`server-unreachable`), `switchToCloudPrimary` (alle lokalen Records in die Outbox, Erst-Push), `getSyncMode` (Standard local-only). **M5 Akzeptanz OK**; Konfliktpfad der Engine als Nacharbeit vor M6 eingeplant. |
+| 2026-11-12 | M5.6 | (SYN-04 SYN-05 Integration) | Konfliktpfad: `web/sync/resolve.ts` (entry → `mergeEntry`; template feldweise; sonst ganzer Datensatz; templateVersion-Kollision → nicht auflösbar), Engine löst Konflikte nach Push auf (Server entschlüsseln, `base` = Serverstand, `baseRev = server.rev`, ConflictLog lokal), bis zu 3 Runden; identisches Ergebnis → Serverstand übernehmen ohne Push. Zwei-Geräte-Tests konvergieren. A-016. |

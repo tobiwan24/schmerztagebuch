@@ -6,6 +6,7 @@ import type { StbDb, OutboxOp, LocalRecord } from '../data/db.js';
 import type { CodecRegistry } from '../data/codec/registry.js';
 import type { SyncTransport } from './transport.js';
 import { createSingleFlight, type SingleFlight } from './single-flight.js';
+import { resolveConflict, type Side } from './resolve.js';
 
 /** Liefert den aktuellen Diary Key eines Tagebuchs (gehalten von `data/crypto-session.ts`, Spec 01). */
 export interface DiaryKeyProvider {
@@ -23,7 +24,13 @@ export interface SyncEngineDeps {
   diaryIds: () => Promise<string[]>;
   /** Seitengröße beim Pull (≤ 500). */
   pullLimit?: number;
+  /** ID-Erzeugung (UUID v7) für lokale ConflictLog-Records. */
+  newId: () => string;
+  clock: { now(): number };
 }
+
+/** Höchstens so viele Push-Runden je Lauf (Konflikt → zusammenführen → erneut pushen). */
+const MAX_PUSH_ROUNDS = 3;
 
 /** Vorlagen (und Tagebuch-Metadaten) vor Einträgen, damit Einträge nie vor ihrer Vorlagenversion ankommen. */
 const KIND_ORDER = ['diary', 'template', 'templateVersion'];
@@ -34,8 +41,13 @@ const kindRank = (kind: string) => {
 
 export interface PushSummary {
   applied: number;
-  conflicts: Extract<PushResult, { status: 'conflict' }>[];
+  /** Aufgelöste Konflikte (Ergebnis wurde erneut gepusht oder Serverstand übernommen). */
+  resolved: number;
+  /** Nicht automatisch auflösbare Konflikte (Op bleibt mit `lastError` stehen). */
+  unresolved: string[];
 }
+
+type ConflictResult = Extract<PushResult, { status: 'conflict' }>;
 
 export interface SyncEngine {
   /** Ein vollständiger Lauf über alle Tagebücher; nie parallel (Single-Flight). */
@@ -61,10 +73,73 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
     return { recordId: op.recordId, kind: op.kind, baseRev: op.baseRev, deleted: rec.deleted === 1, ciphertext };
   }
 
+  async function decryptServer(diaryId: string, kind: string, recordId: string, ciphertext: string): Promise<unknown> {
+    const { key } = await keys.get(diaryId);
+    const { keyEpoch } = parseEnvelope(ciphertext);
+    return JSON.parse(decoder.decode(await decryptRecord(key, { diaryId, kind, recordId, keyEpoch }, ciphertext))) as unknown;
+  }
+
+  /** Konflikt auflösen und lokal schreiben; die Op bleibt (mit `baseRev = server.rev`) für die nächste Runde stehen. */
+  async function handleConflict(op: OutboxOp, c: ConflictResult, summary: PushSummary): Promise<void> {
+    const rec = await db.records.get(op.recordId);
+    if (!rec || op.seq === undefined) return;
+    if (c.server.ciphertext === null) {
+      // Server kennt den Record (noch) nicht: als neu pushen.
+      await db.transaction('rw', db.records, db.outbox, async () => {
+        await db.records.update(rec.id, { rev: 0 });
+        await db.outbox.update(op.seq!, { baseRev: 0 });
+      });
+      summary.resolved++;
+      return;
+    }
+    const ctx = { diaryId: rec.diaryId, kind: rec.kind, recordId: rec.id };
+    const codec = registry.get(rec.codec);
+    const serverPayload = await decryptServer(rec.diaryId, rec.kind, rec.id, c.server.ciphertext);
+    const local: Side = { payload: await codec.decode(rec.payload, ctx), deleted: rec.deleted === 1 };
+    const base: Side | undefined = rec.base === undefined ? undefined : { payload: await codec.decode(rec.base, ctx), deleted: false };
+    const server: Side = { payload: serverPayload, deleted: c.server.deleted };
+    const r = resolveConflict(rec.kind, base, local, server);
+    if (r.kind === 'unresolvable') {
+      await db.outbox.update(op.seq, { lastError: r.reason, attempts: op.attempts + 1 });
+      summary.unresolved.push(`${rec.id}: ${r.reason}`);
+      return;
+    }
+    const writeCodec = registry.get(deps.writeCodec);
+    const [mergedEnc, serverEnc] = await Promise.all([writeCodec.encode(r.result.payload, ctx), writeCodec.encode(serverPayload, ctx)]);
+    const logs = await Promise.all(r.conflicts.map(async (conflict) => {
+      const id = deps.newId();
+      const payload = { id, recordId: rec.id, kind: rec.kind, losingPayload: conflict, resolvedAt: new Date(deps.clock.now()).toISOString(), seenByUser: false };
+      return { id, payload: await writeCodec.encode(payload, { diaryId: rec.diaryId, kind: 'conflictLog', recordId: id }) };
+    }));
+    await db.transaction('rw', db.records, db.outbox, async () => {
+      await db.records.update(rec.id, {
+        payload: r.adoptServer ? serverEnc : mergedEnc, deleted: r.result.deleted ? 1 : 0, codec: writeCodec.id,
+        rev: c.server.rev, base: serverEnc, localUpdatedAt: deps.clock.now(),
+      });
+      if (r.adoptServer) await db.outbox.delete(op.seq!);
+      else await db.outbox.update(op.seq!, { baseRev: c.server.rev, op: r.result.deleted ? 'delete' : 'upsert' });
+      // ConflictLog ist lokal und wird nicht synchronisiert (Spec 02) — daher ohne Outbox.
+      for (const l of logs) {
+        await db.records.put({ id: l.id, diaryId: rec.diaryId, kind: 'conflictLog', rev: 0, deleted: 0, codec: writeCodec.id, payload: l.payload, localUpdatedAt: deps.clock.now() });
+      }
+    });
+    summary.resolved++;
+  }
+
   async function pushDiary(diaryId: string): Promise<PushSummary> {
-    const summary: PushSummary = { applied: 0, conflicts: [] };
+    const summary: PushSummary = { applied: 0, resolved: 0, unresolved: [] };
+    for (let round = 0; round < MAX_PUSH_ROUNDS; round++) {
+      const conflicts = await pushOnce(diaryId, summary);
+      if (!conflicts.length) break;
+      for (const { op, result } of conflicts) await handleConflict(op, result, summary);
+    }
+    return summary;
+  }
+
+  async function pushOnce(diaryId: string, summary: PushSummary): Promise<{ op: OutboxOp; result: ConflictResult }[]> {
+    const conflicts: { op: OutboxOp; result: ConflictResult }[] = [];
     const pending = (await db.outbox.toArray())
-      .filter((o) => o.diaryId === diaryId)
+      .filter((o) => o.diaryId === diaryId && !o.lastError)
       .sort((a, b) => kindRank(a.kind) - kindRank(b.kind) || (a.seq ?? 0) - (b.seq ?? 0));
 
     for (let i = 0; i < pending.length; i += PUSH_OPS_MAX) {
@@ -81,7 +156,7 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
         for (const [n, result] of results.entries()) {
           const { op, snapshot } = batch[n]!;
           if (result.status === 'conflict') {
-            summary.conflicts.push(result);
+            conflicts.push({ op, result });
             continue;
           }
           summary.applied++;
@@ -98,7 +173,7 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
         }
       });
     }
-    return summary;
+    return conflicts;
   }
 
   /**
