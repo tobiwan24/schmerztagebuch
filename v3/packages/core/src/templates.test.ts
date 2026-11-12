@@ -127,6 +127,27 @@ describe('Einträge', () => {
     expect(r.success).toBe(false);
   });
 
+  it('DM-03: optionaler Zeitraum (ganztägig oder mit Uhrzeiten) wird akzeptiert', () => {
+    const s = base();
+    const schema = entrySchemaFor(s.version);
+    const e = entryFor(s, {});
+    expect(schema.safeParse({ ...e, period: { start: '2026-03-01', end: '2026-03-03' } }).success).toBe(true);
+    expect(schema.safeParse({ ...e, period: { start: '2026-03-01', end: '2026-03-01' } }).success).toBe(true);
+    expect(schema.safeParse({ ...e, period: { start: '2026-03-01T08:00:00+01:00', end: '2026-03-01T11:30:00+01:00' } }).success).toBe(true);
+    // Nachtragen: vergangener Zeitpunkt ohne Zeitraum
+    expect(schema.safeParse({ ...e, occurredAt: '2025-12-24T18:00:00+01:00' }).success).toBe(true);
+  });
+
+  it('DM-03: Zeitraum mit Ende vor Beginn oder gemischten Formaten wird abgelehnt', () => {
+    const s = base();
+    const schema = entrySchemaFor(s.version);
+    const e = entryFor(s, {});
+    expect(schema.safeParse({ ...e, period: { start: '2026-03-03', end: '2026-03-01' } }).success).toBe(false);
+    expect(schema.safeParse({ ...e, period: { start: '2026-03-01T12:00:00Z', end: '2026-03-01T11:00:00Z' } }).success).toBe(false);
+    expect(schema.safeParse({ ...e, period: { start: '2026-03-01', end: '2026-03-02T10:00:00Z' } }).success).toBe(false);
+    expect(schema.safeParse({ ...e, period: { start: '2026-03-01' } }).success).toBe(false);
+  });
+
   it('DM-03: ungültiger Blockwert, falsche Version oder Vorlage werden abgelehnt', () => {
     const s = base();
     const [slider] = s.version.blocks as [BlockDef];

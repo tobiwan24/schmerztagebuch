@@ -15,7 +15,7 @@ Jede Spec-ID steht in **genau einem** Meilenstein (`npm run acceptance -- --stru
 | M5 | Sync-Engine | SYN-01 SYN-02 SYN-04 SYN-05 SYN-07 SYN-08 SYN-12 SYN-13 SYN-16 DM-13 | — |
 | M6 | Client-Logik Teilen, Intake, Wetter | SHR-03 SHR-04 SHR-11 VOI-01 VOI-05 VOI-06 VOI-07 VOI-08 BLK-11 BLK-12 BLK-14 BLK-17 | **G1 Wireframes** |
 | M7 | UI-Grundgerüst, Onboarding, Entsperren | UI-01 UI-03 UI-04 UI-05 UI-06 UI-07 CRY-08 CRY-09 CRY-10 CRY-11 CRY-12 CRY-16 SYN-10 SYN-15 | — |
-| M8 | Einträge, Vorlagen, Schnelleintrag, Sync im UI | BLK-03 BLK-05 BLK-07 BLK-09 BLK-10 BLK-15 SYN-06 SYN-09 SYN-11 SYN-14 CRY-15 | **G2 Kernablauf** |
+| M8 | Einträge, Vorlagen, Schnelleintrag, Sync im UI | BLK-03 BLK-05 BLK-07 BLK-09 BLK-10 BLK-15 BLK-19 SYN-06 SYN-09 SYN-11 SYN-14 CRY-15 | **G2 Kernablauf** |
 | M9 | Suche, Filter, Vergleich, Standard-Ansichten | ANA-01 ANA-02 ANA-03 ANA-04 ANA-05 ANA-06 ANA-07 ANA-08 ANA-09 ANA-10 ANA-11 ANA-12 ANA-13 ANA-14 ANA-15 | — |
 | M10 | Export, Import, Backup | EXP-01 EXP-02 EXP-03 EXP-04 EXP-05 EXP-06 EXP-07 EXP-08 EXP-09 EXP-10 EXP-11 EXP-12 | — |
 | M11 | Migration v2 → v3 | MIG-01 MIG-02 MIG-03 MIG-04 MIG-05 MIG-06 MIG-07 MIG-08 MIG-09 MIG-10 MIG-11 MIG-12 MIG-13 MIG-14 MIG-15 | **G3 Auswertung & Export** |

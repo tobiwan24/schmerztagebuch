@@ -194,12 +194,28 @@ export const entryMetaSchema = z.strictObject({
 });
 export type EntryMeta = z.infer<typeof entryMetaSchema>;
 
+const isoDate = z.iso.date();
+
+/**
+ * Optionaler Zeitraum eines Eintrags (Spec 05 „Zeitangabe", ersetzt den v2-Datum-Block): entweder ganztägig
+ * (beide ISO-Datum) oder mit Uhrzeiten (beide ISO-Zeitpunkt); Ende nicht vor Beginn. `occurredAt` = Beginn.
+ */
+export const entryPeriodSchema = z
+  .union([z.strictObject({ start: isoDate, end: isoDate }), z.strictObject({ start: isoDateTime, end: isoDateTime })])
+  .refine((p) => (p.start.length === 10 ? p.start <= p.end : Date.parse(p.start) <= Date.parse(p.end)), {
+    message: 'Ende liegt vor dem Beginn',
+    path: ['end'],
+  });
+export type EntryPeriod = z.infer<typeof entryPeriodSchema>;
+
 export const entrySchema = z.strictObject({
   id: idSchema,
   diaryId: idSchema,
   templateId: idSchema,
   templateVersion: z.number().int().min(1),
+  /** Zeitpunkt des Geschehens; vom Nutzer änderbar (Nachtragen). Bei Zeitraum = Beginn. */
   occurredAt: isoDateTime,
+  period: entryPeriodSchema.optional(),
   recordedAt: isoDateTime,
   updatedAt: isoDateTime,
   authorId: z.string().min(1),

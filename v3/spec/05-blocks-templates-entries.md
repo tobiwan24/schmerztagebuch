@@ -26,7 +26,10 @@
 
 ## Einträge
 
-- Felder: alle Blöcke der aktuellen Vorlagenversion, `occurredAt` (Standard: jetzt, änderbar), Tags.
+- Felder: alle Blöcke der aktuellen Vorlagenversion, Zeitangabe, Tags.
+- **Zeitangabe** (in jeder Vorlage, ersetzt den v2-Pflicht-Datum-Block): Umschalter **Zeitpunkt / Zeitraum** wie in v2.
+  Zeitpunkt = `occurredAt` (Standard: jetzt, änderbar — auch zum Nachtragen vergangener Tage). Zeitraum = `period`
+  mit Beginn und Ende als Datum, Uhrzeiten optional; `occurredAt` ist dann der Beginn.
 - Pflichtfelder (`required`) blockieren das Speichern mit Hinweis am Feld.
 - Speichern ist lokal und sofort (< 100 ms), Sync danach im Hintergrund.
 - Bearbeiten erhält `id`, erhöht `updatedAt` und HLC.
@@ -81,3 +84,4 @@
 | BLK-16 | Alle v2-Katalogvorlagen sind in v3 verfügbar und erzeugen gültige Vorlagen. | unit |
 | BLK-17 | Eintrag ohne GPS-Schalter nutzt den festen Ort des Tagebuchs (`origin: 'diary'`) und ruft die Geolocation-API nicht auf; mit Schalter `origin: 'gps'`. | integration |
 | BLK-18 | Tagebuch ohne festen Ort und ohne GPS-Schalter: kein Request an Open-Meteo, Eintrag ohne `weatherPending`. | unit |
+| BLK-19 | Eintragsformular: Umschalter Zeitpunkt/Zeitraum; vergangener Zeitpunkt (Nachtragen) und Zeitraum mit und ohne Uhrzeiten werden gespeichert und in Verlauf/Detail korrekt angezeigt. | e2e |

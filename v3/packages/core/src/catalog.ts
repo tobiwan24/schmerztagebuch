@@ -1,6 +1,7 @@
 // Vorlagenkatalog, portiert aus v2 `src/data/templateCatalog.ts` (Spec 05 „Vorlagen", BLK-16).
-// Katalog-IDs, Namen und Icons bleiben gleich. Der v2-Pflicht-Block „Datum" entfällt, weil jeder v3-Eintrag
-// `occurredAt` trägt (DECISIONS A-010). Rollen sind neu (Spec 02) und ermöglichen den Standard-Schnelleintrag.
+// Katalog-IDs, Namen und Icons bleiben gleich. Der v2-Pflicht-Block „Datum" wird kein Block: Zeitpunkt (Nachtragen)
+// und Zeitraum sind Eigenschaften jedes Eintrags (`occurredAt`/`period`, DECISIONS A-010). Rollen sind neu (Spec 02)
+// und ermöglichen den Standard-Schnelleintrag.
 import type { Clock } from './env.js';
 import { keyBetween } from './fractional-index.js';
 import { createTemplate, type BlockDef, type Role, type TemplateState } from './templates.js';

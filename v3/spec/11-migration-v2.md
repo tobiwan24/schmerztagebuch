@@ -38,6 +38,8 @@ entfernt.
    - Einträge, deren Vorlage sich in v2 geändert hat (ISS-014-Fälle), bekommen eine **eigene Vorlagenversion**, die die
      damals vorhandenen Blöcke abbildet, statt Werte umzudeuten.
    - Event-/Arzttermin-Daten der Textarea übernehmen; Zeitstempel mit der Gerätezeitzone als Tagebuch-Zeitzone.
+   - v2-Datum-Block (Pflicht in jeder v2-Vorlage) wird kein v3-Block: `single` → `occurredAt` (Datum + Uhrzeit, ohne
+     Uhrzeit 12:00 lokal), `range` → `period` (Datum bzw. Zeitpunkte, wenn Uhrzeiten gesetzt) und `occurredAt` = Beginn.
    - Gelöschte v2-Einträge (`deleted`) werden nicht übernommen.
    - `meta.source = 'migration-v2'`; Wetter wird **nicht** nachträglich ermittelt (optional: Schalter „Wetter für
      migrierte Einträge nachtragen" über die Archiv-API).

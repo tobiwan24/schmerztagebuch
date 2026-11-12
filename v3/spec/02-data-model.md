@@ -27,7 +27,9 @@ BlockDef     { id, type: BlockType, label, description?, required: boolean, role
                config: BlockConfig /* typabhängig, siehe 05 */ }
 
 Entry        { id, diaryId, templateId, templateVersion: number,
-               occurredAt: string /* ISO, vom Nutzer änderbar */, recordedAt: string, updatedAt: string,
+               occurredAt: string /* ISO, vom Nutzer änderbar (auch zum Nachtragen); bei Zeitraum = Beginn */,
+               period?: { start: string, end: string } /* optionaler Zeitraum: beide ISO-Datum (ganztägig) oder beide ISO-Zeitpunkt */,
+               recordedAt: string, updatedAt: string,
                authorId: string /* User- oder Integration-ID */,
                values: Record<BlockId, BlockValue>,
                tags: string[],
