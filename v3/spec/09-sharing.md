@@ -9,7 +9,7 @@ unterschieben, ohne dass das auffällt.
 | Rolle | Einträge | Vorlagen | Tagebuch-Einstellungen, Mitglieder, Intake |
 |---|---|---|---|
 | `owner` | lesen, anlegen, bearbeiten, löschen | anlegen, bearbeiten, archivieren | ja |
-| `editor` | lesen, anlegen, bearbeiten, löschen | — (nur nutzen) | nein |
+| `editor` | lesen, anlegen, bearbeiten, löschen | — (nur nutzen) | nein — außer eigenen Kurzbefehl-Intake einrichten (08) |
 | `viewer` | lesen | — | nein |
 
 - Jedes Tagebuch hat mindestens einen `owner`. Der letzte Owner kann nicht austreten oder herabgestuft werden.

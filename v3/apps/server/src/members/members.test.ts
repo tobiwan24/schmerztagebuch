@@ -46,13 +46,13 @@ describe('Rollen beim Push', () => {
   });
 
   it('SHR-05: editor darf Einträge pushen', async () => {
-    const r = await push('ed', [op('e1', 'entry'), op('a1', 'attachmentMeta')]);
+    const r = await push('ed', [op('e1', 'entry'), op('a1', 'attachmentMeta'), op('k1', 'intakeKey')]);
     expect(r.statusCode).toBe(200);
-    expect(r.json().results.map((x: { status: string }) => x.status)).toEqual(['applied', 'applied']);
+    expect(r.json().results.map((x: { status: string }) => x.status)).toEqual(['applied', 'applied', 'applied']);
   });
 
   it('SHR-05: editor darf keine Vorlagen (template/templateVersion) und keine Tagebuch-Einstellungen pushen', async () => {
-    for (const kind of ['template', 'templateVersion', 'diary', 'intakeKey']) {
+    for (const kind of ['template', 'templateVersion', 'diary', 'savedFilter']) {
       const r = await push('ed', [op(`x-${kind}`, kind)]);
       expect(r.statusCode, kind).toBe(403);
     }
