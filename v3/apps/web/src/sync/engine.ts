@@ -1,7 +1,7 @@
-// Sync-Engine (Spec 04). Teil 1: Push. Ver-/Entschlüsselung mit dem DK passiert ausschließlich hier, unmittelbar
+// Sync-Engine (Spec 04): Push → (Konflikte) → Pull. Ver-/Entschlüsselung mit dem DK passiert ausschließlich hier, unmittelbar
 // vor dem Push bzw. nach dem Pull (Spec 02/04). Lokal bleibt `payload` im lokalen Codec.
-import { encryptRecord } from '@stb/crypto';
-import { PUSH_OPS_MAX, type PushOp, type PushResult } from '@stb/sync-protocol';
+import { decryptRecord, encryptRecord, parseEnvelope } from '@stb/crypto';
+import { PULL_LIMIT_MAX, PUSH_OPS_MAX, type PulledRecord, type PushOp, type PushResult } from '@stb/sync-protocol';
 import type { StbDb, OutboxOp, LocalRecord } from '../data/db.js';
 import type { CodecRegistry } from '../data/codec/registry.js';
 import type { SyncTransport } from './transport.js';
@@ -15,10 +15,14 @@ export interface DiaryKeyProvider {
 export interface SyncEngineDeps {
   db: StbDb;
   registry: CodecRegistry;
+  /** Lokaler Codec, mit dem gepullte Records gespeichert werden (v3.0: `plain`). */
+  writeCodec: string;
   transport: SyncTransport;
   keys: DiaryKeyProvider;
   /** Tagebücher, die synchronisiert werden (Modus `cloud-primary`). */
   diaryIds: () => Promise<string[]>;
+  /** Seitengröße beim Pull (≤ 500). */
+  pullLimit?: number;
 }
 
 /** Vorlagen (und Tagebuch-Metadaten) vor Einträgen, damit Einträge nie vor ihrer Vorlagenversion ankommen. */
@@ -37,12 +41,14 @@ export interface SyncEngine {
   /** Ein vollständiger Lauf über alle Tagebücher; nie parallel (Single-Flight). */
   sync(): Promise<void>;
   pushDiary(diaryId: string): Promise<PushSummary>;
+  pullDiary(diaryId: string): Promise<{ applied: number; skippedPending: number }>;
   /** Registriert Auslöser (`online`, `visibilitychange` → sichtbar). Rückgabe: Abmelden. */
   attachTriggers(target: EventTarget, isVisible?: () => boolean): () => void;
   readonly flight: SingleFlight;
 }
 
 const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
 export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
   const { db, registry, transport, keys } = deps;
@@ -95,14 +101,64 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
     return summary;
   }
 
+  /**
+   * Holt alle Records mit `seq > cursor`, seitenweise. Pro Seite: erst entschlüsseln und kodieren (außerhalb der
+   * Transaktion, WebCrypto), dann Records **und** Cursor gemeinsam schreiben — bricht etwas ab, bleibt der Cursor auf der
+   * letzten vollständig angewendeten Seite (SYN-07, SYN-08). Records mit ausstehender lokaler Op werden nicht
+   * überschrieben; der nächste Push meldet den Konflikt und führt zusammen.
+   */
+  async function pullDiary(diaryId: string): Promise<{ applied: number; skippedPending: number }> {
+    const limit = Math.min(deps.pullLimit ?? PULL_LIMIT_MAX, PULL_LIMIT_MAX);
+    const codec = registry.get(deps.writeCodec);
+    let applied = 0;
+    let skippedPending = 0;
+    let cursor = (await db.sync_state.get(diaryId))?.cursor ?? 0;
+    for (;;) {
+      const page = await transport.pull({ diaryId, since: cursor, limit });
+      const { key } = await keys.get(diaryId);
+      const decoded = await Promise.all(page.records.map(async (r: PulledRecord) => {
+        const { keyEpoch } = parseEnvelope(r.ciphertext);
+        const plain = await decryptRecord(key, { diaryId, kind: r.kind, recordId: r.recordId, keyEpoch }, r.ciphertext);
+        const payload = JSON.parse(decoder.decode(plain)) as unknown;
+        const encoded = await codec.encode(payload, { diaryId, kind: r.kind, recordId: r.recordId });
+        return { r, payload, encoded };
+      }));
+      await db.transaction('rw', db.records, db.outbox, db.sync_state, async () => {
+        for (const { r, payload, encoded } of decoded) {
+          if (await db.outbox.where('recordId').equals(r.recordId).count()) {
+            skippedPending++;
+            continue;
+          }
+          const occurredAt = r.kind === 'entry' && payload && typeof (payload as { occurredAt?: unknown }).occurredAt === 'string'
+            ? (payload as { occurredAt: string }).occurredAt
+            : undefined;
+          await db.records.put({
+            id: r.recordId, diaryId, kind: r.kind, rev: r.rev, deleted: r.deleted ? 1 : 0, codec: codec.id,
+            payload: encoded, base: encoded, localUpdatedAt: Date.now(),
+            ...(occurredAt === undefined ? {} : { occurredAt }),
+          });
+          applied++;
+        }
+        await db.sync_state.put({ diaryId, cursor: page.nextSince, mode: 'cloud-primary' });
+      });
+      cursor = page.nextSince;
+      if (!page.hasMore) break;
+    }
+    return { applied, skippedPending };
+  }
+
   const flight = createSingleFlight(async () => {
-    for (const diaryId of await deps.diaryIds()) await pushDiary(diaryId);
+    for (const diaryId of await deps.diaryIds()) {
+      await pushDiary(diaryId);
+      await pullDiary(diaryId);
+    }
   });
 
   return {
     flight,
     sync: () => flight.trigger(),
     pushDiary,
+    pullDiary,
     attachTriggers(target, isVisible = () => true) {
       const run = () => {
         flight.trigger().catch(() => undefined); // Fehler zeigt der Sync-Status (SYN-14); Backoff folgt.

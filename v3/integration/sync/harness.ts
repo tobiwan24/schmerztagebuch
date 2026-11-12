@@ -24,6 +24,8 @@ export interface Wire {
   pulls: PullQuery[];
   /** Simuliert Offline: jede Anfrage schlägt fehl. */
   offline: boolean;
+  /** Simuliert Netzabbruch: Pull-Anfragen ab der n-ten (1-basiert) schlagen fehl. */
+  failPullFrom?: number;
 }
 
 export async function startServer(diaryId: string, users: string[] = ['alice']): Promise<{ app: FastifyInstance; db: Db; close(): Promise<void> }> {
@@ -50,6 +52,7 @@ export function injectTransport(app: FastifyInstance, user: string, wire: Wire):
     async pull(q) {
       if (wire.offline) throw new TypeError('Failed to fetch');
       wire.pulls.push(q);
+      if (wire.failPullFrom !== undefined && wire.pulls.length >= wire.failPullFrom) throw new TypeError('Netzwerkfehler');
       const res = await app.inject({ method: 'GET', url: `/api/v1/sync/pull?diaryId=${q.diaryId}&since=${q.since}&limit=${q.limit}`, headers: { [TEST_AUTH_HEADER]: user } });
       if (res.statusCode !== 200) throw new Error(`pull HTTP ${res.statusCode}`);
       return res.json();
@@ -60,7 +63,7 @@ export function injectTransport(app: FastifyInstance, user: string, wire: Wire):
 let dbCounter = 0;
 
 /** Ein Gerät: eigene lokale DB, Repositories, Engine; alle Geräte eines Tests teilen DK und Server. */
-export async function createDevice(opts: { app: FastifyInstance; user: string; diaryId: string; dk: CryptoKey; clock: Clock }) {
+export async function createDevice(opts: { app: FastifyInstance; user: string; diaryId: string; dk: CryptoKey; clock: Clock; pullLimit?: number }) {
   const wire: Wire = { pushes: [], pulls: [], offline: false };
   const db = new StbDb(`stb-v3-int-${++dbCounter}`);
   await db.open();
@@ -68,7 +71,7 @@ export async function createDevice(opts: { app: FastifyInstance; user: string; d
   const records = createRecordRepository(db, { registry, writeCodec: 'plain', clock: opts.clock, outbox: true });
   const repo = createDiaryRepository(records);
   const engine = createSyncEngine({
-    db, registry, transport: injectTransport(opts.app, opts.user, wire),
+    db, registry, writeCodec: 'plain', transport: injectTransport(opts.app, opts.user, wire), pullLimit: opts.pullLimit,
     keys: { get: async () => ({ key: opts.dk, keyEpoch: 1 }) },
     diaryIds: async () => [opts.diaryId],
   });
