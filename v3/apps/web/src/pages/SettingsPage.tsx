@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
+import { useAuth } from '@/auth/AuthContext';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,9 +16,26 @@ const OPTIONS: { value: ThemeChoice; label: string; Icon: typeof Sun }[] = [
 
 export function SettingsPage() {
   const [theme, setThemeState] = useState<ThemeChoice>(storedTheme);
+  const auth = useAuth();
   return (
     <>
       <PageHeader title={de.settings.title} back />
+      <Card>
+        <CardHeader>
+          <CardTitle>{de.settings.security}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {auth.status === 'locked' ? (
+            <Button asChild className="w-full">
+              <Link to="/unlock?next=%2Fmore%2Fsettings">{de.lock.bannerAction}</Link>
+            </Button>
+          ) : (
+            <Button variant="outline" className="w-full" onClick={() => void auth.lock()}>
+              {de.lock.lockNow}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>{de.settings.appearance}</CardTitle>

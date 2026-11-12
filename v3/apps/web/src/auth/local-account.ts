@@ -26,20 +26,45 @@ async function save(db: StbDb, account: LocalAccount): Promise<void> {
   await db.keys.put({ id: ACCOUNT_ID, value: account });
 }
 
-/** Legt das Konto an. Der Backup-Code wird genau einmal zurückgegeben (Anzeige + Datei), nie gespeichert. */
-export async function createLocalAccount(
+/** Vorbereitetes Konto: liegt nur im Speicher, bis `commit()` nach bestätigtem Backup-Code aufgerufen wird (CRY-08). */
+export interface PendingAccount {
+  umk: CryptoKey;
+  /** Genau einmal angezeigt (und als Datei angeboten), nie gespeichert. */
+  backupCode: string;
+  commit(): Promise<void>;
+}
+
+/** Bereitet das Konto vor. Gespeichert wird erst mit `commit()` — ohne bestätigten Backup-Code entsteht kein Konto. */
+export async function prepareLocalAccount(
   db: StbDb,
   input: { factor: Exclude<UmkFactor, { kind: 'backup' }>; credentialId?: string; now: () => number },
-): Promise<{ umk: CryptoKey; backupCode: string }> {
+): Promise<PendingAccount> {
   if (await hasAccount(db)) throw new Error('Auf diesem Gerät gibt es bereits ein Konto');
   const umk = await generateUmk();
   const backupCode = await generateBackupCode();
   const wraps = [await wrapUmk(umk, input.factor), await wrapUmk(umk, { kind: 'backup', code: backupCode })];
-  await save(db, {
+  const account: LocalAccount = {
     v: 1, mode: 'local-only', createdAt: new Date(input.now()).toISOString(), wraps,
     ...(input.credentialId ? { passkey: { credentialId: input.credentialId } } : {}),
-  });
-  return { umk, backupCode };
+  };
+  return {
+    umk,
+    backupCode,
+    async commit() {
+      if (await hasAccount(db)) throw new Error('Auf diesem Gerät gibt es bereits ein Konto');
+      await save(db, account);
+    },
+  };
+}
+
+/** Anlegen in einem Schritt (Tests, Migration): vorbereiten + sofort speichern. */
+export async function createLocalAccount(
+  db: StbDb,
+  input: { factor: Exclude<UmkFactor, { kind: 'backup' }>; credentialId?: string; now: () => number },
+): Promise<{ umk: CryptoKey; backupCode: string }> {
+  const pending = await prepareLocalAccount(db, input);
+  await pending.commit();
+  return { umk: pending.umk, backupCode: pending.backupCode };
 }
 
 /** Entsperrt mit einem Faktor. Falscher Faktor → `CryptoError('unwrap-failed' | 'wrong-backup-code')`. */
@@ -62,10 +87,10 @@ export async function unlockLocal(db: StbDb, factor: UmkFactor): Promise<CryptoK
  * Recovery: Backup-Code → UMK, danach **Pflicht**: neuer Faktor (neuer Passkey bzw. Passwort) und neuer Backup-Code.
  * Alte Faktor-Wraps und der alte Backup-Code sind danach ungültig (CRY-16).
  */
-export async function recoverWithBackupCode(
+export async function prepareRecovery(
   db: StbDb,
   input: { backupCode: string; newFactor: Exclude<UmkFactor, { kind: 'backup' }>; credentialId?: string },
-): Promise<{ umk: CryptoKey; backupCode: string }> {
+): Promise<PendingAccount> {
   const account = await loadAccount(db);
   if (!account) throw new Error('Kein Konto auf diesem Gerät');
   const umk = await unlockLocal(db, { kind: 'backup', code: input.backupCode });
@@ -73,6 +98,18 @@ export async function recoverWithBackupCode(
   const wraps = [await wrapUmk(umk, input.newFactor), await wrapUmk(umk, { kind: 'backup', code: backupCode })];
   const { passkey: _old, ...rest } = account;
   void _old;
-  await save(db, { ...rest, wraps, ...(input.credentialId ? { passkey: { credentialId: input.credentialId } } : {}) });
-  return { umk, backupCode };
+  return {
+    umk,
+    backupCode,
+    commit: () => save(db, { ...rest, wraps, ...(input.credentialId ? { passkey: { credentialId: input.credentialId } } : {}) }),
+  };
+}
+
+export async function recoverWithBackupCode(
+  db: StbDb,
+  input: { backupCode: string; newFactor: Exclude<UmkFactor, { kind: 'backup' }>; credentialId?: string },
+): Promise<{ umk: CryptoKey; backupCode: string }> {
+  const pending = await prepareRecovery(db, input);
+  await pending.commit();
+  return { umk: pending.umk, backupCode: pending.backupCode };
 }

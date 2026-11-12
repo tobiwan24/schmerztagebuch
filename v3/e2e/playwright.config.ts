@@ -7,11 +7,14 @@ export default defineConfig({
   testDir: '.',
   testMatch: '**/*.spec.ts',
   fullyParallel: true,
+  // WebKit unter Windows stürzte bei 6 parallelen Workern ab (Last); 2 Worker sind stabil.
+  workers: 2,
   retries: 0,
   reporter: [['list'], ['json', { outputFile: '../reports/playwright.json' }]],
   outputDir: '../reports/playwright-artifacts',
   use: {
-    baseURL: `http://127.0.0.1:${PORT}`,
+    // localhost statt IP: WebAuthn verlangt eine gültige RP-ID.
+    baseURL: `http://localhost:${PORT}`,
     viewport: { width: 375, height: 812 },
     locale: 'de-DE',
     trace: 'retain-on-failure',
@@ -21,9 +24,9 @@ export default defineConfig({
     { name: 'webkit', use: { ...devices['Desktop Safari'], viewport: { width: 375, height: 812 } } },
   ],
   webServer: {
-    command: `npm run build -w @stb/web && npm run preview -w @stb/web -- --port ${PORT} --strictPort --host 127.0.0.1`,
+    command: `npm run build -w @stb/web && npm run preview -w @stb/web -- --port ${PORT} --strictPort --host localhost`,
     cwd: '..',
-    url: `http://127.0.0.1:${PORT}`,
+    url: `http://localhost:${PORT}`,
     reuseExistingServer: false,
     timeout: 120_000,
   },

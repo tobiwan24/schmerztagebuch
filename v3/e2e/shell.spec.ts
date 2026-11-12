@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { go, onboardWithPassword } from './helpers';
 
 const MAIN_VIEWS = ['/', '/history', '/analysis', '/more', '/more/settings', '/entry/new', '/quick'];
 
@@ -7,9 +8,13 @@ async function hasHorizontalScroll(page: Page): Promise<boolean> {
 }
 
 test.describe('App-Gerüst', () => {
+  test.beforeEach(async ({ page }) => {
+    await onboardWithPassword(page);
+  });
+
   test('UI-03: alle Hauptansichten sind bei 375 px Breite ohne horizontales Scrollen nutzbar', async ({ page }) => {
     for (const path of MAIN_VIEWS) {
-      await page.goto(path);
+      await go(page, path);
       await expect(page.locator('h1')).toBeVisible();
       expect(await hasHorizontalScroll(page), path).toBe(false);
     }
@@ -29,7 +34,7 @@ test.describe('App-Gerüst', () => {
 
   test('UI-06: Dark Mode wirkt sofort und bleibt nach Reload erhalten', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'light' });
-    await page.goto('/more/settings');
+    await go(page, '/more/settings');
     const html = page.locator('html');
     await expect(html).not.toHaveClass(/dark/);
     const bgLight = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
@@ -50,7 +55,7 @@ test.describe('App-Gerüst', () => {
 
   test('UI-06: „Automatisch" folgt der Systemeinstellung', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'dark' });
-    await page.goto('/more/settings');
+    await go(page, '/more/settings');
     await page.getByRole('button', { name: 'Automatisch' }).click();
     await expect(page.locator('html')).toHaveClass(/dark/);
     await page.emulateMedia({ colorScheme: 'light' });

@@ -1,5 +1,8 @@
 // Grundgerüst: Kopfzeile, Inhalt, untere Leiste mit vier Zielen (Spec 10 „Navigation"). Mobile-first, Desktop zentriert.
-import { NavLink, Outlet } from 'react-router';
+import { Link, Navigate, NavLink, Outlet, useLocation } from 'react-router';
+import { Lock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/auth/AuthContext';
 import { BarChart3, Home, List, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { de } from '@/i18n/de';
@@ -11,11 +14,42 @@ const TABS = [
   { to: '/more', label: de.nav.more, Icon: MoreHorizontal, end: false },
 ] as const;
 
+/** Ansichten, die auch gesperrt erreichbar sind (Entsperren über Einstellungen, CRY-10). */
+const OPEN_WHEN_LOCKED = ['/more', '/more/settings'];
+
 export function AppShell() {
+  const { status } = useAuth();
+  const location = useLocation();
+  if (status === 'loading') return <p className="p-4 text-muted-foreground">{de.app.loading}</p>;
+  if (status === 'no-account') return <Navigate to="/onboarding" replace />;
+  const locked = status === 'locked';
+  const here = location.pathname + location.search;
+  const unlockHref = `/unlock?next=${encodeURIComponent(here)}`;
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
+      {locked ? (
+        <div role="status" data-testid="lock-banner" className="flex items-center justify-between gap-2 border-b bg-muted px-4 py-2 text-sm">
+          <span className="flex items-center gap-2">
+            <Lock className="size-4" aria-hidden />
+            {de.lock.bannerText}
+          </span>
+          <Button asChild size="sm">
+            <Link to={unlockHref}>{de.lock.bannerAction}</Link>
+          </Button>
+        </div>
+      ) : null}
       <main className="flex flex-1 flex-col gap-4 p-4 pb-24">
-        <Outlet />
+        {locked && !OPEN_WHEN_LOCKED.includes(location.pathname) ? (
+          <section data-testid="locked-view" className="flex flex-col gap-3">
+            <h1 className="text-xl font-semibold">{de.lock.lockedTitle}</h1>
+            <p className="text-muted-foreground">{de.lock.lockedHint}</p>
+            <Button asChild>
+              <Link to={unlockHref}>{de.lock.bannerAction}</Link>
+            </Button>
+          </section>
+        ) : (
+          <Outlet />
+        )}
       </main>
       <nav
         aria-label={de.nav.label}

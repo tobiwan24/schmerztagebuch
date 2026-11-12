@@ -4,9 +4,13 @@ import { AppShell } from '@/components/AppShell';
 import { StartPage } from '@/pages/StartPage';
 import { AnalysisPage, EntryPage, HistoryPage, MorePage, NotFoundPage, PlaceholderPage } from '@/pages/SimplePages';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { OnboardingPage } from '@/pages/OnboardingPage';
+import { UnlockPage } from '@/pages/UnlockPage';
 import { de } from '@/i18n/de';
 
 export const router = createBrowserRouter([
+  { path: '/onboarding', element: <OnboardingPage /> },
+  { path: '/unlock', element: <UnlockPage /> },
   {
     element: <AppShell />,
     children: [

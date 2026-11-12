@@ -57,7 +57,7 @@ describe('Lokales Konto', () => {
 });
 
 describe('Passkey-Klick-Handler', () => {
-  it('ruft credentials.get synchron auf — kein await zwischen Klick und Aufruf (iOS-Nutzergeste)', async () => {
+  it('CRY-09: ruft credentials.get synchron auf — kein await zwischen Klick und Aufruf (iOS-Nutzergeste)', async () => {
     const prepared = preparePasskeyRequest({ rpId: 'localhost', credentialIds: ['AAEC'] });
     const get = vi.fn(async () => ({ getClientExtensionResults: () => ({ prf: { results: { first: prf(9).buffer } } }) }) as unknown as Credential);
     const credentials: CredentialsLike = { create: vi.fn(), get };
