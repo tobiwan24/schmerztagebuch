@@ -5,11 +5,11 @@
 ## Aktuell
 
 - **Meilenstein:** M4 — Server: Auth, Records, Mitglieder, Intake
-- **Nächste Aufgabe:** Rollen und Mitglieder auf dem Server: `viewer`-Push → 403, `editor` nur Einträge (keine
-  Vorlagen, A-002), letzter Owner nicht entfernbar/herabstufbar, entferntes Mitglied ohne Records/Push, Einladungen
-  (Ablauf/Widerruf/einmalig) — SHR-05 SHR-06 SHR-07 SHR-08 (Spec 09 lesen). Danach Auth/Challenges (CRY-13),
-  Gerätesperre (CRY-14), Intake (VOI-03/04/10), Docker (QA-08).
-- **Erledigt in M4:** ARC-04 SYN-03
+- **Nächste Aufgabe:** Einladungen auf dem Server (Spec 09 „Server-Endpunkte"): anlegen (nur owner), abrufen ohne Auth,
+  annehmen mit `identityPub`+`mac`, widerrufen; 7 Tage gültig, nur einmal annehmbar (SHR-08). `POST members` (Owner
+  bestätigt mit `wrapped_dk`) gleich mit. Danach Auth/Challenges (CRY-13), Gerätesperre (CRY-14), Intake
+  (VOI-03/04/10), Docker (QA-08).
+- **Erledigt in M4:** ARC-04 SYN-03 SHR-05 SHR-06 SHR-07
 - **Blocker:** keine
 
 ## Meilensteine
@@ -20,7 +20,7 @@
 | M1 | erledigt | 14/14 IDs |
 | M2 | erledigt | 7/7 IDs |
 | M3 | erledigt | 6/6 IDs |
-| M4 | in Arbeit | 2/12 IDs |
+| M4 | in Arbeit | 5/12 IDs |
 | M5 | offen | |
 | M6 | offen | danach Gate G1 |
 | M7 | offen | erst nach UI-10 |
@@ -85,3 +85,4 @@ _noch keins_
 | 2026-11-12 | M3.3 | BLK-08 | Perf-Test `diary.perf.test.ts`: Katalogvorlage `headache`, 50× `saveEntry` (zod + Codec + Record + Outbox) auf fake-indexeddb, Median < 100 ms. **M3 fertig.** |
 | 2026-11-12 | M4.1 | ARC-04 | `apps/server`: Fastify 5, better-sqlite3 13, zod-Config (`loadConfig` meldet alle fehlenden Variablen), `.env.example`, `startServer`, Health `GET /api/v1/health`. ARC-01 deckte auf: `npm ci` baut better-sqlite3 per node-gyp (scheitert ohne Windows SDK) → Install-Skript per `allowScripts` verweigert, mitgelieferte Prebuilds werden genutzt (A-012). |
 | 2026-11-12 | M4.2 | SYN-03 | Neues Paket `@stb/sync-protocol` (zod-DTOs Push/Pull, Limits 500). Server: Schema-Migrationen über `user_version` (diaries, memberships, records, sync_counter), `applyPush` (rev-Prüfung je Op in einer Transaktion, fremdes Tagebuch → conflict ohne Inhalt), `pull` (seq-Cursor, `hasMore`), `Cache-Control: no-store`. Austauschbares `AuthProvider`: Tests `headerAuth`, Server bis CRY-13 `noAuth` (alles 401). |
+| 2026-11-12 | M4.3 | SHR-05 SHR-06 SHR-07 | `members/service.ts`: `mayPushKind` (editor: entry/attachmentMeta, A-013), `changeRole`/`revokeMember` mit Letzter-Owner-Schutz (409 `last-owner`) in Transaktionen. Routen PATCH/DELETE `/diaries/:id/members/:principalId`; Push prüft Rolle je Op (eine verbotene → ganzer Push 403). |

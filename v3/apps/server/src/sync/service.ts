@@ -13,15 +13,6 @@ interface RecordRow {
   ciphertext: string;
 }
 
-export type MembershipRole = 'owner' | 'editor' | 'viewer';
-
-export function findActiveRole(db: Db, diaryId: string, principalId: string): MembershipRole | undefined {
-  const row = db
-    .prepare('SELECT role FROM memberships WHERE diary_id = ? AND principal_id = ? AND revoked_at IS NULL')
-    .get(diaryId, principalId) as { role: MembershipRole } | undefined;
-  return row?.role;
-}
-
 /** Wendet alle Ops in einer Transaktion an; jede Op wird einzeln übernommen oder als Konflikt gemeldet. */
 export function applyPush(db: Db, req: PushRequest, now: number): PushResult[] {
   const get = db.prepare('SELECT id, diary_id, kind, rev, seq, deleted, ciphertext FROM records WHERE id = ?');
