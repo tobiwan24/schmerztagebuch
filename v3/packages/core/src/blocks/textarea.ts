@@ -30,4 +30,10 @@ export const textarea = defineBlock<TextareaConfig, TextareaValue>({
   emptyValue: () => ({}),
   isEmpty: (v) => v === undefined || (!v.text?.trim() && !v.events?.length && !v.attachmentIds?.length),
   toDisplay: (v) => [v.text?.trim(), ...(v.events ?? []).map((e) => e.title)].filter(Boolean).join(' · '),
+  toAnalysis: (v) => ({
+    kind: 'textEvents',
+    ...(v.text?.trim() ? { text: v.text } : {}),
+    events: (v.events ?? []).map((e) => ({ ...e })),
+    attachmentCount: v.attachmentIds?.length ?? 0,
+  }),
 });

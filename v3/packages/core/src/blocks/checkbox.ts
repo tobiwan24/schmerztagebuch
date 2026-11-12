@@ -13,4 +13,5 @@ export const checkbox = defineBlock<CheckboxConfig, CheckboxValue>({
   emptyValue: () => ({ checked: false }),
   isEmpty: (v) => v === undefined || (!v.checked && !v.note?.trim()),
   toDisplay: (v) => (v.checked ? 'Ja' : 'Nein') + (v.note ? ` — ${v.note}` : ''),
+  toAnalysis: (v) => ({ kind: 'event', occurred: v.checked }),
 });

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isUuidV7 } from '../ids.js';
+import type { AnalysisValue } from './analysis.js';
 
 /** Stabile ID (UUID v7, Spec 02) — auch für Optionen, Body-Map-Punkte, Ereignisse, Anhänge. */
 export const idSchema = z.string().refine(isUuidV7, { message: 'Keine UUID v7' });
@@ -9,7 +10,7 @@ export const isoDateTime = z.iso.datetime({ offset: true });
 
 /**
  * Einheitliche Schnittstelle je Blocktyp (Spec 05). `value` ist von der Konfiguration abhängig
- * (z. B. Slider-Grenzen, gültige Options-IDs). `toAnalysis`/`toCsv` folgen in eigenen Iterationen.
+ * (z. B. Slider-Grenzen, gültige Options-IDs). `toCsv` folgt mit dem Export (M10).
  */
 export interface BlockModule<C, V> {
   readonly config: z.ZodType<C, unknown>;
@@ -18,6 +19,8 @@ export interface BlockModule<C, V> {
   emptyValue(config: C): V | undefined;
   isEmpty(value: V | undefined): boolean;
   toDisplay(value: V, config: C): string;
+  /** Normalform für Analyse (Spec 06). Wird nur für nicht-leere Werte aufgerufen. */
+  toAnalysis(value: V, config: C): AnalysisValue;
 }
 
 /** Hilfsfunktion: Typinferenz für Blockmodule ohne Wiederholung der Generics. */

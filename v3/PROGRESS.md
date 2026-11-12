@@ -5,9 +5,10 @@
 ## Aktuell
 
 - **Meilenstein:** M1 — Domäne `core`: IDs, Schemas, Blöcke, Vorlagenversionen
-- **Nächste Aufgabe:** `toAnalysis` je Blocktyp (BLK-02, Datenarten laut Spec 05-Tabelle; Normalform für Spec 06
-  prüfen). Danach Wetter-Regeln (BLK-13 BLK-18), Katalog (BLK-16).
-- **Erledigt in M1:** DM-01 DM-02 DM-04 DM-05 BLK-01 BLK-04 DM-11 DM-03 DM-06 DM-07
+- **Nächste Aufgabe:** Wetter-Regeln als pure Funktionen in `core` (BLK-13: Neuermittlung bei `occurredAt`-Änderung > 1 h;
+  BLK-18: ohne festen Ort und ohne GPS keine Abfrage, kein `weatherPending`). Danach Katalog (BLK-16, v2
+  `src/data/templateCatalog.ts` nur lesen, nicht ändern).
+- **Erledigt in M1:** DM-01 DM-02 DM-04 DM-05 BLK-01 BLK-04 DM-11 DM-03 DM-06 DM-07 BLK-02
 - **Blocker:** keine
 
 ## Meilensteine
@@ -15,7 +16,7 @@
 | M | Status | Notiz |
 |---|---|---|
 | M0 | erledigt | 7/7 IDs |
-| M1 | in Arbeit | 10/14 IDs |
+| M1 | in Arbeit | 11/14 IDs |
 | M2 | offen | |
 | M3 | offen | |
 | M4 | offen | |
@@ -72,3 +73,4 @@ _noch keins_
 | 2026-11-12 | M1.2 | DM-04 DM-05 | `core/fractional-index.ts`: eigene Basis-62-Implementierung (keine Abhängigkeit), `keyBetween`, `compareByOrder` (Order, dann ID, Code-Unit-Vergleich ohne Locale). |
 | 2026-11-12 | M1.3 | BLK-01 BLK-04 DM-11 | zod 4 (DECISIONS). `core/blocks/<typ>.ts` je Typ: `config`, `value(config)`, `emptyValue`, `isEmpty`, `toDisplay`; `parseBlockConfig`/`parseBlockValue`. Alle Unter-IDs UUID v7. `toAnalysis`/`toCsv` folgen. Hinweis: `npm install <pkg> -w <ws>` crasht (npm 11.16, „reading 'location'") → Abhängigkeit in Workspace-`package.json` eintragen und Root-`npm install`. |
 | 2026-11-12 | M1.4 | DM-03 DM-06 DM-07 | `core/templates.ts`: Schemas für BlockDef/Template/TemplateVersion/Entry/Weather, `createTemplate`, `updateTemplate` (Strukturvergleich kanonisch, nach Block-ID sortiert; Block-Reihenfolge zählt als Struktur, vgl. BLK-06), Typwechsel-Sperre auch gegen frühere Versionen (`history`). `entrySchemaFor(version)` prüft Block-IDs + Werte; Pflichtfelder bewusst nicht im Schema (Schnelleintrag, BLK-07 im Formular). |
+| 2026-11-12 | M1.5 | BLK-02 | `AnalysisValue` (numeric/event/options/text/textEvents/time/points) + `toAnalysis` je Blockmodul, `analyzeBlockValue` liefert `null` für leere Werte (zählen nicht in `n`). Body-Map-Regionen erst nach Portierung der v2-Presets. |

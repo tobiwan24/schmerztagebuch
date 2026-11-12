@@ -26,4 +26,12 @@ export const date = defineBlock<DateConfig, DateValue>({
     if ('start' in v) return `${v.start} – ${v.end}`;
     return v.at ?? '';
   },
+  toAnalysis: (v) => {
+    if ('minutes' in v) return { kind: 'time', durationMinutes: v.minutes };
+    if ('start' in v) {
+      const durationMinutes = (Date.parse(v.end) - Date.parse(v.start)) / 60_000;
+      return { kind: 'time', start: v.start, end: v.end, durationMinutes };
+    }
+    return v.at ? { kind: 'time', at: v.at } : { kind: 'time' };
+  },
 });

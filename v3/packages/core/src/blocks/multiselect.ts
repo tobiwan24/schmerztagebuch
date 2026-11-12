@@ -26,4 +26,5 @@ export const multiselect = defineBlock<MultiselectConfig, MultiselectValue>({
   emptyValue: () => [],
   isEmpty: (v) => v === undefined || v.length === 0,
   toDisplay: (v, c) => v.map((id) => c.options.find((o) => o.id === id)?.label ?? '(entfernte Option)').join(', '),
+  toAnalysis: (v) => ({ kind: 'options', optionIds: [...v] }),
 });

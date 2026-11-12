@@ -7,6 +7,7 @@ import { textarea } from './textarea.js';
 import { date } from './date.js';
 import { bodymap } from './bodymap.js';
 import type { BlockModule } from './common.js';
+import type { AnalysisValue } from './analysis.js';
 
 export const blockModules = { slider, checkbox, multiselect, text, textarea, date, bodymap } as const;
 
@@ -34,7 +35,18 @@ export function parseBlockValue<K extends BlockType>(
   return moduleFor(type).value(config).safeParse(raw);
 }
 
+/** Normalform eines Werts für die Analyse; `null` für leere Werte (zählen nicht in `n`, Spec 06). */
+export function analyzeBlockValue<K extends BlockType>(
+  type: K,
+  config: BlockConfigOf<K>,
+  value: BlockValueOf<K> | undefined,
+): AnalysisValue | null {
+  const m = moduleFor(type);
+  return value === undefined || m.isEmpty(value) ? null : m.toAnalysis(value, config);
+}
+
 export type { BlockModule } from './common.js';
+export type * from './analysis.js';
 export { idSchema, isoDateTime } from './common.js';
 export type { SliderConfig } from './slider.js';
 export type { CheckboxConfig, CheckboxValue } from './checkbox.js';

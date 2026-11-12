@@ -22,4 +22,9 @@ export const bodymap = defineBlock<BodymapConfig, BodymapValue>({
   emptyValue: (c) => ({ presetId: c.defaultPresetId, points: [] }),
   isEmpty: (v) => v === undefined || v.points.length === 0,
   toDisplay: (v) => (v.points.length === 1 ? '1 Punkt' : `${v.points.length} Punkte`),
+  toAnalysis: (v) => ({
+    kind: 'points',
+    presetId: v.presetId,
+    points: v.points.map((p) => (p.intensity === undefined ? { x: p.x, y: p.y } : { x: p.x, y: p.y, intensity: p.intensity })),
+  }),
 });

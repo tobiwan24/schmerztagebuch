@@ -13,4 +13,5 @@ export const text = defineBlock<TextConfig, string>({
   emptyValue: () => '',
   isEmpty: (v) => v === undefined || v.trim() === '',
   toDisplay: (v) => v,
+  toAnalysis: (v) => ({ kind: 'text', text: v }),
 });

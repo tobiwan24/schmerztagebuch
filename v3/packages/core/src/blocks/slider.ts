@@ -28,4 +28,5 @@ export const slider = defineBlock<SliderConfig, number>({
   emptyValue: () => undefined,
   isEmpty: (v) => v === undefined,
   toDisplay: (v, c) => (c.unit ? `${v} ${c.unit}` : String(v)),
+  toAnalysis: (v, c) => (c.unit ? { kind: 'numeric', value: v, unit: c.unit } : { kind: 'numeric', value: v }),
 });
