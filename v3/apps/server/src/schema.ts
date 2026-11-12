@@ -131,6 +131,26 @@ const MIGRATIONS: readonly string[] = [
   ALTER TABLE records_new RENAME TO records;
   CREATE INDEX records_diary_seq ON records (diary_id, seq);
   `,
+  // 7: WebAuthn-Credentials und Nutzerschlüssel (Spec 02 „Server-Speicherung", Spec 03) — nur öffentliche Schlüssel und Wraps
+  `
+  CREATE TABLE credentials (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    public_key TEXT NOT NULL,
+    counter INTEGER NOT NULL,
+    transports TEXT,
+    created_at INTEGER NOT NULL,
+    last_used_at INTEGER
+  );
+  CREATE INDEX credentials_user ON credentials (user_id);
+  CREATE TABLE user_keys (
+    user_id TEXT NOT NULL REFERENCES users(id),
+    kind TEXT NOT NULL CHECK (kind IN ('identity-pub', 'identity-priv-enc', 'umk-wrap-passkey', 'umk-wrap-backup')),
+    credential_id TEXT NOT NULL DEFAULT '',
+    blob TEXT NOT NULL,
+    PRIMARY KEY (user_id, kind, credential_id)
+  );
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

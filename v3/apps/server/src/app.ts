@@ -9,6 +9,7 @@ import { registerMemberRoutes } from './members/routes.js';
 import { registerInvitationRoutes } from './invitations/routes.js';
 import { registerDeviceRoutes } from './auth/routes.js';
 import { registerIntakeRoutes } from './intake/routes.js';
+import { registerAccountRoutes } from './auth/account-routes.js';
 
 export interface AppDeps {
   config: ServerConfig;
@@ -20,7 +21,7 @@ export interface AppDeps {
 }
 
 /** Baut die Fastify-App (ohne `listen`), damit Tests `fastify.inject` nutzen können. */
-export function buildApp({ db, auth = noAuth, now = () => Date.now(), logStream }: AppDeps): FastifyInstance {
+export function buildApp({ config, db, auth = noAuth, now = () => Date.now(), logStream }: AppDeps): FastifyInstance {
   // Strukturierte Logs ohne Bodies (Spec 12): Fastify protokolliert nur Methode, URL, Status, Dauer.
   const app = Fastify({ logger: logStream ? { level: 'info', stream: logStream } : false, bodyLimit: 8 * 1024 * 1024 });
 
@@ -30,6 +31,7 @@ export function buildApp({ db, auth = noAuth, now = () => Date.now(), logStream 
   registerInvitationRoutes(app, { db, auth, now });
   registerDeviceRoutes(app, { db, auth, now });
   registerIntakeRoutes(app, { db, auth, now });
+  registerAccountRoutes(app, { db, auth, now, rp: { rpId: config.rpId, rpName: 'Schmerztagebuch', origins: config.allowedOrigins } });
 
   return app;
 }
