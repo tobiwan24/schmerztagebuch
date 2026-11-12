@@ -9,3 +9,8 @@ export interface Random {
   /** Füllt `target` mit kryptographisch starken Zufallsbytes. */
   fill(target: Uint8Array): Uint8Array;
 }
+
+/** Standard-Zufallsquelle über WebCrypto (`crypto.getRandomValues`, auch auf älterem iOS verfügbar). */
+export const cryptoRandom: Random = {
+  fill: (target) => globalThis.crypto.getRandomValues(target),
+};

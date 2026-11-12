@@ -5,10 +5,10 @@
 ## Aktuell
 
 - **Meilenstein:** M1 — Domäne `core`: IDs, Schemas, Blöcke, Vorlagenversionen
-- **Nächste Aufgabe:** DM-01 DM-02 — `newId()` (UUID v7 über injizierbares `Clock`/`Random`, monoton innerhalb derselben
-  Millisekunde) + Zeitstempel-Rekonstruktion. Danach DM-04 DM-05 (Fractional Index), dann zod + Blockschemas
-  (BLK-01 BLK-04 DM-11), Vorlagenversionen (DM-03 DM-06 DM-07), `toAnalysis` (BLK-02), Wetter-Regeln (BLK-13 BLK-18),
-  Katalog (BLK-16).
+- **Nächste Aufgabe:** DM-04 DM-05 — Fractional Index (`core/order.ts`): Key zwischen zwei Keys, Sortierung bei
+  gleichem Order-String deterministisch über die ID. Danach zod + Blockschemas (BLK-01 BLK-04 DM-11),
+  Vorlagenversionen (DM-03 DM-06 DM-07), `toAnalysis` (BLK-02), Wetter-Regeln (BLK-13 BLK-18), Katalog (BLK-16).
+- **Erledigt in M1:** DM-01 DM-02
 - **Blocker:** keine
 
 ## Meilensteine
@@ -16,7 +16,7 @@
 | M | Status | Notiz |
 |---|---|---|
 | M0 | erledigt | 7/7 IDs |
-| M1 | in Arbeit | |
+| M1 | in Arbeit | 2/14 IDs |
 | M2 | offen | |
 | M3 | offen | |
 | M4 | offen | |
@@ -69,3 +69,4 @@ _noch keins_
 | 2026-11-12 | Specs | — | Specs 00–12, MILESTONES, LOOP, DECISIONS, check-acceptance.mjs erstellt (162 IDs, Struktur ok) |
 | 2026-11-12 | M0.1 | ARC-02 ARC-03 ARC-05 ARC-06 QA-06 QA-11 | Workspaces, tsconfig.base (strict), ESLint-Abhängigkeitsregeln (A-008: Kernregeln statt `import/no-restricted-paths`), Vitest-JSON-Report, `check-deps.mjs` (in `verify`), `@stb/core`-Skelett mit `Clock`/`Random`. Node 26 lokal; esbuild-Postinstall von npm `allow-scripts` nicht ausgeführt, Vitest läuft trotzdem. |
 | 2026-11-12 | M0.2 | ARC-01 | Test kopiert Checkout-Stand (`git ls-files -co --exclude-standard`) in Temp, `npm ci` + `verify` (~10 s). Deckte Bug auf: `reports/` in `.gitignore` ignorierte `fixtures/acceptance/reports/` → auf `/reports/` verankert. **M0 fertig.** |
+| 2026-11-12 | M1.1 | DM-01 DM-02 | `createIdGenerator(clock, random?)` → `{ newId }` (12-Bit-Zähler, Uhr-Rücksprung sicher), `idTimestamp`, `isUuidV7`; `cryptoRandom` als Standard. `Clock` ist Pflicht (keine Systemuhr in `packages/*`, QA-06) — Apps reichen die Uhr herein. |
