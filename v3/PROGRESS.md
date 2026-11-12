@@ -10,7 +10,7 @@
   Eintrag-Speichern: BLK-11 (gerundeter Ort im Request, Mock-`fetch`), BLK-12 (Wetter im Payload → verschlüsselt; offline
   `weatherPending`, Nachtrag sobald online), BLK-14 (deaktiviert → kein Geolocation-/Open-Meteo-Aufruf), BLK-17
   (`origin: 'diary'` ohne Schalter, `origin: 'gps'` mit). Danach M6 abschließen → **Gate G1 vorbereiten** (Wireframes, Spec 10).
-- **Erledigt in M6:** SHR-03 SHR-04 SHR-11 VOI-01 VOI-06 VOI-08 VOI-05 VOI-07
+- **Erledigt in M6:** SHR-03 SHR-04 SHR-11 VOI-01 VOI-06 VOI-08 VOI-05 VOI-07 BLK-11 BLK-12 BLK-14 BLK-17
 - **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016).
 - **Blocker:** keine
 
@@ -24,7 +24,7 @@
 | M3 | erledigt | 6/6 IDs |
 | M4 | erledigt | 12/12 IDs |
 | M5 | erledigt | 10/10 IDs, Konfliktpfad nachgearbeitet |
-| M6 | in Arbeit | 8/12 IDs, danach Gate G1 |
+| M6 | erledigt | 12/12 IDs → Gate G1 |
 | M7 | offen | erst nach UI-10 |
 | M8 | offen | danach Gate G2 |
 | M9 | offen | erst nach UI-11 |
@@ -107,3 +107,4 @@
 | 2026-11-12 | M6.2 | SHR-11 VOI-01 | `web/sharing/leave.ts` (erst Server-Austritt, dann lokal Records/Outbox/sync_state/Schlüssel des Tagebuchs löschen). `web/intake/setup.ts` (ECDH-Paar, privater Schlüssel als JWK im `intakeKey`-Record, Server bekommt nur Public Key + SHA-256(Token), Token einmalig zurück). Spec-Widerspruch 08/09 (Editor + Intake) → A-017, Spec 09 präzisiert, Editor darf `intakeKey` pushen. |
 | 2026-11-12 | M6.3 | VOI-06 VOI-08 | `core/intake.ts`: `normalizeLabel` (Groß/Klein, ä/ae/a, ß, Satzzeichen), `mapIntakeToValues` (Block-ID, Label, Options-Labels, Typkonvertierung + Blockschema-Prüfung, Rest + Freitext in ersten textarea-Block, sonst Tag „Kurzbefehl" + `note`, Fehler gesammelt), `buildShortcutPrompt` (JSON-Ziel mit ID/Typ/Bereich/Optionen). **Typ-Fix:** `BlockDef` war keine unterscheidbare Union (generischer Indexzugriff in `defFor`) — behoben; zuvor nur in (nicht typgeprüften) Tests genutzt. |
 | 2026-11-12 | M6.4 | VOI-05 VOI-07 | Server: `GET /diaries/:id/intake-items`, `DELETE /intake-items/:id` (owner/editor). `web/intake/pickup.ts`: Siegel mit allen lokalen `intakeKey`s probieren, Body prüfen, Vorlage (templateId oder Schnelleintrag), `mapIntakeToValues`, Eintrag `source: 'shortcut'`; bei Problemen Record `intakeInbox` (synchronisiert, Editor darf pushen); Bestätigung erst nach lokaler Übernahme. Nicht entsiegelbare Items bleiben auf dem Server. |
+| 2026-11-12 | M6.5 | BLK-11 BLK-12 BLK-14 BLK-17 | `web/weather/open-meteo.ts` (URL nur mit gerundetem Ort, Forecast ≤ 48 h sonst Archiv, Stundenwert + Δ-Luftdruck 24 h, A-018), `web/weather/service.ts` (`metaFor` über `resolveEntryWeather`, Geolocation-Adapter, `backfill` für `weatherPending`). Tests mit Mock-`fetch` und Geolocation-Spy. **M6 fertig.** |
