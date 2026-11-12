@@ -1,0 +1,12 @@
+{
+  "testResults": [
+    {
+      "assertionResults": [
+        { "fullName": "demo XYZ-01: bestanden", "title": "XYZ-01: bestanden", "status": "passed" },
+        { "fullName": "demo XYZ-03: fehlgeschlagen", "title": "XYZ-03: fehlgeschlagen", "status": "failed" },
+        { "fullName": "demo XYZ-03: zweiter, bestanden", "title": "XYZ-03: zweiter, bestanden", "status": "passed" },
+        { "fullName": "demo QQQ-99: unbekannt", "title": "QQQ-99: unbekannt", "status": "passed" }
+      ]
+    }
+  ]
+}

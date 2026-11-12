@@ -4,19 +4,19 @@
 
 ## Aktuell
 
-- **Meilenstein:** M0 — Gerüst: Monorepo, Tooling, Prüfskript
-- **Nächste Aufgabe:** ARC-01 — Integrationstest „frischer Checkout": `git clone` von HEAD in ein Temp-Verzeichnis,
-  `npm ci`, dann `typecheck`/`lint`/`deps:check`/`build` und die übrigen Tests (ohne Rekursion in ARC-01) ausführen.
-  Danach M0 abschließen.
-- **Erledigt in M0:** ARC-02 ARC-03 ARC-05 ARC-06 QA-06 QA-11
+- **Meilenstein:** M1 — Domäne `core`: IDs, Schemas, Blöcke, Vorlagenversionen
+- **Nächste Aufgabe:** DM-01 DM-02 — `newId()` (UUID v7 über injizierbares `Clock`/`Random`, monoton innerhalb derselben
+  Millisekunde) + Zeitstempel-Rekonstruktion. Danach DM-04 DM-05 (Fractional Index), dann zod + Blockschemas
+  (BLK-01 BLK-04 DM-11), Vorlagenversionen (DM-03 DM-06 DM-07), `toAnalysis` (BLK-02), Wetter-Regeln (BLK-13 BLK-18),
+  Katalog (BLK-16).
 - **Blocker:** keine
 
 ## Meilensteine
 
 | M | Status | Notiz |
 |---|---|---|
-| M0 | in Arbeit | 6/7 IDs, offen: ARC-01 |
-| M1 | offen | |
+| M0 | erledigt | 7/7 IDs |
+| M1 | in Arbeit | |
 | M2 | offen | |
 | M3 | offen | |
 | M4 | offen | |
@@ -68,3 +68,4 @@ _noch keins_
 |---|---|---|---|
 | 2026-11-12 | Specs | — | Specs 00–12, MILESTONES, LOOP, DECISIONS, check-acceptance.mjs erstellt (162 IDs, Struktur ok) |
 | 2026-11-12 | M0.1 | ARC-02 ARC-03 ARC-05 ARC-06 QA-06 QA-11 | Workspaces, tsconfig.base (strict), ESLint-Abhängigkeitsregeln (A-008: Kernregeln statt `import/no-restricted-paths`), Vitest-JSON-Report, `check-deps.mjs` (in `verify`), `@stb/core`-Skelett mit `Clock`/`Random`. Node 26 lokal; esbuild-Postinstall von npm `allow-scripts` nicht ausgeführt, Vitest läuft trotzdem. |
+| 2026-11-12 | M0.2 | ARC-01 | Test kopiert Checkout-Stand (`git ls-files -co --exclude-standard`) in Temp, `npm ci` + `verify` (~10 s). Deckte Bug auf: `reports/` in `.gitignore` ignorierte `fixtures/acceptance/reports/` → auf `/reports/` verankert. **M0 fertig.** |
