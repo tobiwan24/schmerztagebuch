@@ -6,13 +6,11 @@
 
 - **Meilenstein:** M5 — Sync-Engine
 - **Nächste Aufgabe:** Sync-Engine `apps/web/src/sync/engine.ts` (in Teilschritten):
-  1. Push: Outbox (Vorlagen vor Einträgen) → Payload mit DK verschlüsseln (`encryptRecord`, AAD) → `/sync/push` über einen
-     austauschbaren Transport (Tests: Adapter auf `buildApp(...).inject`) → `applied` setzt `rev`, `base` und entfernt die Op
-     (DM-13: Request-Body ohne Klartext-Marker; SYN-01: nach `online` automatisch).
+  1. ~~Push~~ (erledigt, M5.3)
   2. Pull: paginiert, entschlüsseln, anwenden, Cursor erst danach speichern (SYN-07, SYN-08), Tombstones (SYN-16).
   3. Konflikte: `mergeEntry` + ConflictLog, erneut pushen mit `baseRev = server.rev`.
   4. Moduswechsel `cloud-primary → local-only` blockiert bei nicht leerer Outbox (SYN-12).
-- **Erledigt in M5:** SYN-04 SYN-05 SYN-02 SYN-13
+- **Erledigt in M5:** SYN-04 SYN-05 SYN-02 SYN-13 DM-13 SYN-01
 - **Hinweis:** Merge kann Werte aus Block-IDs verschiedener Vorlagenversionen kombinieren; `entrySchemaFor` lehnt Block-IDs
   ab, die in der Version fehlen. Beim Engine-Bau prüfen (ggf. auf die höhere Version validieren, archivierte Werte behalten).
 - **Blocker:** keine
@@ -26,7 +24,7 @@
 | M2 | erledigt | 7/7 IDs |
 | M3 | erledigt | 6/6 IDs |
 | M4 | erledigt | 12/12 IDs |
-| M5 | in Arbeit | 4/10 IDs |
+| M5 | in Arbeit | 6/10 IDs |
 | M6 | offen | danach Gate G1 |
 | M7 | offen | erst nach UI-10 |
 | M8 | offen | danach Gate G2 |
@@ -102,3 +100,4 @@
 | 2026-11-12 | M4.9 | QA-08 | Docker läuft: Server-Image scheiterte an `node-gyp` (npm 10 im Image kennt `allowScripts` nicht) → `npm ci --ignore-scripts` (A-012), `linuxmusl`-Prebuild wird geladen. `docker compose up` → Health über nginx mit Version. Test läuft bei jedem `verify` (mit Cache ~20 s). **M4 fertig.** |
 | 2026-11-12 | M5.1 | SYN-04 SYN-05 | `core/hlc.ts` (Format A-015, `tick`/`receive` monoton, Vergleich), `core/canonical.ts` (aus templates.ts ausgelagert, `deepEqual`). `sync-protocol/merge.ts` `mergeEntry(base, local, remote)`: 3-Wege pro Block-ID, Tags-Vereinigung, `deleted` nur mit höherem HLC, Konflikte als `MergeConflict` (Engine legt daraus ConflictLog-Records an). |
 | 2026-11-12 | M5.2 | SYN-02 SYN-13 | Test für bestehende Outbox-Kompaktierung (eine Op pro Record, älteste `baseRev`, delete ersetzt upsert). `web/sync/single-flight.ts`: ein Lauf + höchstens ein Folgelauf, Fehler blockieren nicht. |
+| 2026-11-12 | M5.3 | DM-13 SYN-01 | `web/sync/transport.ts` (Interface + fetch-Transport), `web/sync/engine.ts` Push: Outbox nach Kind (diary/template/templateVersion zuerst), DK-Verschlüsselung mit AAD, Batches ≤ 500, `applied` → `rev` + `base` = gepushter Snapshot, Op nur löschen wenn unverändert (sonst `baseRev` nachziehen); Auslöser `online`/`visibilitychange` über Single-Flight. Neuer Ordner `integration/` (echter Server per inject + Web-Datenschicht), da apps einander nicht importieren dürfen. Hinweis: `integration/` wird gelintet, aber (wie alle Tests) nicht typgeprüft. |

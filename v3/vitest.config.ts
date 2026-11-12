@@ -13,7 +13,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['packages/*/src/**/*.test.ts', 'apps/*/src/**/*.test.{ts,tsx}', 'scripts/**/*.test.{ts,mjs}'],
+    include: ['packages/*/src/**/*.test.ts', 'apps/*/src/**/*.test.{ts,tsx}', 'integration/**/*.test.ts', 'scripts/**/*.test.{ts,mjs}'],
     reporters: ['default', 'json'],
     outputFile: { json: 'reports/vitest.json' },
   },

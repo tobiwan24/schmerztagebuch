@@ -6,7 +6,8 @@
   "dependencies": {
     "@stb/core": "*",
     "@stb/crypto": "*",
-    "dexie": "^4.4.7"
+    "dexie": "^4.4.7",
+    "@stb/sync-protocol": "*"
   },
   "devDependencies": {
     "fake-indexeddb": "^6.2.8"
