@@ -4,11 +4,13 @@
 
 ## Aktuell
 
-- **Meilenstein:** **Gate G1 — Wireframes (wartet auf User)**, danach M7 — UI-Grundgerüst, Onboarding, Entsperren
-- **Nächste Aufgabe:** User prüft `v3/design/index.html` (11 Seiten, klickbar). Feedback → hier unter „Gate-Feedback“ notieren und
-  vor M7 umsetzen. Freigabe: `- [x] UI-10`. Danach M7: Vite + React + Tailwind + shadcn/ui in `apps/web`, Routing (A-005),
-  i18n-Datei, Lint-Regeln UI-01/UI-07, Onboarding/Entsperren (CRY-08..12, CRY-16), SYN-10/15.
-- **Blocker:** Gate G1 offen.
+- **Meilenstein:** M7 — UI-Grundgerüst, Onboarding, Entsperren (Gate G1 freigegeben)
+- **Nächste Aufgabe:** M7 in Teilaufgaben: (1) `apps/web` als Vite + React + TypeScript + Tailwind + shadcn/ui aufsetzen
+  (DECISIONS-Einträge für neue Abhängigkeiten), `i18n/de.ts`, Lint-Regeln UI-01 (kein eigenes CSS / Basis-Elemente nur in
+  `components/ui/`) und UI-07 (kein hart codierter Text); (2) React Router mit Ansichten-Gerüst laut Wireframes, Leer-/Fehler-
+  zustände; (3) Onboarding + Entsperren (CRY-08..12, CRY-16) inkl. `@simplewebauthn`; (4) SYN-10/SYN-15 (Update-Hinweis, SW).
+  E2E-IDs (UI-03..06 u. a.) brauchen Playwright → in Teilaufgabe (2) einführen.
+- **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
 - **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016).
 - **Blocker:** keine
 
@@ -23,7 +25,7 @@
 | M4 | erledigt | 12/12 IDs |
 | M5 | erledigt | 10/10 IDs, Konfliktpfad nachgearbeitet |
 | M6 | erledigt | 12/12 IDs → Gate G1 |
-| M7 | offen | erst nach UI-10 |
+| M7 | in Arbeit | G1 freigegeben |
 | M8 | offen | danach Gate G2 |
 | M9 | offen | erst nach UI-11 |
 | M10 | offen | |
@@ -34,7 +36,7 @@
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
 
 ### G1 — Wireframes
-- [ ] UI-10 Wireframes in `v3/design/` durchgesehen und freigegeben
+- [x] UI-10 Wireframes in `v3/design/` durchgesehen und freigegeben (User im Chat: „g1 freigegeben“, 2026-11-12)
 
 ### G2 — Kernablauf
 - [ ] UI-11 Kernablauf auf dem iPhone durchgeklickt und freigegeben
@@ -110,3 +112,4 @@
 | 2026-11-12 | G1-Vorbereitung | — | `v3/design/`: 11 klickbare Low-Fi-Seiten (Onboarding/Entsperren, Start+Eingang, Schnelleintrag, Eintrag mit Zeitpunkt/Zeitraum, Verlauf/Detail mit archiviertem Feld, Auswertung/Vergleich, Mehr, Vorlagen/Editor, Tagebücher/Teilen/Kurzbefehl, Export, Einstellungen/Konflikte/Diagnose), shadcn-Optik in reinem CSS, Hell/Dunkel. **Loop angehalten (Gate G1).** |
 | 2026-11-12 | Tooling | (QA-08) | Docker-Test nur noch mit `npm run verify:docker` (A-019, `scripts/run-with-env.mjs` setzt Env plattformunabhängig). Vor Meilenstein-Abschluss/Gates einmal ausführen. Parallel: Code-Review M4–M6 per `code-reviewer`-Subagent gestartet. |
 | 2026-11-12 | Review M4–M6 | (Fixes) | `code-reviewer`-Subagent: 14 Befunde, alle im Code bestätigt und behoben. Server (d16e1fb): Intake an Mitgliedschaft des Erstellers, Editor nur eigene Keys, Rate-Limits nach Token-Prüfung + pro IP, Einladungsabruf rate-limited, Records-Schlüssel (diary_id, id) (Schema v6). Engine (7fd2771): Merge überschreibt keine parallelen Änderungen, Quarantäne statt Pull-Blockade, Fehler pro Tagebuch isoliert, HLC receive/tick, Tombstone mit frischem HLC, Modus bleibt erhalten. Intake: Text ohne Notizfeld → Eingang, deterministische IDs gegen Duplikate, Autor = Ersteller (A-020). Je Befund Regressionstest. |
+| 2026-11-12 | Gate G1 | UI-10 | Vom User freigegeben („g1 freigegeben“), kein Änderungsfeedback zu den Wireframes. M7 beginnt. |
