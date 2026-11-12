@@ -72,6 +72,32 @@ describe('Intake-Endpunkt', () => {
     expect((await send('kein json')).statusCode).toBe(400);
   });
 
+  it('VOI-03: Token eines entfernten oder herabgestuften Erstellers → 401', async () => {
+    db.prepare("INSERT INTO memberships (diary_id, principal_id, role, key_epoch, wrapped_dk, created_at) VALUES (?, 'ed', 'editor', 1, 'w', 0)").run(D);
+    const edToken = randomBytes(32).toString('base64url');
+    const created = await app.inject({ method: 'POST', url: `/api/v1/diaries/${D}/intake-keys`, headers: as('ed'), payload: { publicKey: await exportPublicKey(intakeKeys.publicKey), tokenHash: sha(edToken) } });
+    expect(created.statusCode).toBe(201);
+    expect((await send({ text: 'x' }, edToken)).statusCode).toBe(202);
+    db.prepare("UPDATE memberships SET role = 'viewer' WHERE principal_id = 'ed'").run();
+    expect((await send({ text: 'x' }, edToken)).statusCode).toBe(401);
+    db.prepare("UPDATE memberships SET role = 'editor', revoked_at = 1 WHERE principal_id = 'ed'").run();
+    expect((await send({ text: 'x' }, edToken)).statusCode).toBe(401);
+    expect((await send({ text: 'owner geht weiter' })).statusCode).toBe(202);
+  });
+
+  it('VOI-03: Editor darf nur eigene Intake-Schlüssel widerrufen, Owner jeden', async () => {
+    db.prepare("INSERT INTO memberships (diary_id, principal_id, role, key_epoch, wrapped_dk, created_at) VALUES (?, 'ed', 'editor', 1, 'w', 0)").run(D);
+    const ownerKey = (db.prepare("SELECT id FROM intake_keys WHERE created_by = 'olga'").get() as { id: string }).id;
+    expect((await app.inject({ method: 'DELETE', url: `/api/v1/diaries/${D}/intake-keys/${ownerKey}`, headers: as('ed') })).statusCode).toBe(404);
+    expect((await send({ text: 'x' })).statusCode).toBe(202);
+    expect((await app.inject({ method: 'DELETE', url: `/api/v1/diaries/${D}/intake-keys/${ownerKey}`, headers: as('olga') })).statusCode).toBe(204);
+  });
+
+  it('VOI-10: Fehlversuche mit beliebigen Tokens werden pro IP begrenzt (kein unbegrenzter Speicher je Fantasie-Token)', async () => {
+    for (let i = 0; i < 20; i++) expect((await send({ text: 'x' }, `falsch-${i}`)).statusCode).toBe(401);
+    expect((await send({ text: 'x' }, 'falsch-21')).statusCode).toBe(429);
+  });
+
   it('VOI-03: Intake-Schlüssel anlegen/widerrufen nur owner/editor', async () => {
     const payload = { publicKey: await exportPublicKey(intakeKeys.publicKey), tokenHash: sha('t2') };
     expect((await app.inject({ method: 'POST', url: `/api/v1/diaries/${D}/intake-keys`, headers: as('vic'), payload })).statusCode).toBe(403);

@@ -15,27 +15,27 @@ interface RecordRow {
 
 /** Wendet alle Ops in einer Transaktion an; jede Op wird einzeln übernommen oder als Konflikt gemeldet. */
 export function applyPush(db: Db, req: PushRequest, now: number): PushResult[] {
-  const get = db.prepare('SELECT id, diary_id, kind, rev, seq, deleted, ciphertext FROM records WHERE id = ?');
+  const get = db.prepare('SELECT id, diary_id, kind, rev, seq, deleted, ciphertext FROM records WHERE diary_id = ? AND id = ?');
   const nextSeq = db.prepare('UPDATE sync_counter SET seq = seq + 1 WHERE id = 1 RETURNING seq');
   const upsert = db.prepare(`
     INSERT INTO records (id, diary_id, kind, rev, seq, deleted, ciphertext, size, updated_at)
     VALUES (@id, @diaryId, @kind, @rev, @seq, @deleted, @ciphertext, @size, @now)
-    ON CONFLICT(id) DO UPDATE SET rev = @rev, seq = @seq, deleted = @deleted, ciphertext = @ciphertext,
+    ON CONFLICT(diary_id, id) DO UPDATE SET rev = @rev, seq = @seq, deleted = @deleted, ciphertext = @ciphertext,
       size = @size, updated_at = @now
   `);
 
   return db.transaction(() =>
     req.ops.map((op): PushResult => {
-      const current = get.get(op.recordId) as RecordRow | undefined;
+      const current = get.get(req.diaryId, op.recordId) as RecordRow | undefined;
       const conflict = (): PushResult => ({
         recordId: op.recordId,
         status: 'conflict',
-        server: current && current.diary_id === req.diaryId
+        server: current
           ? { rev: current.rev, ciphertext: current.ciphertext, deleted: current.deleted === 1 }
           : { rev: 0, ciphertext: null, deleted: false },
       });
-      // Fremdes Tagebuch: Record-ID ist belegt, Inhalt wird nicht offengelegt.
-      if (current && (current.diary_id !== req.diaryId || current.kind !== op.kind)) return conflict();
+      // IDs sind pro Tagebuch eindeutig (Schema v6); eine andere Art unter derselben ID ist ein Konflikt.
+      if (current && current.kind !== op.kind) return conflict();
       if ((current?.rev ?? 0) !== op.baseRev) return conflict();
       const { seq } = nextSeq.get() as { seq: number };
       const rev = op.baseRev + 1;

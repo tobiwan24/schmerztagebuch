@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { Db } from '../db.js';
 import type { AuthProvider } from '../auth/types.js';
 import { requirePrincipal } from '../auth/require.js';
+import { createRateLimiter } from '../rate-limit.js';
 import {
   acceptInvitation,
   confirmMember,
@@ -27,7 +28,11 @@ function send<T>(reply: FastifyReply, r: Result<T>, okStatus: number): FastifyRe
   return okStatus === 204 ? reply.code(204).send() : reply.code(okStatus).send(r.value);
 }
 
+/** Öffentlicher Einladungsabruf (ohne Auth): pro IP begrenzt (Spec 09). */
+export const INVITATION_READ_LIMIT = { limit: 30, windowMs: 10 * 60 * 1000 };
+
 export function registerInvitationRoutes(app: FastifyInstance, { db, auth, now }: { db: Db; auth: AuthProvider; now: () => number }): void {
+  const readLimiter = createRateLimiter(INVITATION_READ_LIMIT);
   app.post('/api/v1/diaries/:id/invitations', async (req, reply) => {
     const p = await requirePrincipal(auth, req, reply);
     if (!p) return reply;
@@ -45,8 +50,10 @@ export function registerInvitationRoutes(app: FastifyInstance, { db, auth, now }
     return send(reply, listPendingAcceptances(db, params.data.id, p.userId), 200);
   });
 
-  // Ohne Auth (Spec 09); Rate-Limit folgt mit der allgemeinen Rate-Limit-Infrastruktur.
+  // Ohne Auth (Spec 09), pro IP rate-limited.
   app.get('/api/v1/invitations/:id', async (req, reply) => {
+    const rl = readLimiter.hit(req.ip, now());
+    if (!rl.allowed) return reply.code(429).header('retry-after', String(Math.ceil(rl.retryAfterMs / 1000))).send({ error: 'rate-limited' });
     const params = invParams.safeParse(req.params);
     if (!params.success) return reply.code(400).send({ error: 'invalid-request' });
     void reply.header('cache-control', 'no-store');

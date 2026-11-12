@@ -77,12 +77,21 @@ describe('Sync-Endpunkte', () => {
     expect(p.body.records).toMatchObject([{ recordId: 'a', rev: 2, deleted: true }]);
   });
 
-  it('SYN-03: Record-ID aus einem anderen Tagebuch kann nicht überschrieben werden', async () => {
-    db.prepare("INSERT INTO memberships (diary_id, principal_id, role, key_epoch, wrapped_dk, created_at) VALUES (?, 'alice', 'owner', 1, 'w', 0)").run(OTHER);
-    await push([op('x', 0, 'aus-diary-1')]);
-    const r = await push([op('x', 1, 'fremd')], 'alice', OTHER);
-    expect(r.body.results[0]).toMatchObject({ status: 'conflict' });
-    expect((await pull()).body.records[0]?.ciphertext).toBe('aus-diary-1');
+  it('SYN-03: gleiche Record-ID in einem anderen Tagebuch ist unabhängig — weder überschreib- noch vorab belegbar', async () => {
+    db.prepare("INSERT INTO memberships (diary_id, principal_id, role, key_epoch, wrapped_dk, created_at) VALUES (?, 'mallory', 'owner', 1, 'w', 0)").run(OTHER);
+    // mallory belegt die ID zuerst in ihrem eigenen Tagebuch
+    expect((await push([op('x', 0, 'mallory')], 'mallory', OTHER)).body.results[0]).toMatchObject({ status: 'applied' });
+    // alice' Push in ihr Tagebuch wird davon nicht blockiert
+    expect((await push([op('x', 0, 'alice')])).body.results[0]).toMatchObject({ status: 'applied', rev: 1 });
+    expect((await pull()).body.records.map((r) => r.ciphertext)).toEqual(['alice']);
+    // und mallory kann alice' Record nicht überschreiben
+    expect((await push([op('x', 1, 'übernommen')], 'mallory', OTHER)).body.results[0]).toMatchObject({ status: 'applied' });
+    expect((await pull()).body.records.map((r) => r.ciphertext)).toEqual(['alice']);
+  });
+
+  it('SYN-03: andere Record-Art unter derselben ID im selben Tagebuch → conflict', async () => {
+    await push([op('x', 0)]);
+    expect((await push([{ ...op('x', 1), kind: 'template' }])).body.results[0]).toMatchObject({ status: 'conflict' });
   });
 
   it('SYN-03: Pull liefert seq > since, sortiert und paginiert', async () => {

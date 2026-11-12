@@ -112,6 +112,25 @@ const MIGRATIONS: readonly string[] = [
   );
   CREATE INDEX intake_items_diary ON intake_items (diary_id);
   `,
+  // 6: Record-IDs nur pro Tagebuch eindeutig — ein fremdes Tagebuch kann keine IDs vorab belegen (Review M4–M6, Befund 4)
+  `
+  CREATE TABLE records_new (
+    id TEXT NOT NULL,
+    diary_id TEXT NOT NULL REFERENCES diaries(id),
+    kind TEXT NOT NULL,
+    rev INTEGER NOT NULL,
+    seq INTEGER NOT NULL UNIQUE,
+    deleted INTEGER NOT NULL DEFAULT 0,
+    ciphertext TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (diary_id, id)
+  );
+  INSERT INTO records_new SELECT id, diary_id, kind, rev, seq, deleted, ciphertext, size, updated_at FROM records;
+  DROP TABLE records;
+  ALTER TABLE records_new RENAME TO records;
+  CREATE INDEX records_diary_seq ON records (diary_id, seq);
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

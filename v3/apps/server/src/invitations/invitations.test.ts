@@ -79,6 +79,12 @@ describe('Einladungen', () => {
     expect((await fetchInv(id)).statusCode).toBe(410);
   });
 
+  it('SHR-08: öffentlicher Abruf ist pro IP rate-limited', async () => {
+    const id = await newInvitation();
+    for (let i = 0; i < 30; i++) expect((await fetchInv(id)).statusCode).toBe(200);
+    expect((await fetchInv(id)).statusCode).toBe(429);
+  });
+
   it('SHR-08: unbekannte Einladung → 404; bestehendes Mitglied kann nicht annehmen', async () => {
     expect((await fetchInv('gibt-es-nicht')).statusCode).toBe(404);
     expect((await accept('gibt-es-nicht', 'bob')).statusCode).toBe(404);

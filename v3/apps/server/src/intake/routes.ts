@@ -1,7 +1,7 @@
 // Intake-Briefkasten (Spec 08): Kurzbefehl → Token prüfen → Form prüfen → sofort versiegeln → nur Siegel speichern.
 // Der Klartext wird nie persistiert und nie geloggt (Fastify loggt keine Bodies; Fehlerantworten enthalten keine Inhalte).
 import { createHash, randomUUID } from 'node:crypto';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { sealForIntake } from '@stb/crypto';
 import { INTAKE_BODY_MAX_BYTES, intakeBodySchema, intakeKeyRequestSchema } from '@stb/sync-protocol';
@@ -12,6 +12,8 @@ import { findActiveRole } from '../members/service.js';
 import { createRateLimiter } from '../rate-limit.js';
 
 export const INTAKE_RATE_LIMIT = { limit: 60, windowMs: 60 * 60 * 1000 };
+/** Fehlversuche (unbekanntes/widerrufenes Token) pro IP — begrenzt Raten und Speicher. */
+export const INTAKE_FAIL_LIMIT = { limit: 20, windowMs: 15 * 60 * 1000 };
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('base64url');
 const diaryParams = z.object({ diaryId: z.string().min(1).max(128) });
@@ -19,22 +21,31 @@ const keyParams = z.object({ id: z.string().min(1).max(128), keyId: z.string().m
 
 export function registerIntakeRoutes(app: FastifyInstance, { db, auth, now }: { db: Db; auth: AuthProvider; now: () => number }): void {
   const limiter = createRateLimiter(INTAKE_RATE_LIMIT);
-  const findKey = db.prepare('SELECT public_key FROM intake_keys WHERE diary_id = ? AND token_hash = ? AND revoked_at IS NULL');
+  const failLimiter = createRateLimiter(INTAKE_FAIL_LIMIT);
+  // Ein Intake-Schlüssel gilt nur, solange sein Ersteller aktives Mitglied mit Schreibrecht für Intake ist (SHR-07).
+  const findKey = db.prepare(`
+    SELECT k.public_key FROM intake_keys k
+    JOIN memberships m ON m.diary_id = k.diary_id AND m.principal_id = k.created_by
+    WHERE k.diary_id = ? AND k.token_hash = ? AND k.revoked_at IS NULL
+      AND m.revoked_at IS NULL AND m.role IN ('owner', 'editor')
+  `);
+  const tooMany = (reply: FastifyReply, retryAfterMs: number) =>
+    reply.code(429).header('retry-after', String(Math.ceil(retryAfterMs / 1000))).send({ error: 'rate-limited' });
 
   app.post('/api/v1/intake/:diaryId', { bodyLimit: INTAKE_BODY_MAX_BYTES }, async (req, reply) => {
     void reply.header('cache-control', 'no-store');
     const params = diaryParams.safeParse(req.params);
     const header = req.headers.authorization ?? '';
     const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
-    if (!params.success || !token) return reply.code(401).send({ error: 'unauthenticated' });
-    const tokenHash = sha256(token);
-
-    const rl = limiter.hit(tokenHash, now());
-    if (!rl.allowed) {
-      return reply.code(429).header('retry-after', String(Math.ceil(rl.retryAfterMs / 1000))).send({ error: 'rate-limited' });
+    const key = params.success && token ? (findKey.get(params.data.diaryId, sha256(token)) as { public_key: string } | undefined) : undefined;
+    if (!params.success || !key) {
+      const fail = failLimiter.hit(req.ip, now());
+      if (!fail.allowed) return tooMany(reply, fail.retryAfterMs);
+      return reply.code(401).send({ error: 'unauthenticated' });
     }
-    const key = findKey.get(params.data.diaryId, tokenHash) as { public_key: string } | undefined;
-    if (!key) return reply.code(401).send({ error: 'unauthenticated' });
+    // 60/h pro gültigem Token (Spec 08); gezählt wird erst nach erfolgreicher Prüfung.
+    const rl = limiter.hit(sha256(token), now());
+    if (!rl.allowed) return tooMany(reply, rl.retryAfterMs);
 
     const body = intakeBodySchema.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid-request' });
@@ -93,7 +104,10 @@ export function registerIntakeRoutes(app: FastifyInstance, { db, auth, now }: { 
     if (!params.success) return reply.code(400).send({ error: 'invalid-request' });
     const role = findActiveRole(db, params.data.id, p.userId);
     if (role !== 'owner' && role !== 'editor') return reply.code(403).send({ error: 'forbidden' });
-    const r = db.prepare('UPDATE intake_keys SET revoked_at = COALESCE(revoked_at, ?) WHERE id = ? AND diary_id = ?').run(now(), params.data.keyId, params.data.id);
+    // Owner dürfen jeden Intake-Schlüssel widerrufen, Editoren nur ihren eigenen (A-017).
+    const r = db
+      .prepare("UPDATE intake_keys SET revoked_at = COALESCE(revoked_at, ?) WHERE id = ? AND diary_id = ? AND (? = 'owner' OR created_by = ?)")
+      .run(now(), params.data.keyId, params.data.id, role, p.userId);
     return r.changes ? reply.code(204).send() : reply.code(404).send({ error: 'not-found' });
   });
 }
