@@ -1,0 +1,1 @@
+- [ ] XYZ-04 manuell offen

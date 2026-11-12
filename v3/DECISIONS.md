@@ -30,9 +30,16 @@ Der Loop ergänzt hier neue Annahmen und jede neue npm-Abhängigkeit.
 | A-005 | Routing mit React Router (v2 hatte manuelles View-State-Routing). | Deep-Links (`/quick`, `/invite`) und Zurück-Geste. | offen |
 | A-006 | Migrierte Einträge landen im Tagebuch „Ich"; Wetter wird nicht automatisch nachgetragen (Schalter vorhanden). | Viele Archiv-Requests, Ort früherer Einträge unbekannt. | offen |
 | A-007 | Exporte entstehen nur auf dem Gerät; es gibt keinen serverseitigen PDF-Export. | E2E. | offen |
+| A-008 | Abhängigkeitsregeln (Spec 01) werden mit den ESLint-Kernregeln `no-restricted-imports` (Paketnamen `@stb/*`, `react`, `dexie`, …, Pfadmuster `**/apps/<app>/**`, `**/data/db*`) und `no-restricted-properties`/`no-restricted-globals` umgesetzt statt mit `import/no-restricted-paths`. | Pakete importieren einander über Workspace-Namen, nicht über Pfade; `no-restricted-paths` bräuchte zusätzlich Plugin + TS-Resolver. Wirkung laut ARC-02/03 identisch; Umstieg auf das Plugin ist jederzeit möglich. | offen |
 
 ## Abhängigkeiten
 
 | Paket | Workspace | Zweck | Lizenz | Verworfene Alternative |
 |---|---|---|---|---|
-| _noch keine_ | | | | |
+| `typescript` | root (dev) | Typecheck/Build (`tsc -b`) | Apache-2.0 | — (Spec 01) |
+| `eslint` | root (dev) | Lint inkl. Abhängigkeitsregeln | MIT | Biome (keine gleichwertigen Import-Regeln) |
+| `@eslint/js` | root (dev) | ESLint-Basisregeln (`recommended`) | MIT | — |
+| `typescript-eslint` | root (dev) | TS-Parser + Regeln (`no-explicit-any`) | MIT | — |
+| `globals` | root (dev) | Globale Variablen je Umgebung für ESLint | MIT | manuelle Liste |
+| `vitest` | root (dev) | Unit-/Integrationstests, JSON-Report | MIT | Jest (kein natives ESM/Vite) |
+| `@types/node` | root (dev) | Node-Typen für Skripte/Server | MIT | — |

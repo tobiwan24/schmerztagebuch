@@ -5,16 +5,17 @@
 ## Aktuell
 
 - **Meilenstein:** M0 — Gerüst: Monorepo, Tooling, Prüfskript
-- **Nächste Aufgabe:** `v3/package.json` mit npm workspaces, `tsconfig.base.json` (strict, `noUncheckedIndexedAccess`),
-  ESLint inkl. Abhängigkeitsregeln, Vitest mit JSON-Reporter nach `reports/vitest.json`, Skripte aus Spec 01.
-  Selbsttest für `scripts/check-acceptance.mjs` (ARC-05; das Skript existiert bereits und exportiert pure Funktionen).
+- **Nächste Aufgabe:** ARC-01 — Integrationstest „frischer Checkout": `git clone` von HEAD in ein Temp-Verzeichnis,
+  `npm ci`, dann `typecheck`/`lint`/`deps:check`/`build` und die übrigen Tests (ohne Rekursion in ARC-01) ausführen.
+  Danach M0 abschließen.
+- **Erledigt in M0:** ARC-02 ARC-03 ARC-05 ARC-06 QA-06 QA-11
 - **Blocker:** keine
 
 ## Meilensteine
 
 | M | Status | Notiz |
 |---|---|---|
-| M0 | offen | |
+| M0 | in Arbeit | 6/7 IDs, offen: ARC-01 |
 | M1 | offen | |
 | M2 | offen | |
 | M3 | offen | |
@@ -66,3 +67,4 @@ _noch keins_
 | Datum | Iteration | IDs | Notiz |
 |---|---|---|---|
 | 2026-11-12 | Specs | — | Specs 00–12, MILESTONES, LOOP, DECISIONS, check-acceptance.mjs erstellt (162 IDs, Struktur ok) |
+| 2026-11-12 | M0.1 | ARC-02 ARC-03 ARC-05 ARC-06 QA-06 QA-11 | Workspaces, tsconfig.base (strict), ESLint-Abhängigkeitsregeln (A-008: Kernregeln statt `import/no-restricted-paths`), Vitest-JSON-Report, `check-deps.mjs` (in `verify`), `@stb/core`-Skelett mit `Clock`/`Random`. Node 26 lokal; esbuild-Postinstall von npm `allow-scripts` nicht ausgeführt, Vitest läuft trotzdem. |
