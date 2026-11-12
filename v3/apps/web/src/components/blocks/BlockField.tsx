@@ -1,12 +1,12 @@
 // Eingabe je Blocktyp (Spec 05 „Blocktypen"). Werte in den Formen aus @stb/core; leere Werte bleiben `undefined`/leer.
-// Body-Map wird als eigener Schritt aus v2 portiert (BLK-03); bis dahin bleibt ihr Wert unverändert (Bild vorausgewählt).
-import type { BlockDef, CheckboxValue, DateValue, TextareaValue } from '@stb/core';
+import type { BlockDef, BodymapValue, CheckboxValue, DateValue, TextareaValue } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
+import { BodyMapField } from './BodyMapField';
 import { de } from '@/i18n/de';
 
 export interface BlockFieldProps {
@@ -110,11 +110,7 @@ function FieldInput({ id, def, value, onChange, aria }: { id: string; def: Block
     case 'date':
       return <DateInput id={id} mode={def.config.mode} value={value as DateValue | undefined} onChange={onChange} aria={aria} />;
     case 'bodymap':
-      return (
-        <p id={id} className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-          {de.entry.bodymapPending}
-        </p>
-      );
+      return <BodyMapField id={id} value={value as BodymapValue | undefined} defaultPresetId={def.config.defaultPresetId} onChange={onChange} />;
   }
 }
 
