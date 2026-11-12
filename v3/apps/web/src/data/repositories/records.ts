@@ -25,6 +25,8 @@ export interface DecodedRecord {
 
 export interface RecordRepository {
   put(input: RecordInput, opts?: { validate?: (payload: unknown) => void }): Promise<void>;
+  /** Mehrere Records in **einer** Transaktion (z. B. Vorlage + neue Version). */
+  putMany(inputs: readonly RecordInput[]): Promise<void>;
   remove(id: string): Promise<void>;
   get(id: string): Promise<DecodedRecord | undefined>;
   /** Nicht gelöschte Records eines Tagebuchs und einer Art. */
@@ -65,12 +67,13 @@ export function createRecordRepository(db: StbDb, o: RecordRepositoryOptions): R
     };
   }
 
-  return {
-    async put(input, opts) {
-      opts?.validate?.(input.payload);
-      const codec = o.registry.get(o.writeCodec);
-      const encoded = await codec.encode(input.payload, { diaryId: input.diaryId, kind: input.kind, recordId: input.id });
-      await db.transaction('rw', db.records, db.outbox, async () => {
+  async function writeAll(inputs: readonly RecordInput[]): Promise<void> {
+    const codec = o.registry.get(o.writeCodec);
+    const encoded = await Promise.all(
+      inputs.map((i) => codec.encode(i.payload, { diaryId: i.diaryId, kind: i.kind, recordId: i.id })),
+    );
+    await db.transaction('rw', db.records, db.outbox, async () => {
+      for (const [n, input] of inputs.entries()) {
         const existing = await db.records.get(input.id);
         if (existing && (existing.diaryId !== input.diaryId || existing.kind !== input.kind)) {
           throw new Error(`Record ${input.id}: diaryId/kind dürfen sich nicht ändern`);
@@ -82,15 +85,24 @@ export function createRecordRepository(db: StbDb, o: RecordRepositoryOptions): R
           rev: existing?.rev ?? 0,
           deleted: 0,
           codec: codec.id,
-          payload: encoded,
+          payload: encoded[n],
           ...(existing?.base === undefined ? {} : { base: existing.base }),
           localUpdatedAt: o.clock.now(),
           ...(input.occurredAt === undefined ? {} : { occurredAt: input.occurredAt }),
         };
         await db.records.put(rec);
         await enqueue(rec, 'upsert');
-      });
+      }
+    });
+  }
+
+  return {
+    async put(input, opts) {
+      opts?.validate?.(input.payload);
+      await writeAll([input]);
     },
+
+    putMany: writeAll,
 
     async remove(id) {
       await db.transaction('rw', db.records, db.outbox, async () => {

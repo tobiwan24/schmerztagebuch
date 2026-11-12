@@ -1,0 +1,99 @@
+// Fachliche Repositories für Vorlagen, Vorlagenversionen und Einträge auf Basis des Record-Repositorys.
+// Validierung mit den zod-Schemas aus @stb/core; Komponenten greifen nur hierüber auf Daten zu (Spec 01).
+import {
+  entrySchemaFor,
+  resolveEntryView,
+  templateSchema,
+  templateVersionSchema,
+  type Entry,
+  type EntryField,
+  type Template,
+  type TemplateState,
+  type TemplateVersion,
+} from '@stb/core';
+import type { RecordRepository } from './records.js';
+
+/**
+ * Record-ID einer Vorlagenversion: deterministisch aus Vorlage und Versionsnummer. So kollidieren gleiche Versionen
+ * zweier Geräte über dieselbe ID (Spec 04: „gleiche ID mit anderem Inhalt ist ein Fehler").
+ */
+export const templateVersionRecordId = (templateId: string, version: number): string => `${templateId}.v${version}`;
+
+export interface EntryView {
+  entry: Entry;
+  fields: EntryField[];
+}
+
+export interface DiaryRepository {
+  /** Speichert Vorlage und aktuelle Version gemeinsam (eine Transaktion). */
+  saveTemplate(state: TemplateState): Promise<void>;
+  getTemplate(templateId: string): Promise<TemplateState | undefined>;
+  getTemplateVersion(templateId: string, version: number): Promise<TemplateVersion | undefined>;
+  listTemplates(diaryId: string): Promise<Template[]>;
+  /** Validiert gegen die referenzierte Vorlagenversion (DM-03) und speichert. */
+  saveEntry(entry: Entry): Promise<void>;
+  getEntry(entryId: string): Promise<Entry | undefined>;
+  listEntries(diaryId: string): Promise<Entry[]>;
+  /** Eintrag mit Feldern der aktuellen Vorlagenversion inkl. archivierter Felder (DM-08). */
+  getEntryView(entryId: string): Promise<EntryView | undefined>;
+}
+
+export function createDiaryRepository(records: RecordRepository): DiaryRepository {
+  const repo: DiaryRepository = {
+    async saveTemplate({ template, version }) {
+      const t = templateSchema.parse(template);
+      const v = templateVersionSchema.parse(version);
+      if (v.templateId !== t.id || v.version !== t.currentVersion) throw new RangeError('Version passt nicht zur Vorlage');
+      await records.putMany([
+        { id: t.id, diaryId: t.diaryId, kind: 'template', payload: t },
+        { id: templateVersionRecordId(t.id, v.version), diaryId: t.diaryId, kind: 'templateVersion', payload: v },
+      ]);
+    },
+
+    async getTemplate(templateId) {
+      const rec = await records.get(templateId);
+      if (!rec || rec.deleted || rec.kind !== 'template') return undefined;
+      const template = templateSchema.parse(rec.payload);
+      const version = await repo.getTemplateVersion(templateId, template.currentVersion);
+      if (!version) throw new Error(`Vorlage ${templateId}: Version ${template.currentVersion} fehlt`);
+      return { template, version };
+    },
+
+    async getTemplateVersion(templateId, version) {
+      const rec = await records.get(templateVersionRecordId(templateId, version));
+      return rec && !rec.deleted ? templateVersionSchema.parse(rec.payload) : undefined;
+    },
+
+    async listTemplates(diaryId) {
+      return (await records.list(diaryId, 'template')).map((r) => templateSchema.parse(r.payload));
+    },
+
+    async saveEntry(entry) {
+      const version = await repo.getTemplateVersion(entry.templateId, entry.templateVersion);
+      if (!version) throw new RangeError(`Vorlagenversion ${entry.templateId} v${entry.templateVersion} existiert nicht`);
+      const parsed = entrySchemaFor(version).parse(entry);
+      await records.put({ id: parsed.id, diaryId: parsed.diaryId, kind: 'entry', payload: parsed, occurredAt: parsed.occurredAt });
+    },
+
+    async getEntry(entryId) {
+      const rec = await records.get(entryId);
+      return rec && !rec.deleted && rec.kind === 'entry' ? (rec.payload as Entry) : undefined;
+    },
+
+    async listEntries(diaryId) {
+      return (await records.list(diaryId, 'entry')).map((r) => r.payload as Entry);
+    },
+
+    async getEntryView(entryId) {
+      const entry = await repo.getEntry(entryId);
+      if (!entry) return undefined;
+      const [entryVersion, current] = await Promise.all([
+        repo.getTemplateVersion(entry.templateId, entry.templateVersion),
+        repo.getTemplate(entry.templateId),
+      ]);
+      if (!entryVersion || !current) throw new Error(`Eintrag ${entryId}: Vorlage oder Version fehlt`);
+      return { entry, fields: resolveEntryView(entry, entryVersion, current.version) };
+    },
+  };
+  return repo;
+}

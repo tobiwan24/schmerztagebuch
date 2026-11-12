@@ -1,0 +1,132 @@
+// Repository-Integrationstests. Laufen unverändert mit Codec `plain` und Test-Codec `aes` (DM-09).
+import 'fake-indexeddb/auto';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { createIdGenerator, createTemplate, keyBetween, updateTemplate, type BlockDef, type Entry, type TemplateState } from '@stb/core';
+import { generateDiaryKey } from '@stb/crypto';
+import { StbDb } from '../db.js';
+import { plainCodec } from '../codec/plain.js';
+import { createAesCodec } from '../codec/aes.js';
+import { createCodecRegistry } from '../codec/registry.js';
+import { createRecordRepository } from './records.js';
+import { createDiaryRepository, type DiaryRepository } from './diary.js';
+
+let t = 1_700_000_000_000;
+const clock = { now: () => (t += 1000) };
+const { newId } = createIdGenerator(clock);
+const iso = () => new Date(clock.now()).toISOString();
+
+/** Einzige Felder, die außerhalb von payload/base stehen dürfen (Spec 02, DM-09). */
+const ALLOWED_OUTSIDE = new Set(['id', 'diaryId', 'kind', 'rev', 'deleted', 'codec', 'localUpdatedAt', 'occurredAt', 'payload', 'base']);
+
+let db: StbDb;
+let n = 0;
+beforeEach(async () => {
+  db = new StbDb(`stb-v3-diary-${++n}`);
+  await db.open();
+});
+afterEach(async () => {
+  db.close();
+  await db.delete();
+});
+
+for (const codecId of ['plain', 'aes'] as const) {
+  describe(`Diary-Repository (Codec ${codecId})`, () => {
+    let repo: DiaryRepository;
+    const diaryId = newId();
+
+    beforeEach(async () => {
+      const registry = createCodecRegistry([plainCodec, createAesCodec(await generateDiaryKey(), () => 1)]);
+      repo = createDiaryRepository(createRecordRepository(db, { registry, writeCodec: codecId, clock, outbox: true }));
+    });
+
+    function template(): { state: TemplateState; pain: BlockDef; note: BlockDef; sleep: BlockDef } {
+      const k1 = keyBetween(null, null);
+      const k2 = keyBetween(k1, null);
+      const k3 = keyBetween(k2, null);
+      const pain: BlockDef = { id: newId(), type: 'slider', label: 'Schmerz', required: true, role: 'outcome', order: k1, config: { min: 0, max: 10, step: 1 } };
+      const sleep: BlockDef = { id: newId(), type: 'slider', label: 'Schlaf', required: false, order: k2, config: { min: 0, max: 10, step: 1 } };
+      const note: BlockDef = { id: newId(), type: 'text', label: 'Notiz', required: false, order: k3, config: {} };
+      return { state: createTemplate({ id: newId(), diaryId, name: 'Kopfschmerz', order: k1, blocks: [pain, sleep, note] }, clock), pain, note, sleep };
+    }
+
+    function entry(state: TemplateState, values: Record<string, unknown>): Entry {
+      const now = iso();
+      return {
+        id: newId(), diaryId, templateId: state.template.id, templateVersion: state.version.version,
+        occurredAt: now, recordedAt: now, updatedAt: now, authorId: 'user-1', values, tags: ['STB-PLAINTEXT-MARKER-3'],
+        meta: { source: 'app', timezone: 'Europe/Berlin' }, hlc: '0000000000001:0000:dev1',
+      };
+    }
+
+    it(`DM-09 (${codecId}): Vorlage und Eintrag speichern und lesen`, async () => {
+      const { state, pain, note } = template();
+      await repo.saveTemplate(state);
+      expect(await repo.getTemplate(state.template.id)).toEqual(state);
+      expect((await repo.listTemplates(diaryId)).map((x) => x.id)).toEqual([state.template.id]);
+      const e = entry(state, { [pain.id]: 7, [note.id]: 'STB-PLAINTEXT-MARKER-4' });
+      await repo.saveEntry(e);
+      expect(await repo.getEntry(e.id)).toEqual(e);
+      expect((await repo.listEntries(diaryId)).map((x) => x.id)).toEqual([e.id]);
+    });
+
+    it(`DM-09 (${codecId}): ungültiger Eintrag wird abgelehnt, nichts wird geschrieben`, async () => {
+      const { state, pain } = template();
+      await repo.saveTemplate(state);
+      const before = await db.records.count();
+      await expect(repo.saveEntry(entry(state, { [pain.id]: 99 }))).rejects.toThrow();
+      await expect(repo.saveEntry(entry(state, { [newId()]: 1 }))).rejects.toThrow();
+      expect(await db.records.count()).toBe(before);
+    });
+
+    it(`DM-09 (${codecId}): außerhalb von payload/base stehen nur erlaubte Felder`, async () => {
+      const { state, pain } = template();
+      await repo.saveTemplate(state);
+      await repo.saveEntry(entry(state, { [pain.id]: 2 }));
+      for (const rec of await db.records.toArray()) {
+        for (const key of Object.keys(rec)) expect(ALLOWED_OUTSIDE.has(key), `${rec.kind}.${key}`).toBe(true);
+      }
+    });
+
+    it(`DM-08 (${codecId}): Eintrag mit Version 1 wird nach Entfernen eines Blocks in Version 2 vollständig angezeigt`, async () => {
+      const { state, pain, sleep, note } = template();
+      await repo.saveTemplate(state);
+      const e = entry(state, { [pain.id]: 6, [sleep.id]: 3, [note.id]: 'x' });
+      await repo.saveEntry(e);
+      const v2 = updateTemplate(state, { blocks: [pain, note] }, clock, [state.version]).state;
+      await repo.saveTemplate(v2);
+      expect((await repo.getTemplate(state.template.id))?.version.version).toBe(2);
+      expect(await repo.getTemplateVersion(state.template.id, 1)).toEqual(state.version);
+      const view = await repo.getEntryView(e.id);
+      expect(view?.fields.map((f) => [f.block.label, f.value, f.archived])).toEqual([
+        ['Schmerz', 6, false],
+        ['Notiz', 'x', false],
+        ['Schlaf', 3, true],
+      ]);
+    });
+
+    it(`BLK-06 (${codecId}): Umsortieren der Blöcke erzeugt eine neue Version; alte Einträge werden korrekt dargestellt`, async () => {
+      const { state, pain, sleep, note } = template();
+      await repo.saveTemplate(state);
+      const e = entry(state, { [pain.id]: 4, [sleep.id]: 8, [note.id]: 'n' });
+      await repo.saveEntry(e);
+      const r = updateTemplate(state, { blocks: [pain, { ...sleep, order: keyBetween(note.order, null) }, note] }, clock);
+      expect(r.newVersion).toBe(true);
+      await repo.saveTemplate(r.state);
+      const view = await repo.getEntryView(e.id);
+      expect(view?.fields.map((f) => [f.block.label, f.value])).toEqual([['Schmerz', 4], ['Notiz', 'n'], ['Schlaf', 8]]);
+      // neuer Eintrag referenziert Version 2 und ist gültig
+      await repo.saveEntry(entry(r.state, { [sleep.id]: 1 }));
+    });
+
+    if (codecId === 'aes') {
+      it('DM-09 (aes): Roh-Store enthält keine Klartext-Marker', async () => {
+        const { state, pain, note } = template();
+        await repo.saveTemplate(state);
+        await repo.saveEntry(entry(state, { [pain.id]: 5, [note.id]: 'STB-PLAINTEXT-MARKER-5' }));
+        const dump = JSON.stringify(await db.records.toArray());
+        expect(dump).not.toContain('STB-PLAINTEXT-MARKER');
+        expect(dump).not.toContain('Kopfschmerz');
+      });
+    }
+  });
+}

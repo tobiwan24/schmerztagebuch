@@ -5,3 +5,4 @@ export * from './blocks/index.js';
 export * from './templates.js';
 export * from './weather.js';
 export * from './catalog.js';
+export * from './entry-view.js';
