@@ -47,3 +47,5 @@ Der Loop ergänzt hier neue Annahmen und jede neue npm-Abhängigkeit.
 | `vitest` | root (dev) | Unit-/Integrationstests, JSON-Report | MIT | Jest (kein natives ESM/Vite) |
 | `@types/node` | root (dev) | Node-Typen für Skripte/Server | MIT | — |
 | `zod` | core | Schemas = Typen + Laufzeitvalidierung (Spec 01) | MIT | valibot (kleiner, aber Spec 01 legt zod fest; OpenAPI-Anbindung) |
+| `dexie` | web | IndexedDB-Zugriff, Transaktionen (Spec 01/02) | Apache-2.0 | idb (zu niedrig, keine Indizes/Transaktions-Helfer) |
+| `fake-indexeddb` | web (dev) | IndexedDB in Node-Tests (Spec 01) | Apache-2.0 | jsdom (hat kein IndexedDB) |
