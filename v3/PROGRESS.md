@@ -4,13 +4,11 @@
 
 ## Aktuell
 
-- **Meilenstein:** M6 — Client-Logik Teilen, Intake, Wetter (danach Gate G1)
-- **Nächste Aufgabe:** Wetter im Client (`apps/web/src/weather/`): Open-Meteo-Adapter für `WeatherDeps.fetchWeather` (Forecast
-  `current` + `hourly` für Luftdruckänderung 24 h; Archiv-API für Nachtrag), Geolocation-Adapter; Integration mit dem
-  Eintrag-Speichern: BLK-11 (gerundeter Ort im Request, Mock-`fetch`), BLK-12 (Wetter im Payload → verschlüsselt; offline
-  `weatherPending`, Nachtrag sobald online), BLK-14 (deaktiviert → kein Geolocation-/Open-Meteo-Aufruf), BLK-17
-  (`origin: 'diary'` ohne Schalter, `origin: 'gps'` mit). Danach M6 abschließen → **Gate G1 vorbereiten** (Wireframes, Spec 10).
-- **Erledigt in M6:** SHR-03 SHR-04 SHR-11 VOI-01 VOI-06 VOI-08 VOI-05 VOI-07 BLK-11 BLK-12 BLK-14 BLK-17
+- **Meilenstein:** **Gate G1 — Wireframes (wartet auf User)**, danach M7 — UI-Grundgerüst, Onboarding, Entsperren
+- **Nächste Aufgabe:** User prüft `v3/design/index.html` (11 Seiten, klickbar). Feedback → hier unter „Gate-Feedback“ notieren und
+  vor M7 umsetzen. Freigabe: `- [x] UI-10`. Danach M7: Vite + React + Tailwind + shadcn/ui in `apps/web`, Routing (A-005),
+  i18n-Datei, Lint-Regeln UI-01/UI-07, Onboarding/Entsperren (CRY-08..12, CRY-16), SYN-10/15.
+- **Blocker:** Gate G1 offen.
 - **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016).
 - **Blocker:** keine
 
@@ -108,3 +106,4 @@
 | 2026-11-12 | M6.3 | VOI-06 VOI-08 | `core/intake.ts`: `normalizeLabel` (Groß/Klein, ä/ae/a, ß, Satzzeichen), `mapIntakeToValues` (Block-ID, Label, Options-Labels, Typkonvertierung + Blockschema-Prüfung, Rest + Freitext in ersten textarea-Block, sonst Tag „Kurzbefehl" + `note`, Fehler gesammelt), `buildShortcutPrompt` (JSON-Ziel mit ID/Typ/Bereich/Optionen). **Typ-Fix:** `BlockDef` war keine unterscheidbare Union (generischer Indexzugriff in `defFor`) — behoben; zuvor nur in (nicht typgeprüften) Tests genutzt. |
 | 2026-11-12 | M6.4 | VOI-05 VOI-07 | Server: `GET /diaries/:id/intake-items`, `DELETE /intake-items/:id` (owner/editor). `web/intake/pickup.ts`: Siegel mit allen lokalen `intakeKey`s probieren, Body prüfen, Vorlage (templateId oder Schnelleintrag), `mapIntakeToValues`, Eintrag `source: 'shortcut'`; bei Problemen Record `intakeInbox` (synchronisiert, Editor darf pushen); Bestätigung erst nach lokaler Übernahme. Nicht entsiegelbare Items bleiben auf dem Server. |
 | 2026-11-12 | M6.5 | BLK-11 BLK-12 BLK-14 BLK-17 | `web/weather/open-meteo.ts` (URL nur mit gerundetem Ort, Forecast ≤ 48 h sonst Archiv, Stundenwert + Δ-Luftdruck 24 h, A-018), `web/weather/service.ts` (`metaFor` über `resolveEntryWeather`, Geolocation-Adapter, `backfill` für `weatherPending`). Tests mit Mock-`fetch` und Geolocation-Spy. **M6 fertig.** |
+| 2026-11-12 | G1-Vorbereitung | — | `v3/design/`: 11 klickbare Low-Fi-Seiten (Onboarding/Entsperren, Start+Eingang, Schnelleintrag, Eintrag mit Zeitpunkt/Zeitraum, Verlauf/Detail mit archiviertem Feld, Auswertung/Vergleich, Mehr, Vorlagen/Editor, Tagebücher/Teilen/Kurzbefehl, Export, Einstellungen/Konflikte/Diagnose), shadcn-Optik in reinem CSS, Hell/Dunkel. **Loop angehalten (Gate G1).** |
