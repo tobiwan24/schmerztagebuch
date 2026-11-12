@@ -5,6 +5,7 @@ import { SERVER_VERSION } from './version.js';
 import { noAuth, type AuthProvider } from './auth/types.js';
 import { registerSyncRoutes } from './sync/routes.js';
 import { registerMemberRoutes } from './members/routes.js';
+import { registerInvitationRoutes } from './invitations/routes.js';
 
 export interface AppDeps {
   config: ServerConfig;
@@ -21,6 +22,7 @@ export function buildApp({ db, auth = noAuth, now = () => Date.now() }: AppDeps)
   app.get('/api/v1/health', async () => ({ version: SERVER_VERSION, db: isDatabaseReachable(db) }));
   registerSyncRoutes(app, { db, auth, now });
   registerMemberRoutes(app, { db, auth, now });
+  registerInvitationRoutes(app, { db, auth, now });
 
   return app;
 }

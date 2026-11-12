@@ -37,6 +37,25 @@ const MIGRATIONS: readonly string[] = [
   );
   INSERT INTO sync_counter (id, seq) VALUES (1, 0);
   `,
+  // 2: Einladungen (Spec 09)
+  `
+  CREATE TABLE invitations (
+    id TEXT PRIMARY KEY,
+    diary_id TEXT NOT NULL REFERENCES diaries(id),
+    inviter_id TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('editor', 'viewer')),
+    ciphertext TEXT NOT NULL,
+    expires_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    accepted_at INTEGER,
+    accepted_by TEXT,
+    identity_pub TEXT,
+    mac TEXT,
+    confirmed_at INTEGER,
+    revoked_at INTEGER
+  );
+  CREATE INDEX invitations_diary ON invitations (diary_id);
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;
