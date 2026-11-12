@@ -5,10 +5,14 @@
 ## Aktuell
 
 - **Meilenstein:** M5 — Sync-Engine
-- **Nächste Aufgabe:** HLC in `core` (Format, `tick`/`receive`, Vergleich) + Entry-Merge pro Block-ID als pure Funktion in
-  `packages/sync-protocol` (SYN-04 SYN-05, ConflictLog-Einträge für Verlierer; Tags-Vereinigung; `deleted` nur mit höherem HLC).
-  Danach SYN-02 (Outbox-Kompaktierung, ist im Repository angelegt — Test mit ID ergänzen), SYN-13 (Single-Flight),
-  dann Engine (Push/Pull gegen `fastify.inject`-Server: DM-13 SYN-01 SYN-07 SYN-08 SYN-16 SYN-12).
+- **Nächste Aufgabe:** SYN-02 (Test mit ID für die bestehende Outbox-Kompaktierung im Record-Repository) + SYN-13
+  (Single-Flight-Scheduler: gleichzeitige Auslöser → ein Lauf + höchstens ein Folgelauf) als kleine Iteration. Danach die
+  Sync-Engine (`apps/web/src/sync/`): Push (Outbox → Chiffretext mit DK, Vorlagen vor Einträgen) / Konflikte (mergeEntry,
+  ConflictLog) / Pull (Cursor erst nach Anwenden) gegen den echten Server per `fastify.inject`-Adapter: DM-13 SYN-01 SYN-07
+  SYN-08 SYN-16 SYN-12.
+- **Erledigt in M5:** SYN-04 SYN-05
+- **Hinweis:** Merge kann Werte aus Block-IDs verschiedener Vorlagenversionen kombinieren; `entrySchemaFor` lehnt Block-IDs
+  ab, die in der Version fehlen. Beim Engine-Bau prüfen (ggf. auf die höhere Version validieren, archivierte Werte behalten).
 - **Blocker:** keine
 
 ## Meilensteine
@@ -20,7 +24,7 @@
 | M2 | erledigt | 7/7 IDs |
 | M3 | erledigt | 6/6 IDs |
 | M4 | erledigt | 12/12 IDs |
-| M5 | in Arbeit | |
+| M5 | in Arbeit | 2/10 IDs |
 | M6 | offen | danach Gate G1 |
 | M7 | offen | erst nach UI-10 |
 | M8 | offen | danach Gate G2 |
@@ -94,3 +98,4 @@
 | 2026-11-12 | M4.8 | (QA-08 vorbereitet) | `apps/server/Dockerfile` (node:22-alpine, Prebuild statt node-gyp, User `node`), `apps/web/Dockerfile` (nginx, Platzhalterseite bis M7, `/api` → Server, no-store), `docker-compose.yml`, `.dockerignore`, Test `scripts/docker-compose.test.mjs` (nur mit Daemon; Projekt `stb-v3-qa08`, Port 18080). Daemon nicht erreichbar → Test übersprungen, QA-08 offen → **Loop angehalten** (A-014). |
 | 2026-11-12 | Feedback | (DM-03 erweitert) | `entryPeriodSchema` (ganztägig oder mit Uhrzeiten, Ende ≥ Beginn) als `Entry.period`; Specs 02/05/11, MILESTONES (BLK-19 → M8), A-010 überarbeitet, A-008–A-013 entschieden, A-014 gelöst. |
 | 2026-11-12 | M4.9 | QA-08 | Docker läuft: Server-Image scheiterte an `node-gyp` (npm 10 im Image kennt `allowScripts` nicht) → `npm ci --ignore-scripts` (A-012), `linuxmusl`-Prebuild wird geladen. `docker compose up` → Health über nginx mit Version. Test läuft bei jedem `verify` (mit Cache ~20 s). **M4 fertig.** |
+| 2026-11-12 | M5.1 | SYN-04 SYN-05 | `core/hlc.ts` (Format A-015, `tick`/`receive` monoton, Vergleich), `core/canonical.ts` (aus templates.ts ausgelagert, `deepEqual`). `sync-protocol/merge.ts` `mergeEntry(base, local, remote)`: 3-Wege pro Block-ID, Tags-Vereinigung, `deleted` nur mit höherem HLC, Konflikte als `MergeConflict` (Engine legt daraus ConflictLog-Records an). |

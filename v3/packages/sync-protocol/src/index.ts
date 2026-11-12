@@ -85,3 +85,4 @@ export const intakeKeyRequestSchema = z.strictObject({
   /** SHA-256(token) als base64url — das Token selbst erreicht den Server erst beim Intake. */
   tokenHash: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
 });
+export { mergeEntry, type EntrySide, type MergeConflict, type EntryMergeResult } from './merge.js';

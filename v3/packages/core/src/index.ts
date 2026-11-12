@@ -6,3 +6,5 @@ export * from './templates.js';
 export * from './weather.js';
 export * from './catalog.js';
 export * from './entry-view.js';
+export { canonical, deepEqual } from './canonical.js';
+export { createHlcClock, compareHlc, formatHlc, parseHlc, maxHlc, type HlcClock, type HlcParts } from './hlc.js';
