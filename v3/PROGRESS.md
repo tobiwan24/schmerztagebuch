@@ -5,13 +5,9 @@
 ## Aktuell
 
 - **Meilenstein:** M4 — Server: Auth, Records, Mitglieder, Intake
-- **Nächste Aufgabe:** QA-08 — `docker compose up` startet Web und Server, Health antwortet mit Version.
-  **Vorher klären:** Ist Docker lokal verfügbar? Web hat noch keinen Build (Ansichten erst nach G1) → Web-Image ggf. als
-  minimale statische Hülle (nginx) ohne UI. Prüfen, ob better-sqlite3-Prebuild im Server-Image greift (A-012,
-  `node:22-alpine` → `linuxmusl-x64`). Ist Docker nicht verfügbar: Test so bauen, dass er ohne Docker nicht grün wird
-  (keine Abschwächung) und als Blocker melden.
+- **Nächste Aufgabe:** QA-08 grün bekommen (Docker-Daemon nötig), dann M4 abschließen und M5 (Sync-Engine) beginnen.
 - **Erledigt in M4:** ARC-04 SYN-03 SHR-05 SHR-06 SHR-07 SHR-08 CRY-13 CRY-14 VOI-03 VOI-04 VOI-10
-- **Blocker:** keine
+- **Blocker:** QA-08 — Docker-Daemon nicht erreichbar (DECISIONS A-014, Entscheidung des Users: Docker starten oder QA-08 nach M13 verschieben).
 
 ## Meilensteine
 
@@ -91,3 +87,4 @@ _noch keins_
 | 2026-11-12 | M4.5 | CRY-13 | Migration 3 `challenges`; `createChallenge` (32 Byte base64url, TTL 5 min, räumt Abgelaufene auf), `consumeChallenge` (atomar `DELETE … RETURNING`, an Zweck gebunden, einmalig; unbekannt/abgelaufen → `challenge-expired`). WebAuthn-Verifikation (`@simplewebauthn/server`) folgt mit den Login-IDs in M7. |
 | 2026-11-12 | M4.6 | CRY-14 | Migration 4 `users`/`devices`/`sessions` (nur Token-Hash). `sessionAuth` (Cookie `stb_session`, prüft Ablauf + `devices.revoked_at`, beendet ungültige Sitzungen), `createSession` (HttpOnly/Secure/SameSite=Strict, 30 Tage), `DELETE /devices/:id` (nur eigene Geräte, löscht alle Sitzungen). Server nutzt jetzt `sessionAuth` statt `noAuth`; Sitzungen entstehen ab M7 nach WebAuthn-Login. Rotation des Cookies folgt mit dem Login. |
 | 2026-11-12 | M4.7 | VOI-03 VOI-04 VOI-10 | `@stb/crypto` `sealForIntake`/`unsealIntake` (ECDH ephemer → HKDF `stb/v3/intake` → AES-GCM, AAD mit diaryId). Migration 5 `intake_keys`/`intake_items`. `POST /intake/:diaryId` (Bearer-Token → SHA-256, Route-`bodyLimit` 16 KB → 413, zod-Form → 400, sofort versiegeln, 202), Schlüssel anlegen/widerrufen (owner/editor). Generischer In-Memory-Rate-Limiter (gleitendes Fenster) 60/h pro Token → 429 + Retry-After. Optionaler `logStream`: Test belegt, dass Log und DB weder Klartext noch Token enthalten. |
+| 2026-11-12 | M4.8 | (QA-08 vorbereitet) | `apps/server/Dockerfile` (node:22-alpine, Prebuild statt node-gyp, User `node`), `apps/web/Dockerfile` (nginx, Platzhalterseite bis M7, `/api` → Server, no-store), `docker-compose.yml`, `.dockerignore`, Test `scripts/docker-compose.test.mjs` (nur mit Daemon; Projekt `stb-v3-qa08`, Port 18080). Daemon nicht erreichbar → Test übersprungen, QA-08 offen → **Loop angehalten** (A-014). |
