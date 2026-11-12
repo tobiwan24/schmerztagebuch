@@ -49,3 +49,22 @@ export async function lockViaSettings(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Jetzt sperren' }).click();
   await expect(page.getByTestId('lock-banner')).toBeVisible();
 }
+
+/** Wartet, bis der Service Worker die Seite kontrolliert. */
+export async function swReady(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+  });
+  await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true);
+}
+
+export async function activeVersion(page: Page): Promise<string> {
+  return page.evaluate(
+    () =>
+      new Promise<string>((resolve) => {
+        const ch = new MessageChannel();
+        ch.port1.onmessage = (e) => resolve((e.data as { version: string }).version);
+        navigator.serviceWorker.controller?.postMessage({ type: 'GET_VERSION' }, [ch.port2]);
+      }),
+  );
+}

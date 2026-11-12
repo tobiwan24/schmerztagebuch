@@ -4,16 +4,14 @@
 
 ## Aktuell
 
-- **Meilenstein:** M7 — UI-Grundgerüst, Onboarding, Entsperren (Gate G1 freigegeben)
-- **Nächste Aufgabe:** SYN-15 — Service Worker (eigenes `sw.ts`, Version aus `version.ts`): App-Shell offline (Navigation
-  network-first mit Cache-Fallback, gehashte Assets cache-first, `/api/*` nie), Update-Hinweis bei wartendem SW mit
-  Neustart-Button. E2E: offline laden; neue Version deployen (Build mit anderer Version) → Hinweis → Neustart aktiviert.
-  Danach M7 abschließen.
-- **Erledigt in M7:** UI-01 UI-07 UI-03 UI-06 CRY-11 CRY-12 CRY-08 CRY-09 CRY-10 CRY-16 SYN-10 UI-04 UI-05
+- **Meilenstein:** M8 — Einträge, Vorlagen, Schnelleintrag, Sync im UI (danach **Gate G2** → Loop anhalten)
+- **Nächste Aufgabe:** M8.1 Eintragsformular — Vorlagen aus dem Katalog anlegen, Blöcke rendern (shadcn), Speichern über
+  Repository; Pflichtfeld-Prüfung (BLK-07), „Ungespeicherte Änderungen" nur nach echter Eingabe (BLK-09), Umschalter
+  Zeitpunkt/Zeitraum mit Nachtragen (BLK-19) inkl. Anzeige in Verlauf/Detail.
+- **Offen in M8:** BLK-03 BLK-05 BLK-07 BLK-09 BLK-10 BLK-15 BLK-19 SYN-06 SYN-09 SYN-11 SYN-14 CRY-15
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
-- **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016).
-- **Blocker:** keine
+- **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016); Konto-Modus (Registrierung/Login) im Onboarding.
 
 ## Meilensteine
 
@@ -26,8 +24,8 @@
 | M4 | erledigt | 12/12 IDs |
 | M5 | erledigt | 10/10 IDs, Konfliktpfad nachgearbeitet |
 | M6 | erledigt | 12/12 IDs → Gate G1 |
-| M7 | in Arbeit | 13/14 IDs |
-| M8 | offen | danach Gate G2 |
+| M7 | erledigt | 14/14 IDs |
+| M8 | in Arbeit | 0/12 IDs, danach Gate G2 |
 | M9 | offen | erst nach UI-11 |
 | M10 | offen | |
 | M11 | offen | danach Gate G3 |
@@ -120,3 +118,4 @@
 | 2026-11-12 | M7.4 | (Grundlage CRY-08/09/16) | `web/auth/local-account.ts` (Konto local-only: UMK + Wraps für Faktor und Pflicht-Backup-Code, Entsperren, Recovery ersetzt Faktor + Code), `web/auth/passkey.ts` (PRF mit festem Eval-Salt, Optionen vorab, `credentials.get` synchron im Handler, PRF-Nachholen bei `get`). Tests bewusst ohne M7-IDs, bis die E2E-Kriterien mit UI erfüllt sind. |
 | 2026-11-12 | M7.5 | CRY-08 CRY-09 CRY-10 CRY-16 SYN-10 UI-04 UI-05 | Onboarding (Install → Modus → Passkey/Passwort → Backup-Code mit Pflichtbestätigung; Konto erst nach Bestätigung gespeichert: `prepareLocalAccount`/`prepareRecovery` + `commit`), Entsperren (Passkey-Optionen beim Öffnen, Klick ruft `credentials.get` synchron; Passwort; „entsperrt bleiben"), Recovery (neuer Zugang + neuer Code), `AuthProvider` (Status no-account/locked/unlocked, memoisiert), Sperr-Banner, gesperrte Ansichten, Einstellungen → Entsperren/Sperren. shadcn Input/Label/Checkbox ohne Radix. Modus „Mit Konto" im Onboarding sichtbar, aber deaktiviert („folgt", M8). E2E: virtueller Authenticator mit PRF (Chromium/CDP), Passwort-Varianten in Chromium + WebKit; In-App-Navigation per History (Neuladen sperrt korrekt). Playwright 2 Worker (WebKit/Windows instabil bei 6). |
 | 2026-11-12 | M7.6 | UI-04 UI-05 | `DataProvider` (Repositories über der Konto-DB, local-only ohne Outbox), `useQuery` (Laden/ok/Fehler + retry), Start/Verlauf/Auswertung laden Einträge (`listAllEntries`), `EntryListState`. Deep-Links behalten Hash (`/invite#…`); Entsperr-Links ersetzen den gesperrten Historieneintrag. E2E: Deep-Links nach Entsperren + Zurück; Leerzustand mit leerer DB; Fehlerzustand per IndexedDB-Patch nur im Test (`records`-Store). |
+| 2026-11-12 | M7.7 | SYN-15 | `version.ts` (`APP_VERSION`, einzige Quelle) → Vite-Plugin `sw/build-sw.ts` erzeugt `sw.js` aus `sw.template.js` mit Version + Asset-Liste. SW: Navigation network-first mit Shell-Fallback, `/assets/*` cache-first (`ignoreVary`, sonst kein Treffer in Chromium), `/api/*` nie; alte Caches beim Aktivieren weg. `sw-client.ts` + `UpdateBanner` („Neue Version verfügbar“ → Neu starten → SKIP_WAITING → Reload nur nach Nutzeraktion, nicht bei `clients.claim()` beim Erst-Install). E2E offline (Chromium + WebKit); Update-Test als Playwright-Projekt `deploy` nach allen anderen (tauscht `dist/sw.js` gleich lang aus, da `context.route` das SW-Skript nicht abfängt). **M7 abgeschlossen** (14/14). |

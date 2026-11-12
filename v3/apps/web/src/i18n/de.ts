@@ -110,6 +110,10 @@ export const de = {
     'wrong-password': { title: 'Passwort stimmt nicht', action: 'Gib dein Passwort erneut ein oder nutze den Backup-Code.' },
     'unwrap-failed': { title: 'Schlüssel konnte nicht geöffnet werden', action: 'Entsperre mit einem anderen Faktor (Passkey oder Backup-Code).' },
   },
+  update: {
+    available: 'Neue Version verfügbar.',
+    restart: 'Neu starten',
+  },
   notFound: {
     title: 'Seite nicht gefunden',
     toStart: 'Zur Startseite',

@@ -85,6 +85,11 @@ export default tseslint.config(
     },
   })),
   {
+    // Service-Worker-Vorlage läuft im Worker-Kontext, nicht in Node.
+    files: ['apps/web/sw/*.template.js'],
+    languageOptions: { sourceType: 'script', globals: { ...globals.serviceworker, __ASSET_LIST__: 'readonly' } },
+  },
+  {
     files: ['apps/web/src/components/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': ['error', {

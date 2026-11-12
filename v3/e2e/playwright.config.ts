@@ -22,6 +22,13 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 375, height: 812 }, isMobile: false } },
     { name: 'webkit', use: { ...devices['Desktop Safari'], viewport: { width: 375, height: 812 } } },
+    // Tauscht dist/sw.js kurz aus („Deploy") — darum erst nach allen anderen Projekten.
+    {
+      name: 'deploy',
+      testMatch: '**/*.deploy.ts',
+      dependencies: ['chromium', 'webkit'],
+      use: { ...devices['Desktop Chrome'], viewport: { width: 375, height: 812 }, isMobile: false },
+    },
   ],
   webServer: {
     command: `npm run build -w @stb/web && npm run preview -w @stb/web -- --port ${PORT} --strictPort --host localhost`,
