@@ -5,10 +5,9 @@
 ## Aktuell
 
 - **Meilenstein:** M1 — Domäne `core`: IDs, Schemas, Blöcke, Vorlagenversionen
-- **Nächste Aufgabe:** Wetter-Regeln als pure Funktionen in `core` (BLK-13: Neuermittlung bei `occurredAt`-Änderung > 1 h;
-  BLK-18: ohne festen Ort und ohne GPS keine Abfrage, kein `weatherPending`). Danach Katalog (BLK-16, v2
-  `src/data/templateCatalog.ts` nur lesen, nicht ändern).
-- **Erledigt in M1:** DM-01 DM-02 DM-04 DM-05 BLK-01 BLK-04 DM-11 DM-03 DM-06 DM-07 BLK-02
+- **Nächste Aufgabe:** BLK-16 — v2-Katalog (`../src/data/templateCatalog.ts`, nur lesen) nach `core/catalog.ts` portieren;
+  Test: jede v2-Katalogvorlage hat ein v3-Gegenstück und erzeugt über `createTemplate` eine gültige Vorlage. Danach M1 abschließen.
+- **Erledigt in M1:** DM-01 DM-02 DM-04 DM-05 BLK-01 BLK-04 DM-11 DM-03 DM-06 DM-07 BLK-02 BLK-13 BLK-18
 - **Blocker:** keine
 
 ## Meilensteine
@@ -16,7 +15,7 @@
 | M | Status | Notiz |
 |---|---|---|
 | M0 | erledigt | 7/7 IDs |
-| M1 | in Arbeit | 11/14 IDs |
+| M1 | in Arbeit | 13/14 IDs |
 | M2 | offen | |
 | M3 | offen | |
 | M4 | offen | |
@@ -74,3 +73,4 @@ _noch keins_
 | 2026-11-12 | M1.3 | BLK-01 BLK-04 DM-11 | zod 4 (DECISIONS). `core/blocks/<typ>.ts` je Typ: `config`, `value(config)`, `emptyValue`, `isEmpty`, `toDisplay`; `parseBlockConfig`/`parseBlockValue`. Alle Unter-IDs UUID v7. `toAnalysis`/`toCsv` folgen. Hinweis: `npm install <pkg> -w <ws>` crasht (npm 11.16, „reading 'location'") → Abhängigkeit in Workspace-`package.json` eintragen und Root-`npm install`. |
 | 2026-11-12 | M1.4 | DM-03 DM-06 DM-07 | `core/templates.ts`: Schemas für BlockDef/Template/TemplateVersion/Entry/Weather, `createTemplate`, `updateTemplate` (Strukturvergleich kanonisch, nach Block-ID sortiert; Block-Reihenfolge zählt als Struktur, vgl. BLK-06), Typwechsel-Sperre auch gegen frühere Versionen (`history`). `entrySchemaFor(version)` prüft Block-IDs + Werte; Pflichtfelder bewusst nicht im Schema (Schnelleintrag, BLK-07 im Formular). |
 | 2026-11-12 | M1.5 | BLK-02 | `AnalysisValue` (numeric/event/options/text/textEvents/time/points) + `toAnalysis` je Blockmodul, `analyzeBlockValue` liefert `null` für leere Werte (zählen nicht in `n`). Body-Map-Regionen erst nach Portierung der v2-Presets. |
+| 2026-11-12 | M1.6 | BLK-13 BLK-18 | `core/weather.ts`: `planWeather`, `needsWeatherRefetch` (> 1 h), `roundLocation`, `resolveEntryWeather` mit injizierten `fetchWeather`/`currentPosition` (Apps liefern Open-Meteo/Geolocation in M6). GPS-Rückfall als A-009 notiert. |

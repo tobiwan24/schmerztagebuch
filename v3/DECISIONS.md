@@ -31,6 +31,7 @@ Der Loop ergänzt hier neue Annahmen und jede neue npm-Abhängigkeit.
 | A-006 | Migrierte Einträge landen im Tagebuch „Ich"; Wetter wird nicht automatisch nachgetragen (Schalter vorhanden). | Viele Archiv-Requests, Ort früherer Einträge unbekannt. | offen |
 | A-007 | Exporte entstehen nur auf dem Gerät; es gibt keinen serverseitigen PDF-Export. | E2E. | offen |
 | A-008 | Abhängigkeitsregeln (Spec 01) werden mit den ESLint-Kernregeln `no-restricted-imports` (Paketnamen `@stb/*`, `react`, `dexie`, …, Pfadmuster `**/apps/<app>/**`, `**/data/db*`) und `no-restricted-properties`/`no-restricted-globals` umgesetzt statt mit `import/no-restricted-paths`. | Pakete importieren einander über Workspace-Namen, nicht über Pfade; `no-restricted-paths` bräuchte zusätzlich Plugin + TS-Resolver. Wirkung laut ARC-02/03 identisch; Umstieg auf das Plugin ist jederzeit möglich. | offen |
+| A-009 | GPS-Schalter aktiv, aber Standort nicht verfügbar (verweigert/Fehler) → Rückfall auf den festen Ort des Tagebuchs (`origin: 'diary'`); ohne festen Ort wird kein Wetter ermittelt und **kein** `weatherPending` gesetzt. | Spec 05 regelt den Fall nicht; ohne Ort kann der spätere Nachtrag nichts abfragen. Änderbar in `core/weather.ts` `resolveEntryWeather`. | offen |
 
 ## Abhängigkeiten
 

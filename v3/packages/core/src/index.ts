@@ -3,3 +3,4 @@ export { createIdGenerator, idTimestamp, isUuidV7, type IdGenerator } from './id
 export { keyBetween, compareByOrder, isValidOrderKey } from './fractional-index.js';
 export * from './blocks/index.js';
 export * from './templates.js';
+export * from './weather.js';
