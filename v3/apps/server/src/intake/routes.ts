@@ -60,6 +60,32 @@ export function registerIntakeRoutes(app: FastifyInstance, { db, auth, now }: { 
     return reply.code(201).send({ id });
   });
 
+  // Abholung durch die App (Spec 08, Schritt 4): Siegel auflisten, nach erfolgreicher Übernahme bestätigen → löschen.
+  app.get('/api/v1/diaries/:diaryId/intake-items', async (req, reply) => {
+    void reply.header('cache-control', 'no-store');
+    const p = await requirePrincipal(auth, req, reply);
+    if (!p) return reply;
+    const params = diaryParams.safeParse(req.params);
+    if (!params.success) return reply.code(400).send({ error: 'invalid-request' });
+    const role = findActiveRole(db, params.data.diaryId, p.userId);
+    if (role !== 'owner' && role !== 'editor') return reply.code(403).send({ error: 'forbidden' });
+    const rows = db.prepare('SELECT id, sealed, created_at FROM intake_items WHERE diary_id = ? ORDER BY created_at, id').all(params.data.diaryId) as { id: string; sealed: string; created_at: number }[];
+    return rows.map((r) => ({ id: r.id, sealed: r.sealed, receivedAt: r.created_at }));
+  });
+
+  app.delete('/api/v1/intake-items/:id', async (req, reply) => {
+    const p = await requirePrincipal(auth, req, reply);
+    if (!p) return reply;
+    const params = z.object({ id: z.string().min(1).max(128) }).safeParse(req.params);
+    if (!params.success) return reply.code(400).send({ error: 'invalid-request' });
+    const item = db.prepare('SELECT diary_id FROM intake_items WHERE id = ?').get(params.data.id) as { diary_id: string } | undefined;
+    if (!item) return reply.code(404).send({ error: 'not-found' });
+    const role = findActiveRole(db, item.diary_id, p.userId);
+    if (role !== 'owner' && role !== 'editor') return reply.code(403).send({ error: 'forbidden' });
+    db.prepare('DELETE FROM intake_items WHERE id = ?').run(params.data.id);
+    return reply.code(204).send();
+  });
+
   app.delete('/api/v1/diaries/:id/intake-keys/:keyId', async (req, reply) => {
     const p = await requirePrincipal(auth, req, reply);
     if (!p) return reply;

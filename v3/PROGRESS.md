@@ -5,13 +5,12 @@
 ## Aktuell
 
 - **Meilenstein:** M6 — Client-Logik Teilen, Intake, Wetter (danach Gate G1)
-- **Nächste Aufgabe:** Intake abholen (VOI-05): Server-Endpunkte `GET /diaries/:id/intake-items` + `DELETE /intake-items/:id`
-  (Mitglied mit Rolle owner/editor), Client entsiegelt mit dem `intakeKey`-Record, bildet auf Eintrag ab
-  (`meta.source = 'shortcut'`), bestätigt die Abholung. Zuordnung (VOI-06: Block-ID, Label tolerant inkl. Umlaute, Options-Labels,
-  Rest in Notiz) ist fertig (`core/intake.ts` `mapIntakeToValues`), ebenso der Prompt (VOI-08). Offen: Abholung + Eingang
-  (VOI-05, VOI-07 als Integrationstest — Eingang = lokaler Record `kind: 'intakeInbox'`).
-  Danach Wetter BLK-11 BLK-12 BLK-14 BLK-17.
-- **Erledigt in M6:** SHR-03 SHR-04 SHR-11 VOI-01 VOI-06 VOI-08
+- **Nächste Aufgabe:** Wetter im Client (`apps/web/src/weather/`): Open-Meteo-Adapter für `WeatherDeps.fetchWeather` (Forecast
+  `current` + `hourly` für Luftdruckänderung 24 h; Archiv-API für Nachtrag), Geolocation-Adapter; Integration mit dem
+  Eintrag-Speichern: BLK-11 (gerundeter Ort im Request, Mock-`fetch`), BLK-12 (Wetter im Payload → verschlüsselt; offline
+  `weatherPending`, Nachtrag sobald online), BLK-14 (deaktiviert → kein Geolocation-/Open-Meteo-Aufruf), BLK-17
+  (`origin: 'diary'` ohne Schalter, `origin: 'gps'` mit). Danach M6 abschließen → **Gate G1 vorbereiten** (Wireframes, Spec 10).
+- **Erledigt in M6:** SHR-03 SHR-04 SHR-11 VOI-01 VOI-06 VOI-08 VOI-05 VOI-07
 - **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016).
 - **Blocker:** keine
 
@@ -25,7 +24,7 @@
 | M3 | erledigt | 6/6 IDs |
 | M4 | erledigt | 12/12 IDs |
 | M5 | erledigt | 10/10 IDs, Konfliktpfad nachgearbeitet |
-| M6 | in Arbeit | 6/12 IDs, danach Gate G1 |
+| M6 | in Arbeit | 8/12 IDs, danach Gate G1 |
 | M7 | offen | erst nach UI-10 |
 | M8 | offen | danach Gate G2 |
 | M9 | offen | erst nach UI-11 |
@@ -107,3 +106,4 @@
 | 2026-11-12 | M6.1 | SHR-03 SHR-04 | `@stb/crypto/invitation.ts`: Einladungs-Secret (128 Bit), HKDF → AES-GCM (Chiffretext Name/Rolle) und HMAC (Bindung identityPub), Sicherheitsnummer (SHA-256 über `stb/v3/fingerprint` + sortierte Keys → 12×5 Ziffern aus je 20 Bit), `updateVerification` (Key-Wechsel → nicht mehr verifiziert + Hinweis). `web/sharing/invitations.ts` `confirmAcceptances`: nur bei gültiger HMAC DK-Wrap + Bestätigung. Integrationstest mit vom Server ausgetauschtem Key. |
 | 2026-11-12 | M6.2 | SHR-11 VOI-01 | `web/sharing/leave.ts` (erst Server-Austritt, dann lokal Records/Outbox/sync_state/Schlüssel des Tagebuchs löschen). `web/intake/setup.ts` (ECDH-Paar, privater Schlüssel als JWK im `intakeKey`-Record, Server bekommt nur Public Key + SHA-256(Token), Token einmalig zurück). Spec-Widerspruch 08/09 (Editor + Intake) → A-017, Spec 09 präzisiert, Editor darf `intakeKey` pushen. |
 | 2026-11-12 | M6.3 | VOI-06 VOI-08 | `core/intake.ts`: `normalizeLabel` (Groß/Klein, ä/ae/a, ß, Satzzeichen), `mapIntakeToValues` (Block-ID, Label, Options-Labels, Typkonvertierung + Blockschema-Prüfung, Rest + Freitext in ersten textarea-Block, sonst Tag „Kurzbefehl" + `note`, Fehler gesammelt), `buildShortcutPrompt` (JSON-Ziel mit ID/Typ/Bereich/Optionen). **Typ-Fix:** `BlockDef` war keine unterscheidbare Union (generischer Indexzugriff in `defFor`) — behoben; zuvor nur in (nicht typgeprüften) Tests genutzt. |
+| 2026-11-12 | M6.4 | VOI-05 VOI-07 | Server: `GET /diaries/:id/intake-items`, `DELETE /intake-items/:id` (owner/editor). `web/intake/pickup.ts`: Siegel mit allen lokalen `intakeKey`s probieren, Body prüfen, Vorlage (templateId oder Schnelleintrag), `mapIntakeToValues`, Eintrag `source: 'shortcut'`; bei Problemen Record `intakeInbox` (synchronisiert, Editor darf pushen); Bestätigung erst nach lokaler Übernahme. Nicht entsiegelbare Items bleiben auf dem Server. |

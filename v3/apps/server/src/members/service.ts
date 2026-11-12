@@ -5,10 +5,10 @@ export const ROLES = ['owner', 'editor', 'viewer'] as const;
 export type MembershipRole = (typeof ROLES)[number];
 
 /**
- * Record-Arten, die eine Rolle pushen darf. `editor`: Einträge (inkl. Anhang-Metadaten) und eigene Intake-Schlüssel
- * (Spec 08), keine Vorlagen, Tagebuch-Einstellungen oder gespeicherten Filter (DECISIONS A-002, A-013, A-017). `viewer`: nichts.
+ * Record-Arten, die eine Rolle pushen darf. `editor`: Einträge (inkl. Anhang-Metadaten), eigene Intake-Schlüssel und
+ * Eingangs-Items (Spec 08), keine Vorlagen, Tagebuch-Einstellungen oder gespeicherten Filter (DECISIONS A-002, A-013, A-017). `viewer`: nichts.
  */
-const EDITOR_KINDS: ReadonlySet<string> = new Set(['entry', 'attachmentMeta', 'intakeKey']);
+const EDITOR_KINDS: ReadonlySet<string> = new Set(['entry', 'attachmentMeta', 'intakeKey', 'intakeInbox']);
 
 export function mayPushKind(role: MembershipRole, kind: string): boolean {
   if (role === 'owner') return true;
