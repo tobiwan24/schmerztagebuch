@@ -1,6 +1,7 @@
 // QA-08: `docker compose up` startet Web und Server; Health-Endpunkt antwortet mit Version.
-// Läuft nur mit erreichbarem Docker-Daemon. Ohne Docker wird der Test übersprungen — check-acceptance wertet
-// übersprungene Tests NICHT als erfüllt, QA-08 bleibt dann offen.
+// Läuft nur auf Anforderung (`npm run verify:docker`, setzt STB_DOCKER=1) und mit erreichbarem Docker-Daemon — das
+// ständige Bauen/Starten bei jedem `verify` hat Docker Desktop instabil gemacht (DECISIONS A-019). Sonst übersprungen;
+// check-acceptance wertet übersprungene Tests NICHT als erfüllt, QA-08 bleibt dann offen.
 import { describe, it, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
@@ -20,7 +21,7 @@ function dockerAvailable() {
   }
 }
 
-const skip = process.env.STB_FRESH_CHECKOUT === '1' || !dockerAvailable();
+const skip = process.env.STB_DOCKER !== '1' || process.env.STB_FRESH_CHECKOUT === '1' || !dockerAvailable();
 const compose = (...args) =>
   execFileSync('docker', ['compose', '-p', PROJECT, ...args], { cwd: root, stdio: 'pipe', encoding: 'utf8', env: { ...process.env, WEB_PORT: PORT } });
 

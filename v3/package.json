@@ -16,6 +16,7 @@
     "build": "npm run build --workspaces --if-present",
     "deps:check": "node scripts/check-deps.mjs",
     "verify": "npm run typecheck && npm run lint && npm run deps:check && npm run test && npm run build",
+    "verify:docker": "node scripts/run-with-env.mjs STB_DOCKER=1 -- npm run verify",
     "acceptance": "node scripts/check-acceptance.mjs"
   },
   "devDependencies": {
