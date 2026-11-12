@@ -69,3 +69,5 @@ Der Loop ergänzt hier neue Annahmen und jede neue npm-Abhängigkeit.
 | `class-variance-authority`, `clsx`, `tailwind-merge` | web | shadcn/ui-Varianten und `cn()` | Apache-2.0 / MIT / MIT | — |
 | `lucide-react` | web | Icons (shadcn-Standard, wie v2) | ISC | — |
 | `@radix-ui/react-slot` | web | `asChild` der shadcn-Button-Komponente | MIT | — |
+| `react-router` | web | Routing mit Deep-Links und Zurück-Geste (A-005, Spec 10); v7 (Library-Modus) | MIT | v8 (neue API, noch nicht etabliert); TanStack Router |
+| `@playwright/test` | root (dev) | E2E-Tests Chromium + WebKit, JSON-Report (Spec 01/12) | Apache-2.0 | Cypress (kein WebKit) |
