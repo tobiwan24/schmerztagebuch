@@ -32,6 +32,7 @@ Der Loop ergänzt hier neue Annahmen und jede neue npm-Abhängigkeit.
 | A-007 | Exporte entstehen nur auf dem Gerät; es gibt keinen serverseitigen PDF-Export. | E2E. | offen |
 | A-008 | Abhängigkeitsregeln (Spec 01) werden mit den ESLint-Kernregeln `no-restricted-imports` (Paketnamen `@stb/*`, `react`, `dexie`, …, Pfadmuster `**/apps/<app>/**`, `**/data/db*`) und `no-restricted-properties`/`no-restricted-globals` umgesetzt statt mit `import/no-restricted-paths`. | Pakete importieren einander über Workspace-Namen, nicht über Pfade; `no-restricted-paths` bräuchte zusätzlich Plugin + TS-Resolver. Wirkung laut ARC-02/03 identisch; Umstieg auf das Plugin ist jederzeit möglich. | offen |
 | A-009 | GPS-Schalter aktiv, aber Standort nicht verfügbar (verweigert/Fehler) → Rückfall auf den festen Ort des Tagebuchs (`origin: 'diary'`); ohne festen Ort wird kein Wetter ermittelt und **kein** `weatherPending` gesetzt. | Spec 05 regelt den Fall nicht; ohne Ort kann der spätere Nachtrag nichts abfragen. Änderbar in `core/weather.ts` `resolveEntryWeather`. | offen |
+| A-010 | Der v2-Pflicht-Block „Datum" entfällt im v3-Katalog; jeder Eintrag hat `occurredAt` (Spec 02/05). Die Migration (M11) bildet den v2-Datumswert auf `occurredAt` ab. Katalog-Rollen: Schmerzstärke=`outcome`, Notizen=`note`, weitere sinngemäß; Body-Map-Standard = v2-Preset-ID `default-koerper-vorderseite`. | Ein zusätzlicher Datum-Block würde `occurredAt` doppeln und Auswertungen verwirren. | offen |
 
 ## Abhängigkeiten
 

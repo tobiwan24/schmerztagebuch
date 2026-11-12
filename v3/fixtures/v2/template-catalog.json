@@ -1,0 +1,55 @@
+{
+  "_source": "Snapshot von src/data/templateCatalog.ts (v2, eingefroren). Nur Struktur, keine Nutzerdaten.",
+  "templates": [
+    {
+      "id": "general-pain",
+      "name": "Allgemeines Schmerz-Tagebuch",
+      "icon": "Activity",
+      "blocks": [
+        { "type": "date", "label": "Datum" },
+        { "type": "slider", "label": "Schmerzstärke", "min": 0, "max": 10, "step": 1 },
+        { "type": "bodymap", "label": "Schmerzlokalisation" },
+        { "type": "textarea", "label": "Notizen" }
+      ]
+    },
+    {
+      "id": "chronic-pain",
+      "name": "Chronischer Schmerz",
+      "icon": "HeartPulse",
+      "blocks": [
+        { "type": "date", "label": "Datum" },
+        { "type": "slider", "label": "Schmerzstärke", "min": 0, "max": 10, "step": 1 },
+        { "type": "slider", "label": "Funktionsfähigkeit", "min": 0, "max": 10, "step": 1 },
+        { "type": "slider", "label": "Schlafqualität", "min": 0, "max": 10, "step": 1 },
+        { "type": "slider", "label": "Stimmung", "min": 0, "max": 10, "step": 1 },
+        { "type": "textarea", "label": "Notizen" }
+      ]
+    },
+    {
+      "id": "migraine",
+      "name": "Migräne-Tracking",
+      "icon": "Zap",
+      "blocks": [
+        { "type": "date", "label": "Datum" },
+        { "type": "slider", "label": "Schmerzstärke", "min": 0, "max": 10, "step": 1 },
+        { "type": "multiselect", "label": "Begleitsymptome", "options": ["Übelkeit", "Aura", "Lichtempfindlichkeit", "Lärmempfindlichkeit"] },
+        { "type": "slider", "label": "Dauer (Stunden)", "min": 0, "max": 72, "step": 1 },
+        { "type": "multiselect", "label": "Auslöser", "options": ["Stress", "Schlafmangel", "Wetter", "Hormone", "Essen/Trinken"] },
+        { "type": "textarea", "label": "Notizen" }
+      ]
+    },
+    {
+      "id": "headache",
+      "name": "Kopfschmerz-Tagebuch",
+      "icon": "Brain",
+      "blocks": [
+        { "type": "date", "label": "Datum" },
+        { "type": "slider", "label": "Schmerzstärke", "min": 0, "max": 10, "step": 1 },
+        { "type": "multiselect", "label": "Schmerzart", "options": ["Dumpf", "Pochend", "Stechend", "Drückend"] },
+        { "type": "multiselect", "label": "Medikamente", "options": ["Ibuprofen", "Paracetamol", "Aspirin", "Triptan"] },
+        { "type": "multiselect", "label": "Auslöser", "options": ["Stress", "Schlafmangel", "Bildschirm", "Alkohol"] },
+        { "type": "textarea", "label": "Notizen" }
+      ]
+    }
+  ]
+}

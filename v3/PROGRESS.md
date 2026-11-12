@@ -4,10 +4,10 @@
 
 ## Aktuell
 
-- **Meilenstein:** M1 — Domäne `core`: IDs, Schemas, Blöcke, Vorlagenversionen
-- **Nächste Aufgabe:** BLK-16 — v2-Katalog (`../src/data/templateCatalog.ts`, nur lesen) nach `core/catalog.ts` portieren;
-  Test: jede v2-Katalogvorlage hat ein v3-Gegenstück und erzeugt über `createTemplate` eine gültige Vorlage. Danach M1 abschließen.
-- **Erledigt in M1:** DM-01 DM-02 DM-04 DM-05 BLK-01 BLK-04 DM-11 DM-03 DM-06 DM-07 BLK-02 BLK-13 BLK-18
+- **Meilenstein:** M2 — Krypto `crypto`
+- **Nächste Aufgabe:** `packages/crypto` anlegen (Workspace, tsconfig-Referenz, darf nur `@stb/core` importieren) +
+  Record-Envelope mit AAD (CRY-01 CRY-02 CRY-03) nach Spec 03. Danach Schlüsselhierarchie/UMK-Wrap (CRY-04 CRY-06),
+  ECDH-Share (CRY-05), Backup-Code (CRY-07).
 - **Blocker:** keine
 
 ## Meilensteine
@@ -15,8 +15,8 @@
 | M | Status | Notiz |
 |---|---|---|
 | M0 | erledigt | 7/7 IDs |
-| M1 | in Arbeit | 13/14 IDs |
-| M2 | offen | |
+| M1 | erledigt | 14/14 IDs |
+| M2 | in Arbeit | |
 | M3 | offen | |
 | M4 | offen | |
 | M5 | offen | |
@@ -74,3 +74,4 @@ _noch keins_
 | 2026-11-12 | M1.4 | DM-03 DM-06 DM-07 | `core/templates.ts`: Schemas für BlockDef/Template/TemplateVersion/Entry/Weather, `createTemplate`, `updateTemplate` (Strukturvergleich kanonisch, nach Block-ID sortiert; Block-Reihenfolge zählt als Struktur, vgl. BLK-06), Typwechsel-Sperre auch gegen frühere Versionen (`history`). `entrySchemaFor(version)` prüft Block-IDs + Werte; Pflichtfelder bewusst nicht im Schema (Schnelleintrag, BLK-07 im Formular). |
 | 2026-11-12 | M1.5 | BLK-02 | `AnalysisValue` (numeric/event/options/text/textEvents/time/points) + `toAnalysis` je Blockmodul, `analyzeBlockValue` liefert `null` für leere Werte (zählen nicht in `n`). Body-Map-Regionen erst nach Portierung der v2-Presets. |
 | 2026-11-12 | M1.6 | BLK-13 BLK-18 | `core/weather.ts`: `planWeather`, `needsWeatherRefetch` (> 1 h), `roundLocation`, `resolveEntryWeather` mit injizierten `fetchWeather`/`currentPosition` (Apps liefern Open-Meteo/Geolocation in M6). GPS-Rückfall als A-009 notiert. |
+| 2026-11-12 | M1.7 | BLK-16 | `core/catalog.ts`: 4 v2-Katalogvorlagen portiert (IDs/Namen/Icons gleich, Rollen ergänzt, Datum-Block entfällt → A-010), `instantiateCatalogTemplate`. Test gegen Snapshot `fixtures/v2/template-catalog.json` (v2-Quelle liegt außerhalb von `v3/`, daher Snapshot). **M1 fertig.** |
