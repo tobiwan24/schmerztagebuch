@@ -5,12 +5,13 @@
 ## Aktuell
 
 - **Meilenstein:** M8 — Einträge, Vorlagen, Schnelleintrag, Sync im UI (danach **Gate G2** → Loop anhalten)
-- **Nächste Aufgabe:** M8.6b Client-Konto „Mit Konto“: `web/auth/cloud-account.ts` (Registrierung: Passkey mit PRF via
-  Server-Optionen → UMK, Identity-Keypair, Wraps, Backup-Code; Login: Optionen beim Öffnen vorladen, `credentials.get`
-  synchron, Wraps → UMK → Identity → DKs), Onboarding-Modus „Mit Konto“ aktivieren (Benutzername), Entsperren im
-  Cloud-Modus; Tagebuch auf dem Server anlegen (`POST /api/v1/diaries` mit DK-Wrap). Integrationstest Client↔Server
-  mit Soft-Authenticator (`apps/server/src/auth/soft-authenticator.ts` als Muster) in `integration/`.
-  Danach M8.6c Sync-Verdrahtung (Outbox + Engine im DataProvider, Sync-Status SYN-14, SYN-09), E2E mit Server.
+- **Nächste Aufgabe:** M8.6c UI „Mit Konto“: Onboarding-Modus aktivieren (Benutzername → Server-Optionen vorladen →
+  Klick „Passkey anlegen“ ruft `credentials.create` synchron; PRF wie `createPasskey`), Backup-Code-Schritt, danach
+  Tagebuch-Schritt legt Tagebuch zusätzlich per `createCloudDiary` an; „Auf neuem Gerät anmelden“ (Login-Optionen beim
+  Öffnen vorladen, `credentials.get` synchron) → `loginOnNewDevice`; Entsperren öffnet DKs (`openDiaryKeys` →
+  `session.setDiaryKey`). WebAuthn-JSON-Konvertierung (`credentialToJson`, Optionen aus Server-JSON + PRF). Vite-Dev/Preview
+  braucht Proxy `/api` → Server; Playwright-webServer zusätzlich `apps/server` (RP_ID localhost, Origin :4173).
+  Danach M8.6d Sync-Verdrahtung (Outbox, Engine, Status SYN-14, SYN-09) und E2E SYN-06/11, BLK-05, CRY-15.
 - **Erledigt in M8:** BLK-07 BLK-09 BLK-19 BLK-03 BLK-10 BLK-15
 - **Offen in M8:** BLK-05 (Reload ✓, Zweitgerät fehlt) SYN-06 SYN-09 SYN-11 SYN-14 CRY-15
 - **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail. Schnelleintrag: Einstellung pro Tagebuch (Vorlage/Blöcke) folgt mit Tagebuch-Einstellungen; bei mehreren Tagebüchern nimmt `/quick` das erste. Body-Map: v2-Pinsel/Punktgröße/Kommentare/eigene Bilder fehlen (v3-Wertform kennt nur Punkte mit Intensität) — bei Bedarf Spec 05 erweitern; Migration (M11) muss Pinselstriche abbilden.
@@ -130,3 +131,4 @@
 | 2026-11-12 | M8.4 | BLK-10 | `core/quick-entry.ts` (`quickEntrySelection`: Diary-Einstellung, sonst erste aktive Vorlage nach `order` mit allen `outcome`-Blöcken, sonst erster Slider). `/quick`: Felder der Auswahl, Zeitpunkt jetzt, `meta.source = 'quick'`, ohne Wert kein Speichern, „Mehr Felder …“ zum vollen Formular; nach Speichern zurück zum Start. E2E zählt Tipps (3) und prüft den gespeicherten Record; Ergänzen weiterer Felder behält `source`. |
 | 2026-11-12 | M8.5 | BLK-15 (BLK-05 teilweise) | `/more/templates`: aktive Vorlagen nach `order`, Umsortieren per Ziehen am Griff (Pointer-Events, Touch-tauglich) und Pfeiltasten, neue Order per `keyBetween` der Nachbarn, nur `Template.order` (Repository `saveTemplateMeta`, keine neue Version); Speichern serialisiert (schnelle Folgeaktionen überholen sich nicht), Liste `aria-busy` während des Speicherns. Archivieren/Wiederherstellen; Löschen ohne Einträge direkt mit Rückfrage, mit Einträgen nur aus dem Archiv mit Anzahl + Pflicht-Bestätigung (`deleteTemplate` löscht Einträge mit HLC-Tombstone, Versionen, Vorlage). Katalog-Anlage. `useQuery.retry` behält vorhandene Daten (kein Flackern/Fokusverlust). BLK-05-Test ohne ID, bis das Zweitgerät per Sync geprüft ist. |
 | 2026-11-12 | M8.6a | (Grundlage SYN-06/11/14, CRY-15) | Server-Konto per Passkey: Migration 7 (`credentials`, `user_keys`), `auth/webauthn.ts` mit `@simplewebauthn/server` 14.0.3 (residentKey + UV required, Challenges aus SQLite), Endpunkte Registrierung/Login/me/logout, `POST/GET /api/v1/diaries` (Owner + DK-Wrap), `no-store` für alle `/api/*`, Rate-Limit 30/min pro IP (A-022). Test-Helfer `soft-authenticator.ts` erzeugt echte WebAuthn-Antworten (none/ES256) → Tests laufen durch die echte Verifikation (UV fehlt, falsche Origin, unbekannter Passkey, Challenge-Replay werden abgelehnt). |
+| 2026-11-12 | M8.6b | (Grundlage SYN-06/11) | `@stb/crypto` `sealIdentityKey`/`openIdentityKey` (Identity-Private-Key AES-GCM mit UMK, AAD = Domain + Public Key). Web: `auth/account-api.ts` (Konto-API-Client, fetch), `auth/cloud-account.ts` (`prepareCloudRegistration` — Server-Registrierung erst bei `commit()` nach Backup-Bestätigung; `loginOnNewDevice` — Wraps vom Server → UMK → Identity prüfen → Konto + DK-Wraps lokal; `createCloudDiary` — DK für eigene Identity verpackt; `openDiaryKeys`). Integrationstest `integration/account`: Gerät A registriert + legt Tagebuch an, Gerät B loggt mit demselben Passkey ein und öffnet denselben DK; Server hält keinen Klartext-DK; falsche PRF → `unwrap-failed`, kein Konto. |

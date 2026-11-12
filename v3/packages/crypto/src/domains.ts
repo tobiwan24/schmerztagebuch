@@ -8,4 +8,5 @@ export const DOMAINS = {
   deviceLocal: 'stb/v3/device-local',
   intake: 'stb/v3/intake',
   fingerprint: 'stb/v3/fingerprint',
+  identitySeal: 'stb/v3/identity-seal',
 } as const;
