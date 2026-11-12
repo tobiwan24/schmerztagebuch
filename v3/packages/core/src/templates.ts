@@ -20,8 +20,10 @@ const blockDefBase = z.strictObject({
   order: orderKeySchema,
 });
 
+// Cast erhält den konkreten Config-Typ je K; sonst löst TS `blockModules[type].config` zur Union aller Configs auf und
+// `BlockDef` wäre keine unterscheidbare Union (Narrowing über `type` würde `config` nicht verengen).
 const defFor = <K extends BlockType>(type: K) =>
-  blockDefBase.extend({ type: z.literal(type), config: blockModules[type].config });
+  blockDefBase.extend({ type: z.literal(type), config: blockModules[type].config as (typeof blockModules)[K]['config'] });
 
 export const blockDefSchema = z.discriminatedUnion('type', [
   defFor('slider'),

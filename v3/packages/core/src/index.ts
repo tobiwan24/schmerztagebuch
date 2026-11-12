@@ -8,3 +8,4 @@ export * from './catalog.js';
 export * from './entry-view.js';
 export { canonical, deepEqual } from './canonical.js';
 export { createHlcClock, compareHlc, formatHlc, parseHlc, maxHlc, type HlcClock, type HlcParts } from './hlc.js';
+export { mapIntakeToValues, buildShortcutPrompt, normalizeLabel, type IntakeInput, type IntakeMapping } from './intake.js';
