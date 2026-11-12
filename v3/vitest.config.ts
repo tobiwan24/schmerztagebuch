@@ -9,6 +9,7 @@ export default defineConfig({
     alias: {
       '@stb/core': src('core'),
       '@stb/crypto': src('crypto'),
+      '@stb/sync-protocol': src('sync-protocol'),
     },
   },
   test: {

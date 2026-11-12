@@ -5,11 +5,11 @@
 ## Aktuell
 
 - **Meilenstein:** M4 — Server: Auth, Records, Mitglieder, Intake
-- **Nächste Aufgabe:** Server-Schema (Tabellen aus Spec 02) + Sync-Endpunkte `push`/`pull` mit optimistischer
-  Nebenläufigkeit (SYN-03: veraltete `baseRev` → `conflict` mit Serverversion). Auth kommt danach (CRY-13, Sessions);
-  bis dahin Endpunkte hinter einer austauschbaren Auth-Schnittstelle testen. Danach Mitglieder/Rollen (SHR-05..08),
+- **Nächste Aufgabe:** Rollen und Mitglieder auf dem Server: `viewer`-Push → 403, `editor` nur Einträge (keine
+  Vorlagen, A-002), letzter Owner nicht entfernbar/herabstufbar, entferntes Mitglied ohne Records/Push, Einladungen
+  (Ablauf/Widerruf/einmalig) — SHR-05 SHR-06 SHR-07 SHR-08 (Spec 09 lesen). Danach Auth/Challenges (CRY-13),
   Gerätesperre (CRY-14), Intake (VOI-03/04/10), Docker (QA-08).
-- **Erledigt in M4:** ARC-04
+- **Erledigt in M4:** ARC-04 SYN-03
 - **Blocker:** keine
 
 ## Meilensteine
@@ -20,7 +20,7 @@
 | M1 | erledigt | 14/14 IDs |
 | M2 | erledigt | 7/7 IDs |
 | M3 | erledigt | 6/6 IDs |
-| M4 | in Arbeit | 1/12 IDs |
+| M4 | in Arbeit | 2/12 IDs |
 | M5 | offen | |
 | M6 | offen | danach Gate G1 |
 | M7 | offen | erst nach UI-10 |
@@ -84,3 +84,4 @@ _noch keins_
 | 2026-11-12 | M3.2 | DM-08 DM-09 BLK-06 | `core/entry-view.ts` (`resolveEntryView`: aktuelle Blöcke nach Order, archivierte Felder mit Wert hinten). `web/data/repositories/diary.ts` (Vorlage+Version atomar via `putMany`, Eintrag gegen seine Version validiert, `getEntryView`). Record-ID einer Version deterministisch `<templateId>.v<n>` (passt zu Spec 04: gleiche ID mit anderem Inhalt = Fehler). Repository-Tests laufen mit `plain` und `aes`. |
 | 2026-11-12 | M3.3 | BLK-08 | Perf-Test `diary.perf.test.ts`: Katalogvorlage `headache`, 50× `saveEntry` (zod + Codec + Record + Outbox) auf fake-indexeddb, Median < 100 ms. **M3 fertig.** |
 | 2026-11-12 | M4.1 | ARC-04 | `apps/server`: Fastify 5, better-sqlite3 13, zod-Config (`loadConfig` meldet alle fehlenden Variablen), `.env.example`, `startServer`, Health `GET /api/v1/health`. ARC-01 deckte auf: `npm ci` baut better-sqlite3 per node-gyp (scheitert ohne Windows SDK) → Install-Skript per `allowScripts` verweigert, mitgelieferte Prebuilds werden genutzt (A-012). |
+| 2026-11-12 | M4.2 | SYN-03 | Neues Paket `@stb/sync-protocol` (zod-DTOs Push/Pull, Limits 500). Server: Schema-Migrationen über `user_version` (diaries, memberships, records, sync_counter), `applyPush` (rev-Prüfung je Op in einer Transaktion, fremdes Tagebuch → conflict ohne Inhalt), `pull` (seq-Cursor, `hasMore`), `Cache-Control: no-store`. Austauschbares `AuthProvider`: Tests `headerAuth`, Server bis CRY-13 `noAuth` (alles 401). |

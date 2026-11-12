@@ -4,6 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { loadConfig, ConfigError } from './config.js';
 import { openDatabase } from './db.js';
+import { migrate } from './schema.js';
 import { buildApp } from './app.js';
 
 export interface RunningServer {
@@ -21,6 +22,7 @@ export async function startServer(env: Record<string, string | undefined>, opts:
   mkdirSync(blobDir, { recursive: true });
 
   const db = openDatabase(databasePath);
+  migrate(db);
   const app = buildApp({ config: { ...config, databasePath, blobDir }, db });
   try {
     await app.listen({ port: config.port, host: config.host });
