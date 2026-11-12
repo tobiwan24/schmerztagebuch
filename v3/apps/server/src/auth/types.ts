@@ -7,8 +7,8 @@ export interface Principal {
 }
 
 /**
- * Austauschbare Authentifizierung. Die WebAuthn-/Session-Implementierung (Spec 03) folgt mit CRY-13;
- * bis dahin nutzen Tests `headerAuth` und der echte Server `noAuth` (alles 401).
+ * Austauschbare Authentifizierung. Der Server nutzt `sessionAuth` (Cookie); Tests können `headerAuth` verwenden.
+ * Sitzungen entstehen nach erfolgreichem WebAuthn-Login (M7).
  */
 export interface AuthProvider {
   authenticate(req: FastifyRequest): Principal | null | Promise<Principal | null>;

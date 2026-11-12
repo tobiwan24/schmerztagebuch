@@ -5,10 +5,11 @@
 ## Aktuell
 
 - **Meilenstein:** M4 — Server: Auth, Records, Mitglieder, Intake
-- **Nächste Aufgabe:** Gerätesperre (CRY-14): Tabellen `users`/`devices`/`sessions` (Session-Cookie-Grundlage,
-  HttpOnly/Secure/SameSite=Strict, 30 Tage) + `AuthProvider` auf Session-Basis; `devices.revoked_at` → keine Records, kein
-  Push, Sitzung beendet. Danach Intake (VOI-03/04/10), Docker (QA-08).
-- **Erledigt in M4:** ARC-04 SYN-03 SHR-05 SHR-06 SHR-07 SHR-08 CRY-13
+- **Nächste Aufgabe:** Intake-Endpunkt (Spec 08 lesen): Token pro Tagebuch (Hash serverseitig), falsches/widerrufenes
+  Token → 401, Body > 16 KB → 413, gültig → 202 (VOI-03); Server speichert nur das Siegel, kein Klartext in DB/Log
+  (VOI-04); Rate-Limit 60/h pro Token (VOI-10) — Rate-Limiter generisch bauen (auch für Einladungsabruf nutzbar).
+  Danach Docker (QA-08), dann M4 abschließen.
+- **Erledigt in M4:** ARC-04 SYN-03 SHR-05 SHR-06 SHR-07 SHR-08 CRY-13 CRY-14
 - **Blocker:** keine
 
 ## Meilensteine
@@ -19,7 +20,7 @@
 | M1 | erledigt | 14/14 IDs |
 | M2 | erledigt | 7/7 IDs |
 | M3 | erledigt | 6/6 IDs |
-| M4 | in Arbeit | 7/12 IDs |
+| M4 | in Arbeit | 8/12 IDs |
 | M5 | offen | |
 | M6 | offen | danach Gate G1 |
 | M7 | offen | erst nach UI-10 |
@@ -87,3 +88,4 @@ _noch keins_
 | 2026-11-12 | M4.3 | SHR-05 SHR-06 SHR-07 | `members/service.ts`: `mayPushKind` (editor: entry/attachmentMeta, A-013), `changeRole`/`revokeMember` mit Letzter-Owner-Schutz (409 `last-owner`) in Transaktionen. Routen PATCH/DELETE `/diaries/:id/members/:principalId`; Push prüft Rolle je Op (eine verbotene → ganzer Push 403). |
 | 2026-11-12 | M4.4 | SHR-08 | Migration 2 `invitations` (+ role, accepted_by, identity_pub, mac, confirmed_at, revoked_at). Endpunkte laut Spec 09 + `GET /diaries/:id/invitations` (angenommene, unbestätigte für den Owner-Client — nötig für den Ablauf, in Spec 09 nicht aufgeführt). Einladung: 7 Tage, einmalig, widerrufbar (410 `gone`); Bestätigung legt Mitgliedschaft mit `key_epoch` des Owners an. Rate-Limit für den öffentlichen Abruf folgt (VOI-10-Infrastruktur). |
 | 2026-11-12 | M4.5 | CRY-13 | Migration 3 `challenges`; `createChallenge` (32 Byte base64url, TTL 5 min, räumt Abgelaufene auf), `consumeChallenge` (atomar `DELETE … RETURNING`, an Zweck gebunden, einmalig; unbekannt/abgelaufen → `challenge-expired`). WebAuthn-Verifikation (`@simplewebauthn/server`) folgt mit den Login-IDs in M7. |
+| 2026-11-12 | M4.6 | CRY-14 | Migration 4 `users`/`devices`/`sessions` (nur Token-Hash). `sessionAuth` (Cookie `stb_session`, prüft Ablauf + `devices.revoked_at`, beendet ungültige Sitzungen), `createSession` (HttpOnly/Secure/SameSite=Strict, 30 Tage), `DELETE /devices/:id` (nur eigene Geräte, löscht alle Sitzungen). Server nutzt jetzt `sessionAuth` statt `noAuth`; Sitzungen entstehen ab M7 nach WebAuthn-Login. Rotation des Cookies folgt mit dem Login. |

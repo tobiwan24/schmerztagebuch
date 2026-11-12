@@ -6,6 +6,7 @@ import { loadConfig, ConfigError } from './config.js';
 import { openDatabase } from './db.js';
 import { migrate } from './schema.js';
 import { buildApp } from './app.js';
+import { sessionAuth } from './auth/sessions.js';
 
 export interface RunningServer {
   url: string;
@@ -23,7 +24,7 @@ export async function startServer(env: Record<string, string | undefined>, opts:
 
   const db = openDatabase(databasePath);
   migrate(db);
-  const app = buildApp({ config: { ...config, databasePath, blobDir }, db });
+  const app = buildApp({ config: { ...config, databasePath, blobDir }, db, auth: sessionAuth(db, () => Date.now()) });
   try {
     await app.listen({ port: config.port, host: config.host });
   } catch (e) {

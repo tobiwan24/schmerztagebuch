@@ -68,6 +68,31 @@ const MIGRATIONS: readonly string[] = [
   );
   CREATE INDEX challenges_expires ON challenges (expires_at);
   `,
+  // 4: Nutzer, Geräte, Sitzungen (Spec 02/03)
+  `
+  CREATE TABLE users (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    created_at INTEGER NOT NULL
+  );
+  CREATE TABLE devices (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    kind TEXT NOT NULL DEFAULT 'device' CHECK (kind IN ('device')),
+    name_ct TEXT NOT NULL,
+    public_key TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    revoked_at INTEGER
+  );
+  CREATE TABLE sessions (
+    token_hash TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    device_id TEXT NOT NULL REFERENCES devices(id),
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL
+  );
+  CREATE INDEX sessions_device ON sessions (device_id);
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;
