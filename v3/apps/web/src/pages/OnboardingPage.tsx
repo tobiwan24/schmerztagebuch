@@ -10,7 +10,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { BackupCodeStep } from '@/components/BackupCodeStep';
 import { FactorSetup, type NewFactor } from '@/components/FactorSetup';
 import { DiaryStep, TemplateStep, type DiaryChoice } from '@/components/DiarySetup';
-import { CloudLogin, CloudRegister } from '@/components/CloudSetup';
+import { CloudLogin, CloudRecovery, CloudRegister, RecoveryLink } from '@/components/CloudSetup';
 import { AuthErrorNotice } from '@/components/AuthErrorNotice';
 import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
 import { useData } from '@/data/DataContext';
@@ -20,7 +20,7 @@ import { prepareLocalAccount, type PendingAccount } from '@/auth/local-account';
 import { useAuth } from '@/auth/AuthContext';
 import { de } from '@/i18n/de';
 
-type Step = 'install' | 'mode' | 'factor' | 'cloud' | 'cloud-login' | 'backup' | 'diary' | 'template';
+type Step = 'install' | 'mode' | 'factor' | 'cloud' | 'cloud-login' | 'cloud-recovery' | 'backup' | 'diary' | 'template';
 const SETUP_STEPS: readonly Step[] = ['diary', 'template'];
 
 export function OnboardingPage() {
@@ -126,7 +126,13 @@ export function OnboardingPage() {
           </Button>
         </>
       ) : null}
-      {current === 'cloud-login' ? <CloudLogin onDone={() => setStep('diary')} /> : null}
+      {current === 'cloud-login' ? (
+        <>
+          <CloudLogin onDone={() => setStep('diary')} />
+          <RecoveryLink onClick={() => setStep('cloud-recovery')} />
+        </>
+      ) : null}
+      {current === 'cloud-recovery' ? <CloudRecovery onPending={(p) => (setPending(p), setStep('backup'))} /> : null}
       {current === 'backup' && pending ? <BackupCodeStep code={pending.backupCode} busy={busy} onConfirmed={() => void onConfirmed()} /> : null}
       {current === 'diary' ? <DiaryStep onNext={(c) => (setDiaryChoice(c), setStep('template'))} /> : null}
       {current === 'template' ? <TemplateStep busy={busy} onDone={(id) => void onTemplate(id)} /> : null}

@@ -29,6 +29,8 @@ export default defineConfig({
       dependencies: ['chromium', 'webkit'],
       use: { ...devices['Desktop Chrome'], viewport: { width: 375, height: 812 }, isMobile: false },
     },
+    // CRY-15: nach allen Tests die Server-DB auf Klartext aus Testeinträgen scannen.
+    { name: 'server-scan', testMatch: '**/*.scan.ts', dependencies: ['deploy'] },
   ],
   webServer: [
     {

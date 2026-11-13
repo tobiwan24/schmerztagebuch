@@ -1,13 +1,13 @@
 // Onboarding „Mit Konto" (Spec 03/10): Benutzername → Server-Optionen vorladen → Klick ruft `credentials.create`
 // synchron auf (iOS-Nutzergeste). Login auf neuem Gerät: Optionen beim Öffnen laden, Klick ruft `credentials.get` synchron.
 import { useEffect, useState, type FormEvent } from 'react';
-import { Fingerprint, LogIn } from 'lucide-react';
+import { Fingerprint, KeyRound, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AuthErrorNotice } from '@/components/AuthErrorNotice';
-import { useAuth } from '@/auth/AuthContext';
+import { useAuth, type RecoveryStart } from '@/auth/AuthContext';
 import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
 import type { PendingAccount } from '@/auth/local-account';
 import { de } from '@/i18n/de';
@@ -141,3 +141,86 @@ export function CloudLogin({ onDone }: { onDone: () => void }) {
     </Card>
   );
 }
+
+/** Gerät hinzufügen per Backup-Code (Spec 03; A-023): Benutzername + Code → neuer Passkey dieses Geräts → neuer Code. */
+export function CloudRecovery({ onPending }: { onPending: (p: PendingAccount) => void }) {
+  const auth = useAuth();
+  const [username, setUsername] = useState('');
+  const [code, setCode] = useState('');
+  const [start, setStart] = useState<RecoveryStart | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<AuthErrorCode | null>(null);
+
+  async function check(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      setStart(await auth.cloud.recoveryOptions({ username: username.trim(), backupCode: code }));
+    } catch (err) {
+      setError(toAuthErrorCode(err, { factor: 'backup' }));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function createPasskey() {
+    if (!start) return;
+    const pending = auth.credentials.create(start.options); // synchron im Klick
+    setBusy(true);
+    setError(null);
+    pending
+      .then(async (credential) => {
+        if (!credential) throw new DOMException('abgebrochen', 'NotAllowedError');
+        onPending(await auth.cloud.prepareRecovery({ start, credential }));
+      })
+      .catch((err: unknown) => {
+        setError(toAuthErrorCode(err, { gesture: true }));
+        setStart(null);
+      })
+      .finally(() => setBusy(false));
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{de.onboarding.recoveryTitle}</CardTitle>
+        <CardDescription>{de.onboarding.recoveryHint}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {!start ? (
+          <form className="flex flex-col gap-3" onSubmit={(e) => void check(e)}>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="recovery-username">{de.onboarding.username}</Label>
+              <Input id="recovery-username" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="recovery-code">{de.lock.recoveryCodeLabel}</Label>
+              <Input id="recovery-code" autoComplete="off" spellCheck={false} value={code} onChange={(e) => setCode(e.target.value)} />
+            </div>
+            <Button type="submit" disabled={busy || !username.trim() || !code.trim()}>
+              {busy ? de.onboarding.working : de.onboarding.next}
+            </Button>
+          </form>
+        ) : (
+          <Button onClick={createPasskey} disabled={busy}>
+            <Fingerprint aria-hidden />
+            {busy ? de.onboarding.working : de.onboarding.createDevicePasskey}
+          </Button>
+        )}
+        {error ? <AuthErrorNotice code={error} /> : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Kleiner Umschalter unter dem Login: zur Anmeldung per Backup-Code. */
+export function RecoveryLink({ onClick }: { onClick: () => void }) {
+  return (
+    <Button variant="link" onClick={onClick}>
+      <KeyRound aria-hidden />
+      {de.onboarding.useBackupCode}
+    </Button>
+  );
+}
+

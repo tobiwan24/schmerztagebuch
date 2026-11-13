@@ -7,7 +7,9 @@ import { createCryptoSession, type CryptoSession } from '@/data/crypto-session';
 import { hasAccount, loadAccount, unlockLocal, type PendingAccount } from './local-account';
 import { preparePasskeyRequest, prfOutput, type CredentialsLike } from './passkey';
 import { createFetchAccountApi, type AccountApi } from './account-api';
-import { createCloudDiary, isCloudAccount, loginOnNewDevice, openDiaryKeys, prepareCloudRegistration, type CloudAccount } from './cloud-account';
+import {
+  createCloudDiary, isCloudAccount, loginOnNewDevice, openDiaryKeys, prepareCloudRecovery, prepareCloudRegistration, startCloudRecovery, type CloudAccount,
+} from './cloud-account';
 import { creationOptionsFromServer, credentialToJson, requestOptionsFromServer } from './webauthn-json';
 
 export type AuthStatus = 'loading' | 'no-account' | 'locked' | 'unlocked';
@@ -31,6 +33,13 @@ export interface AuthApi {
   cloud: CloudAuth;
 }
 
+export interface RecoveryStart {
+  username: string;
+  backupCode: string;
+  options: CredentialCreationOptions;
+  raw: Awaited<ReturnType<typeof startCloudRecovery>>;
+}
+
 export interface CloudAuth {
   isCloudAccount(): Promise<boolean>;
   registrationOptions(username: string): Promise<{ challengeId: string; options: CredentialCreationOptions }>;
@@ -39,6 +48,10 @@ export interface CloudAuth {
   loginOptions(): Promise<{ challengeId: string; options: CredentialRequestOptions }>;
   /** Nach `credentials.get` auf einem neuen Gerät: Login, Konto lokal anlegen, entsperren. */
   loginNewDevice(input: { challengeId: string; credential: Credential }): Promise<void>;
+  /** Gerät hinzufügen per Backup-Code, Schritt 1: Code prüfen lassen, Optionen für einen neuen Passkey. */
+  recoveryOptions(input: { username: string; backupCode: string }): Promise<RecoveryStart>;
+  /** Schritt 2 nach `credentials.create`: neuer Backup-Code; `commit()` über `finishPending` (nach Bestätigung). */
+  prepareRecovery(input: { start: RecoveryStart; credential: Credential }): Promise<PendingAccount>;
   /** Tagebuch auf dem Server anlegen (DK für die eigene Identity) und in der Sitzung bereitstellen. */
   createDiary(diaryId: string): Promise<void>;
 }
@@ -134,6 +147,21 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
         session.unlock(umk);
         await loadDiaryKeys(umk);
         setStatus('unlocked');
+      },
+      async recoveryOptions({ username, backupCode }) {
+        const raw = await startCloudRecovery(server, { username, backupCode });
+        return { username, backupCode, raw, options: creationOptionsFromServer(raw.options) };
+      },
+      async prepareRecovery({ start, credential }) {
+        let prf: Uint8Array<ArrayBuffer>;
+        try {
+          prf = prfOutput(credential);
+        } catch {
+          prf = prfOutput(await navigator.credentials.get(preparePasskeyRequest({ rpId: location.hostname, credentialIds: [credential.id] })));
+        }
+        return prepareCloudRecovery(db, server, {
+          username: start.username, backupCode: start.backupCode, start: start.raw, credential: credentialToJson(credential), prf, now,
+        });
       },
       async createDiary(diaryId) {
         const account = await loadAccount(db);

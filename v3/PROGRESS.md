@@ -5,12 +5,14 @@
 ## Aktuell
 
 - **Meilenstein:** M8 — Einträge, Vorlagen, Schnelleintrag, Sync im UI (danach **Gate G2** → Loop anhalten)
-- **Nächste Aufgabe:** M8.6f UI „Mit Backup-Code anmelden“ (im Login-Schritt: Benutzername + Code → `startCloudRecovery`
-  → „Neuen Passkey anlegen“ synchron → `prepareCloudRecovery` → neuer Backup-Code mit Pflichtbestätigung → `commit` →
-  Sitzung + DKs → Sync), `AuthContext.cloud.recovery*`. Dann E2E mit zwei Kontexten: SYN-06 (beide offline bearbeiten →
-  online → identisch), BLK-05 (Reihenfolge auf Zweitgerät), CRY-15 (Server-DB-Scan nach allen Tests). Danach SYN-11.
-- **Erledigt in M8:** BLK-07 BLK-09 BLK-19 BLK-03 BLK-10 BLK-15 SYN-14 SYN-09
-- **Offen in M8:** BLK-05 (Zweitgerät) SYN-06 SYN-11 CRY-15
+- **Nächste Aufgabe:** M8.7 SYN-11 Wechsel `local-only → cloud-primary`: in Einstellungen „Konto anlegen und
+  synchronisieren“ (Benutzername → Passkey mit PRF → bestehende UMK **behalten**, Passkey-/Backup-Wrap neu? — UMK bleibt,
+  zusätzlicher Passkey-Wrap + Identity + Verifier hochladen; Backup-Code bleibt gültig oder neu?) → je lokalem Tagebuch
+  `createCloudDiary` mit vorhandener ID, alle Records in die Outbox (Erst-Push), Konto-Datensatz auf `cloud-primary`.
+  E2E: lokal anlegen + Einträge → umstellen → Zweitgerät per Backup-Code sieht alle Daten. Danach **M8 abschließen →
+  Gate G2 (Loop anhalten)**.
+- **Erledigt in M8:** BLK-07 BLK-09 BLK-19 BLK-03 BLK-10 BLK-15 SYN-14 SYN-09 SYN-06 BLK-05 CRY-15
+- **Offen in M8:** SYN-11
 - **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail. Schnelleintrag: Einstellung pro Tagebuch (Vorlage/Blöcke) folgt mit Tagebuch-Einstellungen; bei mehreren Tagebüchern nimmt `/quick` das erste. Body-Map: v2-Pinsel/Punktgröße/Kommentare/eigene Bilder fehlen (v3-Wertform kennt nur Punkte mit Intensität) — bei Bedarf Spec 05 erweitern; Migration (M11) muss Pinselstriche abbilden.
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
@@ -28,7 +30,7 @@
 | M5 | erledigt | 10/10 IDs, Konfliktpfad nachgearbeitet |
 | M6 | erledigt | 12/12 IDs → Gate G1 |
 | M7 | erledigt | 14/14 IDs |
-| M8 | in Arbeit | 8/12 IDs, danach Gate G2 |
+| M8 | in Arbeit | 11/12 IDs, danach Gate G2 |
 | M9 | offen | erst nach UI-11 |
 | M10 | offen | |
 | M11 | offen | danach Gate G3 |
@@ -132,3 +134,4 @@
 | 2026-11-12 | M8.6c | (Grundlage SYN-06/09/14) | Onboarding „Mit Konto“ aktiv: Benutzername → Server-Optionen vorladen → „Passkey anlegen“ ruft `credentials.create` synchron; PRF aus create (sonst `get` wie local-only); Backup-Code-Pflicht; Tagebuch erst auf dem Server (DK-Wrap, `sync_state` cloud-primary), dann lokal. „Ich habe schon ein Konto“ → Login (Optionen beim Öffnen, `credentials.get` synchron). `AuthContext.cloud`, `webauthn-json.ts`, Entsperren öffnet DKs in die Sitzung. E2E-Infrastruktur: Playwright startet zusätzlich den echten Server (`e2e/start-server.mjs`, frische DB unter `reports/e2e-server/`), Vite-Preview/-Dev leiten `/api` weiter. E2E (Chromium, virtueller Authenticator): Registrierung legt Konto + Tagebuch an, `no-store`, vergebener Benutzername gemeldet. |
 | 2026-11-13 | M8.6d | SYN-14 SYN-09 | Sync im UI: `AuthApi.accountMode`; DataProvider mit Outbox nur beim Cloud-Konto, `writes`-Ereignis nach jeder lokalen Änderung, `revision` nach übernommenen fremden Änderungen (`useQuery` lädt still nach). `SyncProvider`: Engine mit fetch-Transport, DKs aus der Sitzung, HLC-Uhr des Stampers; Auslöser Start, Änderung (300 ms entprellt), `online`, Vordergrund; Status synchronisiert / ausstehend n / offline / Fehler + „Erneut versuchen“ (`SyncStatus` in der AppShell). Nach Login auf neuem Gerät wartet das Onboarding auf den ersten Sync. E2E SYN-14 (offline → ausstehend 1 → online → synchronisiert; 500 → Fehler → erneut) und SYN-09 (`no-store`; SW: online Server-Antwort, offline Netzfehler, kein `/api` im Cache). ARC-01-Test auf async `exec` umgestellt (execSync blockierte den Worker > 60 s → Vitest-RPC-Timeout). |
 | 2026-11-13 | M8.6e | (Grundlage SYN-06, BLK-05) | Experiment: per CDP kopierter Passkey liefert im virtuellen Authenticator keine PRF → Zweitgerät per Backup-Code (A-023): `deriveBackupAuth` (HKDF, eigene Domain), Migration 8 `backup-verifier` (nur Hash, nie an Clients), `POST /api/v1/auth/recovery/start|finish` (neuer Passkey als zusätzlicher Zugang, neuer Backup-Code ersetzt den alten, Rate-Limit 5/15 min pro IP und Benutzername, keine Benutzernamen-Aufzählung). Client `startCloudRecovery`/`prepareCloudRecovery`; Registrierung lädt den Verifier mit hoch. Tests: Server (falscher Code, unbekannter Nutzer, Ersetzen, alter Passkey weiter gültig, Rate-Limit), Integration (Gerät B per Backup-Code öffnet denselben DK, alter Code ungültig). |
+| 2026-11-13 | M8.6f | SYN-06 BLK-05 CRY-15 | Onboarding „Mit Backup-Code anmelden“ (Benutzername + Code → „Passkey für dieses Gerät anlegen“ synchron → neuer Backup-Code mit Pflichtbestätigung → Sitzung + DKs → erster Sync → Start), `AuthContext.cloud.recoveryOptions/prepareRecovery`. E2E mit zwei Kontexten (Gerät B per Backup-Code): SYN-06 (beide offline bearbeiten — A Notiz, B Schmerzstärke → online → identischer Stand mit beiden Änderungen), BLK-05 (Reihenfolge A → B und B → A). CRY-15 als Playwright-Projekt `server-scan` nach allen Tests: liest `reports/e2e-server/stb.db`, verlangt > 0 Records, keine Klartext-Marker (Eintragstexte, Vorlagen-/Blocknamen, Tagebuchname) in allen Tabellen. Zwei-Geräte-Tests pollen mit Vordergrund-Auslöser (entprellter Sync nach Änderung). |
