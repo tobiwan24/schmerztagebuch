@@ -6,12 +6,13 @@
 
 - **Meilenstein:** M9 — Suche, Filter, Vergleich, Standard-Ansichten (M8b abgeschlossen).
 - **Gate G2:** vom User freigegeben (2026-11-13).
-- **Nächste Aufgabe:** M9.2 Aggregation in `packages/analysis`: Tagesaggregation in Tagebuch-Zeitzone (ANA-05, Fixture-
-  Eintrag 23:30 Berlin, Gerät UTC), `mean`/`max`/`last` je Tag, leere Werte zählen nicht, Tage ohne Eintrag ≠ 0 (ANA-06),
-  Werte entfernter Blöcke über Block-ID (ANA-07, Fixture um Vorlagenversion 2 erweitern), Periodenvergleich (ANA-08,
-  ANA-09 „Wenige Daten“ bei n < 7), Medikamententage je Monat (ANA-10). Texte ohne Kausalformulierungen (ANA-15).
-- **Erledigt in M9:** ANA-01 ANA-02 ANA-03 ANA-04
-- **Offen in M9:** ANA-05 … ANA-15
+- **Nächste Aufgabe:** M9.3 Analyse im Web: Web Worker `apps/web/src/workers/analysis.worker.ts` (Arbeitsset + Suchindex aus
+  den Records beim Entsperren, inkrementell bei Änderungen/`revision`), Leistungsbudgets mit 5.000-Einträge-Fixture als
+  Integrationstest (ANA-12: Aufbau < 1,5 s, Filter < 200 ms, Suche < 100 ms, Vergleich < 300 ms). Danach Verlauf-Suche/
+  Filter-Chips + gespeicherte Filter (`savedFilter`-Record, ANA-11), Auswertungs-Ansichten mit shadcn Charts/Recharts
+  (ANA-13, neue Abhängigkeit mit DECISIONS), PNG-Export (ANA-14).
+- **Erledigt in M9:** ANA-01 ANA-02 ANA-03 ANA-04 ANA-05 ANA-06 ANA-07 ANA-08 ANA-09 ANA-10 ANA-15
+- **Offen in M9:** ANA-11 ANA-12 ANA-13 ANA-14
 - **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail. Schnelleintrag: Einstellung pro Tagebuch (Vorlage/Blöcke) folgt mit Tagebuch-Einstellungen; bei mehreren Tagebüchern nimmt `/quick` das erste. Body-Map: v2-Pinsel/Punktgröße/Kommentare/eigene Bilder fehlen (v3-Wertform kennt nur Punkte mit Intensität) — bei Bedarf Spec 05 erweitern; Migration (M11) muss Pinselstriche abbilden.
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
@@ -140,3 +141,4 @@
 | 2026-11-13 | M8b.1 | BLK-20 | Wertform erweitert (rückwärtskompatibel: `kind`, `size`, `comment`, `path` je Markierung; Pinsel ⇔ Pfad). `BodyMapField` neu: Werkzeuge Punkt/Pinsel, Größe klein/mittel/groß (v2-Werte), Intensität, Kommentar je Markierung, `#n`-Nummern, Entfernen nummeriert neu, Bildwechsel mit Markierungen nur nach Rückfrage (Dialog statt gesperrter Buttons). Pinselstrich in einer Ref gepuffert (State war bei schnellen Zeigerereignissen veraltet → Strich wurde zum Punkt). Umschalter bei < 440 px untereinander. `check-acceptance` erlaubt Meilensteine wie `M8b`. |
 | 2026-11-13 | M8b.2 | BLK-21 | Eigene Body-Map-Bilder: `core/bodymap-image.ts` (Schema, Data-URL JPEG/PNG/WebP ≤ 2 MB), Repository `listBodymapImages`/`saveBodymapImage`/`deleteBodymapImage` (Record-`kind` `bodymapImage`, verschlüsselt synchronisiert). `lib/image.ts` (v2-Verkleinerung max. 1000×1400, JPEG 0,85, Zuschnitt). `CropDialog` mit `react-easy-crop` 6.2.4 (DECISIONS): Seitenverhältnis 3:4/1:1/4:3/frei, Zoom, Name; Hinweis, dass Markierungen verloren gehen. Body-Map: eigene Bilder in der Auswahl, „Eigenes Bild“, „Zuschneiden“ (auch Standardbilder → neues eigenes Bild), „Bild löschen“ (Rückfrage), „Als Standard für dieses Feld“ (Block-Konfiguration → neue Vorlagenversion). E2E: Konto + Zweitgerät (1:1-Zuschnitt, Standard, vorausgewählt, auf B identisch, Löschen) und lokal in Chromium + WebKit (4:3 + Zoom). CRY-15-Scan prüft auch Bildname und `data:image`. **M8b abgeschlossen** (2/2). |
 | 2026-11-13 | M9.1 | ANA-01 ANA-02 ANA-03 ANA-04 | Neues Paket `packages/analysis` (Spec 01; nur `core` + `minisearch` 7.2.0, DECISIONS): `buildWorkingSet` (Normalform je Wert über die Eintragsversion, Labels aus der aktuellen Version, Tag in Tagebuch-Zeitzone, Wetterfelder), `filterSpecSchema`/`conditionSchema` (alle Bedingungsarten, Ziel `blockId` xor `role`), `applyFilter` (Semantik A-025), `normalizeText`, `createSearchIndex` (MiniSearch, zwei Umlaut-Formen je Wort, Präfix + unscharf, inkrementell `add`/`remove`). Handgerechnete Fixture (9 Einträge, 2 Vorlagen); 24 tabellarische Filter mit erwarteten IDs. |
+| 2026-11-13 | M9.2 | ANA-05 ANA-06 ANA-07 ANA-08 ANA-09 ANA-10 ANA-15 | `analysis/aggregate.ts`: `dailySeries` (Tagebuch-Zeitzone, `mean`/`max`/`last`, Standard `max` für `outcome`, leere Werte ohne `n`, keine Null-Tage), `periodStats`/`comparePeriods` (n, Mittel, Median, Min, Max, Tage ≥ Schwelle, Tage mit/ohne Eintrag, Differenz B − A, `fewData` bei n < 7), `previousRange`, `optionDays` (Häufigkeiten mit Anteil), `medicationDaysByMonth` (Mehrfacheinnahme = 1 Tag). Fixture-Zusätze: Mitternachtsfälle Berlin, Mehrfacheintrag + leerer Wert, Vorlagenversion 2 ohne Block, Doppel-Einnahme, Februar. Analyse-Texte in `de.analysis`; ANA-15 prüft sie und die Literale des Analyse-Pakets gegen eine Kausal-Wortliste (A-026). |

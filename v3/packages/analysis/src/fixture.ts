@@ -90,3 +90,32 @@ export const fixtureDiaries = [{ id: FIX.diary, settings: { timezone: FIX.tz } }
 
 /** „Jetzt" der Fixture: 10.03.2026, 12:00 UTC. */
 export const FIXTURE_NOW = Date.parse('2026-03-10T12:00:00.000Z');
+
+// --- Zusätze für Aggregations-Tests (ANA-05 … ANA-10); die Filter-Tests nutzen nur die Basis oben. ---
+
+/** Version 2 von „Kopfschmerz": Block „Übelkeit" entfernt (ANA-07). */
+export const fixtureVersionsV2: TemplateVersion[] = [
+  ...fixtureVersions,
+  { templateId: FIX.t1, version: 2, createdAt: '2026-03-08T00:00:00.000Z', blocks: fixtureVersions[0]!.blocks.filter((b) => b.id !== FIX.nausea) },
+];
+export const fixtureTemplatesV2: Template[] = fixtureTemplates.map((t) => (t.id === FIX.t1 ? { ...t, currentVersion: 2 } : t));
+
+const extra = (id: string, occurredAt: string, values: Record<string, unknown>, version = 1): Entry => ({
+  id, diaryId: FIX.diary, templateId: FIX.t1, templateVersion: version, occurredAt, recordedAt: occurredAt, updatedAt: occurredAt,
+  authorId: 'u1', values, tags: [], meta: { source: 'app', timezone: FIX.tz }, hlc: `${Date.parse(occurredAt)}:0000:fix`,
+});
+
+export const fixtureExtraEntries: Entry[] = [
+  // ANA-06: zweiter Eintrag am 02.03. (später am Tag) und ein Eintrag ohne Schmerzwert am selben Tag
+  extra('e09', '2026-03-02T18:00:00.000Z', { [FIX.pain]: 2 }),
+  extra('e12', '2026-03-02T20:00:00.000Z', { [FIX.notes]: { text: 'nur Notiz' } }),
+  // ANA-05: 23:30 Berlin (= 22:30 UTC) am 12.03. und 00:30 Berlin am 14.03. (= 23:30 UTC am 13.03.)
+  extra('e13', '2026-03-12T22:30:00.000Z', { [FIX.pain]: 4 }),
+  extra('e14', '2026-03-13T23:30:00.000Z', { [FIX.pain]: 2 }),
+  // ANA-07: Eintrag mit Version 2 (ohne „Übelkeit")
+  extra('e11', '2026-03-09T10:00:00.000Z', { [FIX.pain]: 4 }, 2),
+  // ANA-10: Doppel-Einnahme am 10.03. (zählt als ein Tag) und Februar-Einnahme
+  extra('e15', '2026-03-10T19:00:00.000Z', { [FIX.meds]: [FIX.ibu] }),
+  extra('e16', '2026-02-20T10:00:00.000Z', { [FIX.meds]: [FIX.ibu] }),
+];
+
