@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/auth/AuthContext';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
+import { SyncStatus } from '@/components/SyncStatus';
 import { BarChart3, Home, List, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { de } from '@/i18n/de';
@@ -46,6 +47,7 @@ export function AppShell() {
           </Button>
         </div>
       ) : null}
+      <SyncStatus />
       <main className="flex flex-1 flex-col gap-4 p-4 pb-24">
         {locked && !OPEN_WHEN_LOCKED.includes(location.pathname) ? (
           <section data-testid="locked-view" className="flex flex-col gap-3">

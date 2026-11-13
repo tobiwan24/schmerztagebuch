@@ -5,18 +5,17 @@
 ## Aktuell
 
 - **Meilenstein:** M8 — Einträge, Vorlagen, Schnelleintrag, Sync im UI (danach **Gate G2** → Loop anhalten)
-- **Nächste Aufgabe:** M8.6d Sync-Verdrahtung: DataProvider im Cloud-Modus mit AES-Codec? (prüfen: lokal `plain`, Server-
-  Chiffretext macht die Engine mit DK) + Outbox an, Sync-Engine (`createSyncEngine`, fetch-Transport, `session.keys`, HLC
-  aus Stamper) mit Auslösern (nach Speichern, online/visibility, Start); Sync-Status im UI (SYN-14: synchronisiert /
-  ausstehend n / Fehler); Login auf neuem Gerät → Pull vor Navigation (jetzt landet der Login noch beim Tagebuch-Schritt).
-  E2E: SYN-06 (zwei Kontexte offline/online), SYN-09 (`no-store` + SW beantwortet `/api` nie aus Cache), BLK-05
-  (Zweitgerät), CRY-15 (Server-DB-Scan nach E2E: `reports/e2e-server/stb.db`). SYN-11 (local-only → Konto) danach.
-- **Erledigt in M8:** BLK-07 BLK-09 BLK-19 BLK-03 BLK-10 BLK-15
-- **Offen in M8:** BLK-05 (Reload ✓, Zweitgerät fehlt) SYN-06 SYN-09 SYN-11 SYN-14 CRY-15
+- **Nächste Aufgabe:** M8.6e Zweitgerät im E2E: Passkey vom virtuellen Authenticator A per CDP (`WebAuthn.getCredentials`
+  → `addCredential`) in Kontext B kopieren; prüfen, ob die PRF-Ausgabe gleich bleibt (sonst Alternative: Login per
+  Backup-Code auf neuem Gerät — Server-Endpunkt nötig). Dann SYN-06 (beide offline bearbeiten → online → identisch),
+  BLK-05 (Reihenfolge auf Zweitgerät), CRY-15 (nach E2E-Lauf Server-DB `reports/e2e-server/stb.db` auf Klartext-Marker
+  scannen, z. B. als Playwright-Projekt nach allen anderen). Danach SYN-11 (local-only → Konto) → Gate G2.
+- **Erledigt in M8:** BLK-07 BLK-09 BLK-19 BLK-03 BLK-10 BLK-15 SYN-14 SYN-09
+- **Offen in M8:** BLK-05 (Zweitgerät) SYN-06 SYN-11 CRY-15
 - **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail. Schnelleintrag: Einstellung pro Tagebuch (Vorlage/Blöcke) folgt mit Tagebuch-Einstellungen; bei mehreren Tagebüchern nimmt `/quick` das erste. Body-Map: v2-Pinsel/Punktgröße/Kommentare/eigene Bilder fehlen (v3-Wertform kennt nur Punkte mit Intensität) — bei Bedarf Spec 05 erweitern; Migration (M11) muss Pinselstriche abbilden.
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
-- **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016); Konto-Modus (Registrierung/Login) im Onboarding. Wetter-Ort im Onboarding → mit Tagebuch-Einstellungen (Ort-Suche).
+- **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016). Konto-Modus im Onboarding ✓ (M8.6c). Wetter-Ort im Onboarding → mit Tagebuch-Einstellungen (Ort-Suche).
 
 ## Meilensteine
 
@@ -30,7 +29,7 @@
 | M5 | erledigt | 10/10 IDs, Konfliktpfad nachgearbeitet |
 | M6 | erledigt | 12/12 IDs → Gate G1 |
 | M7 | erledigt | 14/14 IDs |
-| M8 | in Arbeit | 6/12 IDs, danach Gate G2 |
+| M8 | in Arbeit | 8/12 IDs, danach Gate G2 |
 | M9 | offen | erst nach UI-11 |
 | M10 | offen | |
 | M11 | offen | danach Gate G3 |
@@ -132,3 +131,4 @@
 | 2026-11-12 | M8.6a | (Grundlage SYN-06/11/14, CRY-15) | Server-Konto per Passkey: Migration 7 (`credentials`, `user_keys`), `auth/webauthn.ts` mit `@simplewebauthn/server` 14.0.3 (residentKey + UV required, Challenges aus SQLite), Endpunkte Registrierung/Login/me/logout, `POST/GET /api/v1/diaries` (Owner + DK-Wrap), `no-store` für alle `/api/*`, Rate-Limit 30/min pro IP (A-022). Test-Helfer `soft-authenticator.ts` erzeugt echte WebAuthn-Antworten (none/ES256) → Tests laufen durch die echte Verifikation (UV fehlt, falsche Origin, unbekannter Passkey, Challenge-Replay werden abgelehnt). |
 | 2026-11-12 | M8.6b | (Grundlage SYN-06/11) | `@stb/crypto` `sealIdentityKey`/`openIdentityKey` (Identity-Private-Key AES-GCM mit UMK, AAD = Domain + Public Key). Web: `auth/account-api.ts` (Konto-API-Client, fetch), `auth/cloud-account.ts` (`prepareCloudRegistration` — Server-Registrierung erst bei `commit()` nach Backup-Bestätigung; `loginOnNewDevice` — Wraps vom Server → UMK → Identity prüfen → Konto + DK-Wraps lokal; `createCloudDiary` — DK für eigene Identity verpackt; `openDiaryKeys`). Integrationstest `integration/account`: Gerät A registriert + legt Tagebuch an, Gerät B loggt mit demselben Passkey ein und öffnet denselben DK; Server hält keinen Klartext-DK; falsche PRF → `unwrap-failed`, kein Konto. |
 | 2026-11-12 | M8.6c | (Grundlage SYN-06/09/14) | Onboarding „Mit Konto“ aktiv: Benutzername → Server-Optionen vorladen → „Passkey anlegen“ ruft `credentials.create` synchron; PRF aus create (sonst `get` wie local-only); Backup-Code-Pflicht; Tagebuch erst auf dem Server (DK-Wrap, `sync_state` cloud-primary), dann lokal. „Ich habe schon ein Konto“ → Login (Optionen beim Öffnen, `credentials.get` synchron). `AuthContext.cloud`, `webauthn-json.ts`, Entsperren öffnet DKs in die Sitzung. E2E-Infrastruktur: Playwright startet zusätzlich den echten Server (`e2e/start-server.mjs`, frische DB unter `reports/e2e-server/`), Vite-Preview/-Dev leiten `/api` weiter. E2E (Chromium, virtueller Authenticator): Registrierung legt Konto + Tagebuch an, `no-store`, vergebener Benutzername gemeldet. |
+| 2026-11-13 | M8.6d | SYN-14 SYN-09 | Sync im UI: `AuthApi.accountMode`; DataProvider mit Outbox nur beim Cloud-Konto, `writes`-Ereignis nach jeder lokalen Änderung, `revision` nach übernommenen fremden Änderungen (`useQuery` lädt still nach). `SyncProvider`: Engine mit fetch-Transport, DKs aus der Sitzung, HLC-Uhr des Stampers; Auslöser Start, Änderung (300 ms entprellt), `online`, Vordergrund; Status synchronisiert / ausstehend n / offline / Fehler + „Erneut versuchen“ (`SyncStatus` in der AppShell). Nach Login auf neuem Gerät wartet das Onboarding auf den ersten Sync. E2E SYN-14 (offline → ausstehend 1 → online → synchronisiert; 500 → Fehler → erneut) und SYN-09 (`no-store`; SW: online Server-Antwort, offline Netzfehler, kein `/api` im Cache). ARC-01-Test auf async `exec` umgestellt (execSync blockierte den Worker > 60 s → Vitest-RPC-Timeout). |

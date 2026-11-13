@@ -24,7 +24,7 @@ export function QuickPage() {
       (s): s is TemplateState => s !== undefined,
     );
     return quickEntrySelection(diary, states);
-  }, [data]);
+  }, [data.diary]);
 
   async function save() {
     if (query.status !== 'ok' || !query.data) return;

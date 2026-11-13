@@ -1,9 +1,11 @@
 // Datenzugriff der Ansichten: Repositories über der DB des Kontos (Komponenten greifen nie direkt auf Dexie zu, Spec 01).
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+// Outbox nur beim Konto „Mit Konto" (Spec 04: im Modus local-only wird die Outbox nicht befüllt). Jede lokale Änderung
+// meldet sich über `writes` (→ Sync im Hintergrund); `revision` steigt, wenn der Sync fremde Änderungen übernommen hat.
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { createIdGenerator } from '@stb/core';
 import { useAuth } from '@/auth/AuthContext';
 import { plainCodec } from './codec/plain';
-import { createCodecRegistry } from './codec/registry';
+import { createCodecRegistry, type CodecRegistry } from './codec/registry';
 import { createRecordRepository, type RecordRepository } from './repositories/records';
 import { createDiaryRepository, type DiaryRepository } from './repositories/diary';
 import { createStamper, type Stamper } from './identity';
@@ -16,18 +18,35 @@ export interface DataApi {
   /** HLC-Stempel und Autor für lokale Änderungen. */
   stamper: Stamper;
   now: () => number;
+  registry: CodecRegistry;
+  /** Ereignis `write` nach jeder erfolgreichen lokalen Änderung. */
+  writes: EventTarget;
+  /** Steigt, wenn sich Daten von außen geändert haben (Pull) — in `useQuery`-Abhängigkeiten aufnehmen. */
+  revision: number;
+  bumpRevision(): void;
 }
 
 const DataContext = createContext<DataApi | null>(null);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const { db, now } = useAuth();
-  const api = useMemo<DataApi>(() => {
-    // v3.0: lokal `plain`; Outbox erst mit Modus „Mit Konto" (M8). Im Modus „nur auf diesem Gerät" keine Outbox (Spec 04).
-    const records = createRecordRepository(db, { registry: createCodecRegistry([plainCodec]), writeCodec: 'plain', clock: { now }, outbox: false });
+  const { db, now, accountMode } = useAuth();
+  const [revision, setRevision] = useState(0);
+  const bumpRevision = useCallback(() => setRevision((r) => r + 1), []);
+  const base = useMemo(() => {
+    const registry = createCodecRegistry([plainCodec]);
+    const writes = new EventTarget();
+    const raw = createRecordRepository(db, { registry, writeCodec: 'plain', clock: { now }, outbox: accountMode === 'cloud-primary' });
+    const notify = <T,>(p: Promise<T>) => p.then((v) => (writes.dispatchEvent(new Event('write')), v));
+    const records: RecordRepository = {
+      ...raw,
+      put: (input, opts) => notify(raw.put(input, opts)),
+      putMany: (inputs) => notify(raw.putMany(inputs)),
+      remove: (id, payload) => notify(raw.remove(id, payload)),
+    };
     const { newId } = createIdGenerator({ now });
-    return { records, diary: createDiaryRepository(records), newId, stamper: createStamper(db, { now }, newId), now };
-  }, [db, now]);
+    return { records, diary: createDiaryRepository(records), newId, stamper: createStamper(db, { now }, newId), now, registry, writes };
+  }, [db, now, accountMode]);
+  const api = useMemo<DataApi>(() => ({ ...base, revision, bumpRevision }), [base, revision, bumpRevision]);
   return <DataContext.Provider value={api}>{children}</DataContext.Provider>;
 }
 

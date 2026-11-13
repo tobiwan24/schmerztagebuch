@@ -14,6 +14,8 @@ export type AuthStatus = 'loading' | 'no-account' | 'locked' | 'unlocked';
 
 export interface AuthApi {
   status: AuthStatus;
+  /** Art des Kontos auf diesem Gerät (`null` ohne Konto). Bestimmt Outbox und Sync (Spec 04 „Modi"). */
+  accountMode: 'local-only' | 'cloud-primary' | null;
   db: StbDb;
   session: CryptoSession;
   credentials: CredentialsLike;
@@ -49,6 +51,18 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
   const now = useCallback(() => Date.now(), []);
   const session = useMemo(() => createCryptoSession(db, { now }), [db, now]);
   const [status, setStatus] = useState<AuthStatus>('loading');
+  const [accountMode, setAccountMode] = useState<AuthApi['accountMode']>(null);
+
+  // Nach jedem Statuswechsel (Konto angelegt, Login auf neuem Gerät, …) die Kontoart neu lesen.
+  useEffect(() => {
+    let cancelled = false;
+    void loadAccount(db).then((a) => {
+      if (!cancelled) setAccountMode(a ? (isCloudAccount(a) ? 'cloud-primary' : 'local-only') : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [db, status]);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +80,7 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
   // Stabiles Objekt (nur bei Statuswechsel neu), damit Effekte in Ansichten nicht bei jedem Render erneut laufen.
   const api = useMemo<AuthApi>(() => ({
     status,
+    accountMode,
     db,
     session,
     credentials: navigator.credentials,
@@ -126,7 +141,7 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
         session.setDiaryKey(diaryId, await createCloudDiary(db, server, account, diaryId), 1);
       },
     },
-  }), [status, db, session, now, server]);
+  }), [status, accountMode, db, session, now, server]);
 
   /** Cloud-Konto: lokal bekannte DKs öffnen (offline möglich), damit die Sync-Engine ver-/entschlüsseln kann. */
   async function loadDiaryKeys(umk: CryptoKey) {

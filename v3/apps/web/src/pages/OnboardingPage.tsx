@@ -15,6 +15,7 @@ import { AuthErrorNotice } from '@/components/AuthErrorNotice';
 import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
+import { useSync } from '@/data/SyncContext';
 import { prepareLocalAccount, type PendingAccount } from '@/auth/local-account';
 import { useAuth } from '@/auth/AuthContext';
 import { de } from '@/i18n/de';
@@ -31,10 +32,15 @@ export function OnboardingPage() {
   const [diaryChoice, setDiaryChoice] = useState<DiaryChoice | null>(null);
   const [setupError, setSetupError] = useState<AuthErrorCode | null>(null);
   const data = useData();
+  const sync = useSync();
   const unlocked = auth.status === 'unlocked';
-  const diaries = useQuery(() => (unlocked ? data.diary.listDiaries() : Promise.resolve([])), [data, unlocked]);
+  const diaries = useQuery(() => (unlocked ? data.diary.listDiaries() : Promise.resolve([])), [data.diary, unlocked]);
 
   if (auth.status === 'locked') return <Navigate to="/" replace />;
+  // Nach dem Login auf einem neuen Gerät erst die Daten holen — sonst würde ein zweites „erstes Tagebuch" angelegt.
+  if (unlocked && auth.accountMode === 'cloud-primary' && (!sync.ready || diaries.status !== 'ok')) {
+    return <p className="p-4 text-muted-foreground">{de.sync.loadingAfterLogin}</p>;
+  }
   if (unlocked && !busy && diaries.status === 'ok' && diaries.data.length > 0) return <Navigate to="/" replace />;
   const current: Step = unlocked && !SETUP_STEPS.includes(step) ? 'diary' : step;
 

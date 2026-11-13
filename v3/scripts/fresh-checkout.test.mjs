@@ -3,7 +3,8 @@
 // in ein Temp-Verzeichnis, führt dort `npm ci` und `npm run verify` aus. Im Kind-Lauf wird dieser Test übersprungen
 // (STB_FRESH_CHECKOUT=1), sonst würde er sich rekursiv selbst aufrufen.
 import { describe, it, expect } from 'vitest';
-import { execSync, execFileSync } from 'node:child_process';
+import { exec, execFileSync } from 'node:child_process';
+import { promisify } from 'node:util';
 import { mkdtempSync, mkdirSync, copyFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -18,7 +19,7 @@ function checkoutFiles() {
 }
 
 describe('frischer Checkout', () => {
-  it.skipIf(inChild)('ARC-01: npm ci + npm run verify laufen im frischen Checkout ohne Fehler durch', () => {
+  it.skipIf(inChild)('ARC-01: npm ci + npm run verify laufen im frischen Checkout ohne Fehler durch', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'stb-v3-fresh-'));
     try {
       const files = checkoutFiles();
@@ -29,9 +30,10 @@ describe('frischer Checkout', () => {
         copyFileSync(join(root, f), join(dir, f));
       }
       const env = { ...process.env, STB_FRESH_CHECKOUT: '1' };
-      const run = (cmd) => execSync(cmd, { cwd: dir, env, encoding: 'utf8', stdio: 'pipe' });
-      run('npm ci --prefer-offline --no-audit --no-fund');
-      const out = run('npm run verify');
+      // Asynchron: `execSync` würde den Worker > 60 s blockieren → Vitest-RPC-Timeout („onTaskUpdate").
+      const run = async (cmd) => (await promisify(exec)(cmd, { cwd: dir, env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })).stdout;
+      await run('npm ci --prefer-offline --no-audit --no-fund');
+      const out = await run('npm run verify');
       expect(out).toContain('Alle Abhängigkeiten in DECISIONS.md dokumentiert');
       expect(existsSync(join(dir, 'reports', 'vitest.json'))).toBe(true);
     } finally {

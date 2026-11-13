@@ -1,11 +1,14 @@
 // Lade-, Leer- und Fehlerzustand für Repository-Abfragen (Spec 10: jede Ansicht hat Lade-, Leer- und Fehlerzustand).
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useData } from './DataContext';
 
 export type QueryState<T> = { status: 'loading' } | { status: 'ok'; data: T } | { status: 'error'; error: unknown };
 
 export function useQuery<T>(load: () => Promise<T>, deps: readonly unknown[]): QueryState<T> & { retry: () => void } {
   const [state, setState] = useState<QueryState<T>>({ status: 'loading' });
   const [attempt, setAttempt] = useState(0);
+  // Fremde Änderungen (Sync-Pull) laden still nach — wie `retry`, ohne Ladezustand.
+  const { revision } = useData();
   const lastDeps = useRef<readonly unknown[] | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -22,7 +25,7 @@ export function useQuery<T>(load: () => Promise<T>, deps: readonly unknown[]): Q
       cancelled = true;
     };
     // `load` ist pro Render neu; neu geladen wird über `deps` und `retry`.
-  }, [...deps, attempt]);
+  }, [...deps, attempt, revision]);
   const retry = useCallback(() => setAttempt((a) => a + 1), []);
   return { ...state, retry };
 }

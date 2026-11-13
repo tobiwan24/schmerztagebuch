@@ -206,6 +206,14 @@ export const de = {
       'default-fuss-plantar': 'Fuß plantar',
     },
   },
+  sync: {
+    syncing: 'Synchronisiere …',
+    synced: 'Synchronisiert',
+    pending: (n: number) => `Ausstehend: ${n}`,
+    offline: (n: number) => (n > 0 ? `Offline · ausstehend: ${n}` : 'Offline'),
+    error: 'Sync-Fehler',
+    loadingAfterLogin: 'Deine Daten werden geladen …',
+  },
   update: {
     available: 'Neue Version verfügbar.',
     restart: 'Neu starten',

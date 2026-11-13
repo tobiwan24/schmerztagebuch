@@ -29,7 +29,7 @@ export function TemplatesPage() {
     const templates = await data.diary.listTemplates(diary.id);
     const rows = await Promise.all(templates.map(async (t) => ({ template: t, entries: await data.diary.countTemplateEntries(t.id) })));
     return { diaryId: diary.id, rows: rows.sort((a, b) => (a.template.order < b.template.order ? -1 : a.template.order > b.template.order ? 1 : 0)) };
-  }, [data]);
+  }, [data.diary]);
   const [deleting, setDeleting] = useState<Row | null>(null);
 
   // Änderungen nacheinander speichern: schnelles Ziehen + Pfeiltaste dürfen sich nicht überholen (letzte Aktion gewinnt).

@@ -21,6 +21,8 @@ export interface Stamp {
 
 export interface Stamper {
   identity(): Promise<Identity>;
+  /** Die HLC-Uhr des Geräts (für die Sync-Engine: `receive`/`tick`). */
+  clock(): Promise<HlcClock>;
   /** Neuer HLC-Stempel; der letzte Stand wird gespeichert, damit Neustarts monoton bleiben. */
   stamp(): Promise<Stamp>;
 }
@@ -44,6 +46,9 @@ export function createStamper(db: StbDb, clock: Clock, newId: () => string): Sta
   return {
     async identity() {
       return (await init()).identity;
+    },
+    async clock() {
+      return (await init()).hlc;
     },
     async stamp() {
       const { identity, hlc } = await init();
