@@ -2,7 +2,8 @@
 import { createBrowserRouter } from 'react-router';
 import { AppShell } from '@/components/AppShell';
 import { StartPage } from '@/pages/StartPage';
-import { AnalysisPage, HistoryPage, MorePage, NotFoundPage, PlaceholderPage } from '@/pages/SimplePages';
+import { HistoryPage, MorePage, NotFoundPage, PlaceholderPage } from '@/pages/SimplePages';
+import { AnalysisPage } from '@/pages/AnalysisPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { EntryDetailPage, EntryEditorPage } from '@/pages/EntryPages';
 import { QuickPage } from '@/pages/QuickPage';

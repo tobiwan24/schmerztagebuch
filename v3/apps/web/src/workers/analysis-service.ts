@@ -1,7 +1,7 @@
 // Analyse-Dienst (Spec 06 „Arbeitsset"): hält Arbeitsset und Suchindex im Speicher des Web Workers. Rein und ohne DOM,
 // damit er in Tests direkt (und im Worker über `attachAnalysisService`) läuft. Die Logik selbst liegt in `@stb/analysis`.
 import {
-  applyFilter, buildWorkingSet, comparePeriods, createSearchIndex, dailySeries, medicationDaysByMonth, optionDays,
+  applyFilter, bodymapOverview, buildWorkingSet, comparePeriods, createSearchIndex, dailySeries, eventMarks, medicationDaysByMonth, optionDays,
   type DailyMode, type DayRange, type FilterSpec, type NumericTarget, type SearchIndex, type WorkingSet, type WorkingSetInput,
 } from '@stb/analysis';
 import type { Role } from '@stb/core';
@@ -41,6 +41,22 @@ export function createAnalysisService() {
     },
     medicationDays(opts: { spec?: FilterSpec; now: number }) {
       return medicationDaysByMonth(scope(opts.spec, opts.now));
+    },
+    events(opts: { spec?: FilterSpec; now: number }) {
+      return eventMarks(scope(opts.spec, opts.now));
+    },
+    bodymap(opts: { spec?: FilterSpec; now: number }) {
+      return bodymapOverview(scope(opts.spec, opts.now));
+    },
+    /** Numerische und Auswahl-Blöcke im Arbeitsset (für die Auswahl in den Ansichten). */
+    blocks() {
+      const seen = new Map<string, { blockId: string; label: string; templateName: string; type: string; role?: string }>();
+      for (const e of need().ws.entries) {
+        for (const f of e.fields) {
+          if (!seen.has(f.blockId)) seen.set(f.blockId, { blockId: f.blockId, label: f.label, templateName: e.templateName, type: f.type, ...(f.role ? { role: f.role } : {}) });
+        }
+      }
+      return [...seen.values()];
     },
   };
 }
@@ -92,6 +108,6 @@ export function createAnalysisClient(port: Port): AnalysisClient {
       pending.set(id, { resolve, reject });
       port.postMessage({ id, method, args } satisfies Request);
     });
-  const methods: AnalysisMethod[] = ['load', 'filter', 'search', 'dailySeries', 'compare', 'optionDays', 'medicationDays'];
+  const methods: AnalysisMethod[] = ['load', 'filter', 'search', 'dailySeries', 'compare', 'optionDays', 'medicationDays', 'events', 'bodymap', 'blocks'];
   return Object.fromEntries(methods.map((m) => [m, call(m)])) as AnalysisClient;
 }

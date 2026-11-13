@@ -204,3 +204,44 @@ export function medicationDaysByMonth(entries: readonly WsEntry[]): MedicationMo
     .map(({ set, ...m }) => ({ ...m, days: set.size }))
     .sort((a, b) => (a.month < b.month ? -1 : a.month > b.month ? 1 : a.label < b.label ? -1 : 1));
 }
+
+export interface EventMark {
+  day: string;
+  category: 'event' | 'doctor';
+  title: string;
+}
+
+/** Ereignisse (`textarea`-Ereignisse) als Markierungen für den Verlauf (Spec 06), aufsteigend nach Tag. */
+export function eventMarks(entries: readonly WsEntry[]): EventMark[] {
+  const out: EventMark[] = [];
+  for (const e of entries) {
+    for (const f of e.fields) {
+      if (f.value.kind !== 'textEvents') continue;
+      for (const ev of f.value.events) out.push({ day: ev.at ? ev.at.slice(0, 10) : e.day, category: ev.category, title: ev.title });
+    }
+  }
+  return out.sort((x, y) => (x.day < y.day ? -1 : x.day > y.day ? 1 : 0));
+}
+
+export interface BodymapOverview {
+  presetId: string;
+  /** Anzahl Einträge mit Markierungen auf diesem Bild. */
+  entries: number;
+  points: { x: number; y: number; intensity?: number }[];
+}
+
+/** Body-Map-Übersicht (Spec 06): alle Markierungen eines Zeitraums je Bild, häufigstes Bild zuerst. */
+export function bodymapOverview(entries: readonly WsEntry[]): BodymapOverview[] {
+  const by = new Map<string, BodymapOverview>();
+  for (const e of entries) {
+    for (const f of e.fields) {
+      if (f.value.kind !== 'points' || f.value.points.length === 0) continue;
+      const o = by.get(f.value.presetId) ?? { presetId: f.value.presetId, entries: 0, points: [] };
+      o.entries += 1;
+      o.points.push(...f.value.points);
+      by.set(f.value.presetId, o);
+    }
+  }
+  return [...by.values()].sort((x, y) => y.entries - x.entries);
+}
+

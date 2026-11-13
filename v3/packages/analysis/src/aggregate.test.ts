@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildWorkingSet, type WsEntry } from './working-set.js';
 import { applyFilter } from './filter.js';
-import { comparePeriods, dailySeries, medicationDaysByMonth, optionDays, periodStats, previousRange } from './aggregate.js';
+import { bodymapOverview, comparePeriods, dailySeries, eventMarks, medicationDaysByMonth, optionDays, periodStats, previousRange } from './aggregate.js';
 import { FIX, FIXTURE_NOW, fixtureDiaries, fixtureEntries, fixtureExtraEntries, fixtureTemplatesV2, fixtureVersionsV2 } from './fixture.js';
 
 const ws = buildWorkingSet({ entries: [...fixtureEntries, ...fixtureExtraEntries], templates: fixtureTemplatesV2, versions: fixtureVersionsV2, diaries: fixtureDiaries });
@@ -91,3 +91,23 @@ describe('Medikamententage', () => {
     expect(r.map((o) => [o.label, o.days])).toEqual([['Stress', 2], ['Wetter', 2]]);
   });
 });
+
+describe('Markierungen', () => {
+  it('Ereignisse als Verlaufsmarkierungen, aufsteigend', () => {
+    expect(eventMarks(ws.entries)).toEqual([
+      { day: '2026-03-03', category: 'doctor', title: 'Hausarzt' },
+      { day: '2026-03-06', category: 'event', title: 'Umzug' },
+    ]);
+  });
+  it('Body-Map-Übersicht fasst Punkte je Bild zusammen', () => {
+    const mk = (id: string, presetId: string, n: number): WsEntry => ({
+      id, diaryId: 'd', templateId: 't', templateName: 'T', occurredAt: '2026-01-01T10:00:00.000Z', day: '2026-01-01', tags: [], source: 'app', authorId: 'u',
+      hasAttachment: false, weather: {},
+      fields: [{ blockId: 'bm', type: 'bodymap', label: 'B', archived: false, display: '', optionLabels: [], value: { kind: 'points', presetId, points: Array.from({ length: n }, (_, i) => ({ x: i / 10, y: 0.5 })) } }],
+    });
+    expect(bodymapOverview([mk('a', 'front', 2), mk('b', 'front', 1), mk('c', 'back', 3)]).map((o) => [o.presetId, o.entries, o.points.length])).toEqual([
+      ['front', 2, 3], ['back', 1, 3],
+    ]);
+  });
+});
+
