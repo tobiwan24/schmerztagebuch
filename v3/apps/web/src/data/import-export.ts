@@ -62,6 +62,35 @@ function incomingWins(existing: unknown, incoming: unknown): boolean {
   return false;
 }
 
+/**
+ * Vergleicht geplante Datensätze mit dem Bestand (ohne zu schreiben): neu → schreiben, gleicher Inhalt → überspringen,
+ * sonst gewinnt der neuere Stand (HLC vor `updatedAt`); Vorlagenversionen sind unveränderlich. Gemeinsam für Import und
+ * Migration (beide idempotent, EXP-03/MIG-09).
+ */
+export async function planRecordWrites(records: RecordRepository, inputs: readonly RecordInput[]): Promise<{ writes: RecordInput[]; added: number; updated: number; unchanged: number }> {
+  const writes: RecordInput[] = [];
+  let added = 0;
+  let updated = 0;
+  let unchanged = 0;
+  for (const rec of inputs) {
+    const existing = await records.get(rec.id);
+    if (!existing || existing.deleted) {
+      writes.push(rec);
+      added++;
+    } else if (existing.kind !== rec.kind) {
+      throw new ImportError('inconsistent', [`ID ${rec.id} gehört lokal zu „${existing.kind}“, in der Datei zu „${rec.kind}“`]);
+    } else if (canonical(existing.payload) === canonical(rec.payload)) {
+      unchanged++;
+    } else if (rec.kind !== 'templateVersion' && incomingWins(existing.payload, rec.payload)) {
+      writes.push(rec);
+      updated++;
+    } else {
+      unchanged++; // vorhandener Stand ist neuer (oder Vorlagenversion — unveränderlich)
+    }
+  }
+  return { writes, added, updated, unchanged };
+}
+
 /** Prüft und vergleicht mit dem Bestand (ohne zu schreiben) — Grundlage der Vorschau. */
 export async function planImport(records: RecordRepository, input: ExportV1, opts: { asCopy?: boolean; newId: () => string }): Promise<ImportPlan> {
   const doc = opts.asCopy ? copyWithNewIds(input, opts.newId) : input;
@@ -95,26 +124,7 @@ export async function planImport(records: RecordRepository, input: ExportV1, opt
     entries += r.entries.length;
   }
 
-  const writes: RecordInput[] = [];
-  let added = 0;
-  let updated = 0;
-  let unchanged = 0;
-  for (const rec of inputs) {
-    const existing = await records.get(rec.id);
-    if (!existing || existing.deleted) {
-      writes.push(rec);
-      added++;
-    } else if (existing.kind !== rec.kind) {
-      throw new ImportError('inconsistent', [`ID ${rec.id} gehört lokal zu „${existing.kind}“, in der Datei zu „${rec.kind}“`]);
-    } else if (canonical(existing.payload) === canonical(rec.payload)) {
-      unchanged++;
-    } else if (rec.kind !== 'templateVersion' && incomingWins(existing.payload, rec.payload)) {
-      writes.push(rec);
-      updated++;
-    } else {
-      unchanged++; // vorhandener Stand ist neuer (oder Vorlagenversion — unveränderlich)
-    }
-  }
+  const { writes, added, updated, unchanged } = await planRecordWrites(records, inputs);
   const blobs = writes.filter((w) => w.kind === ATTACHMENT_KIND).map((w) => blobOf.get(w.id)!);
   return { diaries: doc.diaries.length, templates, entries, added, updated, unchanged, writes, blobs };
 }
