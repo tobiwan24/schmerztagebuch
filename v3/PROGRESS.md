@@ -6,10 +6,11 @@
 
 - **Meilenstein:** M10 — Export, Import, Backup (M9 abgeschlossen, 15/15). Gate G3 erst nach M11.
 - **Gate G2:** vom User freigegeben (2026-11-13).
-- **Nächste Aufgabe:** M10.1 Spec 07 vollständig lesen; Export-Kern als Paket `packages/export` laut Spec 01 (darf `core` und
-  `analysis` importieren): CSV (Codierung, Trennzeichen, Spalten je Block über `toCsv`, EXP-01) und JSON-Export/-Import
-  (Schema, Versionen, Rundweg EXP-03?) — genaue Zuordnung der IDs aus Spec 07 übernehmen. Danach PDF (jsPDF wie v2?
-  Abhängigkeit mit DECISIONS), verschlüsseltes Backup, Import.
+- **Nächste Aufgabe:** M10.1 Spec 07 vollständig lesen; Export-Kern als Paket `packages/export` (Spec 01: darf `core` +
+  `analysis` importieren): JSON-v1-Export mit veröffentlichtem JSON Schema (EXP-01), Import mit Roundtrip/Idempotenz/
+  „Als Kopie“ (EXP-02/03/04, Integration mit Web-Repositories), Ablehnung manipulierter Dateien ohne DB-Änderung (EXP-11),
+  gefilterter Export (EXP-07). Danach CSV long/wide mit Golden Files + Formel-Injection (EXP-05/06), PDF (EXP-08/09),
+  `.stbbackup` (EXP-10), Backup-Erinnerung (EXP-12).
 - **Offen in M10:** EXP-01 … EXP-12
 - **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail. Schnelleintrag: Einstellung pro Tagebuch (Vorlage/Blöcke) folgt mit Tagebuch-Einstellungen; bei mehreren Tagebüchern nimmt `/quick` das erste. Body-Map: v2-Pinsel/Punktgröße/Kommentare/eigene Bilder fehlen (v3-Wertform kennt nur Punkte mit Intensität) — bei Bedarf Spec 05 erweitern; Migration (M11) muss Pinselstriche abbilden.
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
