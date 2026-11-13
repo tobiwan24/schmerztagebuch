@@ -14,7 +14,8 @@ import { de } from '@/i18n/de';
 
 const USERNAME_RE = /^[\p{L}\p{N}._@+-]{3,64}$/u;
 
-export function CloudRegister({ onPending }: { onPending: (p: PendingAccount) => void }) {
+/** `upgrade`: bestehendes lokales Konto auf „Mit Konto" umstellen (SYN-11) — gleicher Ablauf, UMK bleibt. */
+export function CloudRegister({ onPending, mode = 'register' }: { onPending: (p: PendingAccount) => void; mode?: 'register' | 'upgrade' }) {
   const auth = useAuth();
   const [username, setUsername] = useState('');
   const [prepared, setPrepared] = useState<{ challengeId: string; options: CredentialCreationOptions } | null>(null);
@@ -48,7 +49,8 @@ export function CloudRegister({ onPending }: { onPending: (p: PendingAccount) =>
     pending
       .then(async (credential) => {
         if (!credential) throw new DOMException('abgebrochen', 'NotAllowedError');
-        onPending(await auth.cloud.prepareRegistration({ challengeId: prepared.challengeId, username: username.trim(), credential }));
+        const input = { challengeId: prepared.challengeId, username: username.trim(), credential };
+        onPending(await (mode === 'upgrade' ? auth.cloud.prepareUpgrade(input) : auth.cloud.prepareRegistration(input)));
       })
       .catch((err: unknown) => {
         setError(toAuthErrorCode(err, { gesture: true }));
@@ -60,8 +62,8 @@ export function CloudRegister({ onPending }: { onPending: (p: PendingAccount) =>
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{de.onboarding.cloudTitle}</CardTitle>
-        <CardDescription>{de.onboarding.cloudHint}</CardDescription>
+        <CardTitle>{mode === 'upgrade' ? de.settings.upgradeTitle : de.onboarding.cloudTitle}</CardTitle>
+        <CardDescription>{mode === 'upgrade' ? de.settings.upgradeHint : de.onboarding.cloudHint}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {!prepared ? (

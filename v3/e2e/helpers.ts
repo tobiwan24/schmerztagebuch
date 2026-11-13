@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Browser, type Page } from '@playwright/test';
 
 export const PASSWORD = 'sicheres-passwort-123';
 
@@ -96,3 +96,24 @@ export async function onboardWithCloud(page: Page, username: string): Promise<st
 /** Eindeutiger Benutzername pro Test (eine Server-DB für den ganzen Lauf). */
 export const uniqueUser = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
+/** Zweitgerät: neuer Browser-Kontext mit eigenem virtuellen Authenticator, Anmeldung per Backup-Code (A-023). */
+export async function addDeviceWithBackupCode(browser: Browser, username: string, backupCode: string): Promise<Page> {
+  const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, locale: 'de-DE' });
+  const page = await ctx.newPage();
+  await addVirtualAuthenticator(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Weiter' }).click();
+  await page.getByRole('button', { name: /Mit Konto/ }).click();
+  await page.getByRole('button', { name: 'Ich habe schon ein Konto' }).click();
+  await page.getByRole('button', { name: 'Mit Backup-Code anmelden' }).click();
+  await page.getByLabel('Benutzername').fill(username);
+  await page.getByLabel('Backup-Code').fill(backupCode);
+  await page.getByRole('button', { name: 'Weiter' }).click();
+  await page.getByRole('button', { name: 'Passkey für dieses Gerät anlegen' }).click();
+  const newCode = (await page.getByTestId('backup-code').textContent({ timeout: 30_000 })) ?? '';
+  expect(newCode).not.toBe(backupCode);
+  await page.getByLabel('Ich habe den Code sicher aufbewahrt').check();
+  await page.getByRole('button', { name: 'Weiter' }).click();
+  await expect(page.getByRole('heading', { name: 'Start' })).toBeVisible({ timeout: 30_000 });
+  return page;
+}

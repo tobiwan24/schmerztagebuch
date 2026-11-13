@@ -23,7 +23,7 @@ export interface DiaryMembership {
 export type CredentialJson = { id: string; rawId: string; type: 'public-key'; response: Record<string, unknown>; [k: string]: unknown };
 
 export interface AccountApi {
-  registerOptions(username: string): Promise<{ challengeId: string; options: Record<string, unknown> & { challenge: string; user: { id: string } } }>;
+  registerOptions(username: string, userId?: string): Promise<{ challengeId: string; options: Record<string, unknown> & { challenge: string; user: { id: string } } }>;
   registerVerify(body: { challengeId: string; username: string; response: CredentialJson; keys: UserKey[]; device: NewDevice }): Promise<{ userId: string; deviceId: string }>;
   loginOptions(): Promise<{ challengeId: string; options: Record<string, unknown> & { challenge: string } }>;
   loginVerify(body: { challengeId: string; response: CredentialJson; device: NewDevice }): Promise<{ userId: string; deviceId: string; keys: UserKey[] }>;
@@ -63,7 +63,7 @@ export function createFetchAccountApi(baseUrl = '', fetchFn: typeof fetch = glob
     return (res.status === 204 ? undefined : await res.json()) as T;
   }
   return {
-    registerOptions: (username) => call('POST', '/api/v1/auth/register/options', { username }),
+    registerOptions: (username, userId) => call('POST', '/api/v1/auth/register/options', userId ? { username, userId } : { username }),
     registerVerify: (body) => call('POST', '/api/v1/auth/register/verify', body),
     loginOptions: () => call('POST', '/api/v1/auth/login/options', {}),
     loginVerify: (body) => call('POST', '/api/v1/auth/login/verify', body),

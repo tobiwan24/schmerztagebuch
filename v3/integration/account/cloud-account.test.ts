@@ -41,7 +41,7 @@ function injectApi(app: FastifyInstance): AccountApi & { cookie: () => string } 
   }
   return {
     cookie: () => cookie,
-    registerOptions: (username) => call('POST', '/api/v1/auth/register/options', { username }),
+    registerOptions: (username, userId) => call('POST', '/api/v1/auth/register/options', userId ? { username, userId } : { username }),
     registerVerify: (body) => call('POST', '/api/v1/auth/register/verify', body),
     loginOptions: () => call('POST', '/api/v1/auth/login/options', {}),
     loginVerify: (body) => call('POST', '/api/v1/auth/login/verify', body),

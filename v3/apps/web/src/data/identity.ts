@@ -58,3 +58,15 @@ export function createStamper(db: StbDb, clock: Clock, newId: () => string): Sta
     },
   };
 }
+
+/** Lokale User-ID des Geräts (falls schon vergeben) — wird bei der Registrierung als Server-User-ID vorgeschlagen (A-021). */
+export async function localUserId(db: StbDb): Promise<string | undefined> {
+  return ((await db.device.get(IDENTITY_ID))?.value as Identity | undefined)?.userId;
+}
+
+/** Nach Registrierung/Login/Recovery: `authorId` neuer Änderungen = Server-User-ID. HLC-Knoten bleibt. */
+export async function adoptUserId(db: StbDb, userId: string, newId: () => string): Promise<void> {
+  const current = (await db.device.get(IDENTITY_ID))?.value as Identity | undefined;
+  await db.device.put({ id: IDENTITY_ID, value: { userId, node: current?.node ?? newId() } satisfies Identity });
+}
+

@@ -37,9 +37,10 @@ export class AuthFlowError extends Error {
   }
 }
 
-export async function registrationOptions(db: Db, rp: RpConfig, username: string, now: number) {
+export async function registrationOptions(db: Db, rp: RpConfig, username: string, now: number, proposedUserId?: string) {
   if (db.prepare('SELECT 1 FROM users WHERE username = ?').get(username)) throw new AuthFlowError('username-taken');
-  const userId = randomUUID();
+  // Vorgeschlagene ID nur, wenn frei; sonst neue (keine Aussage darüber, ob sie existiert).
+  const userId = proposedUserId && !db.prepare('SELECT 1 FROM users WHERE id = ?').get(proposedUserId) ? proposedUserId : randomUUID();
   const ch = createChallenge(db, { purpose: 'register', userId }, now);
   const options = await generateRegistrationOptions({
     rpName: rp.rpName,

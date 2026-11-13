@@ -43,6 +43,12 @@ export const de = {
     themeLight: 'Hell',
     themeDark: 'Dunkel',
     themeSystem: 'Automatisch',
+    account: 'Konto & Sync',
+    localOnly: 'Deine Daten liegen nur auf diesem Gerät.',
+    upgradeAction: 'Mit Konto synchronisieren',
+    upgradeTitle: 'Konto anlegen und synchronisieren',
+    upgradeHint: 'Deine vorhandenen Einträge werden Ende-zu-Ende verschlüsselt hochgeladen. Du bekommst einen neuen Backup-Code.',
+    cloudActive: 'Mit Konto verbunden — Änderungen werden verschlüsselt synchronisiert.',
   },
   entry: {
     title: 'Eintrag',

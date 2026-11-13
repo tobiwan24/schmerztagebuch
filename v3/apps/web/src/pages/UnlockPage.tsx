@@ -33,18 +33,22 @@ export function UnlockPage() {
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [pending, setPending] = useState<PendingAccount | null>(null);
+  const [hasPassword, setHasPassword] = useState(false);
 
   // Beim Öffnen einmal vorbereiten. Abhängig nur von der (stabilen) DB — `auth` selbst ist pro Render neu.
-  const { passkeyRequest, db } = auth;
+  const { passkeyRequest, hasPasswordFactor, db } = auth;
   useEffect(() => {
     let cancelled = false;
     void passkeyRequest().then((p) => {
       if (!cancelled) setPrepared(p);
     });
+    void hasPasswordFactor().then((h) => {
+      if (!cancelled) setHasPassword(h);
+    });
     return () => {
       cancelled = true;
     };
-  }, [db, passkeyRequest]);
+  }, [db, passkeyRequest, hasPasswordFactor]);
 
   if (auth.status === 'no-account') return <Navigate to="/onboarding" replace />;
   if (auth.status === 'unlocked' && mode === 'unlock') return <Navigate to={next} replace />;
@@ -113,7 +117,9 @@ export function UnlockPage() {
                 <Fingerprint aria-hidden />
                 {de.lock.unlockPasskey}
               </Button>
-            ) : (
+            ) : null}
+            {/* Passwort, wenn das Konto einen Passwort-Faktor hat (oder als Fallback ohne Passkey). */}
+            {hasPassword || !prepared ? (
               <form className="flex flex-col gap-3" onSubmit={(e) => void onPassword(e)}>
                 <Label htmlFor="unlock-pw" className="flex-col items-start">
                   {de.lock.passwordLabel}
@@ -123,7 +129,7 @@ export function UnlockPage() {
                   {de.lock.unlockPassword}
                 </Button>
               </form>
-            )}
+            ) : null}
             <Label className="min-h-11">
               <Checkbox checked={stay} onChange={(e) => setStay(e.target.checked)} />
               {de.lock.stayUnlocked}

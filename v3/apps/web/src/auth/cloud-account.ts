@@ -7,10 +7,13 @@ import {
   openIdentityKey, sealIdentityKey, toBase64Url, unwrapDkForMember, unwrapUmk, wrapDkForMember, wrapUmk, type SealedIdentity, type UmkWrap,
 } from '@stb/crypto';
 import type { StbDb } from '../data/db.js';
+import { adoptUserId } from '../data/identity.js';
+import { switchToCloudPrimary } from '../sync/mode.js';
 import { decodeDkWrap, encodeDkWrap, type AccountApi, type CredentialJson, type NewDevice, type UserKey } from './account-api.js';
-import type { PendingAccount } from './local-account.js';
+import { loadAccount, type PendingAccount } from './local-account.js';
 
 const ACCOUNT_ID = 'account';
+const randomNode = () => globalThis.crypto.randomUUID();
 const dkRowId = (diaryId: string) => `dk:${diaryId}`;
 
 export interface CloudAccount {
@@ -74,6 +77,7 @@ export async function prepareCloudRegistration(
       const r = await api.registerVerify({ challengeId: input.challengeId, username: input.username, response: input.credential, keys, device });
       account.cloud.userId = r.userId;
       await db.keys.put({ id: ACCOUNT_ID, value: account });
+      await adoptUserId(db, r.userId, randomNode);
     },
   };
 }
@@ -102,11 +106,64 @@ export async function loginOnNewDevice(
     cloud: { userId: r.userId, username: input.username ?? '', identityPublicKey: pub.blob, identitySealed: sealed },
   };
   await db.keys.put({ id: ACCOUNT_ID, value: account });
+  await adoptUserId(db, r.userId, randomNode);
   for (const m of await api.listDiaries()) {
     await db.keys.put({ id: dkRowId(m.diaryId), value: { diaryId: m.diaryId, keyEpoch: m.keyEpoch, wrappedDk: m.wrappedDk } satisfies DkRow });
     await db.sync_state.put({ diaryId: m.diaryId, cursor: 0, mode: 'cloud-primary' });
   }
   return { umk, account };
+}
+
+/**
+ * Wechsel `local-only → cloud-primary` (Spec 04 „Modi", SYN-11): die **bestehende** UMK bleibt (lokale Wraps gültig),
+ * dazu Passkey-Wrap des neuen Passkeys, Identity und ein **neuer** Backup-Code (der alte ist dem Gerät nicht bekannt, der
+ * Server braucht aber Wrap + Verifier). `commit()` (nach Bestätigung des neuen Codes): Konto beim Server registrieren
+ * (lokale User-ID wird übernommen), je lokalem Tagebuch DK anlegen und alle Records in die Outbox (Erst-Push).
+ */
+export async function prepareUpgradeToCloud(
+  db: StbDb,
+  api: AccountApi,
+  input: { challengeId: string; username: string; credential: CredentialJson; prf: Uint8Array<ArrayBuffer>; umk: CryptoKey; now: () => number },
+): Promise<PendingAccount & { account: CloudAccount; diaryKeys: () => Promise<{ diaryId: string; key: CryptoKey }[]> }> {
+  const local = await loadAccount(db);
+  if (!local || isCloudAccount(local)) throw new Error('Kein lokales Konto zum Umstellen');
+  const umk = input.umk;
+  const backupCode = await generateBackupCode();
+  const passkeyWrap = await wrapUmk(umk, { kind: 'passkey', prf: input.prf });
+  const backupWrap = await wrapUmk(umk, { kind: 'backup', code: backupCode });
+  const { publicKey, sealed } = await sealIdentityKey(umk, await generateIdentityEcdhKeyPair());
+  const credentialId = input.credential.id;
+  const keys: UserKey[] = [
+    { kind: 'identity-pub', blob: publicKey },
+    { kind: 'identity-priv-enc', blob: JSON.stringify(sealed) },
+    { kind: 'umk-wrap-passkey', credentialId, blob: JSON.stringify(passkeyWrap) },
+    { kind: 'umk-wrap-backup', blob: JSON.stringify(backupWrap) },
+    { kind: 'backup-verifier', blob: await deriveBackupAuth(backupCode) },
+  ];
+  const account: CloudAccount = {
+    v: 1, mode: 'cloud-primary', createdAt: local.createdAt, passkey: { credentialId },
+    // Bisherige Faktoren (Passwort/lokaler Passkey) bleiben für das Entsperren auf diesem Gerät; Backup nur noch der neue Code.
+    wraps: [passkeyWrap, backupWrap, ...local.wraps.filter((w) => w.factor !== 'backup')],
+    cloud: { userId: '', username: input.username, identityPublicKey: publicKey, identitySealed: sealed },
+  };
+  const created: { diaryId: string; key: CryptoKey }[] = [];
+  return {
+    umk,
+    backupCode,
+    account,
+    diaryKeys: async () => created,
+    async commit() {
+      const r = await api.registerVerify({ challengeId: input.challengeId, username: input.username, response: input.credential, keys, device: await newDevice(umk) });
+      account.cloud.userId = r.userId;
+      await db.keys.put({ id: ACCOUNT_ID, value: account });
+      await adoptUserId(db, r.userId, randomNode);
+      const diaryIds = (await db.records.toArray()).filter((rec) => rec.kind === 'diary' && !rec.deleted).map((rec) => rec.id);
+      for (const diaryId of diaryIds) {
+        created.push({ diaryId, key: await createCloudDiary(db, api, account, diaryId) });
+        await switchToCloudPrimary(db, diaryId, { now: input.now });
+      }
+    },
+  };
 }
 
 /** Recovery / Gerät hinzufügen, Schritt 1: Backup-Code prüfen lassen (nur der abgeleitete Token geht an den Server). */
@@ -161,6 +218,7 @@ export async function prepareCloudRecovery(
       const r = await api.recoveryFinish({ challengeId: input.start.challengeId, response: input.credential, keys, device: await newDevice(umk) });
       account.cloud.userId = r.userId;
       await db.keys.put({ id: ACCOUNT_ID, value: account });
+      await adoptUserId(db, r.userId, randomNode);
       for (const m of await api.listDiaries()) {
         await db.keys.put({ id: dkRowId(m.diaryId), value: { diaryId: m.diaryId, keyEpoch: m.keyEpoch, wrappedDk: m.wrappedDk } satisfies DkRow });
         await db.sync_state.put({ diaryId: m.diaryId, cursor: 0, mode: 'cloud-primary' });

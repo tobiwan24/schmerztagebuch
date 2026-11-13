@@ -32,7 +32,8 @@ const userKey = z.strictObject({ kind: z.enum(USER_KEY_KINDS), credentialId: z.s
 const webauthnResponse = z.object({ id: z.string().min(1).max(1024), rawId: z.string().max(1024), type: z.literal('public-key'), response: z.record(z.string(), z.unknown()) }).passthrough();
 const username = z.string().trim().min(3).max(64).regex(/^[\p{L}\p{N}._@+-]+$/u);
 
-const registerOptionsBody = z.strictObject({ username });
+// Optional: lokale User-ID des Geräts übernehmen (A-021) — sonst vergibt der Server eine neue.
+const registerOptionsBody = z.strictObject({ username, userId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/).optional() });
 const registerVerifyBody = z.strictObject({
   challengeId: z.string().min(1).max(64),
   username,
@@ -81,7 +82,7 @@ export function registerAccountRoutes(app: FastifyInstance, { db, auth, now, rp 
     if (limited(req.ip, reply)) return reply;
     const body = registerOptionsBody.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid-request' });
-    const r = await run(reply, () => registrationOptions(db, rp, body.data.username, now()));
+    const r = await run(reply, () => registrationOptions(db, rp, body.data.username, now(), body.data.userId));
     return r ?? reply;
   });
 

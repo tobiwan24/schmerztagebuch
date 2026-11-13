@@ -8,9 +8,11 @@ import { hasAccount, loadAccount, unlockLocal, type PendingAccount } from './loc
 import { preparePasskeyRequest, prfOutput, type CredentialsLike } from './passkey';
 import { createFetchAccountApi, type AccountApi } from './account-api';
 import {
-  createCloudDiary, isCloudAccount, loginOnNewDevice, openDiaryKeys, prepareCloudRecovery, prepareCloudRegistration, startCloudRecovery, type CloudAccount,
+  createCloudDiary, isCloudAccount, loginOnNewDevice, openDiaryKeys, prepareCloudRecovery, prepareCloudRegistration, prepareUpgradeToCloud,
+  startCloudRecovery, type CloudAccount,
 } from './cloud-account';
 import { creationOptionsFromServer, credentialToJson, requestOptionsFromServer } from './webauthn-json';
+import { localUserId } from '@/data/identity';
 
 export type AuthStatus = 'loading' | 'no-account' | 'locked' | 'unlocked';
 
@@ -28,6 +30,8 @@ export interface AuthApi {
   unlockWith(factor: UmkFactor, opts?: { stayUnlocked?: boolean }): Promise<void>;
   /** Vorbereitete Passkey-Optionen (beim Öffnen des Entsperr-Dialogs gebaut), `null` ohne Passkey. */
   passkeyRequest(): Promise<CredentialRequestOptions | null>;
+  /** Hat das Konto einen Passwort-Faktor? (Auch nach dem Wechsel auf ein Konto bleibt er gültig.) */
+  hasPasswordFactor(): Promise<boolean>;
   lock(): Promise<void>;
   /** Konto „Mit Konto" (Spec 03). Optionen jeweils vorab laden; die Browser-Aufrufe passieren synchron im Klick. */
   cloud: CloudAuth;
@@ -52,6 +56,8 @@ export interface CloudAuth {
   recoveryOptions(input: { username: string; backupCode: string }): Promise<RecoveryStart>;
   /** Schritt 2 nach `credentials.create`: neuer Backup-Code; `commit()` über `finishPending` (nach Bestätigung). */
   prepareRecovery(input: { start: RecoveryStart; credential: Credential }): Promise<PendingAccount>;
+  /** Wechsel „nur auf diesem Gerät" → „Mit Konto" (entsperrt): bestehende UMK bleibt, neuer Backup-Code; `finishPending` lädt hoch. */
+  prepareUpgrade(input: { challengeId: string; username: string; credential: Credential }): Promise<PendingAccount>;
   /** Tagebuch auf dem Server anlegen (DK für die eigene Identity) und in der Sitzung bereitstellen. */
   createDiary(diaryId: string): Promise<void>;
 }
@@ -65,6 +71,7 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
   const session = useMemo(() => createCryptoSession(db, { now }), [db, now]);
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [accountMode, setAccountMode] = useState<AuthApi['accountMode']>(null);
+  const [accountVersion, setAccountVersion] = useState(0);
 
   // Nach jedem Statuswechsel (Konto angelegt, Login auf neuem Gerät, …) die Kontoart neu lesen.
   useEffect(() => {
@@ -75,7 +82,7 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
     return () => {
       cancelled = true;
     };
-  }, [db, status]);
+  }, [db, status, accountVersion]);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,6 +110,7 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
       await pending.commit();
       session.unlock(pending.umk);
       await loadDiaryKeys(pending.umk);
+      setAccountVersion((v) => v + 1);
       if (opts?.stayUnlocked) await session.stayUnlocked();
       setStatus('unlocked');
     },
@@ -117,6 +125,9 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
       const account = await loadAccount(db);
       return account?.passkey ? preparePasskeyRequest({ rpId: location.hostname, credentialIds: [account.passkey.credentialId] }) : null;
     },
+    async hasPasswordFactor() {
+      return (await loadAccount(db))?.wraps.some((w) => w.factor === 'password') ?? false;
+    },
     async lock() {
       session.lock();
       await session.forgetDevice();
@@ -125,7 +136,7 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
     cloud: {
       isCloudAccount: async () => isCloudAccount(await loadAccount(db)),
       async registrationOptions(username) {
-        const r = await server.registerOptions(username);
+        const r = await server.registerOptions(username, await localUserId(db));
         return { challengeId: r.challengeId, options: creationOptionsFromServer(r.options) };
       },
       async prepareRegistration({ challengeId, username, credential }) {
@@ -147,6 +158,15 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
         session.unlock(umk);
         await loadDiaryKeys(umk);
         setStatus('unlocked');
+      },
+      async prepareUpgrade({ challengeId, username, credential }) {
+        let prf: Uint8Array<ArrayBuffer>;
+        try {
+          prf = prfOutput(credential);
+        } catch {
+          prf = prfOutput(await navigator.credentials.get(preparePasskeyRequest({ rpId: location.hostname, credentialIds: [credential.id] })));
+        }
+        return prepareUpgradeToCloud(db, server, { challengeId, username, credential: credentialToJson(credential), prf, umk: session.umk(), now });
       },
       async recoveryOptions({ username, backupCode }) {
         const raw = await startCloudRecovery(server, { username, backupCode });

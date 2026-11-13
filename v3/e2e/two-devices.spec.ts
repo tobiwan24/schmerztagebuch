@@ -1,32 +1,11 @@
 // Zwei Geräte desselben Kontos (zwei Browser-Kontexte, je eigener virtueller Authenticator). Gerät B kommt per
 // Backup-Code dazu (A-023) — ein kopierter Passkey liefert im virtuellen Authenticator keine PRF.
-import { test, expect, type Browser, type Page } from '@playwright/test';
-import { addVirtualAuthenticator, go, onboardWithCloud, uniqueUser } from './helpers';
+import { test, expect, type Page } from '@playwright/test';
+import { addDeviceWithBackupCode, addVirtualAuthenticator, go, onboardWithCloud, uniqueUser } from './helpers';
 
 const synced = (page: Page) => expect(page.getByTestId('sync-status')).toHaveAttribute('data-state', 'synced', { timeout: 20_000 });
 /** Sync-Auslöser „App wieder im Vordergrund" (Spec 04). */
 const foreground = (page: Page) => page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-
-async function addDeviceWithBackupCode(browser: Browser, username: string, backupCode: string): Promise<Page> {
-  const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, locale: 'de-DE' });
-  const page = await ctx.newPage();
-  await addVirtualAuthenticator(page);
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Weiter' }).click();
-  await page.getByRole('button', { name: /Mit Konto/ }).click();
-  await page.getByRole('button', { name: 'Ich habe schon ein Konto' }).click();
-  await page.getByRole('button', { name: 'Mit Backup-Code anmelden' }).click();
-  await page.getByLabel('Benutzername').fill(username);
-  await page.getByLabel('Backup-Code').fill(backupCode);
-  await page.getByRole('button', { name: 'Weiter' }).click();
-  await page.getByRole('button', { name: 'Passkey für dieses Gerät anlegen' }).click();
-  const newCode = (await page.getByTestId('backup-code').textContent({ timeout: 30_000 })) ?? '';
-  expect(newCode).not.toBe(backupCode);
-  await page.getByLabel('Ich habe den Code sicher aufbewahrt').check();
-  await page.getByRole('button', { name: 'Weiter' }).click();
-  await expect(page.getByRole('heading', { name: 'Start' })).toBeVisible({ timeout: 30_000 });
-  return page;
-}
 
 async function fieldsOf(page: Page, entryRow: number): Promise<string[]> {
   await go(page, '/history');
