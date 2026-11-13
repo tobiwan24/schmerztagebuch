@@ -11,6 +11,7 @@ export default defineConfig({
       '@stb/crypto': src('crypto'),
       '@stb/sync-protocol': src('sync-protocol'),
       '@stb/analysis': src('analysis'),
+      '@stb/export': src('export'),
       '@': fileURLToPath(new URL('./apps/web/src', import.meta.url)),
     },
   },
