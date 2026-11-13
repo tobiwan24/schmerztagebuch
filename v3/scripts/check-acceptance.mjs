@@ -35,7 +35,7 @@ export function parseSpecs(files) {
 export function parseMilestones(content) {
   const ms = new Map();
   for (const line of content.split(/\r?\n/)) {
-    const m = /^\|\s*(M\d+)\s*\|([^|]*)\|([^|]*)\|/.exec(line.trim());
+    const m = /^\|\s*(M\d+[a-z]?)\s*\|([^|]*)\|([^|]*)\|/.exec(line.trim());
     if (!m) continue;
     ms.set(m[1], new Set([...m[3].matchAll(ID_RE)].map((x) => x[1])));
   }

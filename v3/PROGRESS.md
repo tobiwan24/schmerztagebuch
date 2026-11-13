@@ -4,11 +4,15 @@
 
 ## Aktuell
 
-- **Meilenstein:** M8 abgeschlossen (12/12) → **Gate G2 „Kernablauf“ wartet auf den User** (Loop angehalten).
-- **Gate G2:** Lauffähige App lokal zum Durchklicken auf dem iPhone: Onboarding → Eintrag → Verlauf → Schnelleintrag
-  (lokal und mit Konto). Das iPhone braucht HTTPS (WebCrypto/WebAuthn nur im sicheren Kontext) → Homelab-Deployment
-  per `docker-compose.yml` hinter dem Reverse-Proxy oder lokales HTTPS. Feedback → nächste Schritte; danach M9.
-- **Erledigt in M8:** BLK-07 BLK-09 BLK-19 BLK-03 BLK-10 BLK-15 SYN-14 SYN-09 SYN-06 BLK-05 CRY-15 SYN-11
+- **Meilenstein:** M8b — Body-Map vollständig wie v2 (User-Entscheidung nach Gate G2, A-024); danach M9.
+- **Gate G2:** vom User freigegeben (2026-11-13).
+- **Nächste Aufgabe:** M8b.2 BLK-21 eigene Bilder: Upload (Input `type=file`, verkleinern auf max. 1000×1400 JPEG 0,85 wie
+  v2 `resizeAndOptimizeImage`), Zuschneiden (v2 nutzte `react-easy-crop` → neue Abhängigkeit mit DECISIONS-Eintrag oder
+  eigener Zuschnitt-Dialog), speichern als Record `bodymapImage` je Tagebuch (Repository + Schema in core, wird mit
+  synchronisiert), Bildauswahl zeigt Standard- + eigene Bilder, eigenes Bild löschen, „Als Standard für dieses Feld“
+  (Vorlagen-Block `defaultPresetId` → neue Vorlagenversion via `updateTemplate`). E2E inkl. Zweitgerät.
+- **Erledigt in M8b:** BLK-20
+- **Offen in M8b:** BLK-21
 - **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail. Schnelleintrag: Einstellung pro Tagebuch (Vorlage/Blöcke) folgt mit Tagebuch-Einstellungen; bei mehreren Tagebüchern nimmt `/quick` das erste. Body-Map: v2-Pinsel/Punktgröße/Kommentare/eigene Bilder fehlen (v3-Wertform kennt nur Punkte mit Intensität) — bei Bedarf Spec 05 erweitern; Migration (M11) muss Pinselstriche abbilden.
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
@@ -26,7 +30,8 @@
 | M5 | erledigt | 10/10 IDs, Konfliktpfad nachgearbeitet |
 | M6 | erledigt | 12/12 IDs → Gate G1 |
 | M7 | erledigt | 14/14 IDs |
-| M8 | erledigt | 12/12 IDs — Gate G2 wartet |
+| M8 | erledigt | 12/12 IDs, Gate G2 freigegeben |
+| M8b | in Arbeit | 1/2 IDs (Body-Map wie v2) |
 | M9 | offen | erst nach UI-11 |
 | M10 | offen | |
 | M11 | offen | danach Gate G3 |
@@ -132,3 +137,5 @@
 | 2026-11-13 | M8.6e | (Grundlage SYN-06, BLK-05) | Experiment: per CDP kopierter Passkey liefert im virtuellen Authenticator keine PRF → Zweitgerät per Backup-Code (A-023): `deriveBackupAuth` (HKDF, eigene Domain), Migration 8 `backup-verifier` (nur Hash, nie an Clients), `POST /api/v1/auth/recovery/start|finish` (neuer Passkey als zusätzlicher Zugang, neuer Backup-Code ersetzt den alten, Rate-Limit 5/15 min pro IP und Benutzername, keine Benutzernamen-Aufzählung). Client `startCloudRecovery`/`prepareCloudRecovery`; Registrierung lädt den Verifier mit hoch. Tests: Server (falscher Code, unbekannter Nutzer, Ersetzen, alter Passkey weiter gültig, Rate-Limit), Integration (Gerät B per Backup-Code öffnet denselben DK, alter Code ungültig). |
 | 2026-11-13 | M8.6f | SYN-06 BLK-05 CRY-15 | Onboarding „Mit Backup-Code anmelden“ (Benutzername + Code → „Passkey für dieses Gerät anlegen“ synchron → neuer Backup-Code mit Pflichtbestätigung → Sitzung + DKs → erster Sync → Start), `AuthContext.cloud.recoveryOptions/prepareRecovery`. E2E mit zwei Kontexten (Gerät B per Backup-Code): SYN-06 (beide offline bearbeiten — A Notiz, B Schmerzstärke → online → identischer Stand mit beiden Änderungen), BLK-05 (Reihenfolge A → B und B → A). CRY-15 als Playwright-Projekt `server-scan` nach allen Tests: liest `reports/e2e-server/stb.db`, verlangt > 0 Records, keine Klartext-Marker (Eintragstexte, Vorlagen-/Blocknamen, Tagebuchname) in allen Tabellen. Zwei-Geräte-Tests pollen mit Vordergrund-Auslöser (entprellter Sync nach Änderung). |
 | 2026-11-13 | M8.7 | SYN-11 | Wechsel „nur auf diesem Gerät“ → „Mit Konto“ in den Einstellungen: Passkey anlegen, **bestehende UMK bleibt** (Passwort-/lokaler Passkey-Wrap weiter gültig), neuer Backup-Code (Server braucht Wrap + Verifier), Identity neu; `commit` registriert beim Server mit der **lokalen User-ID** (A-021 umgesetzt: Server übernimmt vorgeschlagene freie ID; nach Login/Recovery übernimmt das Gerät die Server-ID als `authorId`), je lokalem Tagebuch DK + `switchToCloudPrimary` (alle Records in die Outbox). `AuthContext` liest die Kontoart nach `finishPending` neu (Outbox + Sync starten ohne Statuswechsel). Entsperr-Seite bietet Passkey **und** Passwort an, wenn beide Faktoren existieren. E2E: lokal zwei Einträge + Vorlage → umstellen → synchronisiert, Passwort-Entsperren weiter möglich → Zweitgerät per Backup-Code sieht alle Daten. **M8 abgeschlossen** (12/12); Regression M0–M7 grün (M4: QA-08 wartet auf Docker). |
+| 2026-11-13 | Gate G2 | — | Vom User freigegeben. Body-Map-Funktionen aus v2 (Pinsel, Größe, Kommentar je Markierung, eigene Bilder mit Zuschnitt) als „maßgeblich wichtig“ verlangt → A-024, Spec 05/02 erweitert, neue IDs BLK-20/BLK-21, Meilenstein M8b vor M9. |
+| 2026-11-13 | M8b.1 | BLK-20 | Wertform erweitert (rückwärtskompatibel: `kind`, `size`, `comment`, `path` je Markierung; Pinsel ⇔ Pfad). `BodyMapField` neu: Werkzeuge Punkt/Pinsel, Größe klein/mittel/groß (v2-Werte), Intensität, Kommentar je Markierung, `#n`-Nummern, Entfernen nummeriert neu, Bildwechsel mit Markierungen nur nach Rückfrage (Dialog statt gesperrter Buttons). Pinselstrich in einer Ref gepuffert (State war bei schnellen Zeigerereignissen veraltet → Strich wurde zum Punkt). Umschalter bei < 440 px untereinander. `check-acceptance` erlaubt Meilensteine wie `M8b`. |

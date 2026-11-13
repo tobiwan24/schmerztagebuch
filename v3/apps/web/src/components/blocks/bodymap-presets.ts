@@ -28,3 +28,11 @@ export function intensityFill(intensity: number | undefined): string {
   if (i <= 8) return 'fill-orange-500';
   return 'fill-red-500';
 }
+
+export function intensityStroke(intensity: number | undefined): string {
+  const i = intensity ?? 5;
+  if (i <= 3) return 'stroke-green-500';
+  if (i <= 6) return 'stroke-yellow-500';
+  if (i <= 8) return 'stroke-orange-500';
+  return 'stroke-red-500';
+}

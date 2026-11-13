@@ -5,12 +5,20 @@ export const bodymapConfig = z.strictObject({ defaultPresetId: z.string().min(1)
 export type BodymapConfig = z.infer<typeof bodymapConfig>;
 
 const unit = z.number().finite().min(0).max(1);
-export const bodymapPoint = z.strictObject({
-  id: idSchema,
-  x: unit,
-  y: unit,
-  intensity: z.number().finite().min(0).optional(),
-});
+/** Markierung (Spec 05, A-024): Punkt oder Pinselstrich (`path`, normalisiert), Größe = Durchmesser relativ zur Bildbreite. */
+export const BODYMAP_MAX_PATH = 1000;
+export const bodymapPoint = z
+  .strictObject({
+    id: idSchema,
+    x: unit,
+    y: unit,
+    intensity: z.number().finite().min(0).optional(),
+    kind: z.enum(['point', 'brush']).optional(),
+    size: z.number().finite().gt(0).max(1).optional(),
+    comment: z.string().max(2000).optional(),
+    path: z.array(z.strictObject({ x: unit, y: unit })).min(2).max(BODYMAP_MAX_PATH).optional(),
+  })
+  .refine((p) => (p.kind === 'brush') === (p.path !== undefined), { message: 'Pinselstrich braucht einen Pfad, ein Punkt keinen', path: ['path'] });
 
 const bodymapValue = z.strictObject({ presetId: z.string().min(1), points: z.array(bodymapPoint) });
 export type BodymapValue = z.infer<typeof bodymapValue>;

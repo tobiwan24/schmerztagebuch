@@ -10,10 +10,17 @@
 | `text` | `maxLength?`, `placeholder?` | `string` | Text |
 | `textarea` | `allowAttachments`, `allowEvents` | `{ text?, events?: [{ id, category: 'event' \| 'doctor', title, at? }], attachmentIds?: string[] }` | Text + Ereignisse |
 | `date` | `mode: 'date' \| 'datetime' \| 'duration' \| 'range'` | `{ at?: ISO } \| { start: ISO, end: ISO } \| { minutes: number }` | Zeit/Dauer |
-| `bodymap` | `defaultPresetId` (wird beim Öffnen **vorausgewählt angezeigt**) | `{ presetId, points: [{ id, x: 0..1, y: 0..1, intensity?: number }] }` | Regionen/Punkte |
+| `bodymap` | `defaultPresetId` (Standardbild oder eigenes Bild; wird beim Öffnen **vorausgewählt angezeigt**) | `{ presetId, points: [{ id, x: 0..1, y: 0..1, intensity?: number, kind?: 'point' \| 'brush', size?: 0..1, comment?: string, path?: [{ x, y }] }] }` | Regionen/Punkte |
 
 - Alle Block-Komponenten aus v2 (`src/components/blocks/*`, insbesondere BodyMap) werden **portiert**, nicht neu
   erfunden: Logik übernehmen, auf neue Wertformen und shadcn-Komponenten umstellen.
+- **Body-Map vollständig wie v2** (User-Entscheidung 2026-11-13, DECISIONS A-024): Werkzeuge **Punkt** und **Pinsel**
+  (Strich als Pfad normalisierter Koordinaten), **Größe** klein/mittel/groß (normalisierter Durchmesser relativ zur
+  Bildbreite), **Intensität** 1–10 (Farbe grün/gelb/orange/rot), **Kommentar je Markierung**, Nummerierung in
+  Reihenfolge, Entfernen mit Neunummerierung. **Eigene Bilder**: hochladen (verkleinert auf max. 1000×1400, JPEG),
+  **zuschneiden** (Seitenverhältnis wählbar), als eigenes Bild des Tagebuchs speichern (Record-`kind` `bodymapImage`,
+  verschlüsselt synchronisiert), löschen, **als Standard des Feldes setzen** (`defaultPresetId`). Zuschneiden oder
+  Bildwechsel mit vorhandenen Markierungen nur nach Rückfrage (Markierungen gehen verloren).
 - Jeder Typ hat in `packages/core/blocks/<typ>.ts`: zod-Schema für `config` und `value`, `emptyValue()`,
   `isEmpty(value)`, `toDisplay(value, def)`, `toAnalysis(value, def)` (Normalform für 06), `toCsv(value, def)`.
 
@@ -84,4 +91,6 @@
 | BLK-16 | Alle v2-Katalogvorlagen sind in v3 verfügbar und erzeugen gültige Vorlagen. | unit |
 | BLK-17 | Eintrag ohne GPS-Schalter nutzt den festen Ort des Tagebuchs (`origin: 'diary'`) und ruft die Geolocation-API nicht auf; mit Schalter `origin: 'gps'`. | integration |
 | BLK-18 | Tagebuch ohne festen Ort und ohne GPS-Schalter: kein Request an Open-Meteo, Eintrag ohne `weatherPending`. | unit |
+| BLK-20 | Body-Map: Punkt- und Pinsel-Markierungen mit Größe, Intensität und Kommentar werden gespeichert und nach dem Öffnen an derselben Stelle angezeigt; Entfernen nummeriert neu. | e2e |
+| BLK-21 | Body-Map: eigenes Bild hochladen und zuschneiden, als Standard des Feldes setzen → neuer Eintrag zeigt es vorausgewählt; das Bild steht auf dem Zweitgerät zur Verfügung. | e2e |
 | BLK-19 | Eintragsformular: Umschalter Zeitpunkt/Zeitraum; vergangener Zeitpunkt (Nachtragen) und Zeitraum mit und ohne Uhrzeiten werden gespeichert und in Verlauf/Detail korrekt angezeigt. | e2e |

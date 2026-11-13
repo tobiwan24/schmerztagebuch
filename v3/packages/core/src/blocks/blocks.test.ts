@@ -61,9 +61,15 @@ const cases: Case[] = [
     validValues: [
       { presetId: 'body-front', points: [] },
       { presetId: 'body-back', points: [{ id: p1, x: 0, y: 1, intensity: 7 }] },
+      // A-024: Punkt mit Größe/Kommentar, Pinselstrich mit Pfad
+      { presetId: 'body-back', points: [{ id: p1, x: 0.5, y: 0.5, intensity: 3, kind: 'point', size: 0.05, comment: 'stechend' }] },
+      { presetId: 'body-back', points: [{ id: p1, x: 0.1, y: 0.2, intensity: 9, kind: 'brush', size: 0.03, path: [{ x: 0.1, y: 0.2 }, { x: 0.3, y: 0.4 }] }] },
     ],
     invalidValues: [
       { presetId: 'body-front', points: [{ id: p1, x: 1.2, y: 0.5 }] },
+      { presetId: 'body-front', points: [{ id: p1, x: 0.1, y: 0.1, kind: 'brush' }] },
+      { presetId: 'body-front', points: [{ id: p1, x: 0.1, y: 0.1, kind: 'point', path: [{ x: 0, y: 0 }, { x: 1, y: 1 }] }] },
+      { presetId: 'body-front', points: [{ id: p1, x: 0.1, y: 0.1, size: 0 }] },
       { points: [] },
       { presetId: '', points: [] },
     ],

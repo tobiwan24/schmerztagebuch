@@ -55,3 +55,4 @@ export type { TextConfig } from './text.js';
 export type { TextareaConfig, TextareaValue } from './textarea.js';
 export type { DateConfig, DateValue } from './date.js';
 export type { BodymapConfig, BodymapValue } from './bodymap.js';
+export { BODYMAP_MAX_PATH } from './bodymap.js';
