@@ -29,7 +29,7 @@
 | M7 | erledigt | 14/14 IDs |
 | M8 | erledigt | 12/12 IDs, Gate G2 freigegeben |
 | M8b | erledigt | 2/2 IDs (Body-Map wie v2) |
-| M9 | in Arbeit | erst nach UI-11 |
+| M9 | in Arbeit | UI-11 ✓ |
 | M10 | offen | |
 | M11 | offen | danach Gate G3 |
 | M12 | offen | erst nach UI-12 |
@@ -41,8 +41,8 @@
 - [x] UI-10 Wireframes in `v3/design/` durchgesehen und freigegeben (User im Chat: „g1 freigegeben“, 2026-11-12)
 
 ### G2 — Kernablauf
-- [ ] UI-11 Kernablauf auf dem iPhone durchgeklickt und freigegeben
-- [ ] CRY-17 Passkey-Login auf echtem iPhone (Face ID, iCloud-Schlüsselbund) inkl. App-Neustart
+- [x] UI-11 Kernablauf auf dem iPhone durchgeklickt und freigegeben (User im Chat: „g2freigegeben“, 2026-11-13; Body-Map-Nacharbeiten → M8b)
+- [ ] CRY-17 Passkey-Login auf echtem iPhone (Face ID, iCloud-Schlüsselbund) inkl. App-Neustart — mit der G2-Freigabe nicht ausdrücklich bestätigt, beim User nachfragen
 
 ### G3 — Auswertung & Export
 - [ ] UI-12 Auswertung und Export mit echten Daten freigegeben
