@@ -36,6 +36,9 @@
     },
     {
       "path": "../../packages/sync-protocol"
+    },
+    {
+      "path": "../../packages/analysis"
     }
   ]
 }
