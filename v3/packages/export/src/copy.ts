@@ -1,5 +1,5 @@
 // „Als Kopie importieren" (Spec 07, EXP-04): neue IDs für Tagebücher, Vorlagen, Blöcke, Optionen, Einträge, gespeicherte
-// Filter und eigene Body-Map-Bilder; alle Verweise werden konsistent umgeschrieben (Einträge → Vorlage/Blöcke/Optionen,
+// Filter, eigene Body-Map-Bilder und Anhänge; alle Verweise werden konsistent umgeschrieben (Einträge → Vorlage/Blöcke/Optionen,
 // Body-Map → eigenes Bild, Tagebuch-Einstellungen → Schnelleintrag, gespeicherte Filter → Tagebuch/Vorlage/Block/Option).
 import type { BlockDef } from '@stb/core';
 import type { Condition, FilterSpec } from '@stb/analysis';
@@ -29,6 +29,7 @@ export function copyWithNewIds(doc: ExportV1, newId: () => string): ExportV1 {
     }
     for (const e of d.entries) fresh(e.id);
     for (const f of d.savedFilters) fresh(f.id);
+    for (const a of d.attachments) fresh(a.id);
   }
 
   const block = (b: BlockDef): BlockDef => {
@@ -39,6 +40,7 @@ export function copyWithNewIds(doc: ExportV1, newId: () => string): ExportV1 {
   const value = (raw: unknown): unknown => {
     if (Array.isArray(raw)) return raw.map((x) => (typeof x === 'string' ? m(x) : x)); // Multiselect: Options-IDs
     if (raw && typeof raw === 'object' && 'presetId' in raw) return { ...(raw as object), presetId: m((raw as { presetId: string }).presetId) };
+    if (raw && typeof raw === 'object' && 'attachmentIds' in raw) return { ...(raw as object), attachmentIds: (raw as { attachmentIds: string[] }).attachmentIds.map(m) };
     return raw;
   };
   const condition = (c: Condition): Condition => {
@@ -72,6 +74,7 @@ export function copyWithNewIds(doc: ExportV1, newId: () => string): ExportV1 {
     })),
     savedFilters: d.savedFilters.map((f) => ({ ...f, id: m(f.id), diaryId: m(f.diaryId), filter: filter(f.filter) })),
     bodymapImages: d.bodymapImages.map((i) => ({ ...i, id: m(i.id), diaryId: m(i.diaryId) })),
+    attachments: d.attachments.map((a) => ({ ...a, id: m(a.id), diaryId: m(a.diaryId), entryId: m(a.entryId) })),
   });
 
   return { ...doc, ...(doc.filter ? { filter: filter(doc.filter) } : {}), diaries: doc.diaries.map(diary) };

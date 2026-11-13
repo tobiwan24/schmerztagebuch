@@ -86,3 +86,12 @@ export const intakeKeyRequestSchema = z.strictObject({
   tokenHash: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
 });
 export { mergeEntry, type EntrySide, type MergeConflict, type EntryMergeResult } from './merge.js';
+
+// ---------------------------------------------------------------------------------------------------------------
+// Anhänge (Spec 04 `/blobs`): Chiffretext im Envelope-Format (base64url, Record-Art `blob`), Klartext max. 20 MB.
+
+export const BLOB_MAX_BYTES = 20 * 1024 * 1024;
+/** Envelope-Kopf (17) + GCM-Tag (16), base64url ohne Padding. */
+export const BLOB_CIPHERTEXT_MAX_CHARS = Math.ceil(((BLOB_MAX_BYTES + 33) * 4) / 3);
+export const blobIdSchema = z.string().regex(/^[A-Za-z0-9-]{1,128}$/);
+export const blobQuerySchema = z.strictObject({ diaryId: z.string().min(1).max(128) });

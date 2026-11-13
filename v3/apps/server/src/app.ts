@@ -10,6 +10,7 @@ import { registerInvitationRoutes } from './invitations/routes.js';
 import { registerDeviceRoutes } from './auth/routes.js';
 import { registerIntakeRoutes } from './intake/routes.js';
 import { registerAccountRoutes } from './auth/account-routes.js';
+import { registerBlobRoutes } from './blobs/routes.js';
 
 export interface AppDeps {
   config: ServerConfig;
@@ -31,6 +32,7 @@ export function buildApp({ config, db, auth = noAuth, now = () => Date.now(), lo
   registerInvitationRoutes(app, { db, auth, now });
   registerDeviceRoutes(app, { db, auth, now });
   registerIntakeRoutes(app, { db, auth, now });
+  registerBlobRoutes(app, { db, auth, now, blobDir: config.blobDir });
   registerAccountRoutes(app, {
     db, auth, now, rp: { rpId: config.rpId, rpName: 'Schmerztagebuch', origins: config.allowedOrigins },
     ...(config.rateLimits ? { limits: config.rateLimits } : {}),

@@ -5,6 +5,7 @@ export * from './blocks/index.js';
 export * from './templates.js';
 export * from './diary.js';
 export * from './bodymap-image.js';
+export * from './attachment.js';
 export * from './weather.js';
 export * from './catalog.js';
 export * from './entry-view.js';

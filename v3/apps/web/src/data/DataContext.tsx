@@ -8,11 +8,14 @@ import { plainCodec } from './codec/plain';
 import { createCodecRegistry, type CodecRegistry } from './codec/registry';
 import { createRecordRepository, type RecordRepository } from './repositories/records';
 import { createDiaryRepository, type DiaryRepository } from './repositories/diary';
+import { createAttachmentRepository, type AttachmentRepository } from './repositories/attachments';
 import { createStamper, type Stamper } from './identity';
 
 export interface DataApi {
   records: RecordRepository;
   diary: DiaryRepository;
+  /** Anhänge: Metadaten + lokaler Inhalt (A-032). */
+  attachments: AttachmentRepository;
   /** Neue UUID v7 (Spec 02). */
   newId: () => string;
   /** HLC-Stempel und Autor für lokale Änderungen. */
@@ -44,7 +47,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       remove: (id, payload) => notify(raw.remove(id, payload)),
     };
     const { newId } = createIdGenerator({ now });
-    return { records, diary: createDiaryRepository(records), newId, stamper: createStamper(db, { now }, newId), now, registry, writes };
+    return { records, diary: createDiaryRepository(records), attachments: createAttachmentRepository(db, records, { now }), newId, stamper: createStamper(db, { now }, newId), now, registry, writes };
   }, [db, now, accountMode]);
   const api = useMemo<DataApi>(() => ({ ...base, revision, bumpRevision }), [base, revision, bumpRevision]);
   return <DataContext.Provider value={api}>{children}</DataContext.Provider>;

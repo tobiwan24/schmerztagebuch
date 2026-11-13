@@ -1,6 +1,7 @@
 // Eintrag: neu (`/entry/new`), bearbeiten (`/entry/:id/edit`), Detail (`/entry/:id`) — Spec 05/10, Wireframes eintrag/verlauf.
 import { Link, useParams } from 'react-router';
 import { Pencil } from 'lucide-react';
+import { AttachmentList } from '@/components/AttachmentList';
 import { displayValue } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -77,6 +78,7 @@ export function EntryDetailPage() {
                 </div>
               ))}
           </Card>
+          <AttachmentList ids={attachmentIdsOf(query.data.fields)} />
           <Button asChild variant="outline">
             <Link to={`/entry/${id}/edit`}>
               <Pencil aria-hidden />
@@ -87,4 +89,9 @@ export function EntryDetailPage() {
       ) : null}
     </>
   );
+}
+
+/** Anhang-IDs aller Textarea-Felder eines Eintrags (Reihenfolge der Felder). */
+function attachmentIdsOf(fields: readonly { block: { type: string }; value: unknown }[]): string[] {
+  return fields.flatMap((f) => (f.block.type === 'textarea' ? ((f.value as { attachmentIds?: string[] } | undefined)?.attachmentIds ?? []) : []));
 }

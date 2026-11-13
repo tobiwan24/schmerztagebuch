@@ -164,6 +164,17 @@ const MIGRATIONS: readonly string[] = [
   DROP TABLE user_keys;
   ALTER TABLE user_keys_new RENAME TO user_keys;
   `,
+  // 9: verschlüsselte Anhänge (Spec 02/04 `blobs`; Inhalt als Datei unter BLOB_DIR, DECISIONS A-032)
+  `
+  CREATE TABLE blobs (
+    id TEXT PRIMARY KEY,
+    diary_id TEXT NOT NULL REFERENCES diaries(id),
+    size INTEGER NOT NULL,
+    path TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX blobs_diary ON blobs(diary_id);
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

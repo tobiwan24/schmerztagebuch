@@ -35,6 +35,14 @@ export interface OutboxOp {
   lastError?: string;
 }
 
+/** Noch nicht hochgeladener Anhang-Inhalt (Spec 04 `/blobs`, A-032). Wird bei jedem Sync eines Cloud-Tagebuchs abgearbeitet. */
+export interface BlobOutboxRow {
+  id: string;
+  diaryId: string;
+  createdAt: number;
+  lastError?: string;
+}
+
 export interface KeyRow {
   id: string;
   value: unknown;
@@ -53,6 +61,7 @@ export class StbDb extends Dexie {
   keys!: EntityTable<KeyRow, 'id'>;
   sync_state!: EntityTable<SyncStateRow, 'diaryId'>;
   device!: EntityTable<KeyRow, 'id'>;
+  blob_outbox!: EntityTable<BlobOutboxRow, 'id'>;
 
   constructor(name = 'stb-v3') {
     super(name);
@@ -64,5 +73,7 @@ export class StbDb extends Dexie {
       sync_state: 'diaryId',
       device: 'id',
     });
+    // v2: Upload-Warteschlange für Anhänge (A-032)
+    this.version(2).stores({ blob_outbox: 'id, diaryId' });
   }
 }

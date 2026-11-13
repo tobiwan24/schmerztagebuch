@@ -8,6 +8,7 @@ import { plainCodec } from '../../apps/web/src/data/codec/plain.js';
 import { createCodecRegistry } from '../../apps/web/src/data/codec/registry.js';
 import { createRecordRepository } from '../../apps/web/src/data/repositories/records.js';
 import { createDiaryRepository } from '../../apps/web/src/data/repositories/diary.js';
+import { createAttachmentRepository } from '../../apps/web/src/data/repositories/attachments.js';
 import { applyImport, collectExportSource, planImport } from '../../apps/web/src/data/import-export.js';
 
 let n = 0;
@@ -26,7 +27,7 @@ async function device() {
   let t = 1_900_000_000_000;
   const clock = { now: () => (t += 1000) };
   const records = createRecordRepository(db, { registry: createCodecRegistry([plainCodec]), writeCodec: 'plain', clock, outbox: false });
-  return { db, records, diary: createDiaryRepository(records), newId: createIdGenerator(clock).newId };
+  return { db, records, diary: createDiaryRepository(records), attachments: createAttachmentRepository(db, records, clock), newId: createIdGenerator(clock).newId };
 }
 
 const src = exportFixture();
@@ -135,5 +136,46 @@ describe('Import', () => {
     }
     expect(codes).toEqual(['invalid', 'inconsistent', 'invalid', 'not-json']);
     expect(await d.db.records.toArray()).toEqual(before);
+  });
+
+  it('Anhänge reisen mit: Export enthält Inhalt, Import legt Metadaten + Inhalt an, „Als Kopie" schreibt die Verweise um', async () => {
+    const doc = parseExport(file);
+    const d0 = doc.diaries[0]!;
+    const e0 = d0.entries[0]!;
+    const notesId = Object.keys(e0.values).find((k) => (e0.values[k] as { text?: string })?.text?.startsWith('Übelkeit'))!;
+    const attId = '01900000-0000-7000-8000-00000000a771';
+    const pdf = 'data:application/pdf;base64,JVBERi0xLjQKU1RCLU1BUktFUg==';
+    const withAtt = {
+      ...doc,
+      diaries: [{
+        ...d0,
+        entries: [{ ...e0, values: { ...e0.values, [notesId]: { ...(e0.values[notesId] as object), attachmentIds: [attId] } } }, ...d0.entries.slice(1)],
+        attachments: [{ id: attId, diaryId: d0.diary.id, entryId: e0.id, kind: 'pdf' as const, mime: 'application/pdf', name: 'Befund.pdf', sizeBytes: 20, createdAt: '2026-02-03T08:00:00.000Z', dataUrl: pdf }],
+      }],
+    };
+    const text = JSON.stringify(withAtt);
+
+    const d = await device();
+    const plan = await planImport(d.records, parseExport(text), { newId: d.newId });
+    expect(plan.added).toBe(RECORDS + 1);
+    await applyImport(d.records, plan, d.attachments);
+    expect(await d.attachments.get(attId)).toMatchObject({ name: 'Befund.pdf', entryId: e0.id });
+    expect(new TextDecoder().decode(await d.attachments.data(attId))).toContain('STB-MARKER');
+    expect(await d.db.blob_outbox.count()).toBe(1);
+    // Export der Gerätedaten enthält den Anhang wieder (Rundweg)
+    const back = await collectExportSource(d.diary, d.attachments);
+    expect(back.attachments).toEqual(withAtt.diaries[0]!.attachments);
+    // zweiter Import: unverändert, kein neuer Inhalt
+    expect(await planImport(d.records, parseExport(text), { newId: d.newId })).toMatchObject({ added: 0, blobs: [] });
+
+    // Als Kopie: neue Anhang-ID, Eintrag und Textarea verweisen darauf
+    const c = await device();
+    const copy = await planImport(c.records, parseExport(text), { asCopy: true, newId: c.newId });
+    await applyImport(c.records, copy, c.attachments);
+    const [att] = await c.attachments.listAll();
+    expect(att!.id).not.toBe(attId);
+    const entry = (await c.diary.listAllEntries()).find((e) => e.id === att!.entryId)!;
+    expect(Object.values(entry.values).some((v) => (v as { attachmentIds?: string[] })?.attachmentIds?.[0] === att!.id)).toBe(true);
+    expect(await c.attachments.data(att!.id)).toBeDefined();
   });
 });

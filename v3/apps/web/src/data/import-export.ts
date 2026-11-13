@@ -1,28 +1,36 @@
 // Export und Import in der Web-Datenschicht (Spec 07). Import ist idempotent: bekannte IDs werden nach den Merge-Regeln
 // (Spec 04, ganzer Datensatz) zusammengeführt — neuer HLC bzw. `updatedAt` gewinnt, gleiche Inhalte werden übersprungen.
 // Alles wird vorab geprüft und dann in **einer** Transaktion geschrieben; bei Fehlern bleibt die DB unverändert (EXP-11).
-import { canonical, compareHlc, entrySchemaFor } from '@stb/core';
+import { canonical, compareHlc, decodeDataUrl, encodeDataUrl, entrySchemaFor } from '@stb/core';
 import { openBackupFile, sealBackupFile, type BackupSecret } from '@stb/crypto';
 import { buildExport, copyWithNewIds, exportRecords, ImportError, parseExport, type ExportSource, type ExportV1 } from '@stb/export';
 import type { FilterSpec } from '@stb/analysis';
 import type { RecordInput, RecordRepository } from './repositories/records';
 import { templateVersionRecordId, type DiaryRepository } from './repositories/diary';
+import { ATTACHMENT_KIND, type AttachmentInput, type AttachmentRepository } from './repositories/attachments';
 
-export async function collectExportSource(diary: DiaryRepository): Promise<ExportSource> {
+export async function collectExportSource(diary: DiaryRepository, attachments?: AttachmentRepository): Promise<ExportSource> {
   const diaries = await diary.listDiaries();
   const [templates, versions, entries] = await Promise.all([diary.listAllTemplates(), diary.listAllTemplateVersions(), diary.listAllEntries()]);
   const savedFilters = (await Promise.all(diaries.map((d) => diary.listSavedFilters(d.id)))).flat();
   const bodymapImages = (await Promise.all(diaries.map((d) => diary.listBodymapImages(d.id)))).flat();
-  return { diaries, templates, versions, entries, savedFilters, bodymapImages };
+  // Anhänge nur mit lokal vorhandenem Inhalt (auf anderen Geräten ggf. noch nicht geladen)
+  const withData = attachments
+    ? (await Promise.all((await attachments.listAll()).map(async (m) => {
+        const bytes = await attachments.data(m.id);
+        return bytes ? { ...m, dataUrl: encodeDataUrl(m.mime, bytes) } : undefined;
+      }))).filter((a): a is NonNullable<typeof a> => !!a)
+    : [];
+  return { diaries, templates, versions, entries, savedFilters, bodymapImages, attachments: withData };
 }
 
-export async function createExport(diary: DiaryRepository, opts: { appVersion: string; now: number; filter?: FilterSpec }): Promise<ExportV1> {
-  return buildExport(await collectExportSource(diary), opts);
+export async function createExport(diary: DiaryRepository, opts: { appVersion: string; now: number; filter?: FilterSpec }, attachments?: AttachmentRepository): Promise<ExportV1> {
+  return buildExport(await collectExportSource(diary, attachments), opts);
 }
 
 /** `.stbbackup` (Spec 07): vollständiger JSON-v1-Export, verschlüsselt mit Backup-Code oder Backup-Passwort. */
-export async function createBackupFile(diary: DiaryRepository, secret: BackupSecret, opts: { appVersion: string; now: number }): Promise<string> {
-  const doc = await createExport(diary, opts);
+export async function createBackupFile(diary: DiaryRepository, secret: BackupSecret, opts: { appVersion: string; now: number }, attachments?: AttachmentRepository): Promise<string> {
+  const doc = await createExport(diary, opts, attachments);
   return sealBackupFile(JSON.stringify(doc), secret, doc.exportedAt);
 }
 
@@ -40,6 +48,8 @@ export interface ImportPlan {
   unchanged: number;
   /** Zu schreibende Datensätze (intern). */
   writes: RecordInput[];
+  /** Anhang-Inhalte zu neuen oder geänderten Anhang-Metadaten (intern). */
+  blobs: AttachmentInput[];
 }
 
 type Stamp = { hlc?: string; updatedAt?: string };
@@ -56,6 +66,7 @@ function incomingWins(existing: unknown, incoming: unknown): boolean {
 export async function planImport(records: RecordRepository, input: ExportV1, opts: { asCopy?: boolean; newId: () => string }): Promise<ImportPlan> {
   const doc = opts.asCopy ? copyWithNewIds(input, opts.newId) : input;
   const inputs: RecordInput[] = [];
+  const blobOf = new Map<string, AttachmentInput>();
   let templates = 0;
   let entries = 0;
   for (const d of doc.diaries) {
@@ -73,6 +84,13 @@ export async function planImport(records: RecordRepository, input: ExportV1, opt
     for (const e of r.entries) inputs.push({ id: e.id, diaryId: r.diary.id, kind: 'entry', payload: e, occurredAt: e.occurredAt });
     for (const f of r.savedFilters) inputs.push({ id: f.id, diaryId: r.diary.id, kind: 'savedFilter', payload: f });
     for (const i of r.bodymapImages) inputs.push({ id: i.id, diaryId: r.diary.id, kind: 'bodymapImage', payload: i });
+    for (const a of r.attachments) {
+      const { dataUrl, ...meta } = a;
+      const decoded = decodeDataUrl(dataUrl);
+      if (!decoded) throw new ImportError('invalid', [`Anhang ${a.id}: Inhalt unlesbar`]);
+      inputs.push({ id: a.id, diaryId: r.diary.id, kind: ATTACHMENT_KIND, payload: meta });
+      blobOf.set(a.id, { meta, bytes: decoded.bytes });
+    }
     templates += r.templates.length;
     entries += r.entries.length;
   }
@@ -97,10 +115,18 @@ export async function planImport(records: RecordRepository, input: ExportV1, opt
       unchanged++; // vorhandener Stand ist neuer (oder Vorlagenversion — unveränderlich)
     }
   }
-  return { diaries: doc.diaries.length, templates, entries, added, updated, unchanged, writes };
+  const blobs = writes.filter((w) => w.kind === ATTACHMENT_KIND).map((w) => blobOf.get(w.id)!);
+  return { diaries: doc.diaries.length, templates, entries, added, updated, unchanged, writes, blobs };
 }
 
-/** Führt einen geprüften Plan aus (eine Transaktion). */
-export async function applyImport(records: RecordRepository, plan: ImportPlan): Promise<void> {
+/**
+ * Führt einen geprüften Plan aus: Anhang-Inhalte zuerst (Blob-Store + Upload-Warteschlange), dann alle Datensätze in
+ * **einer** Transaktion. Ein Abbruch dazwischen hinterlässt höchstens verwaiste Blobs, nie Metadaten ohne Inhalt.
+ */
+export async function applyImport(records: RecordRepository, plan: ImportPlan, attachments?: AttachmentRepository): Promise<void> {
+  if (plan.blobs.length) {
+    if (!attachments) throw new Error('Anhänge im Import, aber kein Anhang-Speicher');
+    await attachments.saveBlobs(plan.blobs);
+  }
   if (plan.writes.length) await records.putMany(plan.writes);
 }

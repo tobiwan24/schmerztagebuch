@@ -16,9 +16,11 @@ export interface SyncApi {
   /** Mindestens ein Lauf ist abgeschlossen (z. B. nach dem Login auf einem neuen Gerät). */
   ready: boolean;
   syncNow(): Promise<void>;
+  /** Anhang-Inhalt vom Server laden (nur Cloud-Tagebücher); `undefined`, wenn nicht verfügbar. */
+  fetchBlob(diaryId: string, id: string): Promise<Uint8Array<ArrayBuffer> | undefined>;
 }
 
-const DISABLED: SyncApi = { state: 'disabled', pending: 0, ready: true, syncNow: async () => undefined };
+const DISABLED: SyncApi = { state: 'disabled', pending: 0, ready: true, syncNow: async () => undefined, fetchBlob: async () => undefined };
 const SyncContext = createContext<SyncApi>(DISABLED);
 
 const WRITE_DEBOUNCE_MS = 300;
@@ -111,7 +113,16 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     };
   }, [engine, writes, syncNow, countPending]);
 
-  const api = useMemo<SyncApi>(() => (enabled ? { state, pending, ready, syncNow } : DISABLED), [enabled, state, pending, ready, syncNow]);
+  const fetchBlob = useCallback(
+    async (diaryId: string, id: string) => {
+      if (!engine) return undefined;
+      const mode = await db.sync_state.get(diaryId);
+      return mode?.mode === 'cloud-primary' ? engine.downloadBlob(diaryId, id) : undefined;
+    },
+    [engine, db],
+  );
+
+  const api = useMemo<SyncApi>(() => (enabled ? { state, pending, ready, syncNow, fetchBlob } : DISABLED), [enabled, state, pending, ready, syncNow, fetchBlob]);
   return <SyncContext.Provider value={api}>{children}</SyncContext.Provider>;
 }
 

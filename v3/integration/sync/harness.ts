@@ -2,6 +2,9 @@
 // Liegt außerhalb von apps/*, weil apps einander nicht importieren dürfen (Spec 01).
 import 'fake-indexeddb/auto';
 import type { FastifyInstance } from 'fastify';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { createHlcClock, createIdGenerator, type Clock, type HlcClock } from '@stb/core';
 import { generateDiaryKey } from '@stb/crypto';
 import type { PullQuery, PushRequest } from '@stb/sync-protocol';
@@ -14,6 +17,7 @@ import { plainCodec } from '../../apps/web/src/data/codec/plain.js';
 import { createCodecRegistry } from '../../apps/web/src/data/codec/registry.js';
 import { createRecordRepository } from '../../apps/web/src/data/repositories/records.js';
 import { createDiaryRepository } from '../../apps/web/src/data/repositories/diary.js';
+import { createAttachmentRepository } from '../../apps/web/src/data/repositories/attachments.js';
 import { createSyncEngine } from '../../apps/web/src/sync/engine.js';
 import type { SyncTransport } from '../../apps/web/src/sync/transport.js';
 
@@ -32,16 +36,17 @@ export interface Wire {
   onKeyGet?: () => Promise<void>;
 }
 
-export async function startServer(diaryId: string, users: string[] = ['alice']): Promise<{ app: FastifyInstance; db: Db; close(): Promise<void> }> {
+export async function startServer(diaryId: string, users: string[] = ['alice']): Promise<{ app: FastifyInstance; db: Db; blobDir: string; close(): Promise<void> }> {
   const db = openDatabase(':memory:');
+  const blobDir = mkdtempSync(join(tmpdir(), 'stb-int-blobs-'));
   migrate(db);
   db.prepare('INSERT INTO diaries (id, created_at) VALUES (?, 0)').run(diaryId);
   for (const u of users) {
     db.prepare("INSERT INTO memberships (diary_id, principal_id, role, key_epoch, wrapped_dk, created_at) VALUES (?, ?, 'owner', 1, 'w', 0)").run(diaryId, u);
   }
-  const app = buildApp({ config: serverConfig, db, auth: headerAuth });
+  const app = buildApp({ config: { ...serverConfig, blobDir }, db, auth: headerAuth });
   await app.ready();
-  return { app, db, async close() { await app.close(); db.close(); } };
+  return { app, db, blobDir, async close() { await app.close(); db.close(); rmSync(blobDir, { recursive: true, force: true }); } };
 }
 
 export function injectTransport(app: FastifyInstance, user: string, wire: Wire): SyncTransport {
@@ -61,6 +66,18 @@ export function injectTransport(app: FastifyInstance, user: string, wire: Wire):
       const res = await app.inject({ method: 'GET', url: `/api/v1/sync/pull?diaryId=${q.diaryId}&since=${q.since}&limit=${q.limit}`, headers: { [TEST_AUTH_HEADER]: user } });
       if (res.statusCode !== 200) throw new Error(`pull HTTP ${res.statusCode}`);
       return res.json();
+    },
+    async putBlob(diaryId, id, ciphertext) {
+      if (wire.offline) throw new TypeError('Failed to fetch');
+      const res = await app.inject({ method: 'PUT', url: `/api/v1/blobs/${id}?diaryId=${diaryId}`, headers: { [TEST_AUTH_HEADER]: user, 'content-type': 'text/plain' }, payload: ciphertext });
+      if (res.statusCode !== 200 && res.statusCode !== 201) throw new Error(`blob PUT HTTP ${res.statusCode}`);
+    },
+    async getBlob(id) {
+      if (wire.offline) throw new TypeError('Failed to fetch');
+      const res = await app.inject({ method: 'GET', url: `/api/v1/blobs/${id}`, headers: { [TEST_AUTH_HEADER]: user } });
+      if (res.statusCode === 404) return null;
+      if (res.statusCode !== 200) throw new Error(`blob GET HTTP ${res.statusCode}`);
+      return res.body;
     },
   };
 }
@@ -87,7 +104,8 @@ export async function createDevice(opts: { app: FastifyInstance; user: string; d
     newId: createIdGenerator(opts.clock).newId, clock: opts.clock, hlc,
     diaryIds: async () => opts.diaryIds ?? [opts.diaryId],
   });
-  return { db, repo, records, engine, wire, hlc, async close() { db.close(); await db.delete(); } };
+  const attachments = createAttachmentRepository(db, records, opts.clock);
+  return { db, repo, records, attachments, engine, wire, hlc, async close() { db.close(); await db.delete(); } };
 }
 
 export async function fixture() {

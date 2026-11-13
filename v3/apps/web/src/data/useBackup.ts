@@ -38,7 +38,7 @@ export function useBackup() {
         return { name: `schmerztagebuch-bericht-${stamp}.pdf`, text: bytes, mime: 'application/pdf' };
       }
       if (format === 'json') {
-        const doc = await createExport(data.diary, { appVersion: APP_VERSION, now: now(), ...(opts.filter ? { filter: opts.filter } : {}) });
+        const doc = await createExport(data.diary, { appVersion: APP_VERSION, now: now(), ...(opts.filter ? { filter: opts.filter } : {}) }, data.attachments);
         return { name: `schmerztagebuch-${stamp}.stb.json`, text: JSON.stringify(doc, null, 2), mime: 'application/json' };
       }
       const src = await collectExportSource(data.diary);
@@ -46,7 +46,7 @@ export function useBackup() {
       const text = format === 'csv-long' ? exportCsvLong(src, csvOpts) : exportCsvWide(src, csvOpts);
       return { name: `schmerztagebuch-${format}-${csvOpts.profile}-${stamp}.csv`, text, mime: 'text/csv;charset=utf-8' };
     },
-    [data.diary, now],
+    [data.diary, data.attachments, now],
   );
 
   /** Backup-Code lokal prüfen (gegen den Backup-Wrap der UMK), bevor damit verschlüsselt wird. */
@@ -60,15 +60,15 @@ export function useBackup() {
   }, [db]);
 
   const backupFile = useCallback(async (secret: BackupSecret) => {
-    const text = await createBackupFile(data.diary, secret, { appVersion: APP_VERSION, now: now() });
+    const text = await createBackupFile(data.diary, secret, { appVersion: APP_VERSION, now: now() }, data.attachments);
     await markBackupDone(db, now());
     query.retry();
     return { name: `schmerztagebuch-${new Date(now()).toISOString().slice(0, 10)}.stbbackup`, text };
-  }, [data.diary, db, now, query]);
+  }, [data.diary, data.attachments, db, now, query]);
 
   const readBackup = useCallback((file: string, secret: BackupSecret): Promise<ExportV1> => openBackup(file, secret), []);
   const plan = useCallback((doc: ExportV1, asCopy: boolean) => planImport(data.records, doc, { asCopy, newId: data.newId }), [data.records, data.newId]);
-  const apply = useCallback((p: ImportPlan) => applyImport(data.records, p), [data.records]);
+  const apply = useCallback((p: ImportPlan) => applyImport(data.records, p, data.attachments), [data.records, data.attachments]);
   const saveReminderDays = useCallback(async (days: number) => {
     await setReminderDays(db, days);
     query.retry();

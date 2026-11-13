@@ -63,6 +63,10 @@ export interface SyncEngine {
   sync(): Promise<void>;
   pushDiary(diaryId: string): Promise<PushSummary>;
   pullDiary(diaryId: string): Promise<{ applied: number; skippedPending: number }>;
+  /** Ausstehende Anhang-Inhalte eines Tagebuchs verschlüsselt hochladen (A-032). Rückgabe: Anzahl hochgeladen. */
+  uploadBlobs(diaryId: string): Promise<number>;
+  /** Anhang-Inhalt vom Server laden und entschlüsseln; `undefined`, wenn der Server ihn nicht hat. */
+  downloadBlob(diaryId: string, id: string): Promise<Uint8Array<ArrayBuffer> | undefined>;
   /** Registriert Auslöser (`online`, `visibilitychange` → sichtbar). Rückgabe: Abmelden. */
   attachTriggers(target: EventTarget, isVisible?: () => boolean): () => void;
   readonly flight: SingleFlight;
@@ -281,12 +285,43 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
     return { applied, skippedPending };
   }
 
+  const BLOB_KIND = 'blob';
+
+  async function uploadBlobs(diaryId: string): Promise<number> {
+    if (!transport.putBlob) return 0;
+    const queued = await db.blob_outbox.where('diaryId').equals(diaryId).toArray();
+    if (!queued.length) return 0;
+    const { key, keyEpoch } = await keys.get(diaryId);
+    let n = 0;
+    for (const row of queued) {
+      const blob = await db.blobs.get(row.id);
+      if (blob) {
+        const bytes = blob.data instanceof Uint8Array ? (blob.data as Uint8Array<ArrayBuffer>) : new Uint8Array(await blob.data.arrayBuffer());
+        const ct = await encryptRecord(key, { diaryId, kind: BLOB_KIND, recordId: row.id, keyEpoch }, bytes);
+        await transport.putBlob(diaryId, row.id, ct);
+        n++;
+      }
+      await db.blob_outbox.delete(row.id);
+    }
+    return n;
+  }
+
+  async function downloadBlob(diaryId: string, id: string): Promise<Uint8Array<ArrayBuffer> | undefined> {
+    if (!transport.getBlob) return undefined;
+    const ct = await transport.getBlob(id);
+    if (ct === null) return undefined;
+    const { keyEpoch } = parseEnvelope(ct);
+    const { key } = await keys.get(diaryId);
+    return decryptRecord(key, { diaryId, kind: BLOB_KIND, recordId: id, keyEpoch }, ct);
+  }
+
   const flight = createSingleFlight(async () => {
     // Ein Fehler in einem Tagebuch (offline, entfernt → 403, …) hält die anderen nicht auf (Review Befund 6).
     const errors: unknown[] = [];
     for (const diaryId of await deps.diaryIds()) {
       try {
         await pushDiary(diaryId);
+        await uploadBlobs(diaryId);
         await pullDiary(diaryId);
       } catch (e) {
         errors.push(e);
@@ -301,6 +336,8 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
     sync: () => flight.trigger(),
     pushDiary,
     pullDiary,
+    uploadBlobs,
+    downloadBlob,
     attachTriggers(target, isVisible = () => true) {
       const run = () => {
         flight.trigger().catch(() => undefined); // Fehler zeigt der Sync-Status (SYN-14); Backoff folgt.
