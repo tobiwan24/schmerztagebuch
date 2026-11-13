@@ -8,6 +8,7 @@ import { createRateLimiter } from '../rate-limit.js';
 import type { AuthProvider } from './types.js';
 import { requirePrincipal } from './require.js';
 import { createSession, hashToken, SESSION_COOKIE } from './sessions.js';
+import { recoveryFinish, recoveryStart } from './recovery.js';
 import {
   AuthFlowError,
   USER_KEY_KINDS,
@@ -21,6 +22,8 @@ import {
 } from './webauthn.js';
 
 export const AUTH_RATE_LIMIT = { limit: 30, windowMs: 60_000 };
+/** Recovery strenger (Spec 03): 5 Versuche je 15 min pro IP und pro Benutzername. */
+export const RECOVERY_RATE_LIMIT = { limit: 5, windowMs: 15 * 60_000 };
 
 const blob = z.string().min(1).max(16_384);
 const device = z.strictObject({ nameCt: blob, publicKey: blob });
@@ -35,18 +38,21 @@ const registerVerifyBody = z.strictObject({
   username,
   response: webauthnResponse,
   keys: z.array(userKey).min(1).max(8)
-    .refine((ks) => ['identity-pub', 'identity-priv-enc', 'umk-wrap-passkey', 'umk-wrap-backup'].every((k) => ks.some((x) => x.kind === k)), {
+    .refine((ks) => ['identity-pub', 'identity-priv-enc', 'umk-wrap-passkey', 'umk-wrap-backup', 'backup-verifier'].every((k) => ks.some((x) => x.kind === k)), {
       message: 'Identity-Schlüssel und beide UMK-Wraps sind Pflicht (Backup-Code nicht überspringbar)',
     }),
   device,
 });
 const loginVerifyBody = z.strictObject({ challengeId: z.string().min(1).max(64), response: webauthnResponse, device });
 const createDiaryBody = z.strictObject({ diaryId: z.string().min(1).max(64), wrappedDk: blob });
+const recoveryStartBody = z.strictObject({ username, backupAuth: z.string().min(16).max(256) });
+const recoveryFinishBody = z.strictObject({ challengeId: z.string().min(1).max(64), response: webauthnResponse, keys: z.array(userKey).min(3).max(4), device });
 
-const STATUS: Record<AuthFlowError['code'], number> = { 'challenge-expired': 400, 'username-taken': 409, 'verification-failed': 401, 'no-credential': 404 };
+const STATUS: Record<AuthFlowError['code'], number> = { 'challenge-expired': 400, 'username-taken': 409, 'verification-failed': 401, 'no-credential': 404, 'wrong-backup-code': 401 };
 
 export function registerAccountRoutes(app: FastifyInstance, { db, auth, now, rp }: { db: Db; auth: AuthProvider; now: () => number; rp: RpConfig }): void {
   const limiter = createRateLimiter(AUTH_RATE_LIMIT);
+  const recoveryLimiter = createRateLimiter(RECOVERY_RATE_LIMIT);
 
   app.addHook('onSend', async (req, reply) => {
     if (req.url.startsWith('/api/')) void reply.header('cache-control', 'no-store');
@@ -106,6 +112,27 @@ export function registerAccountRoutes(app: FastifyInstance, { db, auth, now, rp 
     if (!r) return reply;
     const s = createSession(db, r.userId, r.deviceId, now());
     return reply.header('set-cookie', s.setCookie).send(r);
+  });
+
+  app.post('/api/v1/auth/recovery/start', async (req, reply) => {
+    const body = recoveryStartBody.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid-request' });
+    for (const key of [`ip:${req.ip}`, `user:${body.data.username}`]) {
+      const r = recoveryLimiter.hit(key, now());
+      if (!r.allowed) return reply.code(429).header('retry-after', Math.ceil(r.retryAfterMs / 1000)).send({ error: 'rate-limited' });
+    }
+    const r = await run(reply, () => recoveryStart(db, rp, body.data, now()));
+    return r ?? reply;
+  });
+
+  app.post('/api/v1/auth/recovery/finish', async (req, reply) => {
+    if (limited(req.ip, reply)) return reply;
+    const body = recoveryFinishBody.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid-request' });
+    const r = await run(reply, () => recoveryFinish(db, rp, { ...body.data, response: body.data.response as unknown as RegistrationResponseJSON }, now()));
+    if (!r) return reply;
+    const s = createSession(db, r.userId, r.deviceId, now());
+    return reply.header('set-cookie', s.setCookie).code(201).send(r);
   });
 
   app.get('/api/v1/auth/me', async (req, reply) => {

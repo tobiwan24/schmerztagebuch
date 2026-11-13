@@ -10,7 +10,7 @@ import { sessionAuth } from '../../apps/server/src/auth/sessions.js';
 import { createSoftAuthenticator } from '../../apps/server/src/auth/soft-authenticator.js';
 import { StbDb } from '../../apps/web/src/data/db.js';
 import { AccountApiError, type AccountApi, type CredentialJson } from '../../apps/web/src/auth/account-api.js';
-import { createCloudDiary, loginOnNewDevice, openDiaryKeys, prepareCloudRegistration } from '../../apps/web/src/auth/cloud-account.js';
+import { createCloudDiary, loginOnNewDevice, openDiaryKeys, prepareCloudRecovery, prepareCloudRegistration, startCloudRecovery } from '../../apps/web/src/auth/cloud-account.js';
 import { unlockLocal } from '../../apps/web/src/auth/local-account.js';
 
 const ORIGIN = 'http://localhost:4173';
@@ -45,6 +45,8 @@ function injectApi(app: FastifyInstance): AccountApi & { cookie: () => string } 
     registerVerify: (body) => call('POST', '/api/v1/auth/register/verify', body),
     loginOptions: () => call('POST', '/api/v1/auth/login/options', {}),
     loginVerify: (body) => call('POST', '/api/v1/auth/login/verify', body),
+    recoveryStart: (body) => call('POST', '/api/v1/auth/recovery/start', body),
+    recoveryFinish: (body) => call('POST', '/api/v1/auth/recovery/finish', body),
     createDiary: (body) => call('POST', '/api/v1/diaries', body),
     listDiaries: () => call('GET', '/api/v1/diaries'),
   };
@@ -116,5 +118,36 @@ describe('Konto „Mit Konto"', () => {
     await expect(loginOnNewDevice(dbB, apiB, { challengeId: login.challengeId, credential: assertion, prf: crypto.getRandomValues(new Uint8Array(32)), now }))
       .rejects.toMatchObject({ code: 'unwrap-failed' });
     expect(await dbB.keys.get('account')).toBeUndefined();
+  });
+
+  it('Gerät hinzufügen per Backup-Code: neues Gerät mit eigenem Passkey öffnet denselben DK; neuer Backup-Code ersetzt den alten', async () => {
+    const { app } = await server();
+    const apiA = injectApi(app);
+    const dbA = await localDb();
+    const passkeyA = createSoftAuthenticator();
+    const { challengeId, options } = await apiA.registerOptions('carla');
+    const credential = passkeyA.register({ challenge: options.challenge, rpId: 'localhost', origin: ORIGIN, userHandle: options.user.id }) as CredentialJson;
+    const reg = await prepareCloudRegistration(dbA, apiA, { challengeId, username: 'carla', credential, prf: crypto.getRandomValues(new Uint8Array(32)), now });
+    await reg.commit();
+    const diaryId = '0190a1b2-0000-7000-8000-00000000d002';
+    const dkA = await createCloudDiary(dbA, apiA, reg.account, diaryId);
+
+    const apiB = injectApi(app);
+    const dbB = await localDb();
+    await expect(startCloudRecovery(apiB, { username: 'carla', backupCode: reg.backupCode.replace(/^./, (c) => (c === 'A' ? 'B' : 'A')) }))
+      .rejects.toMatchObject({ code: expect.stringMatching(/wrong-backup-code/) });
+    const start = await startCloudRecovery(apiB, { username: 'carla', backupCode: reg.backupCode });
+    const passkeyB = createSoftAuthenticator();
+    const credB = passkeyB.register({ challenge: start.options.challenge, rpId: 'localhost', origin: ORIGIN, userHandle: start.options.user.id }) as CredentialJson;
+    const prfB = crypto.getRandomValues(new Uint8Array(32));
+    const rec = await prepareCloudRecovery(dbB, apiB, { username: 'carla', backupCode: reg.backupCode, start, credential: credB, prf: prfB, now });
+    expect(rec.backupCode).not.toBe(reg.backupCode);
+    await rec.commit();
+    const [openedB] = await openDiaryKeys(dbB, rec.account, rec.umk);
+    expect(await raw(openedB!.key)).toEqual(await raw(dkA));
+    expect(await raw(await unlockLocal(dbB, { kind: 'passkey', prf: prfB }))).toEqual(await raw(rec.umk));
+
+    // alter Backup-Code gilt nicht mehr
+    await expect(startCloudRecovery(injectApi(app), { username: 'carla', backupCode: reg.backupCode })).rejects.toMatchObject({ code: 'wrong-backup-code' });
   });
 });

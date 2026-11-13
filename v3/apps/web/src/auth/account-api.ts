@@ -2,7 +2,7 @@
 // Integrationstests einen Adapter auf `fastify.inject`.
 import type { MemberDkWrap } from '@stb/crypto';
 
-export type UserKeyKind = 'identity-pub' | 'identity-priv-enc' | 'umk-wrap-passkey' | 'umk-wrap-backup';
+export type UserKeyKind = 'identity-pub' | 'identity-priv-enc' | 'umk-wrap-passkey' | 'umk-wrap-backup' | 'backup-verifier';
 export interface UserKey {
   kind: UserKeyKind;
   credentialId?: string;
@@ -27,6 +27,9 @@ export interface AccountApi {
   registerVerify(body: { challengeId: string; username: string; response: CredentialJson; keys: UserKey[]; device: NewDevice }): Promise<{ userId: string; deviceId: string }>;
   loginOptions(): Promise<{ challengeId: string; options: Record<string, unknown> & { challenge: string } }>;
   loginVerify(body: { challengeId: string; response: CredentialJson; device: NewDevice }): Promise<{ userId: string; deviceId: string; keys: UserKey[] }>;
+  /** Recovery / Gerät hinzufügen per Backup-Code (A-023). */
+  recoveryStart(body: { username: string; backupAuth: string }): Promise<{ challengeId: string; options: Record<string, unknown> & { challenge: string; user: { id: string } }; keys: UserKey[] }>;
+  recoveryFinish(body: { challengeId: string; response: CredentialJson; keys: UserKey[]; device: NewDevice }): Promise<{ userId: string; deviceId: string }>;
   createDiary(body: { diaryId: string; wrappedDk: string }): Promise<void>;
   listDiaries(): Promise<DiaryMembership[]>;
 }
@@ -64,6 +67,8 @@ export function createFetchAccountApi(baseUrl = '', fetchFn: typeof fetch = glob
     registerVerify: (body) => call('POST', '/api/v1/auth/register/verify', body),
     loginOptions: () => call('POST', '/api/v1/auth/login/options', {}),
     loginVerify: (body) => call('POST', '/api/v1/auth/login/verify', body),
+    recoveryStart: (body) => call('POST', '/api/v1/auth/recovery/start', body),
+    recoveryFinish: (body) => call('POST', '/api/v1/auth/recovery/finish', body),
     createDiary: (body) => call('POST', '/api/v1/diaries', body),
     listDiaries: () => call('GET', '/api/v1/diaries'),
   };

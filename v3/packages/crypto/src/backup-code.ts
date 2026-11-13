@@ -3,6 +3,8 @@
 // (DECISIONS A-011). Die Prüfsumme erkennt Tippfehler, bevor die teure PBKDF2-Ableitung läuft; sie erhöht die
 // Entropie nicht.
 import { CryptoError } from './errors.js';
+import { DOMAINS } from './domains.js';
+import { toBase64Url, utf8 } from './encoding.js';
 
 export const BACKUP_CODE_ENTROPY_BITS = 128;
 const RANDOM_BYTES = BACKUP_CODE_ENTROPY_BITS / 8;
@@ -70,4 +72,20 @@ export async function parseBackupCode(input: string): Promise<string> {
     if (expected.every((b, i) => b === bytes[RANDOM_BYTES + i])) return code;
   }
   throw new CryptoError('wrong-backup-code', 'Backup-Code ist ungültig — bitte Eingabe prüfen');
+}
+
+/**
+ * Backup-Auth-Token für Recovery im Konto-Modus (DECISIONS A-023): HKDF-SHA-256 aus dem normalisierten Code mit eigener
+ * Domain (`stb/v3/backup-auth`) — unabhängig vom UMK-KEK (PBKDF2 + `stb/v3/umk-wrap/backup`). Der Server speichert nur den
+ * SHA-256 des Tokens; 128 Bit Entropie machen Durchprobieren aussichtslos.
+ */
+export async function deriveBackupAuth(code: string): Promise<string> {
+  const normalized = await parseBackupCode(code);
+  const base = await globalThis.crypto.subtle.importKey('raw', utf8(normalized), 'HKDF', false, ['deriveBits']);
+  const bits = await globalThis.crypto.subtle.deriveBits(
+    { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(32), info: utf8(DOMAINS.backupAuth) },
+    base,
+    256,
+  );
+  return toBase64Url(new Uint8Array(bits));
 }

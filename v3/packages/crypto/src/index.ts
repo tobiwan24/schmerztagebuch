@@ -12,7 +12,7 @@ export {
   type Envelope,
 } from './envelope.js';
 export { generateUmk, wrapUmk, unwrapUmk, deriveKek, PBKDF2_ITERATIONS, KDF_SALT_BYTES, type UmkFactor, type UmkWrap } from './umk.js';
-export { normalizeBackupCode, generateBackupCode, parseBackupCode, BACKUP_CODE_ENTROPY_BITS } from './backup-code.js';
+export { normalizeBackupCode, generateBackupCode, parseBackupCode, deriveBackupAuth, BACKUP_CODE_ENTROPY_BITS } from './backup-code.js';
 export { generateIdentityEcdhKeyPair, exportPublicKey, importPublicKey, wrapDkForMember, unwrapDkForMember, type MemberDkWrap, type DkWrapContext } from './share.js';
 export { sealIdentityKey, openIdentityKey, type SealedIdentity } from './identity.js';
 export { sealForIntake, unsealIntake, type IntakeSeal } from './intake.js';

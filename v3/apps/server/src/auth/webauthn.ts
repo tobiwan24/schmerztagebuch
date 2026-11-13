@@ -1,7 +1,7 @@
 // Konto per Passkey (Spec 03 „Registrierung (cloud)", „Server-Auth"): Registrierung und Login mit WebAuthn
 // (`userVerification: 'required'`, `residentKey: 'required'`), Challenges aus SQLite (TTL 5 min, pro Challenge-ID).
 // Der Server speichert nur öffentliche Schlüssel und verpackte Schlüssel (Wraps) — nie UMK/DK im Klartext.
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   generateAuthenticationOptions,
   generateRegistrationOptions,
@@ -15,7 +15,7 @@ import { isoBase64URL } from '@simplewebauthn/server/helpers';
 import type { Db } from '../db.js';
 import { consumeChallenge, createChallenge } from './challenges.js';
 
-export const USER_KEY_KINDS = ['identity-pub', 'identity-priv-enc', 'umk-wrap-passkey', 'umk-wrap-backup'] as const;
+export const USER_KEY_KINDS = ['identity-pub', 'identity-priv-enc', 'umk-wrap-passkey', 'umk-wrap-backup', 'backup-verifier'] as const;
 export type UserKeyKind = (typeof USER_KEY_KINDS)[number];
 export interface UserKey {
   kind: UserKeyKind;
@@ -29,7 +29,7 @@ export interface RpConfig {
   origins: string[];
 }
 
-export type AuthFailure = 'challenge-expired' | 'username-taken' | 'verification-failed' | 'no-credential';
+export type AuthFailure = 'challenge-expired' | 'username-taken' | 'verification-failed' | 'no-credential' | 'wrong-backup-code';
 export class AuthFlowError extends Error {
   constructor(readonly code: AuthFailure) {
     super(code);
@@ -94,7 +94,10 @@ export async function verifyRegistration(
       cred.id, userId, isoBase64URL.fromBuffer(cred.publicKey), cred.counter, JSON.stringify(cred.transports ?? []), now,
     );
     const putKey = db.prepare('INSERT INTO user_keys (user_id, kind, credential_id, blob) VALUES (?, ?, ?, ?)');
-    for (const k of input.keys) putKey.run(userId, k.kind, k.kind === 'umk-wrap-passkey' ? (k.credentialId ?? cred.id) : '', k.blob);
+    for (const k of input.keys) {
+      const blob = k.kind === 'backup-verifier' ? hashBackupAuth(k.blob) : k.blob;
+      putKey.run(userId, k.kind, k.kind === 'umk-wrap-passkey' ? (k.credentialId ?? cred.id) : '', blob);
+    }
     insertDevice(db, deviceId, userId, input.device, now);
   })();
   return { userId, deviceId };
@@ -149,8 +152,12 @@ export async function verifyAuthentication(
   return { userId: row.user_id, deviceId, keys: userKeys(db, row.user_id) };
 }
 
+/** Server speichert nur den SHA-256 des Backup-Auth-Tokens (Token: HKDF aus dem 128-Bit-Backup-Code, eigene Domain). */
+export const hashBackupAuth = (token: string): string => createHash('sha256').update(token).digest('base64url');
+
+/** Schlüssel des Nutzers für den Client — ohne Backup-Verifier. */
 export function userKeys(db: Db, userId: string): UserKey[] {
-  const rows = db.prepare('SELECT kind, credential_id, blob FROM user_keys WHERE user_id = ? ORDER BY kind, credential_id').all(userId) as {
+  const rows = db.prepare("SELECT kind, credential_id, blob FROM user_keys WHERE user_id = ? AND kind != 'backup-verifier' ORDER BY kind, credential_id").all(userId) as {
     kind: UserKeyKind;
     credential_id: string;
     blob: string;
@@ -158,7 +165,7 @@ export function userKeys(db: Db, userId: string): UserKey[] {
   return rows.map((r) => ({ kind: r.kind, blob: r.blob, ...(r.credential_id ? { credentialId: r.credential_id } : {}) }));
 }
 
-function insertDevice(db: Db, id: string, userId: string, d: NewDevice, now: number): void {
+export function insertDevice(db: Db, id: string, userId: string, d: NewDevice, now: number): void {
   db.prepare('INSERT INTO devices (id, user_id, kind, name_ct, public_key, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(id, userId, 'device', d.nameCt, d.publicKey, now);
 }
 

@@ -13,6 +13,7 @@ const keys = [
   { kind: 'identity-priv-enc', blob: 'priv-enc' },
   { kind: 'umk-wrap-passkey', blob: 'wrap-p' },
   { kind: 'umk-wrap-backup', blob: 'wrap-b' },
+  { kind: 'backup-verifier', blob: 'backup-auth-token-0000000000000000' },
 ];
 const device = { nameCt: 'name-ct', publicKey: 'dev-pub' };
 
@@ -62,6 +63,8 @@ describe('Konto per Passkey', () => {
     const me = await app.inject({ method: 'GET', url: '/api/v1/auth/me', headers: { cookie: cookieOf(res) } });
     expect(me.json()).toMatchObject({ username: 'berta' });
     expect(me.json().keys.map((k: { kind: string }) => k.kind).sort()).toEqual(['identity-priv-enc', 'identity-pub', 'umk-wrap-backup', 'umk-wrap-passkey']);
+    // Verifier nur als Hash und nie an den Client
+    expect(db.prepare("SELECT blob FROM user_keys WHERE kind = 'backup-verifier'").get()).not.toEqual({ blob: 'backup-auth-token-0000000000000000' });
   });
 
   it('Registrierung ohne Backup-Wrap wird abgelehnt; Benutzername nur einmal; Challenge nur einmal', async () => {
@@ -89,7 +92,7 @@ describe('Konto per Passkey', () => {
     const { auth } = await register('emil');
     const res = await login(auth);
     expect(res.statusCode).toBe(200);
-    expect(res.json().keys).toHaveLength(4);
+    expect(res.json().keys).toHaveLength(4); // ohne Verifier
     const me = await app.inject({ method: 'GET', url: '/api/v1/auth/me', headers: { cookie: cookieOf(res) } });
     expect(me.json().username).toBe('emil');
 
@@ -115,6 +118,54 @@ describe('Konto per Passkey', () => {
   it('Rate-Limit auf Auth-Endpunkten', async () => {
     let last = 0;
     for (let i = 0; i < 31; i++) last = (await app.inject({ method: 'POST', url: '/api/v1/auth/login/options' })).statusCode;
+    expect(last).toBe(429);
+  });
+
+  it('Recovery: richtiger Backup-Auth-Token → neuer Passkey als zusätzlicher Zugang, Backup-Wrap und Verifier ersetzt', async () => {
+    const { res, auth: oldPasskey } = await register('gerd');
+    expect(res.statusCode).toBe(201);
+    const wrong = await app.inject({ method: 'POST', url: '/api/v1/auth/recovery/start', payload: { username: 'gerd', backupAuth: 'falsch-falsch-falsch-falsch' } });
+    expect(wrong.json()).toEqual({ error: 'wrong-backup-code' });
+    const unknown = await app.inject({ method: 'POST', url: '/api/v1/auth/recovery/start', payload: { username: 'niemand', backupAuth: 'backup-auth-token-0000000000000000' } });
+    expect(unknown.json()).toEqual({ error: 'wrong-backup-code' });
+
+    const start = await app.inject({ method: 'POST', url: '/api/v1/auth/recovery/start', payload: { username: 'gerd', backupAuth: 'backup-auth-token-0000000000000000' } });
+    expect(start.statusCode).toBe(200);
+    const { challengeId, options, keys: got } = start.json();
+    expect(got.map((k: { kind: string }) => k.kind).sort()).toEqual(['identity-priv-enc', 'identity-pub', 'umk-wrap-backup']);
+    expect(options.excludeCredentials).toHaveLength(1);
+
+    const fresh = createSoftAuthenticator();
+    const response = fresh.register({ challenge: options.challenge, rpId: 'localhost', origin: ORIGIN, userHandle: options.user.id });
+    const finish = await app.inject({
+      method: 'POST', url: '/api/v1/auth/recovery/finish',
+      payload: {
+        challengeId, response, device,
+        keys: [
+          { kind: 'umk-wrap-passkey', blob: 'wrap-p2' },
+          { kind: 'umk-wrap-backup', blob: 'wrap-b2' },
+          { kind: 'backup-verifier', blob: 'backup-auth-token-1111111111111111' },
+        ],
+      },
+    });
+    expect(finish.statusCode).toBe(201);
+    const me = await app.inject({ method: 'GET', url: '/api/v1/auth/me', headers: { cookie: cookieOf(finish) } });
+    const wraps = me.json().keys as { kind: string; blob: string }[];
+    expect(wraps.filter((k) => k.kind === 'umk-wrap-passkey').map((k) => k.blob).sort()).toEqual(['wrap-p', 'wrap-p2']);
+    expect(wraps.find((k) => k.kind === 'umk-wrap-backup')?.blob).toBe('wrap-b2');
+
+    // alter Code gilt nicht mehr, neuer schon; alter Passkey funktioniert weiter (zusätzlicher Zugang)
+    const old = await app.inject({ method: 'POST', url: '/api/v1/auth/recovery/start', payload: { username: 'gerd', backupAuth: 'backup-auth-token-0000000000000000' } });
+    expect(old.json()).toEqual({ error: 'wrong-backup-code' });
+    expect((await login(oldPasskey)).statusCode).toBe(200);
+    expect((await login(fresh)).statusCode).toBe(200);
+  });
+
+  it('Recovery-Rate-Limit: 5 Versuche je Benutzername', async () => {
+    let last = 0;
+    for (let i = 0; i < 6; i++) {
+      last = (await app.inject({ method: 'POST', url: '/api/v1/auth/recovery/start', payload: { username: 'hans', backupAuth: 'falsch-falsch-falsch-falsch' } })).statusCode;
+    }
     expect(last).toBe(429);
   });
 });

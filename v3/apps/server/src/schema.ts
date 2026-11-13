@@ -151,6 +151,19 @@ const MIGRATIONS: readonly string[] = [
     PRIMARY KEY (user_id, kind, credential_id)
   );
   `,
+  // 8: Backup-Verifier für Recovery/„Gerät hinzufügen" per Backup-Code (DECISIONS A-023) — CHECK erweitern (Tabelle neu)
+  `
+  CREATE TABLE user_keys_new (
+    user_id TEXT NOT NULL REFERENCES users(id),
+    kind TEXT NOT NULL CHECK (kind IN ('identity-pub', 'identity-priv-enc', 'umk-wrap-passkey', 'umk-wrap-backup', 'backup-verifier')),
+    credential_id TEXT NOT NULL DEFAULT '',
+    blob TEXT NOT NULL,
+    PRIMARY KEY (user_id, kind, credential_id)
+  );
+  INSERT INTO user_keys_new SELECT user_id, kind, credential_id, blob FROM user_keys;
+  DROP TABLE user_keys;
+  ALTER TABLE user_keys_new RENAME TO user_keys;
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

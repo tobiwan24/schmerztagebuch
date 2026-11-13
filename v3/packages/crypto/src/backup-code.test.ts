@@ -33,3 +33,15 @@ describe('Backup-Code', () => {
     }
   });
 });
+
+describe('Backup-Auth-Token (A-023)', () => {
+  it('deterministisch, tolerant gegenüber Schreibweise, je Code verschieden; ungültiger Code → wrong-backup-code', async () => {
+    const { deriveBackupAuth, generateBackupCode } = await import('./backup-code.js');
+    const code = await generateBackupCode();
+    const a = await deriveBackupAuth(code);
+    expect(a).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(await deriveBackupAuth(code.toLowerCase().replace(/-/g, ' '))).toBe(a);
+    expect(await deriveBackupAuth(await generateBackupCode())).not.toBe(a);
+    await expect(deriveBackupAuth('AAAA')).rejects.toMatchObject({ code: 'wrong-backup-code' });
+  });
+});

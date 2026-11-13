@@ -3,7 +3,7 @@
 // Der Server sieht nur Wraps und öffentliche Schlüssel. Arbeitet mit WebAuthn-JSON — die Browser-Aufrufe
 // (`credentials.create/get`, synchron im Klick) liegen in der UI, damit iOS die Nutzergeste nicht verliert.
 import {
-  CryptoError, exportPublicKey, generateBackupCode, generateDiaryKey, generateIdentityEcdhKeyPair, generateUmk, importPublicKey,
+  CryptoError, deriveBackupAuth, exportPublicKey, generateBackupCode, generateDiaryKey, generateIdentityEcdhKeyPair, generateUmk, importPublicKey,
   openIdentityKey, sealIdentityKey, toBase64Url, unwrapDkForMember, unwrapUmk, wrapDkForMember, wrapUmk, type SealedIdentity, type UmkWrap,
 } from '@stb/crypto';
 import type { StbDb } from '../data/db.js';
@@ -58,6 +58,7 @@ export async function prepareCloudRegistration(
     { kind: 'identity-priv-enc', blob: JSON.stringify(sealed) },
     { kind: 'umk-wrap-passkey', credentialId, blob: JSON.stringify(passkeyWrap) },
     { kind: 'umk-wrap-backup', blob: JSON.stringify(backupWrap) },
+    { kind: 'backup-verifier', blob: await deriveBackupAuth(backupCode) },
   ];
   const device = await newDevice(umk);
   const draft: Omit<CloudAccount, 'cloud'> = {
@@ -106,6 +107,66 @@ export async function loginOnNewDevice(
     await db.sync_state.put({ diaryId: m.diaryId, cursor: 0, mode: 'cloud-primary' });
   }
   return { umk, account };
+}
+
+/** Recovery / Gerät hinzufügen, Schritt 1: Backup-Code prüfen lassen (nur der abgeleitete Token geht an den Server). */
+export async function startCloudRecovery(api: AccountApi, input: { username: string; backupCode: string }) {
+  const backupAuth = await deriveBackupAuth(input.backupCode);
+  return api.recoveryStart({ username: input.username, backupAuth });
+}
+
+/**
+ * Schritt 2 nach `credentials.create` (neuer Passkey dieses Geräts): UMK mit dem Backup-Code entpacken, neuen Passkey-Wrap
+ * und **neuen** Backup-Code erzeugen (Spec 03 „Recovery"). `commit()` (nach Bestätigung des neuen Codes) meldet beim
+ * Server an und speichert das Konto samt DK-Wraps lokal.
+ */
+export async function prepareCloudRecovery(
+  db: StbDb,
+  api: AccountApi,
+  input: {
+    username: string;
+    backupCode: string;
+    start: Awaited<ReturnType<typeof startCloudRecovery>>;
+    credential: CredentialJson;
+    prf: Uint8Array<ArrayBuffer>;
+    now: () => number;
+  },
+): Promise<PendingAccount & { account: CloudAccount }> {
+  const get = (kind: UserKey['kind']) => input.start.keys.find((k) => k.kind === kind);
+  const backup = get('umk-wrap-backup');
+  const pub = get('identity-pub');
+  const priv = get('identity-priv-enc');
+  if (!backup || !pub || !priv) throw new CryptoError('unwrap-failed', 'Schlüssel fehlen auf dem Server');
+  const umk = await unwrapUmk(JSON.parse(backup.blob) as UmkWrap, { kind: 'backup', code: input.backupCode });
+  const sealed = JSON.parse(priv.blob) as SealedIdentity;
+  await openIdentityKey(umk, pub.blob, sealed);
+  const backupCode = await generateBackupCode();
+  const passkeyWrap = await wrapUmk(umk, { kind: 'passkey', prf: input.prf });
+  const backupWrap = await wrapUmk(umk, { kind: 'backup', code: backupCode });
+  const keys: UserKey[] = [
+    { kind: 'umk-wrap-passkey', credentialId: input.credential.id, blob: JSON.stringify(passkeyWrap) },
+    { kind: 'umk-wrap-backup', blob: JSON.stringify(backupWrap) },
+    { kind: 'backup-verifier', blob: await deriveBackupAuth(backupCode) },
+  ];
+  const account: CloudAccount = {
+    v: 1, mode: 'cloud-primary', createdAt: new Date(input.now()).toISOString(), passkey: { credentialId: input.credential.id },
+    wraps: [passkeyWrap, backupWrap],
+    cloud: { userId: '', username: input.username, identityPublicKey: pub.blob, identitySealed: sealed },
+  };
+  return {
+    umk,
+    backupCode,
+    account,
+    async commit() {
+      const r = await api.recoveryFinish({ challengeId: input.start.challengeId, response: input.credential, keys, device: await newDevice(umk) });
+      account.cloud.userId = r.userId;
+      await db.keys.put({ id: ACCOUNT_ID, value: account });
+      for (const m of await api.listDiaries()) {
+        await db.keys.put({ id: dkRowId(m.diaryId), value: { diaryId: m.diaryId, keyEpoch: m.keyEpoch, wrappedDk: m.wrappedDk } satisfies DkRow });
+        await db.sync_state.put({ diaryId: m.diaryId, cursor: 0, mode: 'cloud-primary' });
+      }
+    },
+  };
 }
 
 /** Tagebuch auf dem Server anlegen: neuer DK, für die eigene Identity verpackt (Owner, `key_epoch` 1). */
