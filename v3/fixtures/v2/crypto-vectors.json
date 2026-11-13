@@ -1,0 +1,16 @@
+{
+  "note": "Erzeugt mit dem Original-v2-Code (src/utils/crypto.ts, keyManagement.ts); synthetische Inhalte.",
+  "password": "v2-Testpasswort",
+  "appSalt": "AQIDBAUGBwgJCgsMDQ4PEA==",
+  "passwordTest": "nbBvr6i/rUNP6Z/qEFitD8f61HYJ9aP023tMiQS0WgJaKumuCEFDCK0bIddHlh63BZ2lGFlZE/TForSO3kZRc6oh24hqJg==",
+  "passwordTestV2": "rWkUmapuleLdQ9SQCy4kam1yKHUe7P6f9+ufYfwL2nQ/+CfRX4muKHFbIhnbRqV7fuOKb8FT",
+  "entryV1": "aUBVld7+IgH6sMC8xQqXZJ/GLshGHt7jypaGNUpRxopSkrqZh3YErD9PtzZeXBvR747l9JUvGD0e7TuRbW6K0kKAu26TOI6qodmpLj7v/+X9ftgmoYPBYlLN+jXJdBNaIkq80LX1I0h1krfdYkWKeVh2C4v2tkWZNJmgJ2viOouXy41Sul6DRz00RsLdZkBbAVomKNFmm49nxAqUSwXmaKOUAASJAxfZsp9WN38NnxH3Ms+0fklgevE4mHsW8lo4slfEKEGqixJvdM8OyJ3NmY+1QdhU8rq3oem1nyn/cPUQTm1JS21ADbXE9eNpWzhcq4/SSfLhMo0KSPBAhbW5/+M=",
+  "entryV2": "FbJ7pXrQzR0ioYKWBAjjesT/feXc7XHnmgu9dGcoML4GkiKK/oWKRDljVBFdr6t6BOyGUDO5GzUUrsQr/FVT8u31aWpIZ7peuJNrQyCCa9CkiyKTLvUHUewW0QuuBLyLj/r2G88f4wVKmtCuw3aGCs+IxnvPlOIlWiF07vVrWyydOF8MImkBJOZJcgSEh/vCyQI9VQ7FFKuWDugsAkFShjaN0ft6/zVEM64Wo9Vg/iarFEqOWm77G52pQ7IGkHyf1X99cD1jeSmlcrCeC5wtuqOQEmy5CGdBIJc710hC1Gj+2V6WWE3clfXVu14Z3B61CQ==",
+  "dekRaw": "YWKZNVLSHJjUqQ1p+y+WU21+z2l9GZvW8uZxJuHFhaw=",
+  "entryCloud": "+ZyVNse/FhFTxcslBXSwsICztJyx0tVrSADkiEMIbPdc9i87Woc0SADuYGxAKxidX6YIfJpeqLlimC9D3/ATdGR8Ra4H6fYMrfEMReNw9s2jtrW6yZuLrNRVasTbrmA/ZaPe4VxwTnZhyCn1yWcTr77LywNI5kYclJVjIBly/U5AQ3ntw2LEjj+CgYeDLYNMIpMUcL3TaqPgj7FyhlbNjmr9U18s0Zp2Cu3kb/nC7fHeLt3Q/mClB/M7mlo0kFsMXJ7HM0XujvOXNDPXPGblZnyTKzwBqJ99AjdHEzhJp5ESl5oOA+h0eMInav3HYgiH2GZAsQ==",
+  "kdfSalt": "zyrWdcPOQXHRTRFvHnma3Q==",
+  "backupCode": "H3MQK-HW763-NQTBG-WDACJ-PGQBA-EC4WQ-HE",
+  "prf": "yMfGxcTDwsHAv769vLu6ubi3trW0s7KxsK+urayrqqk=",
+  "wrappedDekBackup": "jaGhd2vYDpRhQOO/gdyVO4yDIddmoK3CKIyNggWsXWOuPjxbbKvzlg==",
+  "wrappedDekPasskey": "X4FpVGXm6clSz98PWmsASo4t37NvsJqkNSm0Gm7uvt1LsVOX5l25uw=="
+}
