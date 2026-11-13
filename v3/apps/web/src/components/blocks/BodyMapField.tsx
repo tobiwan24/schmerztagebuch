@@ -1,9 +1,10 @@
 // Body-Map (Spec 05, A-024), portiert aus v2 `BodyMapBlock.tsx`: Werkzeuge Punkt und Pinsel, Größe klein/mittel/groß,
 // Intensität 1–10 (Farben wie v2), Kommentar je Markierung, Nummerierung in Reihenfolge, Entfernen nummeriert neu.
 // Statt Canvas: Bild + SVG-Overlay (skaliert verlustfrei, testbar). Koordinaten normalisiert 0..1.
-// Bildwahl: Standardbilder; Wechsel mit vorhandenen Markierungen nur nach Rückfrage. Eigene Bilder folgen (BLK-21).
+// Bildwahl: Standardbilder + eigene Bilder des Tagebuchs (hochladen, zuschneiden, löschen, als Standard des Feldes setzen);
+// Wechsel mit vorhandenen Markierungen nur nach Rückfrage.
 import { useRef, useState, type PointerEvent } from 'react';
-import { ArrowDownToDot, Brush, X } from 'lucide-react';
+import { ArrowDownToDot, Brush, Crop, ImagePlus, Star, Trash2, X } from 'lucide-react';
 import { BODYMAP_MAX_PATH, type BodymapValue } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
@@ -12,6 +13,9 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useData } from '@/data/DataContext';
+import { useQuery } from '@/data/useQuery';
+import { cropImage, readFileAsDataUrl, resizeImage, type CropArea } from '@/lib/image';
+import { CropDialog } from './CropDialog';
 import { BODYMAP_PRESETS, intensityFill, intensityStroke, presetById } from './bodymap-presets';
 import { de } from '@/i18n/de';
 
@@ -25,10 +29,30 @@ const DEFAULT_SIZE = BODYMAP_SIZES.medium;
 /** Mindestabstand zwischen zwei Pfadpunkten (normalisiert) — hält Pinselstriche klein. */
 const MIN_STEP = 0.004;
 
-export function BodyMapField({ id, value, defaultPresetId, onChange }: { id: string; value: BodymapValue | undefined; defaultPresetId: string; onChange: (v: BodymapValue) => void }) {
-  const { newId } = useData();
+export interface BodyMapFieldProps {
+  id: string;
+  value: BodymapValue | undefined;
+  defaultPresetId: string;
+  onChange: (v: BodymapValue) => void;
+  /** Tagebuch für eigene Bilder; ohne Angabe nur Standardbilder. */
+  diaryId?: string;
+  /** „Als Standard für dieses Feld" (ändert `defaultPresetId` der Vorlage). */
+  onSetDefault?: (presetId: string) => Promise<void>;
+}
+
+export function BodyMapField({ id, value, defaultPresetId, onChange, diaryId, onSetDefault }: BodyMapFieldProps) {
+  const { newId, diary, now } = useData();
   const current: BodymapValue = value ?? { presetId: defaultPresetId, points: [] };
+  const own = useQuery(async () => (diaryId ? diary.listBodymapImages(diaryId) : []), [diary, diaryId]);
+  const ownImages = own.status === 'ok' ? own.data : [];
+  const ownImage = ownImages.find((i) => i.id === current.presetId);
   const preset = presetById(current.presetId) ?? BODYMAP_PRESETS[0];
+  const image = ownImage ? { id: ownImage.id, src: ownImage.dataUrl, name: ownImage.name } : { id: preset.id, src: preset.src, name: de.bodymap.presets[preset.id] };
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [savingImage, setSavingImage] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [defaultInfo, setDefaultInfo] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
   const [tool, setTool] = useState<Tool>('point');
   const [size, setSize] = useState<SizeKey>('medium');
   const [intensity, setIntensity] = useState(5);
@@ -77,7 +101,7 @@ export function BodyMapField({ id, value, defaultPresetId, onChange }: { id: str
   }
 
   function choosePreset(pid: string) {
-    if (pid === preset.id) return;
+    if (pid === image.id) return;
     if (current.points.length > 0) return setSwitchTo(pid);
     onChange({ presetId: pid, points: [] });
   }
@@ -85,15 +109,83 @@ export function BodyMapField({ id, value, defaultPresetId, onChange }: { id: str
     onChange({ ...current, points: current.points.map((m) => (m.id === mid ? { ...m, comment: comment || undefined } : m)) });
   const remove = (mid: string) => onChange({ ...current, points: current.points.filter((m) => m.id !== mid) });
 
+  async function onFile(file: File | undefined) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const resized = await resizeImage(await readFileAsDataUrl(file));
+    setCropSrc(resized.dataUrl);
+  }
+  async function applyCrop(area: CropArea, name: string) {
+    if (!cropSrc || !diaryId) return;
+    setSavingImage(true);
+    try {
+      const cropped = await cropImage(cropSrc, area);
+      const img = { id: newId(), diaryId, name, dataUrl: cropped.dataUrl, width: cropped.width, height: cropped.height, createdAt: new Date(now()).toISOString() };
+      await diary.saveBodymapImage(img);
+      own.retry();
+      onChange({ presetId: img.id, points: [] }); // Zuschneiden setzt Markierungen zurück (Hinweis im Dialog)
+      setCropSrc(null);
+    } finally {
+      setSavingImage(false);
+    }
+  }
+  async function deleteOwn() {
+    if (!ownImage) return;
+    await diary.deleteBodymapImage(ownImage.id);
+    own.retry();
+    onChange({ presetId: defaultPresetId === ownImage.id ? BODYMAP_PRESETS[0].id : defaultPresetId, points: [] });
+    setConfirmDelete(false);
+  }
+  async function setAsDefault() {
+    if (!onSetDefault) return;
+    await onSetDefault(image.id);
+    setDefaultInfo(true);
+  }
+
   return (
     <div id={id} className="flex flex-col gap-3">
       <div role="group" aria-label={de.bodymap.image} className="flex flex-wrap gap-2">
         {BODYMAP_PRESETS.map((p) => (
-          <Button key={p.id} type="button" size="sm" variant={p.id === preset.id ? 'default' : 'outline'} aria-pressed={p.id === preset.id} onClick={() => choosePreset(p.id)}>
+          <Button key={p.id} type="button" size="sm" variant={p.id === image.id ? 'default' : 'outline'} aria-pressed={p.id === image.id} onClick={() => choosePreset(p.id)}>
             {presetName(p.id)}
           </Button>
         ))}
+        {ownImages.map((img) => (
+          <Button key={img.id} type="button" size="sm" data-own-image variant={img.id === image.id ? 'default' : 'outline'} aria-pressed={img.id === image.id} onClick={() => choosePreset(img.id)}>
+            {img.name}
+          </Button>
+        ))}
       </div>
+
+      {diaryId ? (
+        <div className="flex flex-wrap gap-2">
+          <Input ref={fileInput} type="file" accept="image/*" className="hidden" aria-label={de.bodymap.uploadImage} onChange={(e) => void onFile(e.target.files?.[0]).finally(() => (e.target.value = ''))} />
+          <Button type="button" size="sm" variant="outline" onClick={() => fileInput.current?.click()}>
+            <ImagePlus aria-hidden />
+            {de.bodymap.uploadImage}
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => setCropSrc(image.src)}>
+            <Crop aria-hidden />
+            {de.bodymap.cropImage}
+          </Button>
+          {ownImage ? (
+            <Button type="button" size="sm" variant="outline" onClick={() => setConfirmDelete(true)}>
+              <Trash2 aria-hidden />
+              {de.bodymap.deleteImage}
+            </Button>
+          ) : null}
+          {onSetDefault && image.id !== defaultPresetId ? (
+            <Button type="button" size="sm" variant="outline" onClick={() => void setAsDefault()}>
+              <Star aria-hidden />
+              {de.bodymap.setDefault}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {defaultInfo ? (
+        <p role="status" className="text-xs text-muted-foreground">
+          {de.bodymap.defaultSet}
+        </p>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-2 min-[440px]:grid-cols-2">
         <ToggleGroup aria-label={de.bodymap.tool}>
@@ -135,8 +227,8 @@ export function BodyMapField({ id, value, defaultPresetId, onChange }: { id: str
         onPointerCancel={() => ((strokeRef.current = null), setStroke(null))}
       >
         <img
-          src={preset.src}
-          alt={presetName(preset.id)}
+          src={image.src}
+          alt={image.name}
           className="pointer-events-none block max-h-[60vh] w-full object-contain"
           draggable={false}
           onLoad={(e) => setDims({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
@@ -178,6 +270,27 @@ export function BodyMapField({ id, value, defaultPresetId, onChange }: { id: str
         </ul>
       ) : null}
 
+      <CropDialog
+        key={cropSrc ?? 'none'}
+        src={cropSrc}
+        defaultName={de.bodymap.ownImageName(ownImages.length + 1)}
+        hasMarks={current.points.length > 0}
+        busy={savingImage}
+        onCancel={() => setCropSrc(null)}
+        onApply={(area, name) => void applyCrop(area, name)}
+      />
+      <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)} aria-labelledby={`${id}-delete-title`}>
+        <DialogTitle id={`${id}-delete-title`}>{de.bodymap.deleteImageTitle}</DialogTitle>
+        <DialogDescription>{de.bodymap.deleteImageHint}</DialogDescription>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => setConfirmDelete(false)}>
+            {de.lock.cancel}
+          </Button>
+          <Button type="button" variant="destructive" onClick={() => void deleteOwn()}>
+            {de.bodymap.deleteImage}
+          </Button>
+        </DialogFooter>
+      </Dialog>
       <Dialog open={switchTo !== null} onClose={() => setSwitchTo(null)} aria-labelledby={`${id}-switch-title`}>
         <DialogTitle id={`${id}-switch-title`}>{de.bodymap.switchTitle}</DialogTitle>
         <DialogDescription>{de.bodymap.switchHint}</DialogDescription>

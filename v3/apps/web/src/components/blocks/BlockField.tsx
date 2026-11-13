@@ -14,9 +14,13 @@ export interface BlockFieldProps {
   value: unknown;
   onChange: (value: unknown) => void;
   invalid: boolean;
+  /** Tagebuch (eigene Body-Map-Bilder). */
+  diaryId?: string;
+  /** Body-Map: „Als Standard für dieses Feld". */
+  onSetDefault?: (blockId: string, presetId: string) => Promise<void>;
 }
 
-export function BlockField({ def, value, onChange, invalid }: BlockFieldProps) {
+export function BlockField({ def, value, onChange, invalid, diaryId, onSetDefault }: BlockFieldProps) {
   const id = `block-${def.id}`;
   const errorId = `${id}-error`;
   const aria = { 'aria-invalid': invalid || undefined, 'aria-describedby': invalid ? errorId : undefined };
@@ -27,7 +31,7 @@ export function BlockField({ def, value, onChange, invalid }: BlockFieldProps) {
         {def.required ? <span aria-label={de.entry.required}>{' *'}</span> : null}
       </Label>
       {def.description ? <p className="text-xs text-muted-foreground">{def.description}</p> : null}
-      <FieldInput id={id} def={def} value={value} onChange={onChange} aria={aria} />
+      <FieldInput id={id} def={def} value={value} onChange={onChange} aria={aria} diaryId={diaryId} onSetDefault={onSetDefault ? (pid) => onSetDefault(def.id, pid) : undefined} />
       {invalid ? (
         <p id={errorId} role="alert" className="text-sm text-destructive">
           {de.entry.requiredMissing}
@@ -39,7 +43,9 @@ export function BlockField({ def, value, onChange, invalid }: BlockFieldProps) {
 
 type Aria = { 'aria-invalid'?: true; 'aria-describedby'?: string };
 
-function FieldInput({ id, def, value, onChange, aria }: { id: string; def: BlockDef; value: unknown; onChange: (v: unknown) => void; aria: Aria }) {
+function FieldInput({
+  id, def, value, onChange, aria, diaryId, onSetDefault,
+}: { id: string; def: BlockDef; value: unknown; onChange: (v: unknown) => void; aria: Aria; diaryId?: string; onSetDefault?: (presetId: string) => Promise<void> }) {
   switch (def.type) {
     case 'slider': {
       const v = typeof value === 'number' ? value : undefined;
@@ -110,7 +116,12 @@ function FieldInput({ id, def, value, onChange, aria }: { id: string; def: Block
     case 'date':
       return <DateInput id={id} mode={def.config.mode} value={value as DateValue | undefined} onChange={onChange} aria={aria} />;
     case 'bodymap':
-      return <BodyMapField id={id} value={value as BodymapValue | undefined} defaultPresetId={def.config.defaultPresetId} onChange={onChange} />;
+      return (
+        <BodyMapField
+          id={id} value={value as BodymapValue | undefined} defaultPresetId={def.config.defaultPresetId} onChange={onChange}
+          diaryId={diaryId} onSetDefault={onSetDefault}
+        />
+      );
   }
 }
 

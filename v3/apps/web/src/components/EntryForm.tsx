@@ -10,6 +10,7 @@ import {
   sortedBlocks,
   timeInputFrom,
   timeToEntry,
+  updateTemplate,
   validateTime,
   valuesToSave,
   type Entry,
@@ -84,6 +85,14 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
   const timeError = showErrors ? validateTime(current.time) : null;
 
   const setValues = (values: FormValues) => setCurrent({ ...current, values });
+
+  /** Body-Map „Als Standard für dieses Feld": Block-Konfiguration ändern → neue Vorlagenversion (Spec 02). */
+  async function setBlockDefault(blockId: string, presetId: string) {
+    const state = await data.diary.getTemplate(template.id);
+    if (!state) return;
+    const blocks = state.version.blocks.map((b) => (b.id === blockId && b.type === 'bodymap' ? { ...b, config: { ...b.config, defaultPresetId: presetId } } : b));
+    await data.diary.saveTemplate(updateTemplate(state, { blocks }, { now: data.now }).state);
+  }
   const setTime = (time: TimeInput) => setCurrent({ ...current, time });
 
   async function save() {
@@ -140,7 +149,10 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
       <TimeField time={current.time} error={timeError} onChange={setTime} />
 
       {sortedBlocks(version).map((def) => (
-        <BlockField key={def.id} def={def} value={current.values[def.id]} invalid={missing.has(def.id)} onChange={(v) => setValues({ ...current.values, [def.id]: v })} />
+        <BlockField
+          key={def.id} def={def} value={current.values[def.id]} invalid={missing.has(def.id)} onChange={(v) => setValues({ ...current.values, [def.id]: v })}
+          diaryId={template.diaryId} onSetDefault={setBlockDefault}
+        />
       ))}
 
       {missing.size > 0 ? (

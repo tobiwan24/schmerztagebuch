@@ -63,7 +63,7 @@ export function QuickPage() {
         <form className="flex flex-col gap-6" noValidate onSubmit={(e) => (e.preventDefault(), void save())}>
           <p className="text-sm text-muted-foreground">{de.quick.now(query.data.state.template.name)}</p>
           {query.data.blocks.map((def) => (
-            <BlockField key={def.id} def={def} value={values[def.id]} invalid={false} onChange={(v) => (setValues({ ...values, [def.id]: v }), setEmpty(false))} />
+            <BlockField key={def.id} def={def} diaryId={query.data?.state.template.diaryId} value={values[def.id]} invalid={false} onChange={(v) => (setValues({ ...values, [def.id]: v }), setEmpty(false))} />
           ))}
           {empty ? (
             <p role="alert" className="text-sm text-destructive">

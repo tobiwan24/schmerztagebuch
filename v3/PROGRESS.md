@@ -4,15 +4,12 @@
 
 ## Aktuell
 
-- **Meilenstein:** M8b — Body-Map vollständig wie v2 (User-Entscheidung nach Gate G2, A-024); danach M9.
+- **Meilenstein:** M9 — Suche, Filter, Vergleich, Standard-Ansichten (M8b abgeschlossen).
 - **Gate G2:** vom User freigegeben (2026-11-13).
-- **Nächste Aufgabe:** M8b.2 BLK-21 eigene Bilder: Upload (Input `type=file`, verkleinern auf max. 1000×1400 JPEG 0,85 wie
-  v2 `resizeAndOptimizeImage`), Zuschneiden (v2 nutzte `react-easy-crop` → neue Abhängigkeit mit DECISIONS-Eintrag oder
-  eigener Zuschnitt-Dialog), speichern als Record `bodymapImage` je Tagebuch (Repository + Schema in core, wird mit
-  synchronisiert), Bildauswahl zeigt Standard- + eigene Bilder, eigenes Bild löschen, „Als Standard für dieses Feld“
-  (Vorlagen-Block `defaultPresetId` → neue Vorlagenversion via `updateTemplate`). E2E inkl. Zweitgerät.
-- **Erledigt in M8b:** BLK-20
-- **Offen in M8b:** BLK-21
+- **Nächste Aufgabe:** M9.1 Analyse-Kern in `packages/core` (Spec 06): `FilterSpec`-Schema (ANA-01), Filter-Engine auf
+  Analyse-Fixture (ANA-02, ANA-03 Rollen), umlauttolerante Volltextsuche (ANA-04). Zuerst Spec 06 vollständig lesen und
+  prüfen, was in `core/blocks/analysis.ts` schon existiert. Fixture deterministisch erzeugen (keine echten Gesundheitsdaten).
+- **Offen in M9:** ANA-01 … ANA-15
 - **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail. Schnelleintrag: Einstellung pro Tagebuch (Vorlage/Blöcke) folgt mit Tagebuch-Einstellungen; bei mehreren Tagebüchern nimmt `/quick` das erste. Body-Map: v2-Pinsel/Punktgröße/Kommentare/eigene Bilder fehlen (v3-Wertform kennt nur Punkte mit Intensität) — bei Bedarf Spec 05 erweitern; Migration (M11) muss Pinselstriche abbilden.
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
@@ -31,8 +28,8 @@
 | M6 | erledigt | 12/12 IDs → Gate G1 |
 | M7 | erledigt | 14/14 IDs |
 | M8 | erledigt | 12/12 IDs, Gate G2 freigegeben |
-| M8b | in Arbeit | 1/2 IDs (Body-Map wie v2) |
-| M9 | offen | erst nach UI-11 |
+| M8b | erledigt | 2/2 IDs (Body-Map wie v2) |
+| M9 | in Arbeit | erst nach UI-11 |
 | M10 | offen | |
 | M11 | offen | danach Gate G3 |
 | M12 | offen | erst nach UI-12 |
@@ -139,3 +136,4 @@
 | 2026-11-13 | M8.7 | SYN-11 | Wechsel „nur auf diesem Gerät“ → „Mit Konto“ in den Einstellungen: Passkey anlegen, **bestehende UMK bleibt** (Passwort-/lokaler Passkey-Wrap weiter gültig), neuer Backup-Code (Server braucht Wrap + Verifier), Identity neu; `commit` registriert beim Server mit der **lokalen User-ID** (A-021 umgesetzt: Server übernimmt vorgeschlagene freie ID; nach Login/Recovery übernimmt das Gerät die Server-ID als `authorId`), je lokalem Tagebuch DK + `switchToCloudPrimary` (alle Records in die Outbox). `AuthContext` liest die Kontoart nach `finishPending` neu (Outbox + Sync starten ohne Statuswechsel). Entsperr-Seite bietet Passkey **und** Passwort an, wenn beide Faktoren existieren. E2E: lokal zwei Einträge + Vorlage → umstellen → synchronisiert, Passwort-Entsperren weiter möglich → Zweitgerät per Backup-Code sieht alle Daten. **M8 abgeschlossen** (12/12); Regression M0–M7 grün (M4: QA-08 wartet auf Docker). |
 | 2026-11-13 | Gate G2 | — | Vom User freigegeben. Body-Map-Funktionen aus v2 (Pinsel, Größe, Kommentar je Markierung, eigene Bilder mit Zuschnitt) als „maßgeblich wichtig“ verlangt → A-024, Spec 05/02 erweitert, neue IDs BLK-20/BLK-21, Meilenstein M8b vor M9. |
 | 2026-11-13 | M8b.1 | BLK-20 | Wertform erweitert (rückwärtskompatibel: `kind`, `size`, `comment`, `path` je Markierung; Pinsel ⇔ Pfad). `BodyMapField` neu: Werkzeuge Punkt/Pinsel, Größe klein/mittel/groß (v2-Werte), Intensität, Kommentar je Markierung, `#n`-Nummern, Entfernen nummeriert neu, Bildwechsel mit Markierungen nur nach Rückfrage (Dialog statt gesperrter Buttons). Pinselstrich in einer Ref gepuffert (State war bei schnellen Zeigerereignissen veraltet → Strich wurde zum Punkt). Umschalter bei < 440 px untereinander. `check-acceptance` erlaubt Meilensteine wie `M8b`. |
+| 2026-11-13 | M8b.2 | BLK-21 | Eigene Body-Map-Bilder: `core/bodymap-image.ts` (Schema, Data-URL JPEG/PNG/WebP ≤ 2 MB), Repository `listBodymapImages`/`saveBodymapImage`/`deleteBodymapImage` (Record-`kind` `bodymapImage`, verschlüsselt synchronisiert). `lib/image.ts` (v2-Verkleinerung max. 1000×1400, JPEG 0,85, Zuschnitt). `CropDialog` mit `react-easy-crop` 6.2.4 (DECISIONS): Seitenverhältnis 3:4/1:1/4:3/frei, Zoom, Name; Hinweis, dass Markierungen verloren gehen. Body-Map: eigene Bilder in der Auswahl, „Eigenes Bild“, „Zuschneiden“ (auch Standardbilder → neues eigenes Bild), „Bild löschen“ (Rückfrage), „Als Standard für dieses Feld“ (Block-Konfiguration → neue Vorlagenversion). E2E: Konto + Zweitgerät (1:1-Zuschnitt, Standard, vorausgewählt, auf B identisch, Löschen) und lokal in Chromium + WebKit (4:3 + Zoom). CRY-15-Scan prüft auch Bildname und `data:image`. **M8b abgeschlossen** (2/2). |

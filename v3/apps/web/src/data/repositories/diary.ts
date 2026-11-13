@@ -1,12 +1,14 @@
 // Fachliche Repositories für Vorlagen, Vorlagenversionen und Einträge auf Basis des Record-Repositorys.
 // Validierung mit den zod-Schemas aus @stb/core; Komponenten greifen nur hierüber auf Daten zu (Spec 01).
 import {
+  bodymapImageSchema,
   compareByOrder,
   diarySchema,
   entrySchemaFor,
   resolveEntryView,
   templateSchema,
   templateVersionSchema,
+  type BodymapImage,
   type Diary,
   type Entry,
   type EntryField,
@@ -32,6 +34,10 @@ export interface DiaryRepository {
   createDiary(diary: Diary, firstTemplate?: TemplateState): Promise<void>;
   getDiary(diaryId: string): Promise<Diary | undefined>;
   listDiaries(): Promise<Diary[]>;
+  /** Eigene Body-Map-Bilder eines Tagebuchs (A-024), älteste zuerst. */
+  listBodymapImages(diaryId: string): Promise<BodymapImage[]>;
+  saveBodymapImage(image: BodymapImage): Promise<void>;
+  deleteBodymapImage(imageId: string): Promise<void>;
   /** Speichert Vorlage und aktuelle Version gemeinsam (eine Transaktion). */
   saveTemplate(state: TemplateState): Promise<void>;
   /** Nur Metadaten (Name, Reihenfolge, Archiv) — Blöcke unverändert, keine neue Version (Spec 02). */
@@ -136,6 +142,21 @@ export function createDiaryRepository(records: RecordRepository): DiaryRepositor
 
     async listTemplates(diaryId) {
       return (await records.list(diaryId, 'template')).map((r) => templateSchema.parse(r.payload));
+    },
+
+    async listBodymapImages(diaryId) {
+      const all = (await records.list(diaryId, 'bodymapImage')).map((rec) => bodymapImageSchema.parse(rec.payload));
+      return all.sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0));
+    },
+
+    async saveBodymapImage(image) {
+      const img = bodymapImageSchema.parse(image);
+      await records.put({ id: img.id, diaryId: img.diaryId, kind: 'bodymapImage', payload: img });
+    },
+
+    async deleteBodymapImage(imageId) {
+      const rec = await records.get(imageId);
+      if (rec && !rec.deleted && rec.kind === 'bodymapImage') await records.remove(imageId);
     },
 
     async listAllTemplates() {

@@ -76,3 +76,4 @@ Der Loop ergänzt hier neue Annahmen und jede neue npm-Abhängigkeit.
 | `react-router` | web | Routing mit Deep-Links und Zurück-Geste (A-005, Spec 10); v7 (Library-Modus) | MIT | v8 (neue API, noch nicht etabliert); TanStack Router |
 | `@playwright/test` | root (dev) | E2E-Tests Chromium + WebKit, JSON-Report (Spec 01/12) | Apache-2.0 | Cypress (kein WebKit) |
 | `@simplewebauthn/server` | server | WebAuthn-Registrierung/-Login verifizieren (Attestation, Assertion, Zähler, RP-ID/Origin), Spec 03 „Server-Auth“; 14.0.3 fest (≥ 2 Wochen alt) | MIT | eigene CBOR/COSE-Verifikation (fehleranfällig, sicherheitskritisch); `fido2-lib` (weniger gepflegt) |
+| `react-easy-crop` | web | Zuschneiden eigener Body-Map-Bilder (Spec 05, A-024) — wie v2; 6.2.4 fest (≥ 2 Wochen alt) | MIT | eigener Zuschnitt-Dialog (Zoom/Pan/Touch aufwendig, v2-Verhalten nachbauen); `react-image-crop` (anderes Bedienkonzept als v2) |

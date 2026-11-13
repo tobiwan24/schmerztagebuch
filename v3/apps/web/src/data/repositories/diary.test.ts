@@ -182,3 +182,19 @@ describe('Vorlagen verwalten', () => {
     expect(await repo.countTemplateEntries(tpl.template.id)).toBe(0);
   });
 });
+
+describe('Eigene Body-Map-Bilder', () => {
+  it('speichern, auflisten, löschen; ungültige Data-URL wird abgelehnt', async () => {
+    const repo = createDiaryRepository(
+      createRecordRepository(db, { registry: createCodecRegistry([plainCodec]), writeCodec: 'plain', clock, outbox: false }),
+    );
+    const diaryId = newId();
+    const img = { id: newId(), diaryId, name: 'Knie links', dataUrl: 'data:image/jpeg;base64,/9j/4AAQSkZJRg==', width: 600, height: 800, createdAt: iso() };
+    await repo.saveBodymapImage(img);
+    expect(await repo.listBodymapImages(diaryId)).toEqual([img]);
+    await expect(repo.saveBodymapImage({ ...img, id: newId(), dataUrl: 'javascript:alert(1)' })).rejects.toThrow();
+    await repo.deleteBodymapImage(img.id);
+    expect(await repo.listBodymapImages(diaryId)).toEqual([]);
+  });
+});
+

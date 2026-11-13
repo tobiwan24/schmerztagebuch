@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { test, expect, type Locator, type Page } from '@playwright/test';
 import { go, onboardWithPassword } from './helpers';
 
@@ -93,4 +94,18 @@ test.describe('Body-Map', () => {
     await expect(g.getByTestId('bodymap-canvas').locator('svg')).toBeVisible();
     expect(await g.getByTestId('bodymap-canvas').locator('svg').innerHTML()).toBe(before);
   });
+
+  test('eigenes Bild lokal hochladen und zuschneiden (auch WebKit/Safari)', async ({ page }) => {
+    const f = field(page);
+    await f.locator('input[type=file]').setInputFiles(fileURLToPath(new URL('../apps/web/src/assets/bodymap/fuss-plantar.png', import.meta.url)));
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toContainText('Bild zuschneiden');
+    await dialog.getByRole('button', { name: '4:3' }).click();
+    await dialog.getByLabel('Zoom').fill('1.5');
+    await dialog.getByRole('button', { name: 'Übernehmen' }).click();
+    await expect(f.getByRole('button', { name: 'Eigenes Bild 1' })).toHaveAttribute('aria-pressed', 'true');
+    const dims = await f.getByTestId('bodymap-canvas').locator('img').evaluate((el: HTMLImageElement) => ({ w: el.naturalWidth, h: el.naturalHeight }));
+    expect(Math.abs(dims.w / dims.h - 4 / 3)).toBeLessThan(0.02);
+  });
 });
+

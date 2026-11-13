@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 
 const DB = fileURLToPath(new URL('../reports/e2e-server/stb.db', import.meta.url));
 /** Inhalte, die in E2E-Tests als Eintrags-, Vorlagen- oder Blocktext auf Konto-Geräten vorkommen. */
-const MARKERS = ['STB-E2E-MARKER', 'Startnotiz', 'Migräne', 'Schmerzstärke', 'Allgemeines Schmerz', 'Schmerzlokalisation', 'Notizen', 'Mein Tagebuch'];
+const MARKERS = ['STB-E2E-MARKER', 'Startnotiz', 'Migräne', 'Schmerzstärke', 'Allgemeines Schmerz', 'Schmerzlokalisation', 'Notizen', 'Mein Tagebuch', 'Fuß rechts oben', 'data:image'];
 
 test('CRY-15: Server-DB enthält nach dem E2E-Durchlauf keine Klartext-Marker aus Testeinträgen (alle Tabellen)', () => {
   expect(existsSync(DB), 'E2E-Server-DB fehlt').toBe(true);
