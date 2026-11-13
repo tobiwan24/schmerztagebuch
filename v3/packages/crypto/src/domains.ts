@@ -10,4 +10,5 @@ export const DOMAINS = {
   fingerprint: 'stb/v3/fingerprint',
   identitySeal: 'stb/v3/identity-seal',
   backupAuth: 'stb/v3/backup-auth',
+  backupFile: 'stb/v3/backup-file',
 } as const;

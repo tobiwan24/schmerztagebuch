@@ -6,13 +6,13 @@
 
 - **Meilenstein:** M10 — Export, Import, Backup (M9 abgeschlossen, 15/15). Gate G3 erst nach M11.
 - **Gate G2:** vom User freigegeben (2026-11-13).
-- **Nächste Aufgabe:** M10.3 `.stbbackup` (EXP-10): JSON v1 mit Anhängen/Bildern, AES-GCM, Schlüssel per PBKDF2 600k aus
-  Backup-Code oder separatem Backup-Passwort, Klartext-Header (Format, Version, KDF-Parameter, Salt) — Funktionen in
-  `@stb/crypto` bzw. `@stb/export`; Wiederherstellung auf leerem Gerät ohne Konto; falscher Code → `wrong-backup-code`;
-  kein Klartext-Marker in der Datei. Danach UI „Mehr → Export & Backup“ (JSON/CSV/Backup herunterladen, Import mit Vorschau),
-  Backup-Erinnerung (EXP-12), PDF (EXP-08/09).
-- **Erledigt in M10:** EXP-01 EXP-02 EXP-03 EXP-04 EXP-07 EXP-11 EXP-05 EXP-06
-- **Offen in M10:** EXP-08 EXP-09 EXP-10 EXP-12
+- **Nächste Aufgabe:** M10.4 UI „Mehr → Export & Backup“: Export (JSON v1, CSV long/wide mit Profil, optional gefiltert
+  über gespeicherten Filter), Backup herunterladen (Backup-Code eingeben — wird lokal gegen den Backup-Wrap geprüft — oder
+  Backup-Passwort), Import mit Vorschau (neu/geändert/unverändert, „Als Kopie“), Wiederherstellung aus `.stbbackup` auch im
+  Onboarding (neues Gerät ohne Konto). Backup-Erinnerung in local-only nach Frist (EXP-12, Einstellung n Tage, Standard 7;
+  Zeitpunkt des letzten Backups lokal speichern). Danach PDF (EXP-08/09).
+- **Erledigt in M10:** EXP-01 EXP-02 EXP-03 EXP-04 EXP-07 EXP-11 EXP-05 EXP-06 EXP-10
+- **Offen in M10:** EXP-08 EXP-09 EXP-12
 - **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail. Schnelleintrag: Einstellung pro Tagebuch (Vorlage/Blöcke) folgt mit Tagebuch-Einstellungen; bei mehreren Tagebüchern nimmt `/quick` das erste. Body-Map: v2-Pinsel/Punktgröße/Kommentare/eigene Bilder fehlen (v3-Wertform kennt nur Punkte mit Intensität) — bei Bedarf Spec 05 erweitern; Migration (M11) muss Pinselstriche abbilden.
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
@@ -149,3 +149,4 @@
 | 2026-11-13 | M10.1 | EXP-01 EXP-02 EXP-03 EXP-04 EXP-07 EXP-11 | Neues Paket `packages/export` (Spec 01; `core` + `analysis`, Dev: `ajv` 8.20.0): `exportV1Schema` + `buildExport` (vollständig oder gefiltert mit Filter im Export), Glossar, `exportJsonSchema` → veröffentlicht unter `packages/export/schema/stb-export-v1.json` (`scripts/gen-export-schema.mjs`), `parseExport` (Schema + Referenzen, Fehlercodes), `copyWithNewIds` (Tagebuch, Vorlagen, Blöcke, Optionen, Einträge, Filter, Bilder, Schnelleintrag-Einstellungen, Body-Map-Standardbild), Export-Fixture mit UUID v7. Web: `data/import-export.ts` (`collectExportSource`, `createExport`, `planImport` mit Vorschau neu/geändert/unverändert, `applyImport` in einer Transaktion). Integrationstests: tiefer Rundweg, Idempotenz (DB byte-gleich), Merge nach HLC, Kopie mit konsistenten Referenzen, Ablehnung ohne DB-Änderung (A-028). |
 | 2026-11-13 | M10.2 | EXP-05 EXP-06 | `export/csv.ts`: long (Zeile je Eintrag × Wert, Multiselect je Option) und wide (Spalte je Block der aktuellen Versionen), Profile Standard (`,` `.` ISO) und Excel (DE) (`;` `,` `TT.MM.JJJJ HH:MM`), UTF-8 mit BOM, CRLF, RFC-4180-Maskierung, Formel-Schutz für Textzellen, Spalte `period_end`, Body-Map-Kommentare (A-029). Golden Files `fixtures/export/csv-{long,wide}-{standard,excel-de}.csv` (per `.gitattributes` byte-genau), Export-Fixture mit deterministischem Zufall. |
 | 2026-11-13 | Korrektur | — | Commit 7639ce5 wurde mit rotem `verify` (Lint: unsichtbares BOM-Zeichen im Quelltext) erstellt, weil die Befehlskette `;` statt `&&` nutzte. Sofort mit 2409dad behoben (BOM als `﻿`), `verify` grün. Commits künftig nur über `npm run verify && git commit`. |
+| 2026-11-13 | M10.3 | EXP-10 | `@stb/crypto/backup-file.ts`: `.stbbackup` als JSON-Text mit Klartext-Header (Format, Version, Geheimnis-Art, PBKDF2-SHA-256 600k + Salt, AES-GCM-IV, Zeitpunkt) und Chiffretext; Schlüssel PBKDF2 → HKDF (`stb/v3/backup-file`) → AES-GCM; Header als AAD gebunden (Manipulation fällt auf); falscher Code → `wrong-backup-code`, falsches Passwort → `wrong-password`. Web: `createBackupFile`, `openBackup`. Integrationstest: Backup von Gerät A, Wiederherstellung auf leerem Gerät B ohne Konto (tiefer Vergleich), falscher Code abgelehnt, keine Klartext-Marker in der Datei. |

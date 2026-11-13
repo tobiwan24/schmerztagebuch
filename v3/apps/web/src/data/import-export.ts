@@ -2,7 +2,8 @@
 // (Spec 04, ganzer Datensatz) zusammengeführt — neuer HLC bzw. `updatedAt` gewinnt, gleiche Inhalte werden übersprungen.
 // Alles wird vorab geprüft und dann in **einer** Transaktion geschrieben; bei Fehlern bleibt die DB unverändert (EXP-11).
 import { canonical, compareHlc, entrySchemaFor } from '@stb/core';
-import { buildExport, copyWithNewIds, exportRecords, ImportError, type ExportSource, type ExportV1 } from '@stb/export';
+import { openBackupFile, sealBackupFile, type BackupSecret } from '@stb/crypto';
+import { buildExport, copyWithNewIds, exportRecords, ImportError, parseExport, type ExportSource, type ExportV1 } from '@stb/export';
 import type { FilterSpec } from '@stb/analysis';
 import type { RecordInput, RecordRepository } from './repositories/records';
 import { templateVersionRecordId, type DiaryRepository } from './repositories/diary';
@@ -17,6 +18,17 @@ export async function collectExportSource(diary: DiaryRepository): Promise<Expor
 
 export async function createExport(diary: DiaryRepository, opts: { appVersion: string; now: number; filter?: FilterSpec }): Promise<ExportV1> {
   return buildExport(await collectExportSource(diary), opts);
+}
+
+/** `.stbbackup` (Spec 07): vollständiger JSON-v1-Export, verschlüsselt mit Backup-Code oder Backup-Passwort. */
+export async function createBackupFile(diary: DiaryRepository, secret: BackupSecret, opts: { appVersion: string; now: number }): Promise<string> {
+  const doc = await createExport(diary, opts);
+  return sealBackupFile(JSON.stringify(doc), secret, doc.exportedAt);
+}
+
+/** Öffnet und prüft eine Backup-Datei (falsches Geheimnis → `wrong-backup-code`/`wrong-password`). */
+export async function openBackup(file: string, secret: BackupSecret): Promise<ExportV1> {
+  return parseExport(await openBackupFile(file, secret));
 }
 
 export interface ImportPlan {

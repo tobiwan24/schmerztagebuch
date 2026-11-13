@@ -14,6 +14,7 @@ export {
 export { generateUmk, wrapUmk, unwrapUmk, deriveKek, PBKDF2_ITERATIONS, KDF_SALT_BYTES, type UmkFactor, type UmkWrap } from './umk.js';
 export { normalizeBackupCode, generateBackupCode, parseBackupCode, deriveBackupAuth, BACKUP_CODE_ENTROPY_BITS } from './backup-code.js';
 export { generateIdentityEcdhKeyPair, exportPublicKey, importPublicKey, wrapDkForMember, unwrapDkForMember, type MemberDkWrap, type DkWrapContext } from './share.js';
+export { sealBackupFile, openBackupFile, readBackupHeader, BACKUP_FILE_FORMAT, BACKUP_FILE_VERSION, type BackupSecret, type BackupFileHeader } from './backup-file.js';
 export { sealIdentityKey, openIdentityKey, type SealedIdentity } from './identity.js';
 export { sealForIntake, unsealIntake, type IntakeSeal } from './intake.js';
 export { createInvitationSecret, encryptInvitation, decryptInvitation, invitationMac, verifyInvitationMac, safetyNumber, updateVerification, type InvitationDetails, type VerificationState } from './invitation.js';
