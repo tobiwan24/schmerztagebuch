@@ -16,6 +16,7 @@ import {
   type TemplateState,
   type TemplateVersion,
 } from '@stb/core';
+import { savedFilterSchema, type SavedFilter } from '@stb/analysis';
 import type { RecordInput, RecordRepository } from './records.js';
 
 /**
@@ -36,6 +37,11 @@ export interface DiaryRepository {
   listDiaries(): Promise<Diary[]>;
   /** Eigene Body-Map-Bilder eines Tagebuchs (A-024), älteste zuerst. */
   listBodymapImages(diaryId: string): Promise<BodymapImage[]>;
+  /** Alle Vorlagenversionen (Analyse: Werte über die Eintragsversion, Spec 06). */
+  listAllTemplateVersions(): Promise<TemplateVersion[]>;
+  listSavedFilters(diaryId: string): Promise<SavedFilter[]>;
+  saveSavedFilter(filter: SavedFilter): Promise<void>;
+  deleteSavedFilter(filterId: string, stamp: { hlc: string; updatedAt: string }): Promise<void>;
   saveBodymapImage(image: BodymapImage): Promise<void>;
   deleteBodymapImage(imageId: string): Promise<void>;
   /** Speichert Vorlage und aktuelle Version gemeinsam (eine Transaktion). */
@@ -142,6 +148,26 @@ export function createDiaryRepository(records: RecordRepository): DiaryRepositor
 
     async listTemplates(diaryId) {
       return (await records.list(diaryId, 'template')).map((r) => templateSchema.parse(r.payload));
+    },
+
+    async listAllTemplateVersions() {
+      return (await records.listKind('templateVersion')).map((rec) => templateVersionSchema.parse(rec.payload));
+    },
+
+    async listSavedFilters(diaryId) {
+      const all = (await records.list(diaryId, 'savedFilter')).map((rec) => savedFilterSchema.parse(rec.payload));
+      return all.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    },
+
+    async saveSavedFilter(filter) {
+      const f = savedFilterSchema.parse(filter);
+      await records.put({ id: f.id, diaryId: f.diaryId, kind: 'savedFilter', payload: f });
+    },
+
+    async deleteSavedFilter(filterId, stamp) {
+      const rec = await records.get(filterId);
+      if (!rec || rec.deleted || rec.kind !== 'savedFilter') return;
+      await records.remove(filterId, { ...(rec.payload as SavedFilter), hlc: stamp.hlc, updatedAt: stamp.updatedAt });
     },
 
     async listBodymapImages(diaryId) {

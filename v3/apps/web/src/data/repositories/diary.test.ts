@@ -198,3 +198,19 @@ describe('Eigene Body-Map-Bilder', () => {
   });
 });
 
+describe('Gespeicherte Filter', () => {
+  it('speichern, auflisten (nach Name), löschen; ungültige FilterSpec wird abgelehnt', async () => {
+    const repo = createDiaryRepository(
+      createRecordRepository(db, { registry: createCodecRegistry([plainCodec]), writeCodec: 'plain', clock, outbox: false }),
+    );
+    const diaryId = newId();
+    const f = { id: newId(), diaryId, name: 'Schwere Tage', filter: { diaryIds: [diaryId], range: { preset: '30d' as const } }, hlc: '0000000000001:0000:dev1', updatedAt: iso() };
+    await repo.saveSavedFilter(f);
+    await repo.saveSavedFilter({ ...f, id: newId(), name: 'Arzttermine' });
+    expect((await repo.listSavedFilters(diaryId)).map((x) => x.name)).toEqual(['Arzttermine', 'Schwere Tage']);
+    await expect(repo.saveSavedFilter({ ...f, id: newId(), filter: { diaryIds: [], range: { preset: '14d' } } as never })).rejects.toThrow();
+    await repo.deleteSavedFilter(f.id, { hlc: '0000000000002:0000:dev1', updatedAt: iso() });
+    expect((await repo.listSavedFilters(diaryId)).map((x) => x.name)).toEqual(['Arzttermine']);
+  });
+});
+

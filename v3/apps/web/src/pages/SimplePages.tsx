@@ -1,5 +1,9 @@
 // Ansichten-Gerüst laut Wireframes (G1). Inhalte folgen mit den jeweiligen Meilensteinen (M8, M9, M12).
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
+import type { FilterSpec } from '@stb/analysis';
+import { EMPTY_FILTER, HistoryFilters, isActive, toSpec, type FilterState } from '@/components/HistoryFilters';
+import { useAnalysis } from '@/data/AnalysisContext';
 import { ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -11,10 +15,36 @@ import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 
 export function HistoryPage() {
+  const { diary, now } = useData();
+  const { client, version } = useAnalysis();
+  const [filter, setFilter] = useState<FilterState>(EMPTY_FILTER);
+  const [ids, setIds] = useState<ReadonlySet<string> | null>(null);
+  const meta = useQuery(async () => {
+    const [diaries, versions] = await Promise.all([diary.listDiaries(), diary.listAllTemplateVersions()]);
+    const medOptionIds = [...new Set(versions.flatMap((v) => v.blocks.flatMap((b) => (b.role === 'medication' && b.type === 'multiselect' ? b.config.options.map((o) => o.id) : []))))];
+    return { diaryIds: diaries.map((d) => d.id), medOptionIds };
+  }, [diary]);
+  const diaryIds = meta.status === 'ok' ? meta.data.diaryIds : [];
+  const medOptionIds = meta.status === 'ok' ? meta.data.medOptionIds : [];
+  const active = isActive(filter);
+  const specKey = JSON.stringify(active ? toSpec(filter, diaryIds, medOptionIds) : null);
+
+  useEffect(() => {
+    if (!active) return setIds(null);
+    if (!client) return;
+    let cancelled = false;
+    void client.filter(JSON.parse(specKey) as FilterSpec, now()).then((r) => !cancelled && setIds(new Set(r)));
+    return () => {
+      cancelled = true;
+    };
+  }, [active, client, version, specKey, now]);
+
   return (
     <>
       <PageHeader title={de.history.title} />
-      <EntryListState emptyTitle={de.history.emptyTitle} emptyHint={de.history.emptyHint} />
+      {diaryIds.length ? <HistoryFilters state={filter} onChange={setFilter} diaryIds={diaryIds} medOptionIds={medOptionIds} /> : null}
+      {active && !ids ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
+      {!active || ids ? <EntryListState emptyTitle={de.history.emptyTitle} emptyHint={de.history.emptyHint} onlyIds={active ? ids : null} /> : null}
       <Button asChild variant="outline">
         <Link to="/entry/new">
           <Plus aria-hidden />

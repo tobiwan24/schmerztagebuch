@@ -6,12 +6,13 @@
 
 - **Meilenstein:** M9 — Suche, Filter, Vergleich, Standard-Ansichten (M8b abgeschlossen).
 - **Gate G2:** vom User freigegeben (2026-11-13).
-- **Nächste Aufgabe:** M9.4 Verlauf mit Suche, Filter-Chips und gespeicherten Filtern (ANA-11): `AnalysisProvider` startet
-  den Worker nach dem Entsperren (`load` aus Repositories, Neuladen bei `revision`), Suchfeld + Chips (Zeitraum, Vorlage,
-  Schmerz ≥ n, Medikament, Ereignis) im Verlauf; `savedFilter`-Record (Schema in core, Repository, synchronisiert),
-  „Filter speichern“/Liste; E2E: Reload + Zweitgerät. Danach Auswertungs-Ansichten mit Recharts (ANA-13), PNG-Export (ANA-14).
-- **Erledigt in M9:** ANA-01 ANA-02 ANA-03 ANA-04 ANA-05 ANA-06 ANA-07 ANA-08 ANA-09 ANA-10 ANA-15 ANA-12
-- **Offen in M9:** ANA-11 ANA-13 ANA-14
+- **Nächste Aufgabe:** M9.5 Auswertungs-Ansichten (ANA-13): shadcn Charts (Recharts, neue Abhängigkeit mit DECISIONS-Eintrag;
+  Version ≥ 2 Wochen alt) — Verlauf (Tagesreihe je numerischem Block, Ereignis-Markierungen), Kalender-Heatmap (Monat,
+  erster `outcome`), Medikamententage je Monat, Häufigkeiten je Option, Body-Map-Übersicht (Punkte überlagert),
+  Zeitraumvergleich mit „Wenige Daten“. Daten über `useAnalysis().client`. E2E mit Fixture-Daten ohne Konsolenfehler.
+  Danach PNG-Export je Ansicht (ANA-14) → M9 abschließen.
+- **Erledigt in M9:** ANA-01 ANA-02 ANA-03 ANA-04 ANA-05 ANA-06 ANA-07 ANA-08 ANA-09 ANA-10 ANA-15 ANA-12 ANA-11
+- **Offen in M9:** ANA-13 ANA-14
 - **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail. Schnelleintrag: Einstellung pro Tagebuch (Vorlage/Blöcke) folgt mit Tagebuch-Einstellungen; bei mehreren Tagebüchern nimmt `/quick` das erste. Body-Map: v2-Pinsel/Punktgröße/Kommentare/eigene Bilder fehlen (v3-Wertform kennt nur Punkte mit Intensität) — bei Bedarf Spec 05 erweitern; Migration (M11) muss Pinselstriche abbilden.
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
@@ -142,3 +143,4 @@
 | 2026-11-13 | M9.1 | ANA-01 ANA-02 ANA-03 ANA-04 | Neues Paket `packages/analysis` (Spec 01; nur `core` + `minisearch` 7.2.0, DECISIONS): `buildWorkingSet` (Normalform je Wert über die Eintragsversion, Labels aus der aktuellen Version, Tag in Tagebuch-Zeitzone, Wetterfelder), `filterSpecSchema`/`conditionSchema` (alle Bedingungsarten, Ziel `blockId` xor `role`), `applyFilter` (Semantik A-025), `normalizeText`, `createSearchIndex` (MiniSearch, zwei Umlaut-Formen je Wort, Präfix + unscharf, inkrementell `add`/`remove`). Handgerechnete Fixture (9 Einträge, 2 Vorlagen); 24 tabellarische Filter mit erwarteten IDs. |
 | 2026-11-13 | M9.2 | ANA-05 ANA-06 ANA-07 ANA-08 ANA-09 ANA-10 ANA-15 | `analysis/aggregate.ts`: `dailySeries` (Tagebuch-Zeitzone, `mean`/`max`/`last`, Standard `max` für `outcome`, leere Werte ohne `n`, keine Null-Tage), `periodStats`/`comparePeriods` (n, Mittel, Median, Min, Max, Tage ≥ Schwelle, Tage mit/ohne Eintrag, Differenz B − A, `fewData` bei n < 7), `previousRange`, `optionDays` (Häufigkeiten mit Anteil), `medicationDaysByMonth` (Mehrfacheinnahme = 1 Tag). Fixture-Zusätze: Mitternachtsfälle Berlin, Mehrfacheintrag + leerer Wert, Vorlagenversion 2 ohne Block, Doppel-Einnahme, Februar. Analyse-Texte in `de.analysis`; ANA-15 prüft sie und die Literale des Analyse-Pakets gegen eine Kausal-Wortliste (A-026). |
 | 2026-11-13 | M9.3 | ANA-12 | `analysis/big-fixture.ts` (5.000 Einträge, 3 Vorlagen, 20 Blöcke, fester Seed, synthetisch). Integrationstest `integration/analysis/performance.test.ts` (Median nach Aufwärmlauf): Aufbau ~120 ms (< 1,5 s), Filter ~10 ms (< 200 ms), Suche ~2 ms (< 100 ms), Vergleich ~2 ms (< 300 ms). Web: `workers/analysis-service.ts` (Dienst mit Arbeitsset + Index, RPC über MessagePort: `attachAnalysisService`/`createAnalysisClient`), `workers/analysis.worker.ts`; Protokolltest über `MessageChannel`. `@stb/analysis` als Web-Abhängigkeit. |
+| 2026-11-13 | M9.4 | ANA-11 | `AnalysisProvider` startet nach dem Entsperren den Worker und lädt das Arbeitsset aus den Repositories (neu bei lokalen Änderungen, entprellt, und bei `revision`). Verlauf: Suchfeld (entprellt, umlauttolerant), Zeitraum-Umschalter, Chips „Schmerz ≥ 6“/„Medikament“/„Ereignis“, Zurücksetzen, „Filter speichern“ (Dialog) und gespeicherte Filter als Chips mit Löschen; Treffer vom Worker. `savedFilter`-Record mit Schema in `@stb/analysis` (+ `hlc`/`updatedAt`, A-027), Repository `listSavedFilters`/`saveSavedFilter`/`deleteSavedFilter`, `listAllTemplateVersions`. Race behoben: Suchfeld-Sync beim Mounten überschrieb laufende Eingabe (WebKit). E2E: Suche/Chips in Chromium + WebKit; ANA-11 nach Reload und auf dem Zweitgerät. |

@@ -143,3 +143,18 @@ export function applyFilter(ws: WorkingSet, spec: FilterSpec, opts: FilterOption
     return true;
   });
 }
+
+/**
+ * Gespeicherter Filter (Spec 02 `SavedFilter`, Spec 06): synchronisiert, pro Tagebuch geteilt. `hlc`/`updatedAt` für die
+ * Konfliktauflösung „ganzer Datensatz per HLC" (Spec 04, A-027).
+ */
+export const savedFilterSchema = z.strictObject({
+  id: z.string().min(1),
+  diaryId: z.string().min(1),
+  name: z.string().trim().min(1).max(80),
+  filter: filterSpecSchema,
+  hlc: z.string().min(1),
+  updatedAt: z.iso.datetime({ offset: true }),
+});
+export type SavedFilter = z.infer<typeof savedFilterSchema>;
+

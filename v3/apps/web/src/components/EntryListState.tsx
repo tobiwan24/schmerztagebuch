@@ -15,7 +15,8 @@ function rowTime(e: Entry): string {
   return e.period ? `${formatEntryTime(e)} · ${de.entry.period}` : timeOnly.format(new Date(e.occurredAt));
 }
 
-export function EntryListState({ emptyTitle, emptyHint }: { emptyTitle: string; emptyHint: string }) {
+/** `onlyIds`: nur diese Einträge zeigen (Filter aktiv); `null` = alle. */
+export function EntryListState({ emptyTitle, emptyHint, onlyIds = null }: { emptyTitle: string; emptyHint: string; onlyIds?: ReadonlySet<string> | null }) {
   const { diary, now } = useData();
   const query = useQuery(async () => {
     const [entries, templates] = await Promise.all([diary.listAllEntries(), diary.listAllTemplates()]);
@@ -24,9 +25,11 @@ export function EntryListState({ emptyTitle, emptyHint }: { emptyTitle: string; 
   if (query.status === 'loading') return <p className="text-muted-foreground">{de.app.loading}</p>;
   if (query.status === 'error') return <ErrorState onRetry={query.retry} />;
   if (query.data.entries.length === 0) return <EmptyState title={emptyTitle} hint={emptyHint} />;
+  const shown = onlyIds ? query.data.entries.filter((e) => onlyIds.has(e.id)) : query.data.entries;
+  if (shown.length === 0) return <EmptyState title={de.history.noMatches} hint={de.history.noMatchesHint} />;
   return (
     <div data-testid="entry-list" className="flex flex-col gap-4">
-      {groupByDay(query.data.entries).map((g) => (
+      {groupByDay(shown).map((g) => (
         <section key={g.day} className="flex flex-col gap-2" data-testid="entry-day">
           <h2 className="text-sm font-medium text-muted-foreground">{formatDay(g.day, now())}</h2>
           <Card className="gap-0 py-0">
