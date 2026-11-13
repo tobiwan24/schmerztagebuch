@@ -2,7 +2,8 @@
 import { useCallback } from 'react';
 import type { BackupSecret } from '@stb/crypto';
 import type { FilterSpec } from '@stb/analysis';
-import { exportCsvLong, exportCsvWide, type CsvProfile, type ExportV1 } from '@stb/export';
+import { buildReport, exportCsvLong, exportCsvWide, renderReportPdf, type CsvProfile, type ExportV1, type PdfImageSize } from '@stb/export';
+import { createBodymapRenderer } from '@/lib/pdf-bodymap';
 import { useAuth } from '@/auth/AuthContext';
 import { loadAccount, unlockLocal } from '@/auth/local-account';
 import { APP_VERSION } from '@/version';
@@ -11,20 +12,31 @@ import { applyImport, collectExportSource, createBackupFile, createExport, openB
 import { useData } from './DataContext';
 import { useQuery } from './useQuery';
 
-export type ExportFormat = 'json' | 'csv-long' | 'csv-wide';
+export type ExportFormat = 'json' | 'csv-long' | 'csv-wide' | 'pdf';
 
 export function useBackup() {
   const { db, accountMode, now } = useAuth();
   const data = useData();
-  const state = useQuery(async () => {
+  const query = useQuery(async () => {
     const [last, days, account] = await Promise.all([lastBackupAt(db), reminderDays(db), loadAccount(db)]);
-    const createdAt = account ? Date.parse(account.createdAt) : null;
-    return { last, days, due: backupDue({ mode: accountMode, lastBackup: last, accountCreatedAt: createdAt, days, now: now() }) };
-  }, [db, accountMode]);
+    return { last, days, createdAt: account ? Date.parse(account.createdAt) : null };
+  }, [db]);
+  // „Fällig" bei jedem Rendern aus der aktuellen Uhrzeit — die Zeit läuft weiter, während die App offen ist.
+  const state =
+    query.status === 'ok'
+      ? { ...query, data: { ...query.data, due: backupDue({ mode: accountMode, lastBackup: query.data.last, accountCreatedAt: query.data.createdAt, days: query.data.days, now: now() }) } }
+      : query;
 
   const exportFile = useCallback(
-    async (format: ExportFormat, opts: { profile?: CsvProfile; filter?: FilterSpec }): Promise<{ name: string; text: string; mime: string }> => {
+    async (format: ExportFormat, opts: { profile?: CsvProfile; filter?: FilterSpec; imageSize?: PdfImageSize; password?: string }): Promise<{ name: string; text: string | Uint8Array; mime: string }> => {
       const stamp = new Date(now()).toISOString().slice(0, 10);
+      if (format === 'pdf') {
+        const src = await collectExportSource(data.diary);
+        const report = buildReport(src, { now: now(), ...(opts.filter ? { filter: opts.filter } : {}) });
+        const renderBodymap = createBodymapRenderer(new Map(src.bodymapImages.map((i) => [i.id, i.dataUrl])));
+        const bytes = await renderReportPdf(report, { imageSize: opts.imageSize ?? 'a5', renderBodymap, ...(opts.password ? { password: opts.password } : {}) });
+        return { name: `schmerztagebuch-bericht-${stamp}.pdf`, text: bytes, mime: 'application/pdf' };
+      }
       if (format === 'json') {
         const doc = await createExport(data.diary, { appVersion: APP_VERSION, now: now(), ...(opts.filter ? { filter: opts.filter } : {}) });
         return { name: `schmerztagebuch-${stamp}.stb.json`, text: JSON.stringify(doc, null, 2), mime: 'application/json' };
@@ -50,24 +62,24 @@ export function useBackup() {
   const backupFile = useCallback(async (secret: BackupSecret) => {
     const text = await createBackupFile(data.diary, secret, { appVersion: APP_VERSION, now: now() });
     await markBackupDone(db, now());
-    state.retry();
+    query.retry();
     return { name: `schmerztagebuch-${new Date(now()).toISOString().slice(0, 10)}.stbbackup`, text };
-  }, [data.diary, db, now, state]);
+  }, [data.diary, db, now, query]);
 
   const readBackup = useCallback((file: string, secret: BackupSecret): Promise<ExportV1> => openBackup(file, secret), []);
   const plan = useCallback((doc: ExportV1, asCopy: boolean) => planImport(data.records, doc, { asCopy, newId: data.newId }), [data.records, data.newId]);
   const apply = useCallback((p: ImportPlan) => applyImport(data.records, p), [data.records]);
   const saveReminderDays = useCallback(async (days: number) => {
     await setReminderDays(db, days);
-    state.retry();
-  }, [db, state]);
+    query.retry();
+  }, [db, query]);
 
   return { state, exportFile, checkBackupCode, backupFile, readBackup, plan, apply, saveReminderDays };
 }
 
 /** Datei im Browser herunterladen. */
-export function downloadText(name: string, text: string, mime: string): void {
-  const url = URL.createObjectURL(new Blob([text], { type: mime }));
+export function downloadText(name: string, text: string | Uint8Array, mime: string): void {
+  const url = URL.createObjectURL(new Blob([text as BlobPart], { type: mime }));
   const a = document.createElement('a');
   a.href = url;
   a.download = name;

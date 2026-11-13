@@ -4,16 +4,12 @@
 
 ## Aktuell
 
-- **Meilenstein:** M10 — Export, Import, Backup (M9 abgeschlossen, 15/15). Gate G3 erst nach M11.
+- **Meilenstein:** M11 — Migration v2 → v3 (M10 abgeschlossen, 12/12). Danach **Gate G3** (Loop anhalten).
 - **Gate G2:** vom User freigegeben (2026-11-13).
-- **Nächste Aufgabe:** M10.5 PDF (EXP-08/09): v2 `src/utils/pdfExport.ts` lesen und portieren (jsPDF wie v2 — Abhängigkeit mit
-  DECISIONS-Eintrag, Version ≥ 2 Wochen; Passwortschutz in jsPDF über `encryption`), Deckblatt (Zeitraum, Tage mit Eintrag,
-  Kennzahlen der `outcome`-Blöcke, Medikamententage, Arzttermine), Tabelle, Body-Map-Bilder in Größe a4/a5/a6/none, archivierte
-  Felder gekennzeichnet; Logik möglichst in `packages/export` (ohne DOM), Bilder-Rendering im Web. Integrationstest: Text
-  extrahieren + Bildanzahl (Parser/Prüfung mit Abhängigkeit nur im Test), Passwort-PDF ohne Passwort nicht lesbar. Danach M10
-  abschließen → M11 (Migration v2 → v3).
-- **Erledigt in M10:** EXP-01 EXP-02 EXP-03 EXP-04 EXP-07 EXP-11 EXP-05 EXP-06 EXP-10 EXP-12
-- **Offen in M10:** EXP-08 EXP-09
+- **Nächste Aufgabe:** M11 beginnen: Spec 09 (Migration) + MILESTONES M11 lesen, v2-Datenformate (`src/db.ts`, `src/types/*`,
+  `src/utils/crypto.ts`, Backup-Formate) nur lesen, Migrations-Paket/Modul planen (Lazy-Loading laut Spec 12), Fixtures synthetisch.
+- **Offen für M13 (QA-02):** Initiales JS liegt bei ~496 KB gzip (Recharts, jsPDF, html2canvas im Haupt-Bundle) — Diagramme, PDF,
+  Migration und Editor per Lazy-Loading auslagern.
 - **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail. Schnelleintrag: Einstellung pro Tagebuch (Vorlage/Blöcke) folgt mit Tagebuch-Einstellungen; bei mehreren Tagebüchern nimmt `/quick` das erste. Body-Map: v2-Pinsel/Punktgröße/Kommentare/eigene Bilder fehlen (v3-Wertform kennt nur Punkte mit Intensität) — bei Bedarf Spec 05 erweitern; Migration (M11) muss Pinselstriche abbilden.
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
@@ -34,7 +30,7 @@
 | M8 | erledigt | 12/12 IDs, Gate G2 freigegeben |
 | M8b | erledigt | 2/2 IDs (Body-Map wie v2) |
 | M9 | erledigt | 15/15 IDs |
-| M10 | in Arbeit | |
+| M10 | erledigt | 12/12 IDs |
 | M11 | offen | danach Gate G3 |
 | M12 | offen | erst nach UI-12 |
 | M13 | offen | danach Gate G4 |
@@ -152,3 +148,4 @@
 | 2026-11-13 | Korrektur | — | Commit 7639ce5 wurde mit rotem `verify` (Lint: unsichtbares BOM-Zeichen im Quelltext) erstellt, weil die Befehlskette `;` statt `&&` nutzte. Sofort mit 2409dad behoben (BOM als `﻿`), `verify` grün. Commits künftig nur über `npm run verify && git commit`. |
 | 2026-11-13 | M10.3 | EXP-10 | `@stb/crypto/backup-file.ts`: `.stbbackup` als JSON-Text mit Klartext-Header (Format, Version, Geheimnis-Art, PBKDF2-SHA-256 600k + Salt, AES-GCM-IV, Zeitpunkt) und Chiffretext; Schlüssel PBKDF2 → HKDF (`stb/v3/backup-file`) → AES-GCM; Header als AAD gebunden (Manipulation fällt auf); falscher Code → `wrong-backup-code`, falsches Passwort → `wrong-password`. Web: `createBackupFile`, `openBackup`. Integrationstest: Backup von Gerät A, Wiederherstellung auf leerem Gerät B ohne Konto (tiefer Vergleich), falscher Code abgelehnt, keine Klartext-Marker in der Datei. |
 | 2026-11-13 | M10.4 | EXP-12 | „Mehr → Export & Backup“: Export (JSON, CSV lang/breit, Profil Standard/Excel (DE), Umfang alle oder gespeicherter Filter), Backup (Backup-Code lokal geprüft oder eigenes Passwort, „Letztes Backup“, Erinnerungsfrist in local-only), Import (JSON oder `.stbbackup` mit Code/Passwort, Vorschau neu/aktualisiert/unverändert, „Als Kopie“, verständliche Fehlertexte). `data/backup-state.ts` + `useBackup`, Erinnerungs-Banner auf Start (nur local-only, A-030). Server-Rate-Limits per Umgebung einstellbar (E2E-Server hoch — sonst blockierte die Recovery-Grenze 5/15 min die Zweitgeräte-Tests im vollen Lauf). Mehrgeräte-Tests mit 90-s-Zeitlimit. E2E: Export-Downloads, Backup → Wiederherstellung auf neuem Gerät (falscher Code gemeldet), EXP-12 mit Playwright-Uhr (local-only erscheint/verschwindet nach Backup, Konto-Modus nie). |
+| 2026-11-13 | M10.5 | EXP-08 EXP-09 | PDF-Bericht wie v2, Logik ohne DOM in `packages/export`: `buildReport` (Deckblatt: Zeitraum, Tage mit Eintrag, Anzahl, Kennzahlen der `outcome`-Blöcke n/Mittel/Median/Max, Medikamententage, Arzttermine; Tabellen je Vorlage, archivierte Spalten gekennzeichnet; Body-Maps) und `renderReportPdf` (`jspdf` 4.2.1, A4 quer, Seitenumbrüche mit Kopfzeile, Seitenzahlen, Body-Map je Seite in a4/a5/a6 oder ohne, Passwortschutz über jsPDF-`encryption`, Text auf WinAnsi abgebildet). Web: `lib/pdf-bodymap.ts` zeichnet Bild + Punkte/Pinsel/Nummern ins Canvas; Export-Seite mit PDF als Standard, Bildgröße, optionalem PDF-Passwort. Integrationstest mit `pdfjs-dist` (nur Dev): Text, Bildanzahl und -größe je Option, ohne/mit falschem Passwort nicht lesbar, kein Klartext in der Datei. EXP-12-E2E in WebKit mit Fake-Uhr: Erinnerung erscheint teils erst nach Sekunden → Zeitlimit 20 s; „fällig“ wird bei jedem Rendern aus der aktuellen Zeit berechnet. **M10 abgeschlossen** (12/12). |

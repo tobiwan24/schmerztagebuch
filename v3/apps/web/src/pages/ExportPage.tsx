@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { Download, FileUp, ShieldCheck } from 'lucide-react';
 import type { BackupSecret } from '@stb/crypto';
-import { parseExport, type CsvProfile, type ExportV1 } from '@stb/export';
+import { parseExport, type CsvProfile, type ExportV1, type PdfImageSize } from '@stb/export';
 import type { SavedFilter } from '@stb/analysis';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,16 +36,18 @@ export function ExportPage() {
 function ExportCard() {
   const { diary } = useData();
   const { exportFile } = useBackup();
-  const [format, setFormat] = useState<ExportFormat>('json');
+  const [format, setFormat] = useState<ExportFormat>('pdf');
   const [profile, setProfile] = useState<CsvProfile>('standard');
   const [filter, setFilter] = useState<SavedFilter | null>(null);
+  const [imageSize, setImageSize] = useState<PdfImageSize>('a5');
+  const [pdfPassword, setPdfPassword] = useState('');
   const saved = useQuery(async () => (await Promise.all((await diary.listDiaries()).map((d) => diary.listSavedFilters(d.id)))).flat(), [diary]);
   const [busy, setBusy] = useState(false);
 
   async function run() {
     setBusy(true);
     try {
-      const f = await exportFile(format, { profile, ...(filter ? { filter: filter.filter } : {}) });
+      const f = await exportFile(format, { profile, imageSize, ...(pdfPassword ? { password: pdfPassword } : {}), ...(filter ? { filter: filter.filter } : {}) });
       downloadText(f.name, f.text, f.mime);
     } finally {
       setBusy(false);
@@ -60,13 +62,28 @@ function ExportCard() {
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <ToggleGroup aria-label={t.format}>
-          {(['json', 'csv-long', 'csv-wide'] as ExportFormat[]).map((f) => (
+          {(['pdf', 'json', 'csv-long', 'csv-wide'] as ExportFormat[]).map((f) => (
             <ToggleGroupItem key={f} pressed={format === f} onClick={() => setFormat(f)}>
               {t.formats[f]}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
-        {format !== 'json' ? (
+        {format === 'pdf' ? (
+          <>
+            <ToggleGroup aria-label={t.imageSize}>
+              {(['a4', 'a5', 'a6', 'none'] as PdfImageSize[]).map((s) => (
+                <ToggleGroupItem key={s} pressed={imageSize === s} onClick={() => setImageSize(s)}>
+                  {t.imageSizes[s]}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="pdf-password">{t.pdfPassword}</Label>
+              <Input id="pdf-password" type="password" autoComplete="new-password" value={pdfPassword} onChange={(ev) => setPdfPassword(ev.target.value)} />
+            </div>
+          </>
+        ) : null}
+        {format === 'csv-long' || format === 'csv-wide' ? (
           <ToggleGroup aria-label={t.profile}>
             {(['standard', 'excel-de'] as CsvProfile[]).map((p) => (
               <ToggleGroupItem key={p} pressed={profile === p} onClick={() => setProfile(p)}>

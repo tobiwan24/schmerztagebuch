@@ -12,6 +12,9 @@ async function text(d: Download): Promise<string> {
 async function addEntry(page: Page, note: string) {
   await go(page, '/entry/new');
   await page.getByLabel(/Schmerzstärke/).fill('6');
+  const canvas = page.getByTestId('bodymap-canvas');
+  const box = (await canvas.boundingBox())!;
+  await canvas.click({ position: { x: box.width * 0.5, y: box.height * 0.3 } });
   await page.getByLabel('Notizen').fill(note);
   await page.getByRole('button', { name: 'Speichern' }).click();
   await expect(page.getByTestId('entry-time')).toBeVisible();
@@ -25,6 +28,13 @@ test.describe('Export & Backup', () => {
     await onboardWithPassword(page);
     await addEntry(page, 'STB-E2E-MARKER Export');
     await go(page, '/more/export');
+    // PDF (Standard) mit Körperkarte
+    const [pdf] = await Promise.all([page.waitForEvent('download', { timeout: 30_000 }), page.getByRole('button', { name: 'Herunterladen', exact: true }).click()]);
+    expect(pdf.suggestedFilename()).toMatch(/^schmerztagebuch-bericht-.*\.pdf$/);
+    const pdfBytes = Buffer.from(await text(pdf), 'utf8');
+    expect(pdfBytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+
+    await page.getByRole('button', { name: 'JSON', exact: true }).click();
     const [json] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Herunterladen', exact: true }).click()]);
     expect(json.suggestedFilename()).toMatch(/\.stb\.json$/);
     const doc = JSON.parse(await text(json)) as { format: string; diaries: { entries: unknown[] }[] };
@@ -83,7 +93,8 @@ test.describe('Export & Backup', () => {
     await page.clock.fastForward(8 * DAY);
     await go(page, '/history');
     await go(page, '/');
-    await expect(page.getByTestId('backup-reminder')).toContainText('Zeit für ein Backup');
+    // WebKit mit installierter Fake-Uhr rendert die Erinnerung teils erst nach einigen Sekunden.
+    await expect(page.getByTestId('backup-reminder')).toContainText('Zeit für ein Backup', { timeout: 20_000 });
     // nach einem Backup verschwindet sie
     await page.getByTestId('backup-reminder').getByRole('link', { name: 'Backup erstellen' }).click();
     await page.getByLabel('Backup-Code').fill(code);
