@@ -40,7 +40,7 @@ export function formatTime(iso: string, timeZone: string, profile: CsvProfile): 
 function toCsv(header: string[], rows: Cell[][], profile: CsvProfile): string {
   const p = PROFILE[profile];
   const lines = [header.map((h) => formatCell(text(h), profile)).join(p.sep), ...rows.map((r) => r.map((c) => formatCell(c, profile)).join(p.sep))];
-  return `﻿${lines.join('\r\n')}\r\n`;
+  return `\uFEFF${lines.join('\r\n')}\r\n`;
 }
 
 interface Scope {
