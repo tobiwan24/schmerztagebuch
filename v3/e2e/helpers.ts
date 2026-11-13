@@ -38,6 +38,8 @@ export async function go(page: Page, path: string): Promise<void> {
     window.dispatchEvent(new PopStateEvent('popstate'));
   }, path);
   await expect(page).toHaveURL(new RegExp(`${path.replace(/[?]/g, '\\?')}$`));
+  // Der Router rendert asynchron — erst weiter, wenn die neue Route tatsächlich gerendert ist (RouteMarker).
+  await expect(page.locator('html')).toHaveAttribute('data-route', path, { timeout: 10_000 });
 }
 
 /** Virtueller Authenticator mit PRF (nur Chromium, CDP). */

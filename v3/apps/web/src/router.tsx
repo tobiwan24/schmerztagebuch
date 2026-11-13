@@ -1,6 +1,7 @@
 // URL-basiertes Routing (A-005, Spec 10): Deep-Links `/quick`, `/invite`, `/entry/:id`, `/migrate`; Zurück-Geste per Historie.
 import { createBrowserRouter } from 'react-router';
 import { AppShell } from '@/components/AppShell';
+import { RouteMarker } from '@/components/RouteMarker';
 import { StartPage } from '@/pages/StartPage';
 import { HistoryPage, MorePage, NotFoundPage, PlaceholderPage } from '@/pages/SimplePages';
 import { AnalysisPage } from '@/pages/AnalysisPage';
@@ -14,25 +15,30 @@ import { UnlockPage } from '@/pages/UnlockPage';
 import { de } from '@/i18n/de';
 
 export const router = createBrowserRouter([
-  { path: '/onboarding', element: <OnboardingPage /> },
-  { path: '/unlock', element: <UnlockPage /> },
   {
-    element: <AppShell />,
+    element: <RouteMarker />,
     children: [
-      { path: '/', element: <StartPage /> },
-      { path: '/history', element: <HistoryPage /> },
-      { path: '/analysis', element: <AnalysisPage /> },
-      { path: '/more', element: <MorePage /> },
-      { path: '/more/settings', element: <SettingsPage /> },
-      { path: '/more/templates', element: <TemplatesPage /> },
-      { path: '/more/diaries', element: <PlaceholderPage title={de.more.diaries} /> },
-      { path: '/more/export', element: <ExportPage /> },
-      { path: '/entry/new', element: <EntryEditorPage /> },
-      { path: '/entry/:id', element: <EntryDetailPage /> },
-      { path: '/entry/:id/edit', element: <EntryEditorPage /> },
-      { path: '/quick', element: <QuickPage /> },
-      { path: '/invite', element: <PlaceholderPage title={de.invite.title} /> },
-      { path: '*', element: <NotFoundPage /> },
+      { path: '/onboarding', element: <OnboardingPage /> },
+      { path: '/unlock', element: <UnlockPage /> },
+      {
+        element: <AppShell />,
+        children: [
+          { path: '/', element: <StartPage /> },
+          { path: '/history', element: <HistoryPage /> },
+          { path: '/analysis', element: <AnalysisPage /> },
+          { path: '/more', element: <MorePage /> },
+          { path: '/more/settings', element: <SettingsPage /> },
+          { path: '/more/templates', element: <TemplatesPage /> },
+          { path: '/more/diaries', element: <PlaceholderPage title={de.more.diaries} /> },
+          { path: '/more/export', element: <ExportPage /> },
+          { path: '/entry/new', element: <EntryEditorPage /> },
+          { path: '/entry/:id', element: <EntryDetailPage /> },
+          { path: '/entry/:id/edit', element: <EntryEditorPage /> },
+          { path: '/quick', element: <QuickPage /> },
+          { path: '/invite', element: <PlaceholderPage title={de.invite.title} /> },
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
     ],
   },
 ]);

@@ -175,12 +175,20 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
         if (rec) batch.push({ op, snapshot: rec });
       }
       if (!batch.length) continue;
-      const ops = await Promise.all(batch.map((b) => toPushOp(b.op, b.snapshot)));
-      const { results } = await transport.push({ diaryId, ops });
+      const allOps = await Promise.all(batch.map((b) => toPushOp(b.op, b.snapshot)));
+      // Große Payloads (Bilder, Anhänge): Anfragen zusätzlich nach Größe teilen (Server-Body-Limit 8 MB).
+      for (const [from, to] of sizeGroups(allOps, PUSH_BYTES_MAX)) {
+        const group = batch.slice(from, to);
+        const { results } = await transport.push({ diaryId, ops: allOps.slice(from, to) });
+        await applyPushResults(group, results);
+      }
+    }
+    return conflicts;
 
+    async function applyPushResults(group: { op: OutboxOp; snapshot: LocalRecord }[], results: PushResult[]) {
       await db.transaction('rw', db.records, db.outbox, async () => {
         for (const [n, result] of results.entries()) {
-          const { op, snapshot } = batch[n]!;
+          const { op, snapshot } = group[n]!;
           if (result.status === 'conflict') {
             conflicts.push({ op, result });
             continue;
@@ -199,7 +207,6 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
         }
       });
     }
-    return conflicts;
   }
 
   /**
@@ -309,4 +316,25 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
       };
     },
   };
+}
+
+/** Ungefähre Obergrenze der Push-Anfrage in Bytes (JSON), unter dem Server-Body-Limit von 8 MB. */
+export const PUSH_BYTES_MAX = 6 * 1024 * 1024;
+
+/** Teilt Ops in aufeinanderfolgende Gruppen `[from, to)` mit höchstens `maxBytes` (eine zu große Op bildet eine eigene Gruppe). */
+export function sizeGroups(ops: readonly unknown[], maxBytes: number): [number, number][] {
+  const groups: [number, number][] = [];
+  let start = 0;
+  let size = 0;
+  ops.forEach((op, i) => {
+    const n = JSON.stringify(op).length;
+    if (i > start && size + n > maxBytes) {
+      groups.push([start, i]);
+      start = i;
+      size = 0;
+    }
+    size += n;
+  });
+  if (ops.length > start) groups.push([start, ops.length]);
+  return groups;
 }

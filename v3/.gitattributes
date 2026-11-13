@@ -1,2 +1,3 @@
 # Golden Files byte-genau halten (CRLF + eingebettete LF in CSV, Spec 07 / EXP-05)
 fixtures/export/*.csv -text
+fixtures/migration/*.json -text

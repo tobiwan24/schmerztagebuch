@@ -93,8 +93,7 @@ test.describe('Export & Backup', () => {
     await page.clock.fastForward(8 * DAY);
     await go(page, '/history');
     await go(page, '/');
-    // WebKit mit installierter Fake-Uhr rendert die Erinnerung teils erst nach einigen Sekunden.
-    await expect(page.getByTestId('backup-reminder')).toContainText('Zeit für ein Backup', { timeout: 20_000 });
+    await expect(page.getByTestId('backup-reminder')).toContainText('Zeit für ein Backup');
     // nach einem Backup verschwindet sie
     await page.getByTestId('backup-reminder').getByRole('link', { name: 'Backup erstellen' }).click();
     await page.getByLabel('Backup-Code').fill(code);

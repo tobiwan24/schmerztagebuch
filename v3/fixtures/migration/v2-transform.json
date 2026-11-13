@@ -1,0 +1,667 @@
+{
+  "templates": [
+    {
+      "template": {
+        "id": "01941f29-7c00-7e07-95c4-e9eff3112af7",
+        "diaryId": "01900000-0000-7000-8000-000000000001",
+        "name": "Schmerz",
+        "icon": "Flame",
+        "color": "#FF3B30",
+        "order": "V",
+        "currentVersion": 2,
+        "archived": false,
+        "createdAt": "2025-10-10T10:00:00.000Z",
+        "updatedAt": "2026-03-01T09:00:00.000Z"
+      },
+      "versions": [
+        {
+          "templateId": "01941f29-7c00-7e07-95c4-e9eff3112af7",
+          "version": 1,
+          "blocks": [
+            {
+              "id": "01941f29-7c00-7a7a-bc4b-53132424e300",
+              "label": "Schmerz",
+              "required": false,
+              "role": "outcome",
+              "order": "V",
+              "type": "slider",
+              "config": {
+                "min": 0,
+                "max": 5,
+                "step": 1
+              }
+            },
+            {
+              "id": "01941f29-7c00-7312-80e0-c27e5dcc3391",
+              "label": "Medikamente",
+              "required": false,
+              "order": "l",
+              "type": "multiselect",
+              "config": {
+                "options": [
+                  {
+                    "id": "01941f29-7c00-72d9-9866-b788942eb55a",
+                    "label": "Ibuprofen",
+                    "color": "#FF3B30"
+                  }
+                ],
+                "multiple": true
+              }
+            },
+            {
+              "id": "01941f29-7c00-74dd-8b02-71617f7a4171",
+              "label": "Foto",
+              "required": false,
+              "order": "t",
+              "type": "textarea",
+              "config": {
+                "allowAttachments": true,
+                "allowEvents": true
+              }
+            }
+          ],
+          "createdAt": "2025-10-10T10:00:00.000Z"
+        },
+        {
+          "templateId": "01941f29-7c00-7e07-95c4-e9eff3112af7",
+          "version": 2,
+          "blocks": [
+            {
+              "id": "01941f29-7c00-7a7a-bc4b-53132424e300",
+              "label": "Schmerzstärke",
+              "required": false,
+              "role": "outcome",
+              "order": "V",
+              "type": "slider",
+              "config": {
+                "min": 0,
+                "max": 10,
+                "step": 1
+              }
+            },
+            {
+              "id": "01941f29-7c00-7e42-a07e-b3a5dc4ac3dc",
+              "label": "Beweglichkeit",
+              "required": false,
+              "role": "function",
+              "order": "l",
+              "type": "slider",
+              "config": {
+                "min": 0,
+                "max": 10,
+                "step": 1
+              }
+            },
+            {
+              "id": "01941f29-7c00-7312-80e0-c27e5dcc3391",
+              "label": "Medikamente",
+              "required": false,
+              "order": "t",
+              "type": "multiselect",
+              "config": {
+                "options": [
+                  {
+                    "id": "01941f29-7c00-72d9-9866-b788942eb55a",
+                    "label": "Ibuprofen",
+                    "color": "#FF3B30"
+                  },
+                  {
+                    "id": "01941f29-7c00-79ed-a973-09de08afa4d7",
+                    "label": "Paracetamol",
+                    "color": "#34C759"
+                  },
+                  {
+                    "id": "01941f29-7c00-7769-953d-aac0bab8e9b6",
+                    "label": "(aus v2) Novalgin",
+                    "color": "#6b7280"
+                  }
+                ],
+                "multiple": true
+              }
+            },
+            {
+              "id": "01941f29-7c00-7c63-a8dc-634e2fb6052f",
+              "label": "Sport gemacht",
+              "required": false,
+              "order": "x",
+              "type": "checkbox",
+              "config": {
+                "withNote": true
+              }
+            },
+            {
+              "id": "01941f29-7c00-7bc7-a04f-55bb3755116d",
+              "label": "Ort",
+              "required": false,
+              "order": "z",
+              "type": "text",
+              "config": {}
+            },
+            {
+              "id": "01941f29-7c00-76fe-bfa2-d98edebab6bb",
+              "label": "Notizen",
+              "required": false,
+              "order": "zV",
+              "type": "textarea",
+              "config": {
+                "allowAttachments": true,
+                "allowEvents": true
+              }
+            },
+            {
+              "id": "01941f29-7c00-72b1-bac0-5ee8792c7a67",
+              "label": "Körperkarte",
+              "required": false,
+              "order": "zl",
+              "type": "bodymap",
+              "config": {
+                "defaultPresetId": "default-koerper-vorderseite"
+              }
+            },
+            {
+              "id": "01941f29-7c00-7e8c-9315-84e4d020096d",
+              "label": "Beginn der Beschwerden",
+              "required": false,
+              "order": "zt",
+              "type": "date",
+              "config": {
+                "mode": "range"
+              }
+            }
+          ],
+          "createdAt": "2026-03-01T09:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "template": {
+        "id": "01941f29-7c00-7377-b490-0bca3f533264",
+        "diaryId": "01900000-0000-7000-8000-000000000001",
+        "name": "Alt-Vorlage",
+        "icon": "Book",
+        "color": "#007AFF",
+        "order": "l",
+        "currentVersion": 1,
+        "archived": false,
+        "createdAt": "2025-11-01T09:00:00.000Z",
+        "updatedAt": "2025-11-01T09:00:00.000Z"
+      },
+      "versions": [
+        {
+          "templateId": "01941f29-7c00-7377-b490-0bca3f533264",
+          "version": 1,
+          "blocks": [
+            {
+              "id": "01941f29-7c00-7299-ac54-9dde3eca3a00",
+              "label": "Auslöser",
+              "required": false,
+              "order": "V",
+              "type": "multiselect",
+              "config": {
+                "options": [
+                  {
+                    "id": "01941f29-7c00-799e-827d-4e2a7a35b784",
+                    "label": "Stress",
+                    "color": "#007AFF"
+                  },
+                  {
+                    "id": "01941f29-7c00-753a-959a-2db983b428dd",
+                    "label": "Wetter",
+                    "color": "#007AFF"
+                  }
+                ],
+                "multiple": true
+              }
+            },
+            {
+              "id": "01941f29-7c00-7ca6-b11e-876e5673990c",
+              "label": "Kopfschmerz",
+              "required": false,
+              "order": "l",
+              "type": "checkbox",
+              "config": {
+                "withNote": true
+              }
+            },
+            {
+              "id": "01941f29-7c00-76a5-9e1e-380300a1240c",
+              "label": "Puls",
+              "required": false,
+              "order": "t",
+              "type": "text",
+              "config": {}
+            }
+          ],
+          "createdAt": "2025-11-01T09:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "template": {
+        "id": "01941f29-7c00-7777-a0a1-2cbef336db4e",
+        "diaryId": "01900000-0000-7000-8000-000000000001",
+        "name": "Gelöscht mit Einträgen",
+        "order": "t",
+        "currentVersion": 1,
+        "archived": true,
+        "createdAt": "2025-12-01T09:00:00.000Z",
+        "updatedAt": "2025-12-01T09:00:00.000Z"
+      },
+      "versions": [
+        {
+          "templateId": "01941f29-7c00-7777-a0a1-2cbef336db4e",
+          "version": 1,
+          "blocks": [
+            {
+              "id": "01941f29-7c00-7b38-a23c-52b4a9f91de7",
+              "label": "Notiz",
+              "required": false,
+              "order": "V",
+              "type": "text",
+              "config": {}
+            }
+          ],
+          "createdAt": "2025-12-01T09:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "template": {
+        "id": "01941f29-7c00-75cd-9a46-9174934ce85d",
+        "diaryId": "01900000-0000-7000-8000-000000000001",
+        "name": "Vorlage 9 (aus v2)",
+        "order": "x",
+        "currentVersion": 1,
+        "archived": true,
+        "createdAt": "2025-09-01T08:00:00.000Z",
+        "updatedAt": "2025-09-01T08:00:00.000Z"
+      },
+      "versions": [
+        {
+          "templateId": "01941f29-7c00-75cd-9a46-9174934ce85d",
+          "version": 1,
+          "blocks": [
+            {
+              "id": "01941f29-7c00-79fd-bfb0-d57f64edf38a",
+              "label": "Müdigkeit",
+              "required": false,
+              "order": "V",
+              "type": "slider",
+              "config": {
+                "min": 0,
+                "max": 10,
+                "step": 1
+              }
+            }
+          ],
+          "createdAt": "2025-09-01T08:00:00.000Z"
+        }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "id": "0199cd90-2500-75ba-8744-4ecabab1d4ac",
+      "diaryId": "01900000-0000-7000-8000-000000000001",
+      "templateId": "01941f29-7c00-7e07-95c4-e9eff3112af7",
+      "templateVersion": 1,
+      "occurredAt": "2025-10-10T12:30:00+02:00",
+      "recordedAt": "2025-10-10T12:00:00+02:00",
+      "updatedAt": "2025-10-10T10:00:00.000Z",
+      "authorId": "user-fixture",
+      "values": {
+        "01941f29-7c00-7a7a-bc4b-53132424e300": 4,
+        "01941f29-7c00-7312-80e0-c27e5dcc3391": [
+          "01941f29-7c00-72d9-9866-b788942eb55a"
+        ],
+        "01941f29-7c00-74dd-8b02-71617f7a4171": {
+          "attachmentIds": [
+            "0199cd90-2500-7dc1-b306-8ede281dbb12"
+          ]
+        }
+      },
+      "tags": [],
+      "meta": {
+        "source": "migration-v2",
+        "timezone": "Europe/Berlin"
+      },
+      "hlc": "1760090400000:0000:v2"
+    },
+    {
+      "id": "019cad66-7920-75b0-9e53-73df1f302841",
+      "diaryId": "01900000-0000-7000-8000-000000000001",
+      "templateId": "01941f29-7c00-7e07-95c4-e9eff3112af7",
+      "templateVersion": 2,
+      "occurredAt": "2026-03-02T08:10:00+01:00",
+      "recordedAt": "2026-03-02T08:15:00+01:00",
+      "updatedAt": "2026-03-02T07:20:00.000Z",
+      "authorId": "user-fixture",
+      "values": {
+        "01941f29-7c00-7a7a-bc4b-53132424e300": 7,
+        "01941f29-7c00-7e42-a07e-b3a5dc4ac3dc": 4,
+        "01941f29-7c00-7312-80e0-c27e5dcc3391": [
+          "01941f29-7c00-72d9-9866-b788942eb55a"
+        ],
+        "01941f29-7c00-7c63-a8dc-634e2fb6052f": {
+          "checked": true,
+          "note": "20 min Rad"
+        },
+        "01941f29-7c00-7bc7-a04f-55bb3755116d": "Büro",
+        "01941f29-7c00-76fe-bfa2-d98edebab6bb": {
+          "text": "STB-V2-MARKER Kopf drückt",
+          "events": [
+            {
+              "id": "019cad66-7920-7e68-8ff3-d14faae6843d",
+              "category": "doctor",
+              "title": "Hausarzt",
+              "at": "2026-03-02T10:00:00+01:00"
+            }
+          ]
+        },
+        "01941f29-7c00-72b1-bac0-5ee8792c7a67": {
+          "presetId": "default-koerper-vorderseite",
+          "points": [
+            {
+              "id": "019cad66-7920-7888-9eae-a83d93aa97f2",
+              "x": 0.5,
+              "y": 0.2,
+              "intensity": 7,
+              "kind": "point",
+              "size": 0.05,
+              "comment": "Stirn"
+            },
+            {
+              "id": "019cad66-7920-7de5-8e6a-e47587991526",
+              "x": 0.4,
+              "y": 0.6,
+              "intensity": 3,
+              "kind": "brush",
+              "size": 0.03,
+              "path": [
+                {
+                  "x": 0.4,
+                  "y": 0.6
+                },
+                {
+                  "x": 0.45,
+                  "y": 0.62
+                },
+                {
+                  "x": 1,
+                  "y": 0.65
+                }
+              ]
+            }
+          ]
+        },
+        "01941f29-7c00-7e8c-9315-84e4d020096d": {
+          "start": "2026-02-27T00:00:00+01:00",
+          "end": "2026-03-01T23:59:00+01:00"
+        }
+      },
+      "tags": [],
+      "meta": {
+        "source": "migration-v2",
+        "timezone": "Europe/Berlin"
+      },
+      "hlc": "1772436000000:0000:v2"
+    },
+    {
+      "id": "019cbf28-1100-7251-ad15-b2336bbca1d0",
+      "diaryId": "01900000-0000-7000-8000-000000000001",
+      "templateId": "01941f29-7c00-7e07-95c4-e9eff3112af7",
+      "templateVersion": 2,
+      "occurredAt": "2026-03-03T00:00:00+01:00",
+      "period": {
+        "start": "2026-03-03",
+        "end": "2026-03-05"
+      },
+      "recordedAt": "2026-03-05T19:00:00+01:00",
+      "updatedAt": "2026-03-05T18:00:00.000Z",
+      "authorId": "user-fixture",
+      "values": {
+        "01941f29-7c00-7a7a-bc4b-53132424e300": 5,
+        "01941f29-7c00-76fe-bfa2-d98edebab6bb": {
+          "text": "Mit Befund",
+          "attachmentIds": [
+            "019cbf28-1100-7311-bff0-e93ada5e22bb",
+            "019cbf28-1100-739f-a9f2-26c2aee52753"
+          ]
+        },
+        "01941f29-7c00-72b1-bac0-5ee8792c7a67": {
+          "presetId": "01941f29-7c00-7c87-b5f1-3dfd31ddf6ae",
+          "points": [
+            {
+              "id": "019cbf28-1100-7e67-9680-73256b76022e",
+              "x": 0.3,
+              "y": 0.3,
+              "intensity": 9,
+              "kind": "point",
+              "size": 0.08,
+              "comment": "Knie"
+            }
+          ]
+        }
+      },
+      "tags": [],
+      "meta": {
+        "source": "migration-v2",
+        "timezone": "Europe/Berlin"
+      },
+      "hlc": "1772733600000:0000:v2"
+    },
+    {
+      "id": "019cc4bc-4a00-7c91-a470-12ecc290a194",
+      "diaryId": "01900000-0000-7000-8000-000000000001",
+      "templateId": "01941f29-7c00-7e07-95c4-e9eff3112af7",
+      "templateVersion": 2,
+      "occurredAt": "2026-03-06T14:00:00+01:00",
+      "period": {
+        "start": "2026-03-06T14:00:00+01:00",
+        "end": "2026-03-06T16:30:00+01:00"
+      },
+      "recordedAt": "2026-03-06T21:00:00+01:00",
+      "updatedAt": "2026-03-07T08:00:00.000Z",
+      "authorId": "user-fixture",
+      "values": {
+        "01941f29-7c00-7a7a-bc4b-53132424e300": 3,
+        "01941f29-7c00-7312-80e0-c27e5dcc3391": [
+          "01941f29-7c00-79ed-a973-09de08afa4d7",
+          "01941f29-7c00-7769-953d-aac0bab8e9b6"
+        ]
+      },
+      "tags": [],
+      "meta": {
+        "source": "migration-v2",
+        "timezone": "Europe/Berlin"
+      },
+      "hlc": "1772870400000:0000:v2"
+    },
+    {
+      "id": "019cd19c-3000-794d-8f42-3cc87ef2dbdf",
+      "diaryId": "01900000-0000-7000-8000-000000000001",
+      "templateId": "01941f29-7c00-7e07-95c4-e9eff3112af7",
+      "templateVersion": 2,
+      "occurredAt": "2026-03-09T06:00:00+01:00",
+      "recordedAt": "2026-03-09T09:00:00+01:00",
+      "updatedAt": "2026-03-09T08:00:00.000Z",
+      "authorId": "user-fixture",
+      "values": {
+        "01941f29-7c00-7bc7-a04f-55bb3755116d": "Zuhause"
+      },
+      "tags": [],
+      "meta": {
+        "source": "migration-v2",
+        "timezone": "Europe/Berlin"
+      },
+      "hlc": "1773043200000:0000:v2"
+    },
+    {
+      "id": "019a465e-a880-7c40-a159-b6d333e9fa60",
+      "diaryId": "01900000-0000-7000-8000-000000000001",
+      "templateId": "01941f29-7c00-7377-b490-0bca3f533264",
+      "templateVersion": 1,
+      "occurredAt": "2025-11-02T12:00:00+01:00",
+      "recordedAt": "2025-11-02T22:00:00+01:00",
+      "updatedAt": "2025-11-02T21:00:00.000Z",
+      "authorId": "user-fixture",
+      "values": {
+        "01941f29-7c00-7299-ac54-9dde3eca3a00": [
+          "01941f29-7c00-753a-959a-2db983b428dd",
+          "01941f29-7c00-799e-827d-4e2a7a35b784"
+        ],
+        "01941f29-7c00-7ca6-b11e-876e5673990c": {
+          "checked": true
+        },
+        "01941f29-7c00-76a5-9e1e-380300a1240c": "72"
+      },
+      "tags": [],
+      "meta": {
+        "source": "migration-v2",
+        "timezone": "Europe/Berlin"
+      },
+      "hlc": "1762117200000:0000:v2"
+    },
+    {
+      "id": "019ade13-5400-7296-b5ec-ffbb21a00104",
+      "diaryId": "01900000-0000-7000-8000-000000000001",
+      "templateId": "01941f29-7c00-7777-a0a1-2cbef336db4e",
+      "templateVersion": 1,
+      "occurredAt": "2025-12-02T09:00:00+01:00",
+      "recordedAt": "2025-12-02T09:00:00+01:00",
+      "updatedAt": "2025-12-02T08:00:00.000Z",
+      "authorId": "user-fixture",
+      "values": {
+        "01941f29-7c00-7b38-a23c-52b4a9f91de7": "archiviert"
+      },
+      "tags": [],
+      "meta": {
+        "source": "migration-v2",
+        "timezone": "Europe/Berlin"
+      },
+      "hlc": "1764662400000:0000:v2"
+    },
+    {
+      "id": "0199044a-4400-7064-a77b-175e86467efe",
+      "diaryId": "01900000-0000-7000-8000-000000000001",
+      "templateId": "01941f29-7c00-75cd-9a46-9174934ce85d",
+      "templateVersion": 1,
+      "occurredAt": "2025-09-01T07:45:00+02:00",
+      "recordedAt": "2025-09-01T10:00:00+02:00",
+      "updatedAt": "2025-09-01T08:00:00.000Z",
+      "authorId": "user-fixture",
+      "values": {
+        "01941f29-7c00-79fd-bfb0-d57f64edf38a": 6
+      },
+      "tags": [],
+      "meta": {
+        "source": "migration-v2",
+        "timezone": "Europe/Berlin"
+      },
+      "hlc": "1756713600000:0000:v2"
+    }
+  ],
+  "bodymapImages": [
+    {
+      "id": "01941f29-7c00-7c87-b5f1-3dfd31ddf6ae",
+      "diaryId": "01900000-0000-7000-8000-000000000001",
+      "name": "Aus v2 1",
+      "dataUrl": "data:image/png;base64,iVBORw0KGgoEIGENESBILD=",
+      "width": 600,
+      "height": 800,
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    }
+  ],
+  "attachments": [
+    {
+      "id": "0199cd90-2500-7dc1-b306-8ede281dbb12",
+      "diaryId": "01900000-0000-7000-8000-000000000001",
+      "entryId": "0199cd90-2500-75ba-8744-4ecabab1d4ac",
+      "kind": "image",
+      "mime": "image/jpeg",
+      "name": "Foto",
+      "sizeBytes": 13,
+      "createdAt": "2025-10-10T10:00:00.000Z",
+      "dataUrl": "data:image/jpeg;base64,/9j/ANHANGFOTO1234"
+    },
+    {
+      "id": "019cbf28-1100-7311-bff0-e93ada5e22bb",
+      "diaryId": "01900000-0000-7000-8000-000000000001",
+      "entryId": "019cbf28-1100-7251-ad15-b2336bbca1d0",
+      "kind": "image",
+      "mime": "image/jpeg",
+      "name": "Knie.jpg",
+      "sizeBytes": 13,
+      "createdAt": "2026-03-05T18:00:00.000Z",
+      "dataUrl": "data:image/jpeg;base64,/9j/ANHANGFOTO1234"
+    },
+    {
+      "id": "019cbf28-1100-739f-a9f2-26c2aee52753",
+      "diaryId": "01900000-0000-7000-8000-000000000001",
+      "entryId": "019cbf28-1100-7251-ad15-b2336bbca1d0",
+      "kind": "pdf",
+      "mime": "application/pdf",
+      "name": "Befund.pdf",
+      "sizeBytes": 14,
+      "createdAt": "2026-03-05T18:01:00.000Z",
+      "dataUrl": "data:application/pdf;base64,JVBERi0xLjQKREFURUk="
+    }
+  ],
+  "report": {
+    "counts": {
+      "templates": 4,
+      "templateVersions": 5,
+      "entries": 8,
+      "attachments": 3,
+      "bodymapImages": 1,
+      "skippedDeleted": 2,
+      "undecryptable": 1
+    },
+    "undecryptable": [
+      {
+        "v2Id": 10,
+        "date": "2026-01-15T08:00:00.000Z",
+        "reason": "kein Schlüssel"
+      }
+    ],
+    "unknownValues": [
+      {
+        "date": "2026-03-06",
+        "template": "Schmerz",
+        "block": "Medikamente",
+        "value": "Novalgin"
+      },
+      {
+        "date": "2026-03-09",
+        "template": "Schmerz",
+        "block": "Schmerzstärke",
+        "value": "11"
+      },
+      {
+        "date": "2026-03-09",
+        "template": "Schmerz",
+        "block": "Beweglichkeit",
+        "value": "2.5"
+      }
+    ],
+    "warnings": [
+      "Einträge ohne vorhandene Vorlage (v2-ID 9) → archivierte Vorlage „Vorlage 9 (aus v2)“"
+    ],
+    "blockMap": {
+      "00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000102/slider": "01941f29-7c00-7a7a-bc4b-53132424e300",
+      "00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000103/slider": "01941f29-7c00-7e42-a07e-b3a5dc4ac3dc",
+      "00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000104/multiselect": "01941f29-7c00-7312-80e0-c27e5dcc3391",
+      "00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000105/checkbox": "01941f29-7c00-7c63-a8dc-634e2fb6052f",
+      "00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000106/text": "01941f29-7c00-7bc7-a04f-55bb3755116d",
+      "00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000107/textarea": "01941f29-7c00-76fe-bfa2-d98edebab6bb",
+      "00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000108/bodymap": "01941f29-7c00-72b1-bac0-5ee8792c7a67",
+      "00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000109/date": "01941f29-7c00-7e8c-9315-84e4d020096d",
+      "00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000110/textarea": "01941f29-7c00-74dd-8b02-71617f7a4171",
+      "00000000-0000-4000-8000-000000000002/00000000-0000-4000-8000-000000000202/multiselect": "01941f29-7c00-7299-ac54-9dde3eca3a00",
+      "00000000-0000-4000-8000-000000000002/00000000-0000-4000-8000-000000000203/checkbox": "01941f29-7c00-7ca6-b11e-876e5673990c",
+      "00000000-0000-4000-8000-000000000002/00000000-0000-4000-8000-000000000204/text": "01941f29-7c00-76a5-9e1e-380300a1240c",
+      "00000000-0000-4000-8000-000000000003/00000000-0000-4000-8000-000000000302/text": "01941f29-7c00-7b38-a23c-52b4a9f91de7",
+      "local-9/00000000-0000-4000-8000-000000000902/slider": "01941f29-7c00-79fd-bfb0-d57f64edf38a"
+    }
+  }
+}
