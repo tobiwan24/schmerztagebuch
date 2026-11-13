@@ -58,3 +58,13 @@ describe('Server-Konfiguration', () => {
     expect(parseEnvFile('# x\n\nA=1\nB="zwei drei"\n C = 4 \n')).toEqual({ A: '1', B: 'zwei drei', C: '4' });
   });
 });
+
+describe('Rate-Limits', () => {
+  it('Standard 30/min und 5 je 15 min; per Umgebung änderbar, ungültige Werte abgelehnt', () => {
+    const base = { RP_ID: 'localhost', ALLOWED_ORIGINS: 'http://localhost:5173', DATABASE_PATH: 'x.db', BLOB_DIR: 'b' };
+    expect(loadConfig(base).rateLimits).toEqual({ authPerMinute: 30, recoveryPer15Min: 5 });
+    expect(loadConfig({ ...base, AUTH_RATE_LIMIT_PER_MIN: '100', RECOVERY_RATE_LIMIT_PER_15MIN: '9' }).rateLimits).toEqual({ authPerMinute: 100, recoveryPer15Min: 9 });
+    expect(() => loadConfig({ ...base, RECOVERY_RATE_LIMIT_PER_15MIN: '0' })).toThrow();
+  });
+});
+

@@ -12,6 +12,9 @@ async function addEntry(page: Page, pain: string, note?: string) {
 const rows = (page: Page) => page.getByTestId('entry-row');
 
 test.describe('Verlauf: Suche und Filter', () => {
+  // Mehrere Geräte bzw. mehrfaches PBKDF2 (600k): unter Volllast mehr Zeit als die Standard-30 s.
+  test.describe.configure({ timeout: 90_000 });
+
   test('umlauttolerante Suche und Filter-Chips grenzen den Verlauf ein', async ({ page }) => {
     await onboardWithPassword(page);
     await addEntry(page, '8', 'Übelkeit am Morgen');

@@ -3,12 +3,14 @@ import { Plus, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/PageHeader';
 import { EntryListState } from '@/components/EntryListState';
+import { BackupReminder } from '@/components/BackupReminder';
 import { de } from '@/i18n/de';
 
 export function StartPage() {
   return (
     <>
       <PageHeader title={de.start.title} />
+      <BackupReminder />
       <Button asChild size="lg" className="h-16 text-base">
         <Link to="/quick">
           <Zap aria-hidden />

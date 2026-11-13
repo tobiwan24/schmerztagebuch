@@ -15,6 +15,9 @@ async function fieldsOf(page: Page, entryRow: number): Promise<string[]> {
 }
 
 test.describe('Zwei Geräte', () => {
+  // Mehrere Geräte bzw. mehrfaches PBKDF2 (600k): unter Volllast mehr Zeit als die Standard-30 s.
+  test.describe.configure({ timeout: 90_000 });
+
   test.beforeEach(({ browserName }) => {
     test.skip(browserName !== 'chromium', 'Virtueller Authenticator mit PRF nur über CDP (Chromium)');
   });

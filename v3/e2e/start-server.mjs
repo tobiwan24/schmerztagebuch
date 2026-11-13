@@ -16,5 +16,8 @@ const server = await startServer({
   BLOB_DIR: resolve(dataDir, 'blobs'),
   PORT: '3901',
   HOST: '127.0.0.1',
+  // Ein E2E-Lauf meldet viele Konten und Zweitgeräte von 127.0.0.1 an — Limits hier hoch, Standardwerte im Server-Test.
+  AUTH_RATE_LIMIT_PER_MIN: '10000',
+  RECOVERY_RATE_LIMIT_PER_15MIN: '10000',
 });
 console.log(`E2E-Server läuft auf ${server.url}`);

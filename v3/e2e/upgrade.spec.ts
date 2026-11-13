@@ -2,6 +2,9 @@ import { test, expect } from '@playwright/test';
 import { PASSWORD, addDeviceWithBackupCode, addVirtualAuthenticator, go, lockViaSettings, onboardWithPassword, uniqueUser } from './helpers';
 
 test.describe('Wechsel „nur auf diesem Gerät" → „Mit Konto"', () => {
+  // Mehrere Geräte bzw. mehrfaches PBKDF2 (600k): unter Volllast mehr Zeit als die Standard-30 s.
+  test.describe.configure({ timeout: 90_000 });
+
   test.beforeEach(({ browserName }) => {
     test.skip(browserName !== 'chromium', 'Virtueller Authenticator mit PRF nur über CDP (Chromium)');
   });

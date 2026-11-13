@@ -1,0 +1,109 @@
+import { test, expect, type Download, type Page } from '@playwright/test';
+import { addVirtualAuthenticator, go, onboardWithCloud, onboardWithPassword, uniqueUser } from './helpers';
+
+const DAY = 86_400_000;
+
+async function text(d: Download): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const c of (await d.createReadStream())!) chunks.push(c as Buffer);
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+async function addEntry(page: Page, note: string) {
+  await go(page, '/entry/new');
+  await page.getByLabel(/Schmerzstärke/).fill('6');
+  await page.getByLabel('Notizen').fill(note);
+  await page.getByRole('button', { name: 'Speichern' }).click();
+  await expect(page.getByTestId('entry-time')).toBeVisible();
+}
+
+test.describe('Export & Backup', () => {
+  // Mehrere Geräte bzw. mehrfaches PBKDF2 (600k): unter Volllast mehr Zeit als die Standard-30 s.
+  test.describe.configure({ timeout: 90_000 });
+
+  test('JSON- und CSV-Export laden die Einträge herunter', async ({ page }) => {
+    await onboardWithPassword(page);
+    await addEntry(page, 'STB-E2E-MARKER Export');
+    await go(page, '/more/export');
+    const [json] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Herunterladen', exact: true }).click()]);
+    expect(json.suggestedFilename()).toMatch(/\.stb\.json$/);
+    const doc = JSON.parse(await text(json)) as { format: string; diaries: { entries: unknown[] }[] };
+    expect(doc.format).toBe('stb-export');
+    expect(doc.diaries[0]!.entries).toHaveLength(1);
+
+    await page.getByRole('button', { name: 'CSV breit' }).click();
+    await page.getByRole('button', { name: 'Excel (DE)' }).click();
+    const [csv] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Herunterladen', exact: true }).click()]);
+    expect(csv.suggestedFilename()).toMatch(/csv-wide-excel-de-.*\.csv$/);
+    const body = await text(csv);
+    expect(body.startsWith('﻿')).toBe(true);
+    expect(body).toContain('STB-E2E-MARKER Export');
+    expect(body.split('\r\n')[0]).toContain(';');
+  });
+
+  test('Backup mit Backup-Code erstellen und auf einem neuen Gerät wiederherstellen; falscher Code wird gemeldet', async ({ page, browser }) => {
+    const code = await onboardWithPassword(page);
+    await addEntry(page, 'STB-E2E-MARKER aus dem Backup');
+    await go(page, '/more/export');
+    await page.getByLabel('Backup-Code').fill('AAAAAAAA-AAAAAAAA-AAAAAAAA-AAAAAAAA');
+    await page.getByRole('button', { name: 'Backup herunterladen' }).click();
+    await expect(page.getByRole('alert')).toHaveText('Der Backup-Code stimmt nicht.');
+    await page.getByLabel('Backup-Code').fill(code);
+    const [backup] = await Promise.all([page.waitForEvent('download', { timeout: 30_000 }), page.getByRole('button', { name: 'Backup herunterladen' }).click()]);
+    expect(backup.suggestedFilename()).toMatch(/\.stbbackup$/);
+    const file = await text(backup);
+    expect(file).not.toContain('STB-E2E-MARKER');
+    await expect(page.getByTestId('last-backup')).toContainText('Letztes Backup:');
+
+    // neues Gerät
+    const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, locale: 'de-DE' });
+    const b = await ctx.newPage();
+    await onboardWithPassword(b);
+    await go(b, '/more/export');
+    await b.getByLabel('Datei auswählen').setInputFiles({ name: 'sicherung.stbbackup', mimeType: 'application/octet-stream', buffer: Buffer.from(file) });
+    const importCode = b.locator('#import-secret');
+    await importCode.fill('AAAAAAAA-AAAAAAAA-AAAAAAAA-AAAAAAAA');
+    await b.getByRole('button', { name: 'Backup öffnen' }).click();
+    await expect(b.getByRole('alert')).toContainText('Backup-Code stimmt nicht');
+    await importCode.fill(code);
+    await b.getByRole('button', { name: 'Backup öffnen' }).click();
+    await expect(b.getByTestId('import-preview')).toContainText('1 Einträge', { timeout: 30_000 });
+    await b.getByRole('button', { name: 'Importieren', exact: true }).click();
+    await expect(b.getByText('Import abgeschlossen.')).toBeVisible();
+    await go(b, '/history');
+    await b.getByTestId('entry-row').first().click();
+    await expect(b.getByTestId('entry-field').filter({ hasText: 'Notizen' })).toContainText('STB-E2E-MARKER aus dem Backup');
+    await ctx.close();
+  });
+
+  test('EXP-12: Backup-Erinnerung erscheint in local-only nach Ablauf der Frist und nicht in cloud-primary', async ({ page, browser, browserName }) => {
+    await page.clock.install({ time: new Date() });
+    const code = await onboardWithPassword(page);
+    await expect(page.getByTestId('backup-reminder')).toHaveCount(0);
+    await page.clock.fastForward(8 * DAY);
+    await go(page, '/history');
+    await go(page, '/');
+    await expect(page.getByTestId('backup-reminder')).toContainText('Zeit für ein Backup');
+    // nach einem Backup verschwindet sie
+    await page.getByTestId('backup-reminder').getByRole('link', { name: 'Backup erstellen' }).click();
+    await page.getByLabel('Backup-Code').fill(code);
+    await Promise.all([page.waitForEvent('download', { timeout: 30_000 }), page.getByRole('button', { name: 'Backup herunterladen' }).click()]);
+    await go(page, '/');
+    await expect(page.getByTestId('backup-reminder')).toHaveCount(0);
+
+    // Konto-Modus: auch nach Ablauf keine Erinnerung
+    if (browserName === 'chromium') {
+      const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, locale: 'de-DE' });
+      const c = await ctx.newPage();
+      await c.clock.install({ time: new Date() });
+      await addVirtualAuthenticator(c);
+      await onboardWithCloud(c, uniqueUser('exp12'));
+      await c.clock.fastForward(30 * DAY);
+      await go(c, '/history');
+      await go(c, '/');
+      await expect(c.getByRole('heading', { name: 'Start' })).toBeVisible();
+      await expect(c.getByTestId('backup-reminder')).toHaveCount(0);
+      await ctx.close();
+    }
+  });
+});

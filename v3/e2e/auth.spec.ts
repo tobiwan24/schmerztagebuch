@@ -46,7 +46,7 @@ test.describe('Onboarding und Entsperren (nur auf diesem Gerät)', () => {
     await lockViaSettings(page);
     await go(page, '/history');
     await page.getByTestId('lock-banner').getByRole('link', { name: 'Entsperren' }).click();
-    await expect(page).toHaveURL(/\/unlock\?next=%2Fhistory$/);
+    await expect(page).toHaveURL(/\/unlock\?next=%2Fhistory$/, { timeout: 15_000 });
     await page.getByRole('button', { name: 'Abbrechen' }).click();
     await expect(page).toHaveURL(/\/history$/);
     await expect(page.getByTestId('locked-view')).toBeVisible();

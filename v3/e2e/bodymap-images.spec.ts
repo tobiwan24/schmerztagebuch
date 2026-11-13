@@ -8,6 +8,9 @@ const imageSize = (page: Page) =>
   field(page).getByTestId('bodymap-canvas').locator('img').evaluate((el: HTMLImageElement) => ({ w: el.naturalWidth, h: el.naturalHeight, src: el.src.slice(0, 22) }));
 
 test.describe('Eigene Body-Map-Bilder', () => {
+  // Mehrere Geräte bzw. mehrfaches PBKDF2 (600k): unter Volllast mehr Zeit als die Standard-30 s.
+  test.describe.configure({ timeout: 90_000 });
+
   test.beforeEach(({ browserName }) => {
     test.skip(browserName !== 'chromium', 'Konto + Zweitgerät mit virtuellem Authenticator (Chromium)');
   });

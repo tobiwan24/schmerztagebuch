@@ -31,7 +31,10 @@ export function buildApp({ config, db, auth = noAuth, now = () => Date.now(), lo
   registerInvitationRoutes(app, { db, auth, now });
   registerDeviceRoutes(app, { db, auth, now });
   registerIntakeRoutes(app, { db, auth, now });
-  registerAccountRoutes(app, { db, auth, now, rp: { rpId: config.rpId, rpName: 'Schmerztagebuch', origins: config.allowedOrigins } });
+  registerAccountRoutes(app, {
+    db, auth, now, rp: { rpId: config.rpId, rpName: 'Schmerztagebuch', origins: config.allowedOrigins },
+    ...(config.rateLimits ? { limits: config.rateLimits } : {}),
+  });
 
   return app;
 }

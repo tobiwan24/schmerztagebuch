@@ -8,6 +8,7 @@ import { SettingsPage } from '@/pages/SettingsPage';
 import { EntryDetailPage, EntryEditorPage } from '@/pages/EntryPages';
 import { QuickPage } from '@/pages/QuickPage';
 import { TemplatesPage } from '@/pages/TemplatesPage';
+import { ExportPage } from '@/pages/ExportPage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { UnlockPage } from '@/pages/UnlockPage';
 import { de } from '@/i18n/de';
@@ -25,7 +26,7 @@ export const router = createBrowserRouter([
       { path: '/more/settings', element: <SettingsPage /> },
       { path: '/more/templates', element: <TemplatesPage /> },
       { path: '/more/diaries', element: <PlaceholderPage title={de.more.diaries} /> },
-      { path: '/more/export', element: <PlaceholderPage title={de.more.export} /> },
+      { path: '/more/export', element: <ExportPage /> },
       { path: '/entry/new', element: <EntryEditorPage /> },
       { path: '/entry/:id', element: <EntryDetailPage /> },
       { path: '/entry/:id/edit', element: <EntryEditorPage /> },

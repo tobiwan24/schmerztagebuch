@@ -51,9 +51,12 @@ const recoveryFinishBody = z.strictObject({ challengeId: z.string().min(1).max(6
 
 const STATUS: Record<AuthFlowError['code'], number> = { 'challenge-expired': 400, 'username-taken': 409, 'verification-failed': 401, 'no-credential': 404, 'wrong-backup-code': 401 };
 
-export function registerAccountRoutes(app: FastifyInstance, { db, auth, now, rp }: { db: Db; auth: AuthProvider; now: () => number; rp: RpConfig }): void {
-  const limiter = createRateLimiter(AUTH_RATE_LIMIT);
-  const recoveryLimiter = createRateLimiter(RECOVERY_RATE_LIMIT);
+export function registerAccountRoutes(
+  app: FastifyInstance,
+  { db, auth, now, rp, limits }: { db: Db; auth: AuthProvider; now: () => number; rp: RpConfig; limits?: { authPerMinute: number; recoveryPer15Min: number } },
+): void {
+  const limiter = createRateLimiter(limits ? { ...AUTH_RATE_LIMIT, limit: limits.authPerMinute } : AUTH_RATE_LIMIT);
+  const recoveryLimiter = createRateLimiter(limits ? { ...RECOVERY_RATE_LIMIT, limit: limits.recoveryPer15Min } : RECOVERY_RATE_LIMIT);
 
   app.addHook('onSend', async (req, reply) => {
     if (req.url.startsWith('/api/')) void reply.header('cache-control', 'no-store');

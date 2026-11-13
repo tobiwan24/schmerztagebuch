@@ -13,6 +13,9 @@ const envSchema = z.object({
   BLOB_DIR: z.string().trim().min(1),
   PORT: z.coerce.number().int().min(0).max(65535).default(3000),
   HOST: z.string().trim().min(1).default('0.0.0.0'),
+  // Rate-Limits (Spec 03): Anmeldung pro IP und Minute, Recovery pro IP bzw. Benutzername und 15 Minuten.
+  AUTH_RATE_LIMIT_PER_MIN: z.coerce.number().int().min(1).default(30),
+  RECOVERY_RATE_LIMIT_PER_15MIN: z.coerce.number().int().min(1).default(5),
 });
 
 export interface ServerConfig {
@@ -22,6 +25,8 @@ export interface ServerConfig {
   blobDir: string;
   port: number;
   host: string;
+  /** Optional (Standard 30 / 5); Tests setzen höhere Werte. */
+  rateLimits?: { authPerMinute: number; recoveryPer15Min: number };
 }
 
 export class ConfigError extends Error {
@@ -40,7 +45,10 @@ export function loadConfig(env: Record<string, string | undefined>): ServerConfi
     throw new ConfigError(vars, `Ungültige Server-Konfiguration:\n${lines.join('\n')}\nSiehe apps/server/.env.example`);
   }
   const e = r.data;
-  return { rpId: e.RP_ID, allowedOrigins: e.ALLOWED_ORIGINS, databasePath: e.DATABASE_PATH, blobDir: e.BLOB_DIR, port: e.PORT, host: e.HOST };
+  return {
+    rpId: e.RP_ID, allowedOrigins: e.ALLOWED_ORIGINS, databasePath: e.DATABASE_PATH, blobDir: e.BLOB_DIR, port: e.PORT, host: e.HOST,
+    rateLimits: { authPerMinute: e.AUTH_RATE_LIMIT_PER_MIN, recoveryPer15Min: e.RECOVERY_RATE_LIMIT_PER_15MIN },
+  };
 }
 
 /** Minimaler `.env`-Parser (KEY=VALUE, Kommentare mit #, optionale Anführungszeichen). */
