@@ -1,0 +1,13 @@
+﻿entry_id,occurred_at,diary,template,template_version,block_id,block_label,role,type,value_number,value_text,option_id,option_label,unit,source,period_end
+019c1850-e280-71f0-a409-4cbadc066ae5,2026-02-03T07:30:00.000Z,Testtagebuch,Migräne-Tracking,1,019c183a-e980-7364-9571-65140629c474,Schmerzstärke (0–10),outcome,slider,7,,,,,app,
+019c1850-e280-71f0-a409-4cbadc066ae5,2026-02-03T07:30:00.000Z,Testtagebuch,Migräne-Tracking,1,019c183b-d3e0-7244-8a2a-7b814e274fa7,Begleitsymptome,symptom,multiselect,,,019c183c-be40-7574-a1d8-0f0b4837504f,Übelkeit,,app,
+019c1850-e280-71f0-a409-4cbadc066ae5,2026-02-03T07:30:00.000Z,Testtagebuch,Migräne-Tracking,1,019c183b-d3e0-7244-8a2a-7b814e274fa7,Begleitsymptome,symptom,multiselect,,,019c183e-9300-75d2-b56f-807da0dae2ba,Lichtempfindlichkeit,,app,
+019c1850-e280-71f0-a409-4cbadc066ae5,2026-02-03T07:30:00.000Z,Testtagebuch,Migräne-Tracking,1,019c1846-d060-77d8-8dae-fdb97989d7ba,Notizen,note,textarea,,"Übelkeit, ""laut""; Zeile
+zwei",,,,app,
+019c1852-b740-770f-af5c-1acd9c57d8b0,2026-02-04T00:00:00.000Z,Testtagebuch,Migräne-Tracking,1,019c183a-e980-7364-9571-65140629c474,Schmerzstärke (0–10),outcome,slider,5,,,,,app,2026-02-06
+019c1852-b740-770f-af5c-1acd9c57d8b0,2026-02-04T00:00:00.000Z,Testtagebuch,Migräne-Tracking,1,019c1841-5220-70a8-9f79-a84cfbfc8245,Auslöser,trigger,multiselect,,,019c1843-26e0-7758-9629-b370892a4a33,Schlafmangel,,app,2026-02-06
+019c1855-7660-711e-a834-65bcfb6f552a,2026-02-10T18:00:00.000Z,Testtagebuch,Migräne-Tracking,2,019c183a-e980-7364-9571-65140629c474,Schmerzstärke (0–10),outcome,slider,3,,,,,quick,
+019c1855-7660-711e-a834-65bcfb6f552a,2026-02-10T18:00:00.000Z,Testtagebuch,Migräne-Tracking,2,019c1846-d060-77d8-8dae-fdb97989d7ba,Notizen,note,textarea,,Neurologie,,,,quick,
+019c1858-3580-76a8-b5da-a722ea44ffd1,2026-02-11T09:15:00.000Z,Testtagebuch,Allgemeines Schmerz-Tagebuch,1,019c1849-8f80-75d9-a278-e5b7d6eb281a,Schmerzstärke,outcome,slider,8,,,,,app,
+019c1858-3580-76a8-b5da-a722ea44ffd1,2026-02-11T09:15:00.000Z,Testtagebuch,Allgemeines Schmerz-Tagebuch,1,019c184a-79e0-73f4-a0c9-7ccc90544669,Schmerzlokalisation,,bodymap,1,1 Punkt (#1: =SUMME(A1)),,,,app,
+019c1858-3580-76a8-b5da-a722ea44ffd1,2026-02-11T09:15:00.000Z,Testtagebuch,Allgemeines Schmerz-Tagebuch,1,019c184b-6440-70b4-83c0-0516d50f0de3,Notizen,note,textarea,,'+49 Notiz,,,,app,

@@ -10,7 +10,15 @@ import type { ExportSource } from './json-v1.js';
 export function exportFixture(): ExportSource {
   let t = Date.parse('2026-02-01T08:00:00.000Z');
   const clock = { now: () => (t += 60_000) };
-  const { newId } = createIdGenerator(clock);
+  // Deterministischer Zufall → stabile IDs (Golden Files, EXP-05)
+  let seed = 0x5eed;
+  const random = {
+    fill: (b: Uint8Array) => {
+      for (let i = 0; i < b.length; i++) b[i] = ((seed = (seed * 1103515245 + 12345) >>> 0) >>> 16) & 0xff;
+      return b;
+    },
+  };
+  const { newId } = createIdGenerator(clock, random);
   const diary = createDiary({ id: newId(), name: 'Testtagebuch', subject: 'human', timezone: 'Europe/Berlin' }, clock);
   const k1 = keyBetween(null, null);
   const migraine1 = instantiateCatalogTemplate('migraine', { id: newId(), diaryId: diary.id, order: k1, newId }, clock);
