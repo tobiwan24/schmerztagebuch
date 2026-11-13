@@ -1,7 +1,8 @@
 // Auswertung (Spec 06 „Standard-Ansichten", Wireframe auswertung.html): Verlauf, Kalender, Medikamententage, Häufigkeiten,
 // Körperkarte — fest, nicht konfigurierbar. Dazu der Zeitraumvergleich. Rein beschreibend, jede Kennzahl mit n.
 // Daten aus dem Analyse-Worker (`useAnalysis`).
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ImageDown } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
 import { addDays, type FilterSpec } from '@stb/analysis';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
 import type { AnalysisClient } from '@/workers/analysis-service';
 import { cn } from '@/lib/utils';
+import { exportViewAsPng } from '@/lib/export-png';
 import { de } from '@/i18n/de';
 
 type View = 'trend' | 'calendar' | 'meds' | 'freq' | 'body';
@@ -52,6 +54,8 @@ export function AnalysisPage() {
   const entries = useQuery(async () => ({ count: (await diary.listAllEntries()).length, diaryIds: (await diary.listDiaries()).map((d) => d.id) }), [diary]);
   const [view, setView] = useState<View>('trend');
   const [range, setRange] = useState<Range>('30d');
+  const viewRef = useRef<HTMLElement>(null);
+  const [exporting, setExporting] = useState(false);
 
   if (entries.status === 'error') return (<><PageHeader title={de.analysis.title} /><ErrorState onRetry={entries.retry} /></>);
   if (entries.status === 'loading') return (<><PageHeader title={de.analysis.title} /><p className="text-muted-foreground">{de.app.loading}</p></>);
@@ -59,6 +63,17 @@ export function AnalysisPage() {
   const to = today(now());
   const from = addDays(to, -(RANGE_DAYS[range] - 1));
   const spec: FilterSpec = { diaryIds: entries.data.diaryIds, range: { from, to } };
+
+  async function exportPng() {
+    if (!viewRef.current) return;
+    setExporting(true);
+    try {
+      const period = view === 'calendar' ? '' : ` · ${shortDay(from)}–${shortDay(to)}${to.slice(0, 4)}`;
+      await exportViewAsPng(viewRef.current, `${de.analysis.viewNames[view]}${period}`, de.analysis.pngFileName(view, to));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <>
@@ -79,7 +94,11 @@ export function AnalysisPage() {
           ))}
         </ToggleGroup>
       ) : null}
-      <section data-testid={`analysis-view-${view}`} className="flex flex-col gap-3">
+      <Button variant="outline" size="sm" className="self-end" disabled={exporting} onClick={() => void exportPng()}>
+        <ImageDown aria-hidden />
+        {de.analysis.exportPng}
+      </Button>
+      <section ref={viewRef} data-testid={`analysis-view-${view}`} className="flex flex-col gap-3">
         {view === 'trend' ? <TrendView spec={spec} /> : null}
         {view === 'calendar' ? <CalendarView diaryIds={entries.data.diaryIds} /> : null}
         {view === 'meds' ? <MedsView spec={spec} /> : null}
@@ -300,14 +319,7 @@ function BodyView({ spec }: { spec: FilterSpec }) {
             <p className="text-xs text-muted-foreground">{de.analysis.bodymapCount(o.entries, o.points.length)}</p>
           </CardHeader>
           <CardContent>
-            <div className="relative" data-testid="bodymap-overview">
-              {srcOf(o.presetId) ? <img src={srcOf(o.presetId)} alt={nameOf(o.presetId)} className="block max-h-[50vh] w-full object-contain" /> : null}
-              <svg className="absolute inset-0 size-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
-                {o.points.map((p, i) => (
-                  <circle key={i} cx={p.x * 100} cy={p.y * 100} r={2.5} className={intensityFill(p.intensity)} opacity={Math.min(0.9, 0.25 + 0.6 / Math.sqrt(o.points.length))} />
-                ))}
-              </svg>
-            </div>
+            <OverviewImage src={srcOf(o.presetId)} alt={nameOf(o.presetId)} points={o.points} />
           </CardContent>
         </Card>
       ))}
@@ -367,3 +379,22 @@ function CompareCard({ diaryIds, from, to }: { diaryIds: string[]; from: string;
     </Card>
   );
 }
+
+/** Bild + Punkte im Koordinatensystem der echten Bildmaße (wie die Eingabe-Body-Map), damit `object-contain` nicht verschiebt. */
+function OverviewImage({ src, alt, points }: { src: string | undefined; alt: string; points: { x: number; y: number; intensity?: number }[] }) {
+  const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
+  const opacity = Math.min(0.9, 0.25 + 0.6 / Math.sqrt(points.length));
+  return (
+    <div className="relative" data-testid="bodymap-overview">
+      {src ? <img src={src} alt={alt} className="block max-h-[50vh] w-full object-contain" onLoad={(e) => setDims({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })} /> : null}
+      {dims ? (
+        <svg className="absolute inset-0 size-full" viewBox={`0 0 ${dims.w} ${dims.h}`} preserveAspectRatio="xMidYMid meet" aria-hidden>
+          {points.map((p, i) => (
+            <circle key={i} cx={p.x * dims.w} cy={p.y * dims.h} r={dims.w * 0.025} className={intensityFill(p.intensity)} opacity={opacity} />
+          ))}
+        </svg>
+      ) : null}
+    </div>
+  );
+}
+

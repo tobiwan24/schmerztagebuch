@@ -66,6 +66,8 @@ export const de = {
     threshold: 'Schwelle',
     compareRanges: (a: string, b: string, c: string, d: string) => `${a}–${b} im Vergleich zu ${c}–${d}`,
     descriptiveOnly: 'Rein beschreibend: keine Signifikanz, keine Ursachen.',
+    exportPng: 'Als PNG',
+    pngFileName: (view: string, day: string) => `schmerztagebuch-${view}-${day}.png`,
     daysWithEntry: 'Tage mit Eintrag',
     daysWithoutEntry: 'Tage ohne Eintrag',
     noEntry: 'kein Eintrag',

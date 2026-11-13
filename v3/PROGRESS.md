@@ -4,13 +4,13 @@
 
 ## Aktuell
 
-- **Meilenstein:** M9 — Suche, Filter, Vergleich, Standard-Ansichten (M8b abgeschlossen).
+- **Meilenstein:** M10 — Export, Import, Backup (M9 abgeschlossen, 15/15). Gate G3 erst nach M11.
 - **Gate G2:** vom User freigegeben (2026-11-13).
-- **Nächste Aufgabe:** M9.6 PNG-Export je Ansicht (ANA-14): SVG des Diagramms (bzw. Kalender/Body-Map als DOM) in ein
-  Canvas rendern → `toBlob('image/png')` → Download (Dateiname mit Ansicht + Zeitraum); Button „Als PNG“ je Ansicht.
-  E2E: Download-Event mit PNG-Signatur. Danach **M9 abschließen** → M10 (Export, Import, Backup).
-- **Erledigt in M9:** ANA-01 ANA-02 ANA-03 ANA-04 ANA-05 ANA-06 ANA-07 ANA-08 ANA-09 ANA-10 ANA-15 ANA-12 ANA-11 ANA-13
-- **Offen in M9:** ANA-14
+- **Nächste Aufgabe:** M10.1 Spec 07 vollständig lesen; Export-Kern als Paket `packages/export` laut Spec 01 (darf `core` und
+  `analysis` importieren): CSV (Codierung, Trennzeichen, Spalten je Block über `toCsv`, EXP-01) und JSON-Export/-Import
+  (Schema, Versionen, Rundweg EXP-03?) — genaue Zuordnung der IDs aus Spec 07 übernehmen. Danach PDF (jsPDF wie v2?
+  Abhängigkeit mit DECISIONS), verschlüsseltes Backup, Import.
+- **Offen in M10:** EXP-01 … EXP-12
 - **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail. Schnelleintrag: Einstellung pro Tagebuch (Vorlage/Blöcke) folgt mit Tagebuch-Einstellungen; bei mehreren Tagebüchern nimmt `/quick` das erste. Body-Map: v2-Pinsel/Punktgröße/Kommentare/eigene Bilder fehlen (v3-Wertform kennt nur Punkte mit Intensität) — bei Bedarf Spec 05 erweitern; Migration (M11) muss Pinselstriche abbilden.
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. (QA-08 wartet auf funktionierendes Docker Desktop → dann `npm run verify:docker`.)
@@ -30,8 +30,8 @@
 | M7 | erledigt | 14/14 IDs |
 | M8 | erledigt | 12/12 IDs, Gate G2 freigegeben |
 | M8b | erledigt | 2/2 IDs (Body-Map wie v2) |
-| M9 | in Arbeit | UI-11 ✓ |
-| M10 | offen | |
+| M9 | erledigt | 15/15 IDs |
+| M10 | in Arbeit | |
 | M11 | offen | danach Gate G3 |
 | M12 | offen | erst nach UI-12 |
 | M13 | offen | danach Gate G4 |
@@ -143,3 +143,4 @@
 | 2026-11-13 | M9.3 | ANA-12 | `analysis/big-fixture.ts` (5.000 Einträge, 3 Vorlagen, 20 Blöcke, fester Seed, synthetisch). Integrationstest `integration/analysis/performance.test.ts` (Median nach Aufwärmlauf): Aufbau ~120 ms (< 1,5 s), Filter ~10 ms (< 200 ms), Suche ~2 ms (< 100 ms), Vergleich ~2 ms (< 300 ms). Web: `workers/analysis-service.ts` (Dienst mit Arbeitsset + Index, RPC über MessagePort: `attachAnalysisService`/`createAnalysisClient`), `workers/analysis.worker.ts`; Protokolltest über `MessageChannel`. `@stb/analysis` als Web-Abhängigkeit. |
 | 2026-11-13 | M9.4 | ANA-11 | `AnalysisProvider` startet nach dem Entsperren den Worker und lädt das Arbeitsset aus den Repositories (neu bei lokalen Änderungen, entprellt, und bei `revision`). Verlauf: Suchfeld (entprellt, umlauttolerant), Zeitraum-Umschalter, Chips „Schmerz ≥ 6“/„Medikament“/„Ereignis“, Zurücksetzen, „Filter speichern“ (Dialog) und gespeicherte Filter als Chips mit Löschen; Treffer vom Worker. `savedFilter`-Record mit Schema in `@stb/analysis` (+ `hlc`/`updatedAt`, A-027), Repository `listSavedFilters`/`saveSavedFilter`/`deleteSavedFilter`, `listAllTemplateVersions`. Race behoben: Suchfeld-Sync beim Mounten überschrieb laufende Eingabe (WebKit). E2E: Suche/Chips in Chromium + WebKit; ANA-11 nach Reload und auf dem Zweitgerät. |
 | 2026-11-13 | M9.5 | ANA-13 | Auswertung mit fünf festen Ansichten (Spec 06): Verlauf (Tageswert je Slider, Standard erster `outcome`, Ereignis-Markierungen als Linien + Liste, n = Tage mit Wert), Kalender-Heatmap (Monat, Montag zuerst, Farbstufen, leere Tage neutral, Monat blättern), Medikamententage je Monat (Balken je Option, optionale Markierungslinie ohne Wertung), Häufigkeiten (Balken je Option/Checkbox), Body-Map-Übersicht (alle Punkte je Bild, Deckkraft nach Menge). Zeitraumvergleich (aktuell vs. vorheriger gleicher Länge, Rolle `outcome`, Schwelle einstellbar, Differenz, „Wenige Daten“, Hinweis „rein beschreibend“). `recharts` 3.10.1 + `react-is` (DECISIONS), shadcn-artiger `ui/chart.tsx`, Chart-Tokens in `index.css`. Worker: `events`, `bodymap`, `blocks`. Feldauswahl zeigt bei gleichen Namen die Vorlage. E2E mit eingespielten Testdaten (50 Einträge, 2 Vorlagen) in Chromium + WebKit, ohne Konsolenfehler. |
+| 2026-11-13 | M9.6 | ANA-14 | PNG-Export je Ansicht ohne neue Abhängigkeit (`lib/export-png.ts`): Recharts-SVG mit eingebetteten berechneten Farben (CSS-Variablen) ins Canvas, Kalender und Körperkarte direkt ins Canvas (kein `foreignObject`, Safari-sicher), Titelzeile mit Ansicht + Zeitraum, 2× Auflösung, Theme-Hintergrund; Button „Als PNG“. Body-Map-Übersicht: Punkte jetzt im Koordinatensystem der echten Bildmaße (vorher verschoben bei `object-contain`). E2E: Download je Ansicht mit PNG-Signatur und IHDR-Breite in Chromium + WebKit. **M9 abgeschlossen** (15/15). |

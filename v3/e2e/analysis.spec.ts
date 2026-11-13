@@ -94,4 +94,42 @@ test.describe('Auswertung', () => {
 
     expect(errors).toEqual([]);
   });
+
+  test('ANA-14: jede Ansicht ist als PNG exportierbar (Download-Event)', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    await onboardWithPassword(page);
+    await go(page, '/more/templates');
+    await page.getByRole('button', { name: /Kopfschmerz-Tagebuch/ }).click();
+    await expect(page.getByTestId('template-row')).toHaveCount(2);
+    await seedEntries(page);
+    await page.reload();
+    await page.getByTestId('lock-banner').getByRole('link', { name: 'Entsperren' }).click();
+    await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
+    await page.getByRole('button', { name: 'Mit Passwort entsperren' }).click();
+    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible({ timeout: 30_000 });
+    await go(page, '/analysis');
+    await expect(page.getByTestId('analysis-view-trend').locator('.recharts-line-curve')).toHaveCount(1, { timeout: 15_000 });
+
+    for (const [tab, view, ready] of [
+      ['Verlauf', 'trend', '.recharts-line-curve'],
+      ['Kalender', 'calendar', '[data-testid=calendar-day]'],
+      ['Medis', 'meds', '.recharts-bar-rectangle'],
+      ['Häufig.', 'freq', '.recharts-bar-rectangle'],
+      ['Körper', 'body', '[data-testid=bodymap-overview] circle'],
+    ] as const) {
+      await page.getByRole('group', { name: 'Ansicht' }).getByRole('button', { name: tab, exact: true }).click();
+      await expect(page.getByTestId(`analysis-view-${view}`).locator(ready).first()).toBeVisible({ timeout: 15_000 });
+      const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Als PNG' }).click()]);
+      expect(download.suggestedFilename()).toMatch(new RegExp(`^schmerztagebuch-${view}-[0-9]{4}-[0-9]{2}-[0-9]{2}[.]png$`));
+      const chunks: Buffer[] = [];
+      for await (const c of (await download.createReadStream())!) chunks.push(c as Buffer);
+      const png = Buffer.concat(chunks);
+      expect(png.subarray(0, 8).toString('hex'), view).toBe('89504e470d0a1a0a');
+      expect(png.length, view).toBeGreaterThan(2000);
+      expect(png.readUInt32BE(16), `${view} Breite`).toBeGreaterThan(300); // IHDR-Breite (2× Skalierung)
+    }
+    expect(errors).toEqual([]);
+  });
 });
+
