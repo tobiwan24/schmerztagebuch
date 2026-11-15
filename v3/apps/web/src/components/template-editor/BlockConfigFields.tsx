@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { de } from '@/i18n/de';
+import { OptionsEditor } from './OptionsEditor';
 
 const t = de.templates.editor;
 
@@ -60,7 +61,7 @@ function CheckField({ id, label, checked, onChange }: { id: string; label: strin
   );
 }
 
-export function BlockConfigFields({ def, onChange }: { def: BlockDef; onChange: (def: BlockDef) => void }) {
+export function BlockConfigFields({ def, newId, onChange }: { def: BlockDef; newId: () => string; onChange: (def: BlockDef) => void }) {
   const id = (k: string) => `block-${def.id}-${k}`;
   switch (def.type) {
     case 'slider': {
@@ -119,7 +120,35 @@ export function BlockConfigFields({ def, onChange }: { def: BlockDef; onChange: 
           </Select>
         </div>
       );
-    default:
-      return null; // Auswahl-Optionen und Körperkarte folgen (M14.4b)
+    case 'multiselect':
+      return (
+        <>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={id('multiple')}>{t.multiselect.mode}</Label>
+            <Select
+              id={id('multiple')}
+              value={def.config.multiple ? 'multiple' : 'single'}
+              onChange={(e) => onChange({ ...def, config: { ...def.config, multiple: e.target.value === 'multiple' } })}
+            >
+              <option value="single">{t.multiselect.single}</option>
+              <option value="multiple">{t.multiselect.multiple}</option>
+            </Select>
+          </div>
+          <OptionsEditor blockId={def.id} options={def.config.options} newId={newId} onChange={(options) => onChange({ ...def, config: { ...def.config, options } })} />
+        </>
+      );
+    case 'bodymap':
+      return (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor={id('preset')}>{t.bodymap.preset}</Label>
+          <Select id={id('preset')} value={def.config.defaultPresetId} onChange={(e) => onChange({ ...def, config: { ...def.config, defaultPresetId: e.target.value } })}>
+            {(Object.keys(de.bodymap.presets) as (keyof typeof de.bodymap.presets)[]).map((p) => (
+              <option key={p} value={p}>
+                {de.bodymap.presets[p]}
+              </option>
+            ))}
+          </Select>
+        </div>
+      );
   }
 }

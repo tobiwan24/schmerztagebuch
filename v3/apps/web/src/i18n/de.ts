@@ -207,6 +207,17 @@ export const de = {
       checkboxNote: 'Mit Notiz',
       text: { maxLength: 'Maximale Länge (optional)', placeholder: 'Platzhalter (optional)' },
       textarea: { events: 'Ereignisse und Arztbesuche erlauben', attachments: 'Anhänge erlauben' },
+      multiselect: {
+        mode: 'Auswahl', single: 'Eine Option', multiple: 'Mehrere Optionen', options: 'Optionen', add: 'Option hinzufügen',
+        optionLabel: (n: number) => `Option ${n}`, defaultLabel: (n: number) => `Option ${n}`,
+        remove: (name: string) => `Option ${name} entfernen`, move: (name: string) => `Option ${name} verschieben`,
+        moveHint: 'Mit Pfeil hoch und Pfeil runter verschieben oder ziehen.', color: (name: string) => `Farbe von ${name}`,
+        colorNames: {
+          '#ef4444': 'Rot', '#f97316': 'Orange', '#eab308': 'Gelb', '#22c55e': 'Grün', '#06b6d4': 'Türkis', '#3b82f6': 'Blau',
+          '#8b5cf6': 'Violett', '#ec4899': 'Rosa',
+        },
+      },
+      bodymap: { preset: 'Standardbild' },
       date: { mode: 'Modus', modes: { date: 'Datum', datetime: 'Datum und Uhrzeit', duration: 'Dauer', range: 'Zeitraum' } },
       issues: {
         NAME_EMPTY: 'Bitte gib einen Namen ein.',

@@ -12,8 +12,8 @@ import { de } from '@/i18n/de';
 import { BlockConfigFields } from './BlockConfigFields';
 
 const t = de.templates.editor;
-/** Block-Typen der Palette; Auswahl und Körperkarte folgen mit M14.4b. */
-const PALETTE: readonly BlockType[] = ['slider', 'checkbox', 'text', 'textarea', 'date'];
+/** Block-Typen der Palette. */
+const PALETTE: readonly BlockType[] = ['slider', 'checkbox', 'multiselect', 'text', 'textarea', 'date', 'bodymap'];
 
 export function BlockEditor({
   blocks, issues, newId, onChange,
@@ -34,7 +34,7 @@ export function BlockEditor({
       <p className="text-xs text-muted-foreground">{t.blocksHint}</p>
       {blocks.length === 0 ? <p className="text-sm text-muted-foreground">{t.noBlocks}</p> : null}
       {blocks.map((b, i) => (
-        <BlockCard key={b.id} def={b} index={i + 1} messages={issues.get(b.id) ?? []} onChange={replace} />
+        <BlockCard key={b.id} def={b} index={i + 1} messages={issues.get(b.id) ?? []} newId={newId} onChange={replace} />
       ))}
       <div className="flex flex-wrap gap-2" role="group" aria-label={t.addBlock}>
         {PALETTE.map((type) => (
@@ -54,7 +54,9 @@ export function BlockEditor({
   );
 }
 
-function BlockCard({ def, index, messages, onChange }: { def: BlockDef; index: number; messages: string[]; onChange: (def: BlockDef) => void }) {
+function BlockCard({
+  def, index, messages, newId, onChange,
+}: { def: BlockDef; index: number; messages: string[]; newId: () => string; onChange: (def: BlockDef) => void }) {
   const id = (k: string) => `block-${def.id}-${k}`;
   const invalid = messages.length > 0;
   return (
@@ -106,7 +108,7 @@ function BlockCard({ def, index, messages, onChange }: { def: BlockDef; index: n
           ))}
         </Select>
       </div>
-      <BlockConfigFields def={def} onChange={onChange} />
+      <BlockConfigFields def={def} newId={newId} onChange={onChange} />
       {messages.map((m) => (
         <p key={m} role="alert" className="text-sm text-destructive">
           {m}
