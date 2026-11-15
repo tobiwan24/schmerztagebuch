@@ -247,4 +247,30 @@ export async function openDiaryKeys(db: StbDb, account: CloudAccount, umk: Crypt
   );
 }
 
+/**
+ * Mitgliedschaften vom Server übernehmen (Spec 09): Tagebücher, die mit diesem Konto geteilt wurden, kommen als neue
+ * DK-Wraps an — speichern, entpacken, Sync-Stand anlegen (der nächste Pull holt die Records). Rückgabe: neue Tagebücher.
+ */
+export async function syncMemberships(
+  db: StbDb,
+  api: Pick<AccountApi, 'listDiaries'>,
+  account: CloudAccount,
+  umk: CryptoKey,
+  setKey: (diaryId: string, key: CryptoKey, keyEpoch: number) => void,
+): Promise<{ diaryId: string; role: string }[]> {
+  const memberships = await api.listDiaries();
+  const fresh = [];
+  let identity: CryptoKeyPair | null = null;
+  for (const m of memberships) {
+    if (await db.keys.get(dkRowId(m.diaryId))) continue;
+    identity ??= await openIdentityKey(umk, account.cloud.identityPublicKey, account.cloud.identitySealed);
+    const key = await unwrapDkForMember(decodeDkWrap(m.wrappedDk), identity, { diaryId: m.diaryId, keyEpoch: m.keyEpoch });
+    await db.keys.put({ id: dkRowId(m.diaryId), value: { diaryId: m.diaryId, keyEpoch: m.keyEpoch, wrappedDk: m.wrappedDk } satisfies DkRow });
+    if (!(await db.sync_state.get(m.diaryId))) await db.sync_state.put({ diaryId: m.diaryId, cursor: 0, mode: 'cloud-primary' });
+    setKey(m.diaryId, key, m.keyEpoch);
+    fresh.push({ diaryId: m.diaryId, role: m.role });
+  }
+  return fresh;
+}
+
 export const isCloudAccount = (a: unknown): a is CloudAccount => (a as { mode?: string } | undefined)?.mode === 'cloud-primary';

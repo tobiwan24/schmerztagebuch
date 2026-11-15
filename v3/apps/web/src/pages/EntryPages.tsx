@@ -2,6 +2,7 @@
 import { Link, useParams } from 'react-router';
 import { Pencil } from 'lucide-react';
 import { AttachmentList } from '@/components/AttachmentList';
+import { useAuthorName } from '@/data/useSharing';
 import { displayValue } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -63,6 +64,7 @@ export function EntryDetailPage() {
               {query.data.entry.period ? <span className="ml-2 text-sm font-normal text-muted-foreground">{de.entry.period}</span> : null}
             </p>
             <p className="text-sm text-muted-foreground">{query.data.templateName}</p>
+            <AuthorLine diaryId={query.data.entry.diaryId} authorId={query.data.entry.authorId} />
           </div>
           <Card className="gap-0 py-0">
             {query.data.fields
@@ -94,4 +96,11 @@ export function EntryDetailPage() {
 /** Anhang-IDs aller Textarea-Felder eines Eintrags (Reihenfolge der Felder). */
 function attachmentIdsOf(fields: readonly { block: { type: string }; value: unknown }[]): string[] {
   return fields.flatMap((f) => (f.block.type === 'textarea' ? ((f.value as { attachmentIds?: string[] } | undefined)?.attachmentIds ?? []) : []));
+}
+
+/** „Erfasst von …" — nur in geteilten Tagebüchern (Spec 09, SHR-10). */
+function AuthorLine({ diaryId, authorId }: { diaryId: string; authorId: string }) {
+  const name = useAuthorName(diaryId, authorId);
+  if (name.status !== 'ok' || !name.data) return null;
+  return <p data-testid="entry-author" className="text-sm text-muted-foreground">{de.entry.recordedBy(name.data)}</p>;
 }

@@ -4,13 +4,11 @@
 
 ## Aktuell
 
-- **Meilenstein:** M12 — Teilen- und Kurzbefehl-UI, Erinnerungen, Diagnose. Gate G3 stellvertretend geprüft (ADR-012).
+- **Meilenstein:** M13 — Härtung, Betrieb, Ablösung (M12 abgeschlossen, 9/9). Danach Gate G4 (Umstellung macht nur der User).
 - **Auftrag (2026-11-15):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M12.4 Teilen-UI (Spec 09): Mitglieder & Einladungen je Tagebuch (`/more/diaries/:id/members`),
-  Einladung erzeugen (Link mit `#secret`), Annahme `/invite`, Fingerprint/Sicherheitsnummer, Rollen; SHR-01 (zwei Konten im
-  Browser), SHR-02 (`secret` in keinem Request), SHR-09 (konkurrierende Bearbeitung), SHR-10 („Erfasst von").
-- **Erledigt in M12:** UI-08 UI-09 UI-02 VOI-02 VOI-09
+- **Nächste Aufgabe:** M13 — `npm run acceptance -- --milestone M13` (QA-01 QA-02 QA-03 QA-04 QA-05 QA-07 QA-09 QA-10) und
+  Spec 12 lesen; QA-02 Bundle ≤ 250 KB gzip (Lazy-Loading: Diagramme, PDF, Migration, Editor).
 - **Kleinigkeit:** Standardbild „Körper Rückseite" (aus v2 übernommen) hat 2 Pixel Artefakt am linken Rand (y≈470) — sichtbar im PDF.
 - **Offen für M13 (QA-02):** Initiales JS liegt bei ~496 KB gzip (Recharts, jsPDF, html2canvas im Haupt-Bundle) — Diagramme, PDF,
   Migration und Editor per Lazy-Loading auslagern.
@@ -36,7 +34,7 @@
 | M9 | erledigt | 15/15 IDs |
 | M10 | erledigt | 12/12 IDs |
 | M11 | erledigt | 15/15 IDs → Gate G3 (wartet auf User) |
-| M12 | offen | erst nach UI-12 |
+| M12 | erledigt | 9/9 IDs |
 | M13 | offen | danach Gate G4 |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
@@ -163,3 +161,4 @@
 | 2026-11-15 | M12.1 | UI-08 UI-09 | Erinnerungen (`reminders/reminders.ts`): nächster Zeitpunkt nach Uhrzeit + Wochentagen, heute verpasste Erinnerung beim Öffnen (einmal pro Tag), Planer mit austauschbarer Uhr/Timer (lange Wartezeiten in Etappen), Notification über `registration.showNotification`; Einstellungen je Gerät (`keys`), Karte „Erinnerungen" (aktiv, Uhrzeit, Mo–So, Hinweis bei blockierter/fehlender Berechtigung), Planer läuft in der AppShell. Diagnose `/more/settings/diagnose` (auch gesperrt erreichbar): Version, Speichermodus, Sync-Status, Outbox (mit Fehlern), ausstehende Anhänge, Speicher, dauerhafter Speicher, Service Worker, Datensätze je Art — nur Zahlen. Tests: UI-08 mit Fake-Timern + gefälschter SW-Registrierung, UI-09 E2E (kein Eintragstext im HTML), Erinnerungs-Einstellung bleibt gespeichert. |
 | 2026-11-15 | M12.2 | UI-02 | `@axe-core/playwright` 4.14.0 (DECISIONS). E2E prüft Start, Eintrags-Detail, Verlauf, Auswertung, neuer Eintrag, Schnelleintrag, Mehr, Vorlagen, Export, Einstellungen, Diagnose, Migration in hell und dunkel (WCAG 2.1 A/AA) auf „serious"/„critical" — keine Befunde; Plausibilitätsprüfung, dass axe tatsächlich Regeln (u. a. Kontrast) ausgewertet hat. Nebenbei behoben: Erinnerungs-Karte setzte ihren Stand bei jedem Rendern auf den DB-Wert zurück (WebKit), Speichern jetzt nacheinander, Berechtigungsabfrage blockiert das Speichern nicht. |
 | 2026-11-15 | M12.3 | VOI-02 VOI-09 | Mehr → Tagebücher (statt Platzhalter): je Tagebuch „Mitglieder & Einladungen" und „Kurzbefehl (Siri)". Kurzbefehl-Seite: Intake über den Server nur mit Konto — Hinweisdialog zur E2E-Ausnahme mit Pflicht-Häkchen, Token einmalig, Endpunkt, Prompt kopieren (aus der Schnelleintrags-Vorlage), Schlüssel-Liste mit Widerruf; Zwischenablage-Weg für alle Modi (Einfügen bzw. JSON-Feld → Entwurf mit abgebildeten Werten und Problemen → erst „Als Eintrag speichern" legt den Eintrag mit `meta.source = 'shortcut'` an). Abholung (`pickupIntake`) nach jedem erfolgreichen Sync für Cloud-Tagebücher mit Intake-Schlüssel; Eingang-Karte auf Start (Übernehmen → Entwurf, Verwerfen). Behoben: zusätzliche `revision`-Abhängigkeit in `useQuery`-Aufrufen erzeugte nach jedem Sync einen Ladezustand (Dialog wurde abgebaut) — `useQuery` lädt bei `revision` ohnehin still nach. |
+| 2026-11-15 | M12.4 | SHR-01 SHR-02 SHR-09 SHR-10 | Teilen-UI: `sharing/api.ts` (Einladungen, Mitglieder), `sharing/flow.ts` (Einladungslink mit Geheimnis im Fragment, Annahme mit HMAC über den eigenen Identity-Key, Geheimnis als synchronisierter Record beim Owner), Server `GET /diaries/:id/members` (A-034), `syncMemberships` (geteilte Tagebücher vor dem Sync übernehmen), nach dem Sync Bestätigung angenommener Einladungen (Owner) + Mitglieder-Cache. Seiten „Mitglieder & Einladungen" (Rolle, Sicherheitsnummer, Einladen, offene Einladungen widerrufen, Rolle ändern, entfernen mit Hinweis, austreten) und `/invite` (Tagebuch, Rolle, einladende Person, annehmen). Eintrag zeigt „Erfasst von …" in geteilten Tagebüchern. E2E (Chromium, zwei Konten): Einladung → Annahme → Owner-Sync → Mitglied sieht Einträge, „Erfasst von", Sicherheitsnummer beidseitig gleich, gleichzeitige Offline-Bearbeitung verschiedener Felder zusammengeführt, Geheimnis in keinem Request. **M12 abgeschlossen** (9/9). |

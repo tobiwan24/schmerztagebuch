@@ -3,7 +3,7 @@ import { createBrowserRouter } from 'react-router';
 import { AppShell } from '@/components/AppShell';
 import { RouteMarker } from '@/components/RouteMarker';
 import { StartPage } from '@/pages/StartPage';
-import { HistoryPage, MorePage, NotFoundPage, PlaceholderPage } from '@/pages/SimplePages';
+import { HistoryPage, MorePage, NotFoundPage } from '@/pages/SimplePages';
 import { AnalysisPage } from '@/pages/AnalysisPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { EntryDetailPage, EntryEditorPage } from '@/pages/EntryPages';
@@ -14,9 +14,10 @@ import { MigratePage } from '@/pages/MigratePage';
 import { DiagnosticsPage } from '@/pages/DiagnosticsPage';
 import { DiariesPage } from '@/pages/DiariesPage';
 import { ShortcutPage } from '@/pages/ShortcutPage';
+import { MembersPage } from '@/pages/MembersPage';
+import { InvitePage } from '@/pages/InvitePage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { UnlockPage } from '@/pages/UnlockPage';
-import { de } from '@/i18n/de';
 
 export const router = createBrowserRouter([
   {
@@ -36,13 +37,14 @@ export const router = createBrowserRouter([
           { path: '/more/templates', element: <TemplatesPage /> },
           { path: '/more/diaries', element: <DiariesPage /> },
           { path: '/more/diaries/:id/shortcut', element: <ShortcutPage /> },
+          { path: '/more/diaries/:id/members', element: <MembersPage /> },
           { path: '/more/export', element: <ExportPage /> },
           { path: '/entry/new', element: <EntryEditorPage /> },
           { path: '/entry/:id', element: <EntryDetailPage /> },
           { path: '/entry/:id/edit', element: <EntryEditorPage /> },
           { path: '/quick', element: <QuickPage /> },
           { path: '/migrate', element: <MigratePage /> },
-          { path: '/invite', element: <PlaceholderPage title={de.invite.title} /> },
+          { path: '/invite', element: <InvitePage /> },
           { path: '*', element: <NotFoundPage /> },
         ],
       },

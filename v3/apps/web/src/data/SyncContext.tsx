@@ -8,6 +8,13 @@ import { createFetchTransport } from '@/sync/transport';
 import { quickEntrySelection, type HlcClock, type TemplateState } from '@stb/core';
 import { createIntakeApi } from '@/intake/api';
 import { pickupIntake } from '@/intake/pickup';
+import { createFetchAccountApi } from '@/auth/account-api';
+import { isCloudAccount, syncMemberships } from '@/auth/cloud-account';
+import { loadAccount } from '@/auth/local-account';
+import { createSharingApi } from '@/sharing/api';
+import { confirmAcceptances } from '@/sharing/invitations';
+import { invitationSecretFor } from '@/sharing/flow';
+import { saveMembers } from './members-cache';
 import { useData } from './DataContext';
 
 export type SyncState = 'disabled' | 'syncing' | 'synced' | 'pending' | 'offline' | 'error';
@@ -67,6 +74,32 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     return n;
   }, [db]);
 
+  /** Geteilte Tagebücher übernehmen (neue DK-Wraps vom Server, Spec 09) — vor dem Sync, damit der Pull sie gleich holt. */
+  const membershipsBefore = useCallback(async () => {
+    const account: unknown = await loadAccount(db);
+    if (!isCloudAccount(account) || !session.isUnlocked()) return;
+    await syncMemberships(db, createFetchAccountApi(''), account, session.umk(), (id, key, epoch) => session.setDiaryKey(id, key, epoch)).catch(() => []);
+  }, [db, session]);
+
+  /** Nach dem Sync: angenommene Einladungen prüfen und bestätigen (Owner), Mitgliederlisten für „Erfasst von" merken. */
+  const sharingAfter = useCallback(async () => {
+    const account: unknown = await loadAccount(db);
+    if (!isCloudAccount(account)) return;
+    const api = createSharingApi('');
+    for (const m of await createFetchAccountApi('').listDiaries().catch(() => [])) {
+      if (m.role === 'owner') {
+        const { key, keyEpoch } = await session.keys.get(m.diaryId).catch(() => ({ key: null, keyEpoch: 0 }));
+        if (key) {
+          const outcomes = await confirmAcceptances(api, m.diaryId, key, { diaryId: m.diaryId, keyEpoch }, (id) => invitationSecretFor(records, id)).catch(() => []);
+          // bestätigte Einladungen sind erledigt — Geheimnis nicht länger aufbewahren
+          for (const o of outcomes) if (o.status === 'confirmed') await records.remove(o.invitationId).catch(() => undefined);
+        }
+      }
+      const members = await api.listMembers(m.diaryId).catch(() => null);
+      if (members) await saveMembers(db, m.diaryId, members);
+    }
+  }, [db, session, records]);
+
   /** Kurzbefehl-Items abholen (Spec 08, Schritt 4) — für Cloud-Tagebücher mit eingerichtetem Intake. */
   const pickupAll = useCallback(async () => {
     const hlc = hlcRef.current;
@@ -93,7 +126,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     const lastChange = () => db.records.orderBy('localUpdatedAt').last().then((r) => r?.localUpdatedAt ?? 0);
     const before = await lastChange();
     try {
+      await membershipsBefore();
       await engine.sync();
+      await sharingAfter();
       await pickupAll();
       const n = await countPending();
       setState(n > 0 ? 'pending' : 'synced');
@@ -106,7 +141,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       const after = await lastChange();
       if (after !== before) bumpRevision();
     }
-  }, [engine, db, countPending, bumpRevision, pickupAll]);
+  }, [engine, db, countPending, bumpRevision, pickupAll, membershipsBefore, sharingAfter]);
 
   const syncNow = useCallback(() => {
     running.current = run();

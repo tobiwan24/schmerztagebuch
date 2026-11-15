@@ -111,3 +111,21 @@ describe('Mitglieder verwalten', () => {
     expect((await pull('vic')).statusCode).toBe(403);
   });
 });
+
+describe('Mitgliederliste', () => {
+  it('liefert aktiven Mitgliedern Rolle, Benutzername und Identity-Key; Fremde und Entfernte bekommen 403', async () => {
+    db.prepare("INSERT INTO users (id, username, created_at) VALUES ('olga', 'olga-name', 0)").run();
+    db.prepare("INSERT INTO user_keys (user_id, kind, credential_id, blob) VALUES ('olga', 'identity-pub', '', 'pub-olga')").run();
+    const list = await app.inject({ method: 'GET', url: `/api/v1/diaries/${D}/members`, headers: as('vic') });
+    expect(list.statusCode).toBe(200);
+    expect(list.headers['cache-control']).toBe('no-store');
+    expect(list.json()).toEqual([
+      { principalId: 'olga', role: 'owner', username: 'olga-name', identityPub: 'pub-olga' },
+      { principalId: 'ed', role: 'editor', username: 'ed', identityPub: null },
+      { principalId: 'vic', role: 'viewer', username: 'vic', identityPub: null },
+    ]);
+    expect((await app.inject({ method: 'GET', url: `/api/v1/diaries/${D}/members`, headers: as('mallory') })).statusCode).toBe(403);
+    expect((await remove('olga', 'ed')).statusCode).toBe(204);
+    expect((await app.inject({ method: 'GET', url: `/api/v1/diaries/${D}/members`, headers: as('ed') })).statusCode).toBe(403);
+  });
+});
