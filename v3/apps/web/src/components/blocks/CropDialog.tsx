@@ -2,6 +2,8 @@
 // Ergebnis wird als eigenes Bild des Tagebuchs gespeichert; vorhandene Markierungen gehen dabei verloren (Hinweis).
 import { useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
+// Stile als Datei statt per eingefügtem <style> (CSP ohne `unsafe-inline`, QA-04).
+import 'react-easy-crop/react-easy-crop.css';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -42,6 +44,7 @@ export function CropDialog({
             onCropChange={setCrop}
             onZoomChange={setZoom}
             onCropComplete={(_a, pixels) => setArea(pixels)}
+            disableAutomaticStylesInjection
           />
         ) : null}
       </div>
