@@ -4,18 +4,49 @@
 
 ## Aktuell
 
-- **Meilenstein:** M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md). Umstellung macht nur der User.
-- **Auftrag (2026-11-15):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
+- **Meilenstein:** M14 „Nacharbeiten v2-Parität" aktuell (0/28 IDs, M14.0 Doku erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
+- **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** Nacharbeiten planen (M14, siehe unten). Gesamt-Akzeptanz 2026-11-16: 155/155 automatisiert, manuell 6/10.
-- **Erledigt in M13:** QA-02 QA-05 QA-10 QA-04 QA-07 QA-09 QA-01 QA-03
-- **Kleinigkeit:** Standardbild „Körper Rückseite" (aus v2 übernommen) hat 2 Pixel Artefakt am linken Rand (y≈470) — sichtbar im PDF.
-- **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail. Schnelleintrag: Einstellung pro Tagebuch (Vorlage/Blöcke) folgt mit Tagebuch-Einstellungen; bei mehreren Tagebüchern nimmt `/quick` das erste. Body-Map: v2-Pinsel/Punktgröße/Kommentare/eigene Bilder fehlen (v3-Wertform kennt nur Punkte mit Intensität) — bei Bedarf Spec 05 erweitern; Migration (M11) muss Pinselstriche abbilden.
+- **Nächste Aufgabe:** M14.2 (Editor-Domäne in core: `newBlock`, `validateTemplateDraft`, `moveBlock`, `removeBlock`, `duplicateTemplate`; BLK-22). Reihenfolge laut Plan: Editor zuerst; M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-049.
+- **Erledigt in M14:** (Doku M14.0)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
-- **Blocker:** keine. QA-08 erledigt (2026-11-16). **Achtung:** `npm run verify` überschreibt `reports/vitest.json` mit übersprungenem QA-08 → vor `npm run acceptance` gesamt `npm run verify:docker` (Docker Desktop muss laufen).
-- **Offen für M8:** Umnummerierung kollidierender Vorlagenversionen auf n+2 (A-016). Konto-Modus im Onboarding ✓ (M8.6c). Wetter-Ort im Onboarding → mit Tagebuch-Einstellungen (Ort-Suche).
+- **Blocker:** keine. **Achtung:** `npm run verify` überschreibt `reports/vitest.json` mit übersprungenem QA-08 → vor `npm run acceptance` gesamt `npm run verify:docker` (Docker Desktop muss laufen).
+- **Nacharbeiten (Formular, Vorlagen-Editor, Tagebuch-Einstellungen, Wetter-Anbindung, Umnummerierung n+2, Bild-Artefakt, Parität):** ersetzt durch M14. Body-Map (Pinsel, Größe, Kommentar, eigene Bilder) ist seit M8b erledigt.
+
+### Nächste Aufgaben (M14, je ein Commit)
+
+| # | Inhalt | IDs |
+|---|---|---|
+| M14.1 | Bild-Artefakt „Körper Rückseite" (Alpha x 0–1, y 469–476), Regressionstest, `fast-png` (DECISIONS) | BLK-40 |
+| M14.2 | Editor-Domäne in core (`template-editor.ts`) | BLK-22 |
+| M14.3 | Editor-Seite: Route, leere Vorlage, Name/Icon/Farbe, Duplizieren | BLK-23 |
+| M14.4a | Blöcke: Palette, Label/Pflicht/Rolle, Konfiguration slider/checkbox/text/textarea/date (Grundlage) | (BLK-24) |
+| M14.4b | Multiselect-Optionen, Body-Map-Standardbild | BLK-24 |
+| M14.5 | Blöcke umsortieren (Pointer + Tastatur), entfernen, Warnung bei Ungespeichertem | BLK-25 |
+| M14.6 | Options-Labels über die Eintragsversion; Version beim Bearbeiten heben | BLK-26 BLK-27 |
+| M14.7 | Umnummerierung n+2 (`planVersionRenumber`, Engine, Strukturdaten vor Einträgen) | SYN-17 SYN-18 |
+| M14.8 | Diary-Stempel, `updateDiarySettings`, `saveDiary`, Einstellungsseite | DM-14 UI-14 |
+| M14.9 | Tagebuch anlegen (local-only und Konto) | UI-15 |
+| M14.10 | Schnelleintrag je Tagebuch, Knöpfe auf Start, `/quick?diary=` | BLK-37 |
+| M14.11 | Geocoding-Client und CSP-Domain | BLK-38 |
+| M14.12 | Ort-UI in Einstellungen und Onboarding-Schritt | BLK-39 |
+| M14.13 | Wetter beim Speichern (Formular, Schnelleintrag, GPS-Schalter) | BLK-32 BLK-33 |
+| M14.14 | Nachtrag-Auslöser (Entsperren, `online`) | BLK-34 |
+| M14.15 | Tags: core-Regeln, `TagInput`, Chips im Detail | BLK-28 BLK-29 |
+| M14.16 | Anhänge im Repository (`remove`, Reihenfolge, Limits), Entry-ID beim Öffnen | BLK-30 |
+| M14.17 | Port der Textarea (Ereignisse, Foto/PDF) | BLK-31 |
+| M14.18 | Detail: Löschen und Duplizieren | BLK-35 BLK-36 |
+| M14.19 | `persist()` im Onboarding + Status; Install-Banner | UI-16 UI-19 |
+| M14.20 | Backup-Angebot im Update-Banner (local-only) | UI-17 |
+| M14.21 | Konfliktprotokoll + Start-Banner | UI-18 |
+| M14.22 | Abschluss: `verify:docker`, `test:e2e`, Gesamt-Akzeptanz, Browserprüfung (ADR-012), `GATE-G4.md` neu, PROGRESS | — |
+
+Hinweise: M14.7 direkt nach dem Editor; M14.8 ist Voraussetzung für Schnelleintrag, Ort und Wetter; M14.16 vor M14.17/M14.18.
+Risiken: CSP gleichzeitig in `csp.ts`, `nginx.conf` und Test (QA-04); `diarySchema` erweitern → Export-Schema neu erzeugen (`scripts/gen-export-schema.mjs`);
+E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `e2e/helpers.ts` `finishDiarySetup`; Editor und Einstellungen per `lazy` (Bundle-Budget QA-02).
 
 ## Meilensteine
+
 
 | M | Status | Notiz |
 |---|---|---|
@@ -34,6 +65,7 @@
 | M11 | erledigt | 15/15 IDs → Gate G3 (wartet auf User) |
 | M12 | erledigt | 9/9 IDs |
 | M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
+| M14 | aktuell | 0/28 IDs offen — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
 
@@ -167,3 +199,4 @@
 | 2026-11-15 | M13.5 | QA-03 | `lighthouse` 13.5.0 (DECISIONS) im E2E (`e2e/lighthouse.spec.ts`, nur Chromium): Playwright-Chromium mit Debug-Port, Lighthouse über `puppeteer-core`. Onboarding im Navigationsmodus, Start/Verlauf/Auswertung/Neuer Eintrag/Mehr im Snapshot-Modus nach dem Entsperren. Werte: Accessibility 100 überall, Best Practices 96 (Onboarding, nur `inspector-issues`) bzw. 100. **PWA-Ersatz (A-035):** Lighthouse ≥ 12 hat keine PWA-Kategorie → Installierbarkeits-Test (Manifest, Symbole 192/512/maskable als echte PNGs, SW kontrolliert, start_url offline). **Gefundener Mangel:** v3 hatte gar kein Web-App-Manifest und keine Symbole → `apps/web/public/manifest.webmanifest`, PNG-Symbole (`scripts/gen-icons.mjs`), Links in `index.html`. Hinweis: Chromium per CDP verbunden hat kein `baseURL` → `goto` im Test umgeleitet. |
 | 2026-11-15 | M13-Abschluss | — | QA-03 gegengeprüft (verify grün, Lighthouse-E2E 3/3). `npm run acceptance` gesamt: 154/155 automatisiert (QA-08 nur ohne Docker übersprungen), manuell 6/10. M13 abgeschlossen; Gate-G4-Material `GATE-G4.md` (Checkliste Spec 11 mit konkreten Schritten, Server-Variablen, Backup-Befehl, Rückweg). Loop angehalten. |
 | 2026-11-16 | M4-Nachtrag | QA-08 | Docker Desktop läuft: `npm run verify:docker` grün (compose up --build, Health über nginx mit Version 3.0.0…, Seite 200, compose down -v). Fix: `docker compose` asynchron (`execFile`), sonst blockiert der Build den Vitest-Worker → „Timeout calling onTaskUpdate". Gesamt-Akzeptanz 155/155 automatisiert. |
+| 2026-11-16 | M14.0 | — | Doku für M14 „Nacharbeiten v2-Parität": 28 neue Akzeptanz-IDs (DM-14, SYN-17/18, BLK-22…BLK-40, UI-14…UI-19) in Spec 02/04/05/10, Textentwürfe (Vorlagen-Editor, Tags, Löschen/Duplizieren, Textarea, Schnelleintrag, Wetter ohne Warten, Ortssuche, Umnummerierung), MILESTONES-Zeile M14 im selben Commit, A-036–A-049 in DECISIONS (A-016/A-021 verwiesen), Aufgabenliste M14.1–M14.22. Befunde: Body-Map war mit M8b schon erledigt (Notizen veraltet, entfernt); Wetter-Dienst war nirgends angeschlossen; Vorlagen-Editor-UI fehlte; Ursache: Ansichtstabelle von Spec 10 hatte keine IDs. GATE-G4 „Bekannte Lücken" auf M14 verwiesen. |

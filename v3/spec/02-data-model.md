@@ -12,6 +12,7 @@
 
 ```ts
 Diary        { id, name, subject: 'human' | 'animal' | 'other', icon?, color?, createdAt,
+               updatedAt?: string, hlc?: string /* ab M14; für Konfliktauflösung „ganzer Datensatz per HLC" */,
                settings: { weather: { enabled: boolean,
                                       location?: { lat: number, lon: number, label: string } /* fester Ort, gerundet */,
                                       gpsDefault: boolean /* GPS pro Eintrag standardmäßig an? Standard false */ },
@@ -49,6 +50,8 @@ Dashboard    { id, diaryId, name, order: string, widgets: Widget[] }     // v3.x
 SavedFilter  { id, diaryId, name, filter: FilterSpec }                    // siehe 06
 ConflictLog  { id, recordId, kind, losingPayload, resolvedAt, seenByUser: boolean }
 ```
+
+Tagebuch-Einstellungen ändert nur `owner` (09). Der feste Ort wird gerundet (1 Dezimalstelle) gespeichert; `label` ist der Anzeigename aus der Ortssuche oder ‚Aktueller Standort‘.
 
 `Role` = `outcome` · `symptom` · `medication` · `trigger` · `activity` · `sleep` · `mood` · `function` · `note`.
 Rollen sind optional und frei kombinierbar (mehrere Blöcke können dieselbe Rolle tragen).
@@ -139,3 +142,4 @@ Record-`kind`s in v3.0: `diary`, `template`, `templateVersion`, `entry`, `savedF
 | DM-11 | Multiselect-Werte referenzieren Options-IDs; Umbenennen einer Option ändert historische Werte nicht. | unit |
 | DM-12 | Ein Record mit `codec: 'plain'` und einer mit `codec: 'aes'` (Test-Codec) lassen sich in derselben DB nebeneinander lesen (Grundlage der späteren Migration). | integration |
 | DM-13 | Ein Push-Lauf sendet nur Chiffretext: der mitgeschnittene Request-Body enthält keine Klartext-Marker aus Testeinträgen. | integration |
+| DM-14 | `Diary` hat optionale `updatedAt`/`hlc`; Tagebücher ohne diese Felder bleiben gültig. `updateDiarySettings` setzt beide, rundet den festen Ort auf 1 Dezimalstelle und lehnt Schnelleintrag-Blöcke ab, die nicht zur gewählten Vorlage gehören; im Konflikt gewinnt der höhere HLC. | unit |

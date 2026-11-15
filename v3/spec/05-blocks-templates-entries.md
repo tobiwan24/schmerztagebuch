@@ -31,6 +31,10 @@
 - Archivieren statt Löschen, solange Einträge existieren; endgültiges Löschen nur mit Bestätigung + Anzahl betroffener Einträge.
 - Rollen pro Block im Editor optional setzbar. *(v3.x: Vorschlag per LLM, nie automatisch übernommen.)*
 
+## Vorlagen-Editor
+
+Route `/more/templates/new` und `/more/templates/:id` (nur `owner` bzw. local-only, A-002). Kopf: Name, Icon (feste Liste von Lucide-Icons wie v2 `TemplateStylePicker`), Farbe (8 Token-Farben). Blockliste: Palette mit allen 7 Typen (Standard-`config` aus `core/template-editor.ts`), je Block Label, Beschreibung, Pflicht, Rolle und die typabhängige Konfiguration aus der Tabelle oben; Umsortieren per Griff (Pointer) und Pfeiltasten (Fractional Index); Entfernen mit Hinweis „vorhandene Werte bleiben als archiviertes Feld sichtbar". Typwechsel wird nicht angeboten. Speichern über `updateTemplate`: Änderungen an Blöcken ergeben Version n+1, Name/Icon/Farbe nur `Template`. Ungespeicherte Änderungen warnen wie im Eintragsformular. „Duplizieren" legt eine Kopie mit neuen IDs an (Version 1, ohne Einträge). Beim Bearbeiten eines Eintrags einer älteren Version wird er auf die aktuelle Version gehoben, wenn kein Wert verloren geht; sonst bleibt seine Version (Hinweis).
+
 ## Einträge
 
 - Felder: alle Blöcke der aktuellen Vorlagenversion, Zeitangabe, Tags.
@@ -41,12 +45,16 @@
 - Speichern ist lokal und sofort (< 100 ms), Sync danach im Hintergrund.
 - Bearbeiten erhält `id`, erhöht `updatedAt` und HLC.
 - „Ungespeicherte Änderungen"-Warnung nur bei echten Änderungen (Vergleich mit Ausgangswert, Lehre aus ISS-029).
+- **Tags:** frei, Chips mit Vorschlägen aus dem Tagebuch (Regeln BLK-28).
+- **Löschen** im Detail mit Bestätigung (Tombstone, Anhang-Metadaten werden mitgelöscht; kein Rückgängig). **Duplizieren** öffnet das Formular vorbefüllt (Werte der aktuellen Version, Tags; ohne Anhänge und Wetter; Zeitpunkt jetzt).
+- **Textarea** (Port v2): Ereignis/Arztbesuch mit Titel (ohne eigene Uhrzeit → gehört zum Eintragstag), Foto/PDF als Anhang. Anhänge bleiben bis zum Speichern im Speicher; Bilder über 2 MB werden auf max. 2000 px (JPEG 0,85) verkleinert, Dateien bis 20 MB.
 
 ## Schnelleintrag
 
 - Pro Tagebuch konfigurierbar: Vorlage + Auswahl der Blöcke für den Schnelleintrag (Standard: alle `outcome`-Blöcke, sonst der erste Slider).
 - Erreichbar mit **einem Tipp** von der Startseite; Speichern mit höchstens **drei Tipps** insgesamt.
 - Weitere Felder können später im Eintrag ergänzt werden (`meta.source = 'quick'`).
+- Einstellung in Mehr → Tagebücher → Einstellungen (Vorlage, Blöcke per Häkchen; leer = Standardregel). Mehrere beschreibbare Tagebücher: Start zeigt je Tagebuch einen Knopf (`/quick?diary=<id>`); `/quick` ohne Parameter zeigt dann eine Auswahl. Wetter wie im Formular (fester Ort / `gpsDefault`).
 
 ## Wetter als Metadaten
 
@@ -55,12 +63,10 @@
   Open-Meteo-Geocoding-API oder einmalig per GPS). Im Eintragsformular gibt es einen Schalter „Aktuellen Standort
   verwenden" (Vorbelegung `settings.weather.gpsDefault`); nur dann wird die Geolocation-API aufgerufen.
 - Ohne festen Ort und ohne GPS wird kein Wetter abgefragt (Hinweis in den Tagebuch-Einstellungen).
-- Beim Speichern: Ort auf ~10 km runden (1 Dezimalstelle), Open-Meteo abfragen (Forecast-API `current` + `hourly`
-  für Luftdruckänderung 24 h). Speicherung in `meta.weather`/`meta.location` (mit `origin`), synchronisiert nur
-  verschlüsselt.
-- Offline oder Fehler: Eintrag wird ohne Wetter gespeichert und als `weatherPending` markiert; Nachtrag über die
-  Archiv-API anhand `occurredAt` + gerundetem Ort, sobald online.
-- Wird `occurredAt` nachträglich deutlich (> 1 h) geändert, wird das Wetter neu ermittelt.
+- Beim Speichern: Ort auf ~10 km runden (1 Dezimalstelle), Open-Meteo abfragen (Stundenwerte inkl. Luftdruckänderung 24 h, A-018). Speicherung in `meta.weather`/`meta.location` (mit `origin`), synchronisiert nur verschlüsselt.
+- Speichern wartet nie auf das Netz: Der Eintrag wird mit `weatherPending` und gerundetem Ort gespeichert, die Abfrage läuft danach im Hintergrund und aktualisiert den Eintrag (neuer HLC). Mit GPS-Schalter wird die Position (max. 10 s) im Hintergrund bestimmt (Rückfall A-009). Der Schalter erscheint nur bei neuen Einträgen in Tagebüchern mit aktivem Wetter; beim Bearbeiten bleibt der Ort, bei `occurredAt`-Änderung > 1 h wird am gespeicherten Ort neu ermittelt.
+- Offline oder Fehler: Eintrag bleibt als `weatherPending` markiert; Nachtrag über die Archiv-API anhand `occurredAt` + gerundetem Ort beim Entsperren und bei `online`.
+- **Ortssuche:** Open-Meteo-Geocoding (`geocoding-api.open-meteo.com/v1/search?name=…&count=5&language=de`), nur der eingegebene Ortsname verlässt das Gerät; Ort setzen schaltet Wetter an. Im Onboarding ist der Ort ein optionaler Schritt.
 - Wetterfelder stehen in Suche, Filter, Dashboards und Analysen wie numerische Blöcke zur Verfügung (06).
 - Die Abfrage geht direkt vom Gerät an Open-Meteo (kein Umweg über den eigenen Server).
 
@@ -94,3 +100,22 @@
 | BLK-20 | Body-Map: Punkt- und Pinsel-Markierungen mit Größe, Intensität und Kommentar werden gespeichert und nach dem Öffnen an derselben Stelle angezeigt; Entfernen nummeriert neu. | e2e |
 | BLK-21 | Body-Map: eigenes Bild hochladen und zuschneiden, als Standard des Feldes setzen → neuer Eintrag zeigt es vorausgewählt; das Bild steht auf dem Zweitgerät zur Verfügung. | e2e |
 | BLK-19 | Eintragsformular: Umschalter Zeitpunkt/Zeitraum; vergangener Zeitpunkt (Nachtragen) und Zeitraum mit und ohne Uhrzeiten werden gespeichert und in Verlauf/Detail korrekt angezeigt. | e2e |
+| BLK-22 | Editor-Domäne: `newBlock(type)` liefert für alle 7 Typen eine gültige Standard-`config` (BLK-01-Schemas); `validateTemplateDraft` meldet leeres Label, Slider `min ≥ max` oder `step ≤ 0`, Multiselect ohne Option und doppelte Optionslabels; `duplicateTemplate` vergibt neue IDs für Vorlage, Blöcke und Optionen, Name „… (Kopie)", Version 1, Order direkt nach dem Original. | unit |
+| BLK-23 | Vorlagen-Editor: leere Vorlage anlegen; Name, Icon und Farbe ändern erzeugt keine neue Version und erscheint in Vorlagenliste und Eintragsformular; „Duplizieren" erzeugt eine unabhängige Kopie (Änderung an der Kopie ändert das Original nicht). | e2e |
+| BLK-24 | Vorlagen-Editor: Blöcke aller 7 Typen hinzufügen und konfigurieren (Slider min/max/step/Einheit/Beschriftungen, Checkbox mit Notiz, Multiselect-Optionen + einfach/mehrfach, Text-Maximallänge, Textarea Ereignisse/Anhänge, Datum-Modus, Body-Map-Standardbild), Pflicht und Rolle setzen; Speichern erzeugt Version n+1 und ein neuer Eintrag zeigt die Felder mit dieser Konfiguration. | e2e |
+| BLK-25 | Vorlagen-Editor: Blöcke per Ziehen und per Tastatur umsortieren und entfernen → neue Version; ein älterer Eintrag zeigt den entfernten Wert als „Archiviertes Feld"; Verlassen mit ungespeicherten Änderungen warnt (nur nach echter Änderung); ein Typwechsel wird nicht angeboten. | e2e |
+| BLK-26 | Multiselect-Option in einer neuen Version umbenannt oder entfernt: alte Einträge zeigen in Detail, Verlauf und Auswertung das Label ihrer eigenen Version, nie eine nackte Options-ID. | integration |
+| BLK-27 | Bearbeiten eines Eintrags einer älteren Version hebt ihn auf die aktuelle Version, wenn dabei kein Wert verloren geht (alle Werte gültig in der aktuellen Version); sonst bleibt die Version des Eintrags und das Formular zeigt einen Hinweis. | unit |
+| BLK-28 | Tags: Normalisierung (trimmen, Leerraum zusammenfassen, max. 40 Zeichen, kein Komma), höchstens 20 Tags, Duplikate ohne Rücksicht auf Groß-/Kleinschreibung (erste Schreibweise bleibt); Vorschläge = vorhandene Tags des Tagebuchs mit passendem Präfix, nach Häufigkeit, max. 8. | unit |
+| BLK-29 | Eintragsformular: Tag per Enter, Komma und Vorschlag hinzufügen, per × entfernen; gespeichert in `tags`, im Detail als Chips sichtbar, Verlaufssuche findet den Eintrag über den Tag; Tag-Änderung zählt als ungespeicherte Änderung. | e2e |
+| BLK-30 | Anhänge eines Eintrags: Speichern schreibt Inhalte (Upload-Warteschlange) und Metadaten vor dem Eintrag; Entfernen beim Bearbeiten löscht die Metadaten (Tombstone, synchronisiert) und den lokalen Inhalt; Dateien über 20 MB und andere Typen als Bild/PDF werden abgelehnt; Verwerfen des Formulars hinterlässt nichts in `records`, `blobs` oder `blob_outbox`. | integration |
+| BLK-31 | Textarea (Port v2 `TextAreaBlock`): Ereignis und Arztbesuch mit Titel hinzufügen und entfernen, Foto und PDF anhängen (Bild-Vorschau im Formular) und entfernen; nach dem Speichern zeigt das Detail Ereignisse mit Kategorie und die Anhänge (öffnbar); `allowEvents`/`allowAttachments = false` blendet die jeweiligen Knöpfe aus. | e2e |
+| BLK-32 | Wetter-Planung beim Speichern: `initialWeatherMeta` setzt bei festem Ort sofort `weatherPending` + gerundeten Ort (`origin: 'diary'`), mit GPS-Schalter erst nach Positionsbestimmung (`origin: 'gps'`, Rückfall A-009); beim Bearbeiten nur bei `occurredAt`-Änderung > 1 h eine Neuermittlung am gespeicherten Ort, GPS wird beim Bearbeiten nie abgefragt. | unit |
+| BLK-33 | Eintragsformular und Schnelleintrag mit Wetter: Tagebuch mit festem Ort → Eintrag bekommt `meta.weather` (Open-Meteo per Route gemockt) mit `origin: 'diary'`; Schalter „Aktuellen Standort verwenden" (vorbelegt mit `gpsDefault`) → `origin: 'gps'` mit gerundeter Position; Wetter aus → kein Schalter, keine Geolocation, kein Request; Speichern navigiert, bevor Open-Meteo antwortet. | e2e |
+| BLK-34 | Nachtrag: beim Entsperren und beim Ereignis `online` werden Einträge mit `weatherPending` aller Tagebücher nacheinander nachgetragen (ein Lauf zur Zeit), danach ohne `weatherPending` und mit neuem HLC; fehlgeschlagene bleiben markiert. | integration |
+| BLK-35 | Eintrag-Detail „Löschen": Bestätigungsdialog; Bestätigen entfernt den Eintrag aus Detail, Start und Verlauf (Tombstone mit neuem HLC, zugehörige Anhang-Metadaten ebenfalls gelöscht); Abbrechen ändert nichts. | e2e |
+| BLK-36 | Eintrag-Detail „Duplizieren": öffnet das Formular vorbefüllt mit Vorlage, Werten (abgebildet auf die aktuelle Version, ohne archivierte Felder und ohne Anhänge) und Tags, Zeitpunkt = jetzt; Speichern erzeugt einen neuen Eintrag mit neuer ID, das Original bleibt unverändert. | e2e |
+| BLK-37 | Schnelleintrag pro Tagebuch: in den Tagebuch-Einstellungen gewählte Vorlage + Blöcke erscheinen in `/quick?diary=<id>`; bei mehreren beschreibbaren Tagebüchern zeigt der Start je Tagebuch einen Schnelleintrag-Knopf (Speichern weiter in ≤ 3 Tipps), `/quick` ohne Parameter zeigt dann eine Auswahl; ohne Einstellung gilt die Standardregel. | e2e |
+| BLK-38 | Ortssuche: Geocoding-Request erst ab 2 Zeichen (`count=5`, `language=de`), Treffer als „Ort, Region, Land"; gewählter Ort wird auf 1 Dezimalstelle gerundet gespeichert; „Aktuellen Standort übernehmen" rundet ebenso; Fehler/offline → Hinweis, nichts gespeichert. | unit |
+| BLK-39 | Wetter-Ort setzen im Onboarding (optionaler, überspringbarer Schritt) und in den Tagebuch-Einstellungen (Ortssuche mit gemockter Geocoding-API oder Standort) → `settings.weather.location` gesetzt, Wetter an; Ort entfernen → Wetter aus und Hinweis „Ohne Ort kein Wetter". | e2e |
+| BLK-40 | Standardbilder „Körper Vorderseite/Rückseite" haben in den äußeren 4 Pixelspalten links keine sichtbaren Pixel (Alpha = 0) — Regression für das Artefakt bei y≈470. | unit |

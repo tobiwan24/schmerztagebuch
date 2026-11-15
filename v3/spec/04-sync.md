@@ -49,6 +49,8 @@ Der Server kann nicht vergleichen (Chiffretext). Bei `conflict` entschlüsselt d
 
 Das Ergebnis wird mit `baseRev = server.rev` erneut gepusht.
 
+**Kollidierende Vorlagenversion:** Lehnt der Server `templateVersion` n ab und ist der Inhalt anders, übernimmt der Client die Serverversion als n, legt seine eigene als nächste freie Nummer (max. aller bekannten Versionen + 1, typisch n+2) neu an, schreibt alle Einträge dieser Vorlage mit Version n **und ausstehender Op** auf die neue Nummer um (neuer HLC) und setzt `currentVersion` entsprechend. Alles in einer Dexie-Transaktion. Ein Push-Lauf schickt Einträge erst, nachdem die Strukturdaten (`diary`, `template`, `templateVersion`) ohne offene Kollision durch sind.
+
 Für den 3-Wege-Merge hält der Client die zuletzt synchronisierte Version jedes Records (`base`) lokal vor
 (über den PayloadCodec, 02). Verschlüsselung mit dem DK erfolgt in der Sync-Engine unmittelbar vor dem Push,
 Entschlüsselung unmittelbar nach dem Pull.
@@ -84,3 +86,5 @@ Rolle (`viewer` darf nicht pushen).
 | SYN-14 | Sync-Status (synchronisiert / ausstehend n / Fehler) ist im UI sichtbar und korrekt. | e2e |
 | SYN-15 | App-Shell lädt offline; nach Deploy einer neuen Version erscheint der Update-Hinweis, Neustart aktiviert sie. | e2e |
 | SYN-16 | Gelöschte Records (Tombstones) werden synchronisiert und auf dem Zweitgerät ausgeblendet. | integration |
+| SYN-17 | `planVersionRenumber`: lokale Vorlagenversion, die mit einer Serverversion gleicher Nummer kollidiert, erhält die nächste freie Nummer (max. aller bekannten Versionen + 1); umgeschrieben werden genau die Einträge dieser Vorlage mit dieser Version und ausstehender Outbox-Op (neuer HLC, Werte unverändert); `currentVersion` zeigt auf die neue Nummer, wenn die lokale Version die aktuelle war. | unit |
+| SYN-18 | Zwei Geräte legen offline Version n+1 derselben Vorlage an und tragen damit ein; nach dem Sync beider Geräte existieren n+1 (erstes Gerät) und n+2 (zweites Gerät), keine Op bleibt mit `templateVersion-collision` stehen, beide Geräte haben denselben Stand und jeder Eintrag ist gegen seine Version gültig. | integration |

@@ -12,9 +12,8 @@ Abhaken in [PROGRESS.md](PROGRESS.md) → „G4 — Ablösung" und „Ablösungs
     Vor Schritt 4 einmal mit laufendem Docker Desktop: `npm run verify:docker`.
 - Manuell offen: CRY-17, MIG-16, VOI-11, SHR-12, UI-13.
 - Stellvertretend durch den Loop geprüft (ADR-012): G3 (UI-12, ANA-16, EXP-13) mit synthetischen Daten.
-- Bekannte Lücken (siehe PROGRESS „Nacharbeiten"): Tags-Eingabe, Textarea-Anhänge, Wetter-/GPS-Schalter,
-  Body-Map ohne v2-Pinsel/eigene Bilder, Schnelleintrag-Einstellung pro Tagebuch. Vor der Umstellung entscheiden,
-  ob eine davon die Ablösung blockiert.
+- Bekannte Lücken (Vorlagen-Editor, Tags, Textarea-Anhänge, Wetter-/GPS-Schalter, Tagebuch-Einstellungen u. a.)
+  werden in M14 geschlossen (siehe PROGRESS „Nächste Aufgaben"); dieser Abschnitt wird am Ende von M14 neu geschrieben.
 
 ## Checkliste (Spec 11)
 
