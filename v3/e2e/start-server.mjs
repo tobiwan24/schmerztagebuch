@@ -1,5 +1,5 @@
 // Startet den echten Server für E2E-Tests (frische SQLite-DB pro Lauf). RP-ID localhost, Origin = Vite-Preview.
-import { rmSync, mkdirSync } from 'node:fs';
+import { rmSync, mkdirSync, createWriteStream } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -19,5 +19,5 @@ const server = await startServer({
   // Ein E2E-Lauf meldet viele Konten und Zweitgeräte von 127.0.0.1 an — Limits hier hoch, Standardwerte im Server-Test.
   AUTH_RATE_LIMIT_PER_MIN: '10000',
   RECOVERY_RATE_LIMIT_PER_15MIN: '10000',
-});
+}, { logStream: createWriteStream(resolve(dataDir, 'server.log')) }); // QA-07: wird nach dem Lauf geprüft
 console.log(`E2E-Server läuft auf ${server.url}`);

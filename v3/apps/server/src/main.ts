@@ -1,5 +1,6 @@
 // Einstiegspunkt: Konfiguration prüfen, Datenbank öffnen, HTTP-Server starten.
 import { mkdirSync } from 'node:fs';
+import type { Writable } from 'node:stream';
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { loadConfig, ConfigError } from './config.js';
@@ -14,7 +15,7 @@ export interface RunningServer {
 }
 
 /** Startet den Server. Ungültige Konfiguration → `ConfigError` mit allen betroffenen Variablen. */
-export async function startServer(env: Record<string, string | undefined>, opts: { cwd?: string } = {}): Promise<RunningServer> {
+export async function startServer(env: Record<string, string | undefined>, opts: { cwd?: string; logStream?: Writable } = {}): Promise<RunningServer> {
   const config = loadConfig(env);
   const cwd = opts.cwd ?? process.cwd();
   const databasePath = resolve(cwd, config.databasePath);
@@ -24,7 +25,8 @@ export async function startServer(env: Record<string, string | undefined>, opts:
 
   const db = openDatabase(databasePath);
   migrate(db);
-  const app = buildApp({ config: { ...config, databasePath, blobDir }, db, auth: sessionAuth(db, () => Date.now()) });
+  // Strukturierte Logs (JSON, ohne Bodies und Header, Spec 12) — Standard: stdout (Docker sammelt sie ein).
+  const app = buildApp({ config: { ...config, databasePath, blobDir }, db, auth: sessionAuth(db, () => Date.now()), logStream: opts.logStream ?? process.stdout });
   try {
     await app.listen({ port: config.port, host: config.host });
   } catch (e) {
