@@ -4,11 +4,11 @@
 
 ## Aktuell
 
-- **Meilenstein:** M13 — Härtung, Betrieb, Ablösung (M12 abgeschlossen, 9/9). Danach Gate G4 (Umstellung macht nur der User).
+- **Meilenstein:** M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md). Umstellung macht nur der User.
 - **Auftrag (2026-11-15):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** Gesamt-Akzeptanz (`npm run acceptance` ohne `--milestone`) auswerten, M13 abschließen (QA-08 wartet auf
-  Docker), Gate-G4-Material (Checkliste Spec 11 „Ablösung") vorbereiten. Deployment-Umstellung macht nur der User (UI-13).
+- **Nächste Aufgabe:** keine für den Loop. Wartet auf User: Gate G4 (UI-13, MIG-16, VOI-11, SHR-12, CRY-17) und Docker
+  Desktop für QA-08 (`npm run verify:docker`). Gesamt-Akzeptanz 2026-11-15: 154 erfüllt, 0 fehlgeschlagen, 1 fehlend (QA-08), manuell 6/10.
 - **Erledigt in M13:** QA-02 QA-05 QA-10 QA-04 QA-07 QA-09 QA-01 QA-03
 - **Kleinigkeit:** Standardbild „Körper Rückseite" (aus v2 übernommen) hat 2 Pixel Artefakt am linken Rand (y≈470) — sichtbar im PDF.
 - **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail. Schnelleintrag: Einstellung pro Tagebuch (Vorlage/Blöcke) folgt mit Tagebuch-Einstellungen; bei mehreren Tagebüchern nimmt `/quick` das erste. Body-Map: v2-Pinsel/Punktgröße/Kommentare/eigene Bilder fehlen (v3-Wertform kennt nur Punkte mit Intensität) — bei Bedarf Spec 05 erweitern; Migration (M11) muss Pinselstriche abbilden.
@@ -34,7 +34,7 @@
 | M10 | erledigt | 12/12 IDs |
 | M11 | erledigt | 15/15 IDs → Gate G3 (wartet auf User) |
 | M12 | erledigt | 9/9 IDs |
-| M13 | offen | danach Gate G4 |
+| M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
 
@@ -166,3 +166,4 @@
 | 2026-11-15 | M13.3 | QA-07 QA-09 | Server schreibt jetzt strukturierte Logs (vorher in Produktion gar keine): `startServer` mit Log-Ziel, Standard stdout; Fastify-Logger ohne Bodies/Header. E2E-Server schreibt `reports/e2e-server/server.log`; Scan nach dem Lauf (`server-log.scan.ts`): > 50 Zeilen, Sync-Anfragen enthalten, keine Klartext-Marker, keine Body-/Header-/Chiffretext-Felder, keine Session-Cookies oder Bearer-Token. `apps/server/src/backup.ts`: `createBackup` (`VACUUM INTO` + Blob-Kopie, Integritätsprüfung des Snapshots, Ziel darf nicht existieren), `restoreBackup`, CLI `node dist/backup.js <Ziel>`. Blob-Pfade relativ zu `BLOB_DIR` gespeichert (Einspielen an anderem Ort). Test: Snapshot enthält genau den Stand zum Zeitpunkt, eingespielter Server liefert Records + Blob und arbeitet weiter. |
 | 2026-11-15 | M13.4 | QA-01 | `@vitest/coverage-v8` 3.2.7 (DECISIONS); Schwellen je Paket in `vitest.config.ts` (`COVERAGE_THRESHOLDS`: core/crypto/sync-protocol 90 %, analysis/export 85 %, Zeilen + Zweige), `npm test` = `vitest run --coverage` → `verify` scheitert bei Unterschreitung (geprüft mit absichtlich 99 %). `all: false` (Windows: Doppel-Einträge mit anderer Laufwerks-Schreibweise). Zweigabdeckung core 83 → 90,7 %, export 81 → ≥ 85 % durch Randfall-Tests (`transform.edge.test.ts`, `export.edge.test.ts`). **Gefundener Fehler:** v2-Eintrag mit unlesbarem Zeitstempel ließ die ganze Transformation abstürzen → jetzt früh in den Bericht. |
 | 2026-11-15 | M13.5 | QA-03 | `lighthouse` 13.5.0 (DECISIONS) im E2E (`e2e/lighthouse.spec.ts`, nur Chromium): Playwright-Chromium mit Debug-Port, Lighthouse über `puppeteer-core`. Onboarding im Navigationsmodus, Start/Verlauf/Auswertung/Neuer Eintrag/Mehr im Snapshot-Modus nach dem Entsperren. Werte: Accessibility 100 überall, Best Practices 96 (Onboarding, nur `inspector-issues`) bzw. 100. **PWA-Ersatz (A-035):** Lighthouse ≥ 12 hat keine PWA-Kategorie → Installierbarkeits-Test (Manifest, Symbole 192/512/maskable als echte PNGs, SW kontrolliert, start_url offline). **Gefundener Mangel:** v3 hatte gar kein Web-App-Manifest und keine Symbole → `apps/web/public/manifest.webmanifest`, PNG-Symbole (`scripts/gen-icons.mjs`), Links in `index.html`. Hinweis: Chromium per CDP verbunden hat kein `baseURL` → `goto` im Test umgeleitet. |
+| 2026-11-15 | M13-Abschluss | — | QA-03 gegengeprüft (verify grün, Lighthouse-E2E 3/3). `npm run acceptance` gesamt: 154/155 automatisiert (QA-08 nur ohne Docker übersprungen), manuell 6/10. M13 abgeschlossen; Gate-G4-Material `GATE-G4.md` (Checkliste Spec 11 mit konkreten Schritten, Server-Variablen, Backup-Befehl, Rückweg). Loop angehalten. |
