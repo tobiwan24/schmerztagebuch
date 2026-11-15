@@ -1,5 +1,5 @@
 // Erinnerungen: Einstellungen lesen/speichern und — solange die App offen ist — planen (Spec 10).
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/auth/AuthContext';
 import { showViaServiceWorker, startReminders, type ReminderSettings } from '@/reminders/reminders';
 import { loadLastShown, loadReminder, saveLastShown, saveReminder } from './reminder-state';
@@ -8,14 +8,19 @@ import { useQuery } from './useQuery';
 export function useReminderSettings() {
   const { db } = useAuth();
   const query = useQuery(() => loadReminder(db), [db]);
+  // Speichern nacheinander (schnelle Folgeänderungen dürfen sich nicht überholen); die Berechtigungsabfrage wartet
+  // auf den Nutzer und darf das Speichern daher nicht aufhalten.
+  const chain = useRef<Promise<void>>(Promise.resolve());
   const save = useCallback(
-    async (s: ReminderSettings) => {
-      if (s.enabled && typeof Notification !== 'undefined' && Notification.permission === 'default') await Notification.requestPermission();
-      await saveReminder(db, s);
-      query.retry();
-      window.dispatchEvent(new Event('stb-reminder-changed'));
+    (s: ReminderSettings) => {
+      chain.current = chain.current.then(async () => {
+        await saveReminder(db, s);
+        window.dispatchEvent(new Event('stb-reminder-changed'));
+      });
+      if (s.enabled && typeof Notification !== 'undefined' && Notification.permission === 'default') void Notification.requestPermission().catch(() => undefined);
+      return chain.current;
     },
-    [db, query],
+    [db],
   );
   const permission = typeof Notification === 'undefined' ? 'unsupported' : Notification.permission;
   return { state: query, save, permission };

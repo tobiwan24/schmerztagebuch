@@ -14,8 +14,9 @@ const t = de.reminders;
 export function ReminderCard() {
   const { state, save, permission } = useReminderSettings();
   const [s, setS] = useState<ReminderSettings | null>(null);
+  // Nur einmal aus der DB übernehmen; danach führt die Karte den Stand (Speichern läuft im Hintergrund).
   useEffect(() => {
-    if (state.status === 'ok') setS(state.data);
+    if (state.status === 'ok') setS((cur) => cur ?? state.data);
   }, [state]);
   if (!s) return null;
   const update = (next: ReminderSettings) => {
