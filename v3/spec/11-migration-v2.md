@@ -84,3 +84,4 @@ Checkliste, die der User vor der Umstellung abhakt (in `PROGRESS.md`):
 | MIG-14 | „v2-Daten entfernen" ist erst nach erfolgreichem Prüfschritt möglich und verlangt Bestätigung. | e2e |
 | MIG-15 | End-to-End: v2-Fixture-DB im Browser → Assistent → Einträge in Verlauf sichtbar, PDF-Export enthält migrierte Einträge. | e2e |
 | MIG-16 | Migration der echten Daten auf dem Hauptgerät, Stichprobe durch den User bestätigt. | manual |
+| MIG-17 | v2 `hideLabelInDiary` wird zu `hideLabel: true` am Block der passenden Vorlagenversion. | unit |

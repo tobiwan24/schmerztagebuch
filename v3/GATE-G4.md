@@ -13,7 +13,9 @@ Abhaken in [PROGRESS.md](PROGRESS.md) → „G4 — Ablösung" und „Ablösungs
 - Manuell offen: CRY-17, MIG-16, VOI-11, SHR-12, UI-13.
 - Stellvertretend durch den Loop geprüft (ADR-012): G3 (UI-12, ANA-16, EXP-13) mit synthetischen Daten.
 - Bekannte Lücken (Vorlagen-Editor, Tags, Textarea-Anhänge, Wetter-/GPS-Schalter, Tagebuch-Einstellungen u. a.)
-  werden in M14 geschlossen (siehe PROGRESS „Nächste Aufgaben"); dieser Abschnitt wird am Ende von M14 neu geschrieben.
+  werden in M14 geschlossen (siehe PROGRESS „Nächste Aufgaben"). Der Teil-Meilenstein M14b schließt die übrigen v2-Paritätslücken
+  (Formular-Parität, Verlauf-Filter/Sortierung, PDF-Layouts, Auto-Sicherung, Sicherheit/Geräte, Updates, Gefahr-Zone,
+  Tagebuch-Umschalter). Dieser Abschnitt wird am Ende von M14b neu geschrieben.
 
 ## Checkliste (Spec 11)
 

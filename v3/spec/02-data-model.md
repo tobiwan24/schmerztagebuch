@@ -24,7 +24,7 @@ Template     { id, diaryId, name, icon?, color?, order: string /* Fractional Ind
 TemplateVersion { templateId, version: number /* 1..n */, blocks: BlockDef[], createdAt }
                // unveränderlich; jede Strukturänderung erzeugt eine neue Version
 
-BlockDef     { id, type: BlockType, label, description?, required: boolean, role?: Role, order: string,
+BlockDef     { id, type: BlockType, label, description?, required: boolean, role?: Role, order: string, hideLabel?: boolean /* Label im Formular ausblenden; Struktur, neue Version */,
                config: BlockConfig /* typabhängig, siehe 05 */ }
 
 Entry        { id, diaryId, templateId, templateVersion: number,

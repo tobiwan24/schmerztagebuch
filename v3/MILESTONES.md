@@ -23,6 +23,7 @@ Jede Spec-ID steht in **genau einem** Meilenstein (`npm run acceptance -- --stru
 | M12 | Teilen- und Kurzbefehl-UI, Erinnerungen, Diagnose | SHR-01 SHR-02 SHR-09 SHR-10 VOI-02 VOI-09 UI-02 UI-08 UI-09 | — |
 | M13 | Härtung, Betrieb, Ablösung | QA-01 QA-02 QA-03 QA-04 QA-05 QA-07 QA-09 QA-10 | **G4 Ablösung** |
 | M14 | Nacharbeiten v2-Parität: Vorlagen-Editor, Formular, Tagebuch-Einstellungen, Wetter, Parität | BLK-22 BLK-23 BLK-24 BLK-25 BLK-26 BLK-27 SYN-17 SYN-18 DM-14 UI-14 UI-15 BLK-37 BLK-38 BLK-39 BLK-32 BLK-33 BLK-34 BLK-28 BLK-29 BLK-30 BLK-31 BLK-35 BLK-36 BLK-40 UI-16 UI-17 UI-18 UI-19 | — |
+| M14b | Teil-Meilenstein v2-Parität, Rest: Formular-Parität, Verlauf/Auswertung/PDF, Auto-Sicherung, Sicherheit/Geräte, Einstellungen, Tagebuch-Umschalter | BLK-41 BLK-42 BLK-43 BLK-44 ANA-17 ANA-18 ANA-19 ANA-20 ANA-21 EXP-14 EXP-15 EXP-16 EXP-17 CRY-18 CRY-19 CRY-20 UI-20 UI-21 UI-22 UI-23 UI-24 MIG-17 | — |
 
 ## Manuelle Kriterien (Abhaken in PROGRESS.md)
 

@@ -4,44 +4,67 @@
 
 ## Aktuell
 
-- **Meilenstein:** M14 „Nacharbeiten v2-Parität" aktuell (0/28 IDs, M14.0 Doku erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
+- **Meilenstein:** M14 „Nacharbeiten v2-Parität" aktuell (0/28 IDs, M14.0 Doku erledigt); danach/parallel der Teil-Meilenstein M14b „v2-Parität, Rest" (0/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
 - **Nächste Aufgabe:** M14.2 (Editor-Domäne in core: `newBlock`, `validateTemplateDraft`, `moveBlock`, `removeBlock`, `duplicateTemplate`; BLK-22). Reihenfolge laut Plan: Editor zuerst; M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-049.
 - **Erledigt in M14:** (Doku M14.0)
+- **Erledigt in M14b:** (Doku M14b.0)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. **Achtung:** `npm run verify` überschreibt `reports/vitest.json` mit übersprungenem QA-08 → vor `npm run acceptance` gesamt `npm run verify:docker` (Docker Desktop muss laufen).
 - **Nacharbeiten (Formular, Vorlagen-Editor, Tagebuch-Einstellungen, Wetter-Anbindung, Umnummerierung n+2, Bild-Artefakt, Parität):** ersetzt durch M14. Body-Map (Pinsel, Größe, Kommentar, eigene Bilder) ist seit M8b erledigt.
 
-### Nächste Aufgaben (M14, je ein Commit)
+### Nächste Aufgaben (M14 und M14b, je ein Commit)
 
 | # | Inhalt | IDs |
 |---|---|---|
 | M14.1 | Bild-Artefakt „Körper Rückseite" (Alpha x 0–1, y 469–476), Regressionstest, `fast-png` (DECISIONS) | BLK-40 |
 | M14.2 | Editor-Domäne in core (`template-editor.ts`) | BLK-22 |
 | M14.3 | Editor-Seite: Route, leere Vorlage, Name/Icon/Farbe, Duplizieren | BLK-23 |
+| M14.15d | Vorlagen-Kacheln und Begrüßung auf Start — M14b | BLK-44 |
 | M14.4a | Blöcke: Palette, Label/Pflicht/Rolle, Konfiguration slider/checkbox/text/textarea/date (Grundlage) | (BLK-24) |
 | M14.4b | Multiselect-Optionen, Body-Map-Standardbild | BLK-24 |
+| M14.4c | `hideLabel` in Schema, Editor (je Block / alle) und Export-Schema — M14b | BLK-43 |
+| M14.4d | Migration `hideLabelInDiary` — M14b | MIG-17 |
+| M14.15b | Formular-Parität: infoText, Optionsfarben, `hideLabel`-Darstellung — M14b | BLK-41 |
 | M14.5 | Blöcke umsortieren (Pointer + Tastatur), entfernen, Warnung bei Ungespeichertem | BLK-25 |
 | M14.6 | Options-Labels über die Eintragsversion; Version beim Bearbeiten heben | BLK-26 BLK-27 |
 | M14.7 | Umnummerierung n+2 (`planVersionRenumber`, Engine, Strukturdaten vor Einträgen) | SYN-17 SYN-18 |
 | M14.8 | Diary-Stempel, `updateDiarySettings`, `saveDiary`, Einstellungsseite | DM-14 UI-14 |
 | M14.9 | Tagebuch anlegen (local-only und Konto) | UI-15 |
+| M14.23 | Tagebuch-Umschalter (AppShell, gemerkt in `device`) — M14b | UI-24 |
 | M14.10 | Schnelleintrag je Tagebuch, Knöpfe auf Start, `/quick?diary=` | BLK-37 |
 | M14.11 | Geocoding-Client und CSP-Domain | BLK-38 |
 | M14.12 | Ort-UI in Einstellungen und Onboarding-Schritt | BLK-39 |
 | M14.13 | Wetter beim Speichern (Formular, Schnelleintrag, GPS-Schalter) | BLK-32 BLK-33 |
 | M14.14 | Nachtrag-Auslöser (Entsperren, `online`) | BLK-34 |
 | M14.15 | Tags: core-Regeln, `TagInput`, Chips im Detail | BLK-28 BLK-29 |
+| M14.15c | Vorlagen per Wischen wechseln — M14b | BLK-42 |
 | M14.16 | Anhänge im Repository (`remove`, Reihenfolge, Limits), Entry-ID beim Öffnen | BLK-30 |
+| M14.24 | Filter-/Sortier-Logik in analysis (Working-Set um Anhang-Arten erweitern) — M14b | ANA-19 |
+| M14.25 | Verlauf: Filter-UI (Zeitraum frei, Vorlagen, Inhalt) — M14b | ANA-18 |
+| M14.26 | Verlauf: Sortierung und seitenweises Laden — M14b | ANA-20 |
 | M14.17 | Port der Textarea (Ereignisse, Foto/PDF) | BLK-31 |
 | M14.18 | Detail: Löschen und Duplizieren | BLK-35 BLK-36 |
-| M14.19 | `persist()` im Onboarding + Status; Install-Banner | UI-16 UI-19 |
+| M14.19 | `persist()` im Onboarding + Status; Install-Banner inkl. Safari-Hinweis (iOS, anderer Browser) | UI-16 UI-19 |
 | M14.20 | Backup-Angebot im Update-Banner (local-only) | UI-17 |
 | M14.21 | Konfliktprotokoll + Start-Banner | UI-18 |
-| M14.22 | Abschluss: `verify:docker`, `test:e2e`, Gesamt-Akzeptanz, Browserprüfung (ADR-012), `GATE-G4.md` neu, PROGRESS | — |
+| M14.27 | Auswertung: Tag und 6 Monate — M14b | ANA-17 |
+| M14.28 | Diagramm als Eintrag (nach M14.16, M14.17) — M14b | ANA-21 |
+| M14.29 | PDF-Layout Karten — M14b | EXP-14 |
+| M14.30 | PDF-Layout Dashboard + Auswahl der Multiselects (nach M14.29) — M14b | EXP-15 |
+| M14.31 | Auto-Sicherung, Kern (Schlüssel, Format, Ablage, Auslöser) — M14b | EXP-17 |
+| M14.32 | Hinweis „Backup wiederherstellen" bei leerer DB (nach M14.31) — M14b | EXP-16 |
+| M14.33 | Sicherheit: Passwort ändern, Passkey hinzufügen/entfernen, Backup-Code erneuern (ggf. zwei Commits: local / Konto) — M14b | CRY-18 |
+| M14.34 | Geräteliste, Abmelden, Sperren (Server-Endpunkt `GET/DELETE /api/v1/devices` falls nötig → DECISIONS A-022) (nach M14.33) — M14b | CRY-19 |
+| M14.35 | Sperre: Dauer, Widerruf, Inaktivität — M14b | CRY-20 |
+| M14.36 | Konto: „Jetzt synchronisieren", Wechsel zurück auf local-only — M14b | UI-20 |
+| M14.37 | Gefahr-Zone (nach M14.31) — M14b | UI-21 |
+| M14.38 | Update-Einstellung und „Nach Updates suchen" (nach M14.20) — M14b | UI-22 |
+| M14.39 | Start-Banner „Mit Konto synchronisieren" — M14b | UI-23 |
+| M14.22 | Abschluss M14 + M14b: `verify:docker` (Server berührt), `test:e2e`, Gesamt-Akzeptanz, Browserprüfung (ADR-012), `GATE-G4.md` neu, PROGRESS | — |
 
-Hinweise: M14.7 direkt nach dem Editor; M14.8 ist Voraussetzung für Schnelleintrag, Ort und Wetter; M14.16 vor M14.17/M14.18.
+Hinweise: M14.7 direkt nach dem Editor; M14.8 ist Voraussetzung für Schnelleintrag, Ort und Wetter; M14.16 vor M14.17/M14.18. M14b-Aufgaben sind mit „— M14b" gekennzeichnet; Reihenfolge der Tabelle gilt, M14.22 (Abschluss) zuletzt. Wird der Server berührt (CRY-18/19), am Ende `verify:docker` (QA-08).
 Risiken: CSP gleichzeitig in `csp.ts`, `nginx.conf` und Test (QA-04); `diarySchema` erweitern → Export-Schema neu erzeugen (`scripts/gen-export-schema.mjs`);
 E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `e2e/helpers.ts` `finishDiarySetup`; Editor und Einstellungen per `lazy` (Bundle-Budget QA-02).
 
@@ -66,6 +89,7 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M12 | erledigt | 9/9 IDs |
 | M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
 | M14 | aktuell | 0/28 IDs offen — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
+| M14b | offen | 0/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
 
@@ -200,3 +224,4 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | 2026-11-15 | M13-Abschluss | — | QA-03 gegengeprüft (verify grün, Lighthouse-E2E 3/3). `npm run acceptance` gesamt: 154/155 automatisiert (QA-08 nur ohne Docker übersprungen), manuell 6/10. M13 abgeschlossen; Gate-G4-Material `GATE-G4.md` (Checkliste Spec 11 mit konkreten Schritten, Server-Variablen, Backup-Befehl, Rückweg). Loop angehalten. |
 | 2026-11-16 | M4-Nachtrag | QA-08 | Docker Desktop läuft: `npm run verify:docker` grün (compose up --build, Health über nginx mit Version 3.0.0…, Seite 200, compose down -v). Fix: `docker compose` asynchron (`execFile`), sonst blockiert der Build den Vitest-Worker → „Timeout calling onTaskUpdate". Gesamt-Akzeptanz 155/155 automatisiert. |
 | 2026-11-16 | M14.0 | — | Doku für M14 „Nacharbeiten v2-Parität": 28 neue Akzeptanz-IDs (DM-14, SYN-17/18, BLK-22…BLK-40, UI-14…UI-19) in Spec 02/04/05/10, Textentwürfe (Vorlagen-Editor, Tags, Löschen/Duplizieren, Textarea, Schnelleintrag, Wetter ohne Warten, Ortssuche, Umnummerierung), MILESTONES-Zeile M14 im selben Commit, A-036–A-049 in DECISIONS (A-016/A-021 verwiesen), Aufgabenliste M14.1–M14.22. Befunde: Body-Map war mit M8b schon erledigt (Notizen veraltet, entfernt); Wetter-Dienst war nirgends angeschlossen; Vorlagen-Editor-UI fehlte; Ursache: Ansichtstabelle von Spec 10 hatte keine IDs. GATE-G4 „Bekannte Lücken" auf M14 verwiesen. |
+| 2026-11-16 | M14b.0 | — | Doku für den Teil-Meilenstein M14b „v2-Parität, Rest": 22 neue Akzeptanz-IDs (BLK-41…44, ANA-17…21, EXP-14…17, CRY-18…20, UI-20…24, MIG-17) in Spec 03/05/06/07/10/11, UI-19 (Safari-Hinweis) und BLK-24 (Optionsfarben/Reihenfolge) erweitert, Spec-Texte (02 `hideLabel`, 03 Sitzung, 06 FilterSpec/Sortierung/Zeiträume, 07 PDF-Layouts + Auto-Sicherung, 10 Paritätstabelle), MILESTONES-Zeile M14b im selben Commit, A-049 neu gefasst (Umschalter kommt, UI-24), A-050–A-058, GATE-G4 Bekannte Lücken, Aufgabenliste erweitert. Befund: Der Nachtrag sprach von 21 neuen IDs, es sind 22 (4+5+4+3+5+1). |

@@ -44,7 +44,8 @@ Jeder Export kann **vollständig** oder **gefiltert** (`FilterSpec`, 06) erstell
 
 ### PDF
 
-- Portiert aus v2 (`src/utils/pdfExport.ts`): Tabellenlayout, Layout-Auswahl, Body-Map-Bilder mit Größe
+- Portiert aus v2 (`src/utils/pdfExport.ts`): Layouts `table | cards | dashboard` (Tabelle A4 quer; Karten A4 hoch, je Eintrag eine Karte;
+  Dashboard: Diagrammbild des Zeitraums, Kennzahlen der `outcome`-Blöcke, Häufigkeiten der im Dialog gewählten Multiselect-Blöcke), Layout-Auswahl, Body-Map-Bilder mit Größe
   `a4 | a5 | a6 | none`, optionaler PDF-Passwortschutz.
 - Neu: **Deckblatt-Zusammenfassung** für den Arzttermin — Zeitraum, Tage mit Eintrag, Kennzahlen der `outcome`-Blöcke,
   Medikamententage, Ereignisse (`doctor`) und wahlweise die Standard-Diagramme aus 06.
@@ -65,6 +66,15 @@ Jeder Export kann **vollständig** oder **gefiltert** (`FilterSpec`, 06) erstell
 - **local-only:** Backup-Erinnerung alle n Tage (Standard 7, einstellbar), solange kein Backup erstellt wurde
   (Nachfolger von v2 `BackupReminder`). **cloud-primary:** keine Erinnerung, manueller Export jederzeit möglich.
 - Wiederherstellung auf einem neuen Gerät funktioniert auch ohne Konto (local-only).
+
+## Auto-Sicherung
+
+- Nachfolger von v2 `autoBackup` (dort Klartext in localStorage; wegen E2E nicht übernommen). Format wie `.stbbackup`, verschlüsselt mit einem
+  zufälligen Sicherungsschlüssel, der wie die UMK mit allen vorhandenen Faktoren (Passwort, Backup-Code, Passkey) verpackt ist; die
+  Wiederherstellung braucht einen davon (EXP-17).
+- Ablage in OPFS (Fallback: eigene IndexedDB `stb-v3-autobackup`), getrennt von `stb-v3`; nur die letzte Sicherung bleibt.
+- Auslöser: nach Änderungen höchstens 1×/Tag sowie vor dem Aktivieren eines Updates.
+- Hinweis „Backup wiederherstellen" (Datei oder Auto-Sicherung) bei leerer DB nach dem Onboarding, wegklickbar (EXP-16).
 
 ## Backlog v3.x
 
@@ -90,3 +100,7 @@ Jeder Export kann **vollständig** oder **gefiltert** (`FilterSpec`, 06) erstell
 | EXP-11 | Ungültige oder manipulierte Importdatei wird mit verständlicher Meldung abgelehnt, die DB bleibt unverändert. | integration |
 | EXP-12 | Backup-Erinnerung erscheint in local-only nach Ablauf der Frist und nicht in cloud-primary. | e2e |
 | EXP-13 | PDF-Export eines Monats mit echten Daten ist für einen Arzttermin brauchbar (Lesbarkeit, Vollständigkeit). | manual |
+| EXP-14 | PDF-Layout „Karten" (A4 hoch, je Eintrag eine Karte mit Zeit, Vorlage, allen Werten, Body-Map-Bild in gewählter Größe) wird erzeugt; Text per pdfjs prüfbar; Passwortschutz wirkt. | integration |
+| EXP-15 | PDF-Layout „Dashboard": Diagrammbild des Zeitraums, Kennzahlen der `outcome`-Blöcke und Häufigkeiten der ausgewählten Multiselect-Blöcke; Auswahl der Multiselects im Export-Dialog. | integration |
+| EXP-16 | Start mit leerer v3-DB (nach dem Onboarding, keine Einträge) zeigt den Hinweis „Backup wiederherstellen" (Datei oder Auto-Sicherung), wegklickbar; nicht bei vorhandenen v2-Daten (dann Migration). | e2e |
+| EXP-17 | Auto-Sicherung: nach Änderungen höchstens 1×/Tag und vor dem Aktivieren eines Updates eine verschlüsselte Backup-Datei (Format 07) im Gerätespeicher getrennt von `stb-v3`; nach Löschen von `stb-v3` mit Passwort/Backup-Code vollständig wiederherstellbar; Speicher enthält keine Klartext-Marker. | integration |
