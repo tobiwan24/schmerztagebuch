@@ -594,6 +594,11 @@ export function transformV2(src: V2Source, opts: MigrationOptions): MigrationRes
       report.undecryptable.push({ v2Id: e.id, date: e.timestamp, reason: 'Daten unlesbar' });
       continue;
     }
+    // früh aussortieren: ein unlesbarer Zeitstempel würde sonst Sortierung und Vorlagen-Zeitpunkte verderben
+    if (Number.isNaN(Date.parse(e.timestamp))) {
+      report.undecryptable.push({ v2Id: e.id, date: e.timestamp, reason: 'ungültiger Zeitstempel' });
+      continue;
+    }
     live.push(e as V2DecodedEntry & { blocks: V2Block[] });
   }
   report.counts.undecryptable = report.undecryptable.length;
@@ -685,11 +690,6 @@ export function transformV2(src: V2Source, opts: MigrationOptions): MigrationRes
     for (const p of perEntry) {
       const { e } = p;
       const entryMs = Date.parse(e.timestamp);
-      if (Number.isNaN(entryMs)) {
-        report.undecryptable.push({ v2Id: e.id, date: e.timestamp, reason: 'ungültiger Zeitstempel' });
-        report.counts.undecryptable++;
-        continue;
-      }
       const id = detId('entry', entryKey(e), entryMs);
       const version = versions.find((v) => v.version === versionOf.get(p.sig))!;
       const date = e.timestamp.slice(0, 10);
