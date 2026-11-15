@@ -1,5 +1,6 @@
 // Grundgerüst: Kopfzeile, Inhalt, untere Leiste mit vier Zielen (Spec 10 „Navigation"). Mobile-first, Desktop zentriert.
 import { Link, Navigate, NavLink, Outlet, useLocation } from 'react-router';
+import { useReminderScheduler } from '@/data/useReminders';
 import { Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/auth/AuthContext';
@@ -18,10 +19,11 @@ const TABS = [
 ] as const;
 
 /** Ansichten, die auch gesperrt erreichbar sind (Entsperren über Einstellungen, CRY-10). */
-const OPEN_WHEN_LOCKED = ['/more', '/more/settings'];
+const OPEN_WHEN_LOCKED = ['/more', '/more/settings', '/more/settings/diagnose'];
 
 export function AppShell() {
   const { status } = useAuth();
+  useReminderScheduler();
   const { diary } = useData();
   const location = useLocation();
   // Entsperrt, aber noch kein Tagebuch → Onboarding fortsetzen. Bei Lesefehler normal weiter (Fehlerzustand der Ansicht).

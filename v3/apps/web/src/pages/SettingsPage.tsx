@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { V2DataCard } from '@/components/V2DataCard';
+import { ReminderCard } from '@/components/ReminderCard';
 import { useAuth } from '@/auth/AuthContext';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -72,7 +73,11 @@ export function SettingsPage() {
           ))}
         </CardContent>
       </Card>
+      <ReminderCard />
       <V2DataCard />
+      <Button asChild variant="outline">
+        <Link to="/more/settings/diagnose">{de.diagnostics.open}</Link>
+      </Button>
     </>
   );
 }

@@ -11,6 +11,7 @@ import { QuickPage } from '@/pages/QuickPage';
 import { TemplatesPage } from '@/pages/TemplatesPage';
 import { ExportPage } from '@/pages/ExportPage';
 import { MigratePage } from '@/pages/MigratePage';
+import { DiagnosticsPage } from '@/pages/DiagnosticsPage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { UnlockPage } from '@/pages/UnlockPage';
 import { de } from '@/i18n/de';
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
           { path: '/analysis', element: <AnalysisPage /> },
           { path: '/more', element: <MorePage /> },
           { path: '/more/settings', element: <SettingsPage /> },
+          { path: '/more/settings/diagnose', element: <DiagnosticsPage /> },
           { path: '/more/templates', element: <TemplatesPage /> },
           { path: '/more/diaries', element: <PlaceholderPage title={de.more.diaries} /> },
           { path: '/more/export', element: <ExportPage /> },
