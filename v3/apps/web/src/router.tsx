@@ -12,6 +12,8 @@ import { TemplatesPage } from '@/pages/TemplatesPage';
 import { ExportPage } from '@/pages/ExportPage';
 import { MigratePage } from '@/pages/MigratePage';
 import { DiagnosticsPage } from '@/pages/DiagnosticsPage';
+import { DiariesPage } from '@/pages/DiariesPage';
+import { ShortcutPage } from '@/pages/ShortcutPage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { UnlockPage } from '@/pages/UnlockPage';
 import { de } from '@/i18n/de';
@@ -32,7 +34,8 @@ export const router = createBrowserRouter([
           { path: '/more/settings', element: <SettingsPage /> },
           { path: '/more/settings/diagnose', element: <DiagnosticsPage /> },
           { path: '/more/templates', element: <TemplatesPage /> },
-          { path: '/more/diaries', element: <PlaceholderPage title={de.more.diaries} /> },
+          { path: '/more/diaries', element: <DiariesPage /> },
+          { path: '/more/diaries/:id/shortcut', element: <ShortcutPage /> },
           { path: '/more/export', element: <ExportPage /> },
           { path: '/entry/new', element: <EntryEditorPage /> },
           { path: '/entry/:id', element: <EntryDetailPage /> },

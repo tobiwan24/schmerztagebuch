@@ -24,10 +24,10 @@ function openBytes(bytes: Uint8Array<ArrayBuffer>, mime: string) {
 }
 
 export function AttachmentList({ ids }: { ids: readonly string[] }) {
-  const { attachments, revision } = useData();
+  const { attachments } = useData();
   const sync = useSync();
   const [missing, setMissing] = useState<string | null>(null);
-  const query = useQuery(async () => (await Promise.all(ids.map((id) => attachments.get(id)))).filter((m): m is AttachmentMeta => !!m), [attachments, ids.join(','), revision]);
+  const query = useQuery(async () => (await Promise.all(ids.map((id) => attachments.get(id)))).filter((m): m is AttachmentMeta => !!m), [attachments, ids.join(',')]);
   if (query.status !== 'ok' || !query.data.length) return null;
 
   async function open(m: AttachmentMeta) {

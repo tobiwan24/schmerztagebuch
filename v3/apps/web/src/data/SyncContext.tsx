@@ -5,6 +5,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useAuth } from '@/auth/AuthContext';
 import { createSyncEngine, type SyncEngine } from '@/sync/engine';
 import { createFetchTransport } from '@/sync/transport';
+import { quickEntrySelection, type HlcClock, type TemplateState } from '@stb/core';
+import { createIntakeApi } from '@/intake/api';
+import { pickupIntake } from '@/intake/pickup';
 import { useData } from './DataContext';
 
 export type SyncState = 'disabled' | 'syncing' | 'synced' | 'pending' | 'offline' | 'error';
@@ -34,7 +37,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const [pending, setPending] = useState(0);
   const [ready, setReady] = useState(false);
   const { db, session } = auth;
-  const { registry, newId, now, stamper, writes, bumpRevision } = data;
+  const { registry, newId, now, stamper, writes, bumpRevision, records, diary } = data;
+  const hlcRef = useRef<HlcClock | null>(null);
 
   useEffect(() => {
     if (!enabled) {
@@ -44,6 +48,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     void stamper.clock().then((hlc) => {
       if (cancelled) return;
+      hlcRef.current = hlc;
       setEngine(
         createSyncEngine({
           db, registry, writeCodec: 'plain', transport: createFetchTransport(''), keys: session.keys, newId, clock: { now }, hlc,
@@ -62,6 +67,25 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     return n;
   }, [db]);
 
+  /** Kurzbefehl-Items abholen (Spec 08, Schritt 4) — für Cloud-Tagebücher mit eingerichtetem Intake. */
+  const pickupAll = useCallback(async () => {
+    const hlc = hlcRef.current;
+    if (!hlc) return;
+    const { userId } = await stamper.identity();
+    for (const s of await db.sync_state.toArray()) {
+      if (s.mode !== 'cloud-primary' || !(await records.list(s.diaryId, 'intakeKey')).length) continue;
+      const d = await diary.getDiary(s.diaryId);
+      if (!d) continue;
+      const states = (await Promise.all((await diary.listTemplates(d.id)).map((t) => diary.getTemplate(t.id)))).filter((x): x is TemplateState => !!x);
+      const quick = quickEntrySelection(d, states);
+      const r = await pickupIntake({
+        api: createIntakeApi(''), records, diary, diaryId: d.id, authorId: userId, timezone: d.settings.timezone, newId, now, nextHlc: () => hlc.tick(),
+        ...(quick ? { defaultTemplateId: quick.state.template.id } : {}),
+      }).catch(() => null);
+      if (r && (r.entries.length || r.inbox.length)) await engine?.sync().catch(() => undefined);
+    }
+  }, [db, records, diary, stamper, newId, now, engine]);
+
   const running = useRef<Promise<void> | null>(null);
   const run = useCallback(async () => {
     if (!engine) return;
@@ -70,6 +94,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     const before = await lastChange();
     try {
       await engine.sync();
+      await pickupAll();
       const n = await countPending();
       setState(n > 0 ? 'pending' : 'synced');
     } catch {
@@ -81,7 +106,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       const after = await lastChange();
       if (after !== before) bumpRevision();
     }
-  }, [engine, db, countPending, bumpRevision]);
+  }, [engine, db, countPending, bumpRevision, pickupAll]);
 
   const syncNow = useCallback(() => {
     running.current = run();

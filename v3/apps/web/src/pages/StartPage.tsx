@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { EntryListState } from '@/components/EntryListState';
 import { BackupReminder } from '@/components/BackupReminder';
 import { V2Banner } from '@/components/V2DataCard';
+import { InboxCard } from '@/components/InboxCard';
 import { de } from '@/i18n/de';
 
 export function StartPage() {
@@ -12,6 +13,7 @@ export function StartPage() {
     <>
       <PageHeader title={de.start.title} />
       <V2Banner />
+      <InboxCard />
       <BackupReminder />
       <Button asChild size="lg" className="h-16 text-base">
         <Link to="/quick">
