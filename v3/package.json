@@ -13,7 +13,7 @@
     "typecheck": "tsc -b",
     "lint": "eslint . && node scripts/check-ui-css.mjs",
     "test": "vitest run",
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present && node scripts/check-bundle.mjs",
     "deps:check": "node scripts/check-deps.mjs",
     "verify": "npm run typecheck && npm run lint && npm run deps:check && npm run test && npm run build",
     "verify:docker": "node scripts/run-with-env.mjs STB_DOCKER=1 -- npm run verify",

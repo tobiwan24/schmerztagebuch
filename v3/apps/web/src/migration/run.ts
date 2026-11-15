@@ -1,8 +1,7 @@
 // Migration v2 → v3, Schritte 5–8 (Spec 11): Trockenlauf (Plan ohne Schreiben), Schreiben über die Repositories
 // (Outbox → Sync), Prüfen (Anzahl + alle Werte jedes 10. Eintrags), Bericht + Abschluss-Flag. Idempotent über die
 // deterministischen IDs der Transformation und den Vergleich mit dem Bestand (MIG-09).
-import { canonical, compareHlc, decodeDataUrl, type MigrationReport, type MigrationResult } from '@stb/core';
-import type { StbDb } from '@/data/db';
+import { canonical, compareHlc, decodeDataUrl, type MigrationResult } from '@stb/core';
 import type { RecordInput, RecordRepository } from '@/data/repositories/records';
 import { templateVersionRecordId, type DiaryRepository } from '@/data/repositories/diary';
 import { ATTACHMENT_KIND, type AttachmentInput, type AttachmentRepository } from '@/data/repositories/attachments';
@@ -46,12 +45,8 @@ export async function applyMigration(records: RecordRepository, attachments: Att
   if (plan.writes.length) await records.putMany(plan.writes);
 }
 
-export interface VerifyResult {
-  ok: boolean;
-  checkedEntries: number;
-  sampled: number;
-  errors: string[];
-}
+import type { VerifyResult } from './state';
+export type { VerifyResult } from './state';
 
 /**
  * Schritt 7 — Prüfen: jeder erwartete Eintrag, jede Vorlage und jeder Anhang existiert in v3; für jeden 10. Eintrag
@@ -86,52 +81,4 @@ export async function verifyMigration(diary: DiaryRepository, attachments: Attac
   return { ok: errors.length === 0, checkedEntries: expected.length, sampled, errors };
 }
 
-// ---------------------------------------------------------------------------------------------------------------
-// Schritt 8 — Bericht + Abschluss (lokal, nicht synchronisiert)
-
-const STATE_KEY = 'migration-v2';
-
-export interface MigrationState {
-  /** Zeitpunkt der letzten erfolgreichen Prüfung (Spec: `migratedFromV2At`). */
-  migratedFromV2At?: string;
-  lastRunAt: string;
-  report: MigrationReport;
-  verify: VerifyResult;
-  /** v2-Daten auf diesem Gerät entfernt. */
-  v2RemovedAt?: string;
-}
-
-export async function saveMigrationState(db: StbDb, state: MigrationState): Promise<void> {
-  await db.device.put({ id: STATE_KEY, value: state });
-}
-
-export async function loadMigrationState(db: StbDb): Promise<MigrationState | undefined> {
-  return (await db.device.get(STATE_KEY))?.value as MigrationState | undefined;
-}
-
-/** Bericht als lesbare Textdatei (Spec 11: „Bericht wird als Datei angeboten"). */
-export function reportText(state: MigrationState): string {
-  const r = state.report;
-  const lines = [
-    'Schmerztagebuch — Migrationsbericht v2 → v3',
-    `Lauf: ${state.lastRunAt}`,
-    `Prüfung: ${state.verify.ok ? 'erfolgreich' : 'FEHLER'} (${state.verify.checkedEntries} Einträge geprüft, ${state.verify.sampled} im Detail)`,
-    '',
-    `Vorlagen: ${r.counts.templates} (Versionen: ${r.counts.templateVersions})`,
-    `Einträge: ${r.counts.entries}`,
-    `Anhänge: ${r.counts.attachments}`,
-    `Eigene Körperkarten-Bilder: ${r.counts.bodymapImages}`,
-    `Übersprungen (gelöscht): ${r.counts.skippedDeleted}`,
-    `Nicht übernommen: ${r.counts.undecryptable}`,
-    ...r.undecryptable.map((u) => `  - ${u.date.slice(0, 10)} (v2-ID ${u.v2Id}): ${u.reason}`),
-    `Unbekannte Werte: ${r.unknownValues.length}`,
-    ...r.unknownValues.map((u) => `  - ${u.date} „${u.template}“ / „${u.block}“: ${u.value}`),
-    `Hinweise: ${r.warnings.length}`,
-    ...r.warnings.map((w) => `  - ${w}`),
-    ...(state.verify.errors.length ? ['', 'Prüffehler:', ...state.verify.errors.map((e) => `  - ${e}`)] : []),
-    '',
-    'Zuordnung v2-Block → v3-Block:',
-    ...Object.entries(r.blockMap).map(([k, v]) => `  ${k} → ${v}`),
-  ];
-  return lines.join('\n') + '\n';
-}
+export { saveMigrationState, loadMigrationState, reportText, type MigrationState } from './state';

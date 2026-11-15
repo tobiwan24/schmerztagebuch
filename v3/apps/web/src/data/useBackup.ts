@@ -5,27 +5,20 @@ import type { FilterSpec } from '@stb/analysis';
 import { buildReport, exportCsvLong, exportCsvWide, renderReportPdf, type CsvProfile, type ExportV1, type PdfImageSize } from '@stb/export';
 import { createBodymapRenderer } from '@/lib/pdf-bodymap';
 import { useAuth } from '@/auth/AuthContext';
-import { loadAccount, unlockLocal } from '@/auth/local-account';
+import { unlockLocal } from '@/auth/local-account';
 import { APP_VERSION } from '@/version';
-import { backupDue, lastBackupAt, markBackupDone, reminderDays, setReminderDays } from './backup-state';
+import { markBackupDone, setReminderDays } from './backup-state';
+import { useBackupState } from './useBackupState';
 import { applyImport, collectExportSource, createBackupFile, createExport, openBackup, planImport, type ImportPlan } from './import-export';
 import { useData } from './DataContext';
-import { useQuery } from './useQuery';
 
 export type ExportFormat = 'json' | 'csv-long' | 'csv-wide' | 'pdf';
 
 export function useBackup() {
-  const { db, accountMode, now } = useAuth();
+  const { db, now } = useAuth();
   const data = useData();
-  const query = useQuery(async () => {
-    const [last, days, account] = await Promise.all([lastBackupAt(db), reminderDays(db), loadAccount(db)]);
-    return { last, days, createdAt: account ? Date.parse(account.createdAt) : null };
-  }, [db]);
-  // „Fällig" bei jedem Rendern aus der aktuellen Uhrzeit — die Zeit läuft weiter, während die App offen ist.
-  const state =
-    query.status === 'ok'
-      ? { ...query, data: { ...query.data, due: backupDue({ mode: accountMode, lastBackup: query.data.last, accountCreatedAt: query.data.createdAt, days: query.data.days, now: now() }) } }
-      : query;
+  const state = useBackupState();
+  const query = state;
 
   const exportFile = useCallback(
     async (format: ExportFormat, opts: { profile?: CsvProfile; filter?: FilterSpec; imageSize?: PdfImageSize; password?: string }): Promise<{ name: string; text: string | Uint8Array; mime: string }> => {

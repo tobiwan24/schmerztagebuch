@@ -3,11 +3,11 @@ import { Link } from 'react-router';
 import { ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { useBackup } from '@/data/useBackup';
+import { useBackupState } from '@/data/useBackupState';
 import { de } from '@/i18n/de';
 
 export function BackupReminder() {
-  const { state } = useBackup();
+  const state = useBackupState();
   if (state.status !== 'ok' || !state.data.due) return null;
   return (
     <Card data-testid="backup-reminder" className="border-orange-300 dark:border-orange-800">

@@ -5,7 +5,7 @@ import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
-import { useRemoveV2, useV2Status } from '@/migration/useMigration';
+import { useRemoveV2, useV2Status } from '@/migration/status';
 import { de } from '@/i18n/de';
 
 const t = de.migration;

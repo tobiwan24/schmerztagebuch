@@ -3,7 +3,7 @@
 // Statt Canvas: Bild + SVG-Overlay (skaliert verlustfrei, testbar). Koordinaten normalisiert 0..1.
 // Bildwahl: Standardbilder + eigene Bilder des Tagebuchs (hochladen, zuschneiden, löschen, als Standard des Feldes setzen);
 // Wechsel mit vorhandenen Markierungen nur nach Rückfrage.
-import { useRef, useState, type PointerEvent } from 'react';
+import { lazy, Suspense, useRef, useState, type PointerEvent } from 'react';
 import { ArrowDownToDot, Brush, Crop, ImagePlus, Star, Trash2, X } from 'lucide-react';
 import { BODYMAP_MAX_PATH, type BodymapValue } from '@stb/core';
 import { Button } from '@/components/ui/button';
@@ -15,9 +15,11 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
 import { cropImage, readFileAsDataUrl, resizeImage, type CropArea } from '@/lib/image';
-import { CropDialog } from './CropDialog';
 import { BODYMAP_PRESETS, intensityFill, intensityStroke, presetById } from './bodymap-presets';
 import { de } from '@/i18n/de';
+
+/** Zuschnitt (react-easy-crop) erst beim Öffnen laden — gehört nicht ins initiale JS (QA-02). */
+const CropDialog = lazy(() => import('./CropDialog').then((m) => ({ default: m.CropDialog })));
 
 type Mark = BodymapValue['points'][number];
 type Tool = 'point' | 'brush';
@@ -270,15 +272,19 @@ export function BodyMapField({ id, value, defaultPresetId, onChange, diaryId, on
         </ul>
       ) : null}
 
-      <CropDialog
-        key={cropSrc ?? 'none'}
-        src={cropSrc}
-        defaultName={de.bodymap.ownImageName(ownImages.length + 1)}
-        hasMarks={current.points.length > 0}
-        busy={savingImage}
-        onCancel={() => setCropSrc(null)}
-        onApply={(area, name) => void applyCrop(area, name)}
-      />
+      {cropSrc ? (
+        <Suspense fallback={null}>
+          <CropDialog
+            key={cropSrc}
+            src={cropSrc}
+            defaultName={de.bodymap.ownImageName(ownImages.length + 1)}
+            hasMarks={current.points.length > 0}
+            busy={savingImage}
+            onCancel={() => setCropSrc(null)}
+            onApply={(area, name) => void applyCrop(area, name)}
+          />
+        </Suspense>
+      ) : null}
       <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)} aria-labelledby={`${id}-delete-title`}>
         <DialogTitle id={`${id}-delete-title`}>{de.bodymap.deleteImageTitle}</DialogTitle>
         <DialogDescription>{de.bodymap.deleteImageHint}</DialogDescription>

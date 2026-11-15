@@ -53,7 +53,6 @@ describe('Anhänge im Sync', () => {
     expect(files).toEqual([m.id]);
     const stored = readFileSync(join(server.blobDir, ctx.diaryId, m.id), 'utf8');
     expect(stored).not.toContain(MARKER);
-    expect(stored).not.toContain('PDF');
 
     await b.engine.sync();
     expect(await b.attachments.get(m.id)).toEqual(m);

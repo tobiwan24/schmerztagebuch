@@ -4,9 +4,8 @@ import { useCallback, useRef, useState } from 'react';
 import { transformV2, type MigrationReport, type MigrationResult } from '@stb/core';
 import { useAuth } from '@/auth/AuthContext';
 import { useData } from '@/data/DataContext';
-import { useQuery } from '@/data/useQuery';
 import { unlockV2Password, type V2DecryptKeys } from './v2/crypto';
-import { countV2, readV2Snapshot, V2_DB_NAME, type V2Counts, type V2Snapshot } from './v2/source';
+import { countV2, readV2Snapshot, type V2Counts, type V2Snapshot } from './v2/source';
 import { decodeV2Snapshot } from './v2/decode';
 import { prepareImageResolver } from './v2/images';
 import { parseV2Backup } from './v2/backup';
@@ -15,20 +14,6 @@ import { applyMigration, loadMigrationState, planMigration, reportText, saveMigr
 
 /** Adresse der v2-API: gleicher Origin (Reverse-Proxy leitet `/api/auth`, `/api/sync` an v2) oder eigener Wert. */
 const V2_API_URL = (import.meta.env.VITE_V2_API_URL as string | undefined) ?? '';
-
-export interface V2Status {
-  counts: V2Counts | null;
-  state: MigrationState | undefined;
-}
-
-/** Erkennen (Start-Hinweis, Einstellungen): gibt es v2-Daten, wurde schon migriert? */
-export function useV2Status() {
-  const { db } = useAuth();
-  return useQuery<V2Status>(async () => {
-    const [snap, state] = await Promise.all([readV2Snapshot().catch(() => null), loadMigrationState(db)]);
-    return { counts: snap ? countV2(snap) : null, state };
-  }, [db]);
-}
 
 export type MigrationPhase = 'start' | 'planned' | 'done';
 
@@ -148,22 +133,6 @@ export function useMigration() {
     phase, source, counts, passwordOk, cloudOk, pulled, plan, verify, state,
     detect, useBackupFile, unlockPassword, loginBackupCode, preparePasskey, loginPasskey, dryRun, apply,
   };
-}
-
-/** „v2-Daten von diesem Gerät entfernen" — nur nach erfolgreicher Prüfung (MIG-14). */
-export function useRemoveV2() {
-  const { db, now } = useAuth();
-  return useCallback(async () => {
-    const state = await loadMigrationState(db);
-    if (!state?.verify.ok || !state.migratedFromV2At) throw new Error('Prüfung nicht erfolgreich');
-    await new Promise<void>((resolve, reject) => {
-      const r = indexedDB.deleteDatabase(V2_DB_NAME);
-      r.onsuccess = () => resolve();
-      r.onerror = () => reject(r.error ?? new Error('Löschen fehlgeschlagen'));
-      r.onblocked = () => reject(new Error('v2 ist noch in einem anderen Tab geöffnet'));
-    });
-    await saveMigrationState(db, { ...state, v2RemovedAt: new Date(now()).toISOString() });
-  }, [db, now]);
 }
 
 export { reportText, type MigrationReport, type MigrationState };

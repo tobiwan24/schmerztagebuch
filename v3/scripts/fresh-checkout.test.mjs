@@ -29,7 +29,9 @@ describe('frischer Checkout', () => {
         mkdirSync(dirname(join(dir, f)), { recursive: true });
         copyFileSync(join(root, f), join(dir, f));
       }
+      // Ohne das von Vitest gesetzte NODE_ENV=test — sonst baut Vite im Kind-Lauf die Entwicklungsversion (Bundle-Budget).
       const env = { ...process.env, STB_FRESH_CHECKOUT: '1' };
+      delete env.NODE_ENV;
       // Asynchron: `execSync` würde den Worker > 60 s blockieren → Vitest-RPC-Timeout („onTaskUpdate").
       const run = async (cmd) => (await promisify(exec)(cmd, { cwd: dir, env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })).stdout;
       await run('npm ci --prefer-offline --no-audit --no-fund');
