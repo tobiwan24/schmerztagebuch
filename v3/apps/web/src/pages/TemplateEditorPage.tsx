@@ -1,15 +1,16 @@
 // Vorlagen-Editor (Spec 05 „Vorlagen-Editor", A-037): Route `/more/templates/new` und `/more/templates/:id`.
-// Dieser Stand: leere Vorlage anlegen, Name/Icon/Farbe ändern (nur `Template`, keine neue Version), Duplizieren.
-// Der Blockeditor folgt (M14.4a ff.).
-import { useState, type FormEvent } from 'react';
+// Name/Icon/Farbe ändern nur `Template` (keine neue Version); Änderungen an den Blöcken erzeugen Version n+1.
+// Blockeditor: Palette, Bezeichnung, Pflicht, Rolle, Konfiguration (Auswahl-Optionen/Körperkarte, Umsortieren, Entfernen folgen).
+import { useMemo, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Copy } from 'lucide-react';
-import { createTemplate, duplicateTemplate, keyBetween, validateTemplateDraft, type TemplateState } from '@stb/core';
+import { compareByOrder, createTemplate, duplicateTemplate, keyBetween, updateTemplate, validateTemplateDraft, type BlockDef, type TemplateState } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/PageHeader';
 import { ErrorState } from '@/components/StateView';
+import { BlockEditor } from '@/components/template-editor/BlockEditor';
 import { DEFAULT_TEMPLATE_COLOR, DEFAULT_TEMPLATE_ICON } from '@/components/TemplateIcon';
 import { TemplateStylePicker } from '@/components/TemplateStylePicker';
 import { useData } from '@/data/DataContext';
@@ -55,22 +56,31 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
   const [name, setName] = useState(state?.template.name ?? '');
   const [icon, setIcon] = useState(state?.template.icon ?? DEFAULT_TEMPLATE_ICON);
   const [color, setColor] = useState(state?.template.color ?? DEFAULT_TEMPLATE_COLOR);
+  const [blocks, setBlocks] = useState<BlockDef[]>(() => [...(state?.version.blocks ?? [])].sort(compareByOrder));
   const [showErrors, setShowErrors] = useState(false);
   const [busy, setBusy] = useState(false);
-  const nameInvalid = showErrors && validateTemplateDraft({ name, blocks: [] }).length > 0;
+  const issues = useMemo(() => validateTemplateDraft({ name, blocks }), [name, blocks]);
+  const nameInvalid = showErrors && issues.some((i) => i.code === 'NAME_EMPTY');
+  const blockIssues = useMemo(() => {
+    const m = new Map<string, string[]>();
+    if (showErrors) for (const i of issues) if (i.blockId) m.set(i.blockId, [...(m.get(i.blockId) ?? []), de.templates.editor.issues[i.code]]);
+    return m;
+  }, [issues, showErrors]);
 
   async function save(e: FormEvent) {
     e.preventDefault();
-    if (validateTemplateDraft({ name, blocks: [] }).length > 0) return setShowErrors(true);
+    if (issues.length > 0) return setShowErrors(true);
     setBusy(true);
     try {
       const trimmed = name.trim();
       if (state) {
-        // Name/Icon/Farbe sind Metadaten der Vorlage — keine neue Version (DM-06).
-        await data.diary.saveTemplateMeta({ ...state.template, name: trimmed, icon, color, updatedAt: new Date(data.now()).toISOString() });
+        // Name/Icon/Farbe sind Metadaten (keine neue Version); geänderte Blöcke ergeben Version n+1 (DM-06).
+        const next = updateTemplate(state, { name: trimmed, icon, color, blocks }, { now: data.now });
+        if (next.newVersion) await data.diary.saveTemplate(next.state);
+        else await data.diary.saveTemplateMeta(next.state.template);
       } else {
         await data.diary.saveTemplate(
-          createTemplate({ id: data.newId(), diaryId: loaded.diaryId, name: trimmed, icon, color, order: keyBetween(loaded.lastOrder, null), blocks: [] }, { now: data.now }),
+          createTemplate({ id: data.newId(), diaryId: loaded.diaryId, name: trimmed, icon, color, order: keyBetween(loaded.lastOrder, null), blocks }, { now: data.now }),
         );
       }
       void navigate('/more/templates');
@@ -110,6 +120,7 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
         ) : null}
       </div>
       <TemplateStylePicker icon={icon} color={color} onIcon={setIcon} onColor={setColor} />
+      <BlockEditor blocks={blocks} issues={blockIssues} newId={data.newId} onChange={setBlocks} />
       <div className="flex flex-col gap-2">
         <Button type="submit" disabled={busy}>
           {de.templates.editor.save}
