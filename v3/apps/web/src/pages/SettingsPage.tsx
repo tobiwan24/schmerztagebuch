@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
+import { V2DataCard } from '@/components/V2DataCard';
 import { useAuth } from '@/auth/AuthContext';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -71,6 +72,7 @@ export function SettingsPage() {
           ))}
         </CardContent>
       </Card>
+      <V2DataCard />
     </>
   );
 }

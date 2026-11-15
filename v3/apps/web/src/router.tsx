@@ -10,6 +10,7 @@ import { EntryDetailPage, EntryEditorPage } from '@/pages/EntryPages';
 import { QuickPage } from '@/pages/QuickPage';
 import { TemplatesPage } from '@/pages/TemplatesPage';
 import { ExportPage } from '@/pages/ExportPage';
+import { MigratePage } from '@/pages/MigratePage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { UnlockPage } from '@/pages/UnlockPage';
 import { de } from '@/i18n/de';
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
           { path: '/entry/:id', element: <EntryDetailPage /> },
           { path: '/entry/:id/edit', element: <EntryEditorPage /> },
           { path: '/quick', element: <QuickPage /> },
+          { path: '/migrate', element: <MigratePage /> },
           { path: '/invite', element: <PlaceholderPage title={de.invite.title} /> },
           { path: '*', element: <NotFoundPage /> },
         ],

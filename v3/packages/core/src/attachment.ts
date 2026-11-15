@@ -25,7 +25,12 @@ const DATA_URL_RE = /^data:([a-z]+\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/]+=*)$/i;
 export function decodeDataUrl(dataUrl: string): { mime: string; bytes: Uint8Array<ArrayBuffer> } | undefined {
   const m = DATA_URL_RE.exec(dataUrl);
   if (!m) return undefined;
-  const bin = atob(m[2]!);
+  let bin: string;
+  try {
+    bin = atob(m[2]!);
+  } catch {
+    return undefined; // ungültiges Base64 — Aufrufer meldet den Anhang als unlesbar
+  }
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return { mime: m[1]!.toLowerCase(), bytes };
