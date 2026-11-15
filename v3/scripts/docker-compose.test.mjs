@@ -3,7 +3,8 @@
 // ständige Bauen/Starten bei jedem `verify` hat Docker Desktop instabil gemacht (DECISIONS A-019). Sonst übersprungen;
 // check-acceptance wertet übersprungene Tests NICHT als erfüllt, QA-08 bleibt dann offen.
 import { describe, it, expect } from 'vitest';
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
+import { promisify } from 'node:util';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,8 +23,10 @@ function dockerAvailable() {
 }
 
 const skip = process.env.STB_DOCKER !== '1' || process.env.STB_FRESH_CHECKOUT === '1' || !dockerAvailable();
+// Asynchron: ein synchroner Build blockiert den Vitest-Worker minutenlang → RPC-Timeout „onTaskUpdate".
+const run = promisify(execFile);
 const compose = (...args) =>
-  execFileSync('docker', ['compose', '-p', PROJECT, ...args], { cwd: root, stdio: 'pipe', encoding: 'utf8', env: { ...process.env, WEB_PORT: PORT } });
+  run('docker', ['compose', '-p', PROJECT, ...args], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: { ...process.env, WEB_PORT: PORT } });
 
 async function waitForHealth(url, timeoutMs) {
   const until = Date.now() + timeoutMs;
@@ -44,14 +47,14 @@ async function waitForHealth(url, timeoutMs) {
 describe('Docker', () => {
   it.skipIf(skip)('QA-08: docker compose up startet Web und Server; Health antwortet über das Web mit Version', async () => {
     try {
-      compose('up', '-d', '--build');
+      await compose('up', '-d', '--build');
       const body = await waitForHealth(`http://127.0.0.1:${PORT}/api/v1/health`, 120_000);
       expect(body).toMatchObject({ db: true });
       expect(body.version).toMatch(/^3\.0\.0/);
       const page = await fetch(`http://127.0.0.1:${PORT}/`);
       expect(page.status).toBe(200);
     } finally {
-      compose('down', '-v');
+      await compose('down', '-v');
     }
   }, 900_000);
 });
