@@ -51,6 +51,24 @@ test.describe('Export & Backup', () => {
     expect(body.split('\r\n')[0]).toContain(';');
   });
 
+  test('Export eines Monats: nur Einträge des gewählten Monats', async ({ page }) => {
+    await onboardWithPassword(page);
+    await addEntry(page, 'STB-E2E-MARKER Monat');
+    await go(page, '/more/export');
+    await page.getByRole('button', { name: 'CSV lang' }).click();
+    await page.getByRole('button', { name: 'Monat', exact: true }).click();
+    const thisMonth = new Date().toISOString().slice(0, 7);
+    const [y, m] = thisMonth.split('-').map(Number) as [number, number];
+    const prevMonth = new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7);
+    const csvFor = async (month: string) => {
+      await page.getByLabel('Monat', { exact: true }).fill(month);
+      const [d] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Herunterladen', exact: true }).click()]);
+      return text(d);
+    };
+    expect(await csvFor(thisMonth)).toContain('STB-E2E-MARKER Monat');
+    expect(await csvFor(prevMonth)).not.toContain('STB-E2E-MARKER Monat');
+  });
+
   test('Backup mit Backup-Code erstellen und auf einem neuen Gerät wiederherstellen; falscher Code wird gemeldet', async ({ page, browser }) => {
     const code = await onboardWithPassword(page);
     await addEntry(page, 'STB-E2E-MARKER aus dem Backup');

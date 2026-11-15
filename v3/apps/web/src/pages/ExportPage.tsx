@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { Download, FileUp, ShieldCheck } from 'lucide-react';
 import type { BackupSecret } from '@stb/crypto';
 import { parseExport, type CsvProfile, type ExportV1, type PdfImageSize } from '@stb/export';
-import type { SavedFilter } from '@stb/analysis';
+import type { FilterSpec, SavedFilter } from '@stb/analysis';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -41,13 +41,19 @@ function ExportCard() {
   const [filter, setFilter] = useState<SavedFilter | null>(null);
   const [imageSize, setImageSize] = useState<PdfImageSize>('a5');
   const [pdfPassword, setPdfPassword] = useState('');
+  const [period, setPeriod] = useState<Period>('all');
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [rangeFrom, setRangeFrom] = useState('');
+  const [rangeTo, setRangeTo] = useState('');
   const saved = useQuery(async () => (await Promise.all((await diary.listDiaries()).map((d) => diary.listSavedFilters(d.id)))).flat(), [diary]);
+  const diaryIds = useQuery(async () => (await diary.listDiaries()).map((d) => d.id), [diary]);
   const [busy, setBusy] = useState(false);
 
   async function run() {
     setBusy(true);
     try {
-      const f = await exportFile(format, { profile, imageSize, ...(pdfPassword ? { password: pdfPassword } : {}), ...(filter ? { filter: filter.filter } : {}) });
+      const spec = effectiveFilter(filter?.filter, period, { month, from: rangeFrom, to: rangeTo }, diaryIds.status === 'ok' ? diaryIds.data : []);
+      const f = await exportFile(format, { profile, imageSize, ...(pdfPassword ? { password: pdfPassword } : {}), ...(spec ? { filter: spec } : {}) });
       downloadText(f.name, f.text, f.mime);
     } finally {
       setBusy(false);
@@ -102,13 +108,52 @@ function ExportCard() {
             </Button>
           ))}
         </div>
-        <Button disabled={busy} onClick={() => void run()}>
+        <ToggleGroup aria-label={t.period}>
+          {(['all', 'month', 'range'] as Period[]).map((p) => (
+            <ToggleGroupItem key={p} pressed={period === p} onClick={() => setPeriod(p)}>
+              {t.periods[p]}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        {period === 'month' ? (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="export-month">{t.periodMonth}</Label>
+            <Input id="export-month" type="month" value={month} onChange={(ev) => setMonth(ev.target.value)} />
+          </div>
+        ) : null}
+        {period === 'range' ? (
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="export-from">{t.periodFrom}</Label>
+              <Input id="export-from" type="date" value={rangeFrom} onChange={(ev) => setRangeFrom(ev.target.value)} />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="export-to">{t.periodTo}</Label>
+              <Input id="export-to" type="date" value={rangeTo} onChange={(ev) => setRangeTo(ev.target.value)} />
+            </div>
+          </div>
+        ) : null}
+        <Button disabled={busy || (period === 'range' && (!rangeFrom || !rangeTo || rangeTo < rangeFrom)) || (period === 'month' && !month)} onClick={() => void run()}>
           <Download aria-hidden />
           {t.download}
         </Button>
       </CardContent>
     </Card>
   );
+}
+
+type Period = 'all' | 'month' | 'range';
+
+/** Zeitraum (Monat oder von–bis, Spec 06 Custom-Zeitraum) mit einem gespeicherten Filter kombinieren. `undefined` = alles. */
+function effectiveFilter(saved: FilterSpec | undefined, period: Period, p: { month: string; from: string; to: string }, diaryIds: string[]): FilterSpec | undefined {
+  if (period === 'all') return saved;
+  let range: { from: string; to: string };
+  if (period === 'month') {
+    const [y, m] = p.month.split('-').map(Number) as [number, number];
+    const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    range = { from: `${p.month}-01`, to: `${p.month}-${String(last).padStart(2, '0')}` };
+  } else range = { from: p.from, to: p.to };
+  return { ...(saved ?? { diaryIds }), range };
 }
 
 function SecretFields({ kind, onKind, value, onValue, repeat, onRepeat, idPrefix }: {

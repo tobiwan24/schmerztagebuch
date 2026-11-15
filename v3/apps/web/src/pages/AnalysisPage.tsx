@@ -32,6 +32,10 @@ const PALETTE = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--ch
 const today = (now: number) => new Date(now).toLocaleDateString('en-CA');
 const fmt = (n: number | null, digits = 1) => (n === null ? '–' : n.toLocaleString('de-DE', { maximumFractionDigits: digits }));
 const shortDay = (day: string) => `${day.slice(8, 10)}.${day.slice(5, 7)}.`;
+/** Tag mit Jahr (`TT.MM.JJJJ`) — für Zeiträume, die nicht eindeutig im laufenden Jahr liegen. */
+const longDay = (day: string) => `${shortDay(day)}${day.slice(0, 4)}`;
+/** Mindestweg (px) für eine Wisch-Geste, die den Zeitraum verschiebt (Spec 06 „Touch"). */
+const SWIPE_PX = 60;
 
 /** Abfrage an den Worker, neu bei geändertem Arbeitsset (`version`) oder Abhängigkeiten. */
 function useWorker<T>(fn: (c: AnalysisClient) => Promise<T>, deps: readonly unknown[]): T | null {
@@ -54,14 +58,19 @@ export function AnalysisPage() {
   const entries = useQuery(async () => ({ count: (await diary.listAllEntries()).length, diaryIds: (await diary.listDiaries()).map((d) => d.id) }), [diary]);
   const [view, setView] = useState<View>('trend');
   const [range, setRange] = useState<Range>('30d');
+  /** Wie viele Zeiträume zurück (0 = bis heute); Wischen nach rechts = älter, nach links = neuer. */
+  const [shift, setShift] = useState(0);
   const viewRef = useRef<HTMLElement>(null);
+  const swipe = useRef<{ x: number; y: number } | null>(null);
   const [exporting, setExporting] = useState(false);
 
   if (entries.status === 'error') return (<><PageHeader title={de.analysis.title} /><ErrorState onRetry={entries.retry} /></>);
   if (entries.status === 'loading') return (<><PageHeader title={de.analysis.title} /><p className="text-muted-foreground">{de.app.loading}</p></>);
   if (entries.data.count === 0) return (<><PageHeader title={de.analysis.title} /><EmptyState title={de.analysis.emptyTitle} hint={de.analysis.emptyHint} /></>);
-  const to = today(now());
+  const to = addDays(today(now()), -shift * RANGE_DAYS[range]);
   const from = addDays(to, -(RANGE_DAYS[range] - 1));
+  const older = () => setShift((s) => s + 1);
+  const newer = () => setShift((s) => Math.max(0, s - 1));
   const spec: FilterSpec = { diaryIds: entries.data.diaryIds, range: { from, to } };
 
   async function exportPng() {
@@ -88,17 +97,37 @@ export function AnalysisPage() {
       {view !== 'calendar' ? (
         <ToggleGroup aria-label={de.history.range}>
           {RANGES.map((r) => (
-            <ToggleGroupItem key={r} pressed={range === r} onClick={() => setRange(r)}>
+            <ToggleGroupItem key={r} pressed={range === r} onClick={() => (setRange(r), setShift(0))}>
               {de.analysis.ranges[r]}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
       ) : null}
+      {view !== 'calendar' ? (
+        <div className="flex items-center justify-between gap-2">
+          <Button size="sm" variant="ghost" aria-label={de.analysis.olderPeriod} onClick={older}>‹</Button>
+          <span data-testid="analysis-period" className="text-sm tabular-nums">{longDay(from)} – {longDay(to)}</span>
+          <Button size="sm" variant="ghost" aria-label={de.analysis.newerPeriod} disabled={shift === 0} onClick={newer}>›</Button>
+        </div>
+      ) : null}
       <Button variant="outline" size="sm" className="self-end" disabled={exporting} onClick={() => void exportPng()}>
         <ImageDown aria-hidden />
         {de.analysis.exportPng}
       </Button>
-      <section ref={viewRef} data-testid={`analysis-view-${view}`} className="flex flex-col gap-3">
+      <section
+        ref={viewRef}
+        data-testid={`analysis-view-${view}`}
+        className="flex touch-pan-y flex-col gap-3"
+        onPointerDown={(e) => (swipe.current = e.pointerType === 'mouse' ? null : { x: e.clientX, y: e.clientY })}
+        onPointerUp={(e) => {
+          const s = swipe.current;
+          swipe.current = null;
+          if (!s || view === 'calendar') return;
+          const dx = e.clientX - s.x;
+          if (Math.abs(dx) >= SWIPE_PX && Math.abs(dx) > Math.abs(e.clientY - s.y) * 2) (dx > 0 ? older : newer)();
+        }}
+        onPointerCancel={() => (swipe.current = null)}
+      >
         {view === 'trend' ? <TrendView spec={spec} /> : null}
         {view === 'calendar' ? <CalendarView diaryIds={entries.data.diaryIds} /> : null}
         {view === 'meds' ? <MedsView spec={spec} /> : null}
@@ -263,6 +292,16 @@ function MedsView({ spec }: { spec: FilterSpec }) {
             </BarChart>
           </ChartContainer>
         )}
+        {rows.length ? (
+          <ul data-testid="meds-legend" className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            {labels.map((l, i) => (
+              <li key={l} className="flex items-center gap-2">
+                <svg aria-hidden className="size-3" viewBox="0 0 12 12"><rect width="12" height="12" rx="2" fill={PALETTE[i % PALETTE.length]} /></svg>
+                {l}
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <div className="flex items-center gap-2">
           <Label htmlFor="med-marker" className="font-normal">{de.analysis.markerLine}</Label>
           <Input id="med-marker" type="number" min={0} inputMode="numeric" className="w-24" value={marker} onChange={(e) => setMarker(e.target.value)} />
@@ -352,7 +391,7 @@ function CompareCard({ diaryIds, from, to }: { diaryIds: string[]; from: string;
     <Card data-testid="compare-card">
       <CardHeader>
         <CardTitle className="text-base">{de.analysis.compareTitle}</CardTitle>
-        <p className="text-xs text-muted-foreground">{de.analysis.compareRanges(shortDay(from), shortDay(to), shortDay(prev.from), shortDay(prev.to))}</p>
+        <p className="text-xs text-muted-foreground">{de.analysis.compareRanges(longDay(from), longDay(to), longDay(prev.from), longDay(prev.to))}</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="grid grid-cols-4 gap-x-2 gap-y-1 text-sm">

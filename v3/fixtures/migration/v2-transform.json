@@ -35,6 +35,7 @@
               "id": "01941f29-7c00-7312-80e0-c27e5dcc3391",
               "label": "Medikamente",
               "required": false,
+              "role": "medication",
               "order": "l",
               "type": "multiselect",
               "config": {
@@ -96,6 +97,7 @@
               "id": "01941f29-7c00-7312-80e0-c27e5dcc3391",
               "label": "Medikamente",
               "required": false,
+              "role": "medication",
               "order": "t",
               "type": "multiselect",
               "config": {

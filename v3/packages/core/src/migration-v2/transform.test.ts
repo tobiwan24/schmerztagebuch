@@ -68,6 +68,8 @@ describe('Migration v2 → v3: Transformation', () => {
     expect(v1.blocks.some((b) => b.label === 'Datum')).toBe(false);
     expect(blockByLabel(v1, 'Schmerzstärke')).toMatchObject({ type: 'slider', role: 'outcome', config: { min: 0, max: 10, step: 1 } });
     expect(blockByLabel(v1, 'Beweglichkeit')).toMatchObject({ role: 'function' });
+    expect(blockByLabel(v1, 'Medikamente')).toMatchObject({ type: 'multiselect', role: 'medication' });
+    expect(blockByLabel(v1, 'Ort').role).toBeUndefined();
     expect(e1.values[blockByLabel(v1, 'Schmerzstärke').id]).toBe(7);
     expect(e1.values[blockByLabel(v1, 'Sport gemacht').id]).toEqual({ checked: true, note: '20 min Rad' });
     expect(e1.values[blockByLabel(v1, 'Ort').id]).toBe('Büro');

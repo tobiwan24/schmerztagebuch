@@ -131,5 +131,45 @@ test.describe('Auswertung', () => {
     }
     expect(errors).toEqual([]);
   });
-});
 
+  test('Zeitraum verschieben per Knopf und per Wischen (Spec 06 „Touch"), Medikamenten-Legende', async ({ page }) => {
+    await onboardWithPassword(page);
+    await go(page, '/more/templates');
+    await page.getByRole('button', { name: /Kopfschmerz-Tagebuch/ }).click();
+    await expect(page.getByTestId('template-row')).toHaveCount(2);
+    await seedEntries(page);
+    await page.reload();
+    await page.getByTestId('lock-banner').getByRole('link', { name: 'Entsperren' }).click();
+    await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
+    await page.getByRole('button', { name: 'Mit Passwort entsperren' }).click();
+    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible({ timeout: 30_000 });
+    await go(page, '/analysis');
+    await page.getByRole('button', { name: '7 T' }).click();
+    const period = page.getByTestId('analysis-period');
+    const current = await period.innerText();
+    expect(current).toMatch(/^\d{2}\.\d{2}\.\d{4} – \d{2}\.\d{2}\.\d{4}$/);
+    await expect(page.getByRole('button', { name: 'Späterer Zeitraum' })).toBeDisabled();
+    await page.getByRole('button', { name: 'Früherer Zeitraum' }).click();
+    await expect(period).not.toHaveText(current);
+    const older = await period.innerText();
+    // Wischen nach links → wieder neuer, nach rechts → älter (Touch-Zeiger)
+    const swipe = (dx: number) =>
+      page.getByTestId('analysis-view-trend').evaluate((el, d) => {
+        const r = el.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + 40;
+        el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', clientX: x, clientY: y }));
+        el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch', clientX: x + d, clientY: y + 4 }));
+      }, dx);
+    await swipe(-120);
+    await expect(period).toHaveText(current);
+    await swipe(120);
+    await expect(period).toHaveText(older);
+    await swipe(20); // zu kurz: keine Änderung
+    await expect(period).toHaveText(older);
+
+    await page.getByRole('group', { name: 'Ansicht' }).getByRole('button', { name: 'Medis', exact: true }).click();
+    await page.getByRole('button', { name: '90 T' }).click();
+    await expect(page.getByTestId('meds-legend').locator('li').first()).toBeVisible();
+  });
+});

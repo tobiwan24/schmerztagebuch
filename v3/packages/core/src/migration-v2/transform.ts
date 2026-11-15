@@ -174,7 +174,11 @@ function sliderConfig(b: V2Block, ctx: DefContext): { min: number; max: number; 
   return { min, max, step };
 }
 
+/** v2 kennt keine Medikamenten-Rolle; Auswahl-/Checkbox-Felder mit eindeutigem Namen bekommen sie (Medikamententage, A-031). */
+const MEDICATION_LABEL = /medikament|medizin|tablette|arznei|schmerzmittel|präparat|einnahme/i;
+
 function roleOf(b: V2Block): Role | undefined {
+  if ((b.type === 'multiselect' || b.type === 'checkbox') && MEDICATION_LABEL.test(b.label ?? '')) return 'medication';
   if (b.type !== 'slider' || !b.dashboard || b.dashboard.enabled === false) return undefined;
   return b.dashboard.type === 'pain' ? 'outcome' : b.dashboard.type === 'function' ? 'function' : undefined;
 }
@@ -205,9 +209,11 @@ function makeDef(b: V2Block, order: string, ctx: DefContext, dateMode?: 'datetim
     case 'text':
       def = { ...base, type: 'text', config: {} };
       break;
-    case 'checkbox':
-      def = { ...base, type: 'checkbox', config: { withNote: true } };
+    case 'checkbox': {
+      const role = roleOf(b);
+      def = { ...base, type: 'checkbox', ...(role ? { role } : {}), config: { withNote: true } };
       break;
+    }
     case 'slider': {
       const role = roleOf(b);
       def = { ...base, type: 'slider', ...(role ? { role } : {}), config: sliderConfig(b, ctx) };
@@ -216,6 +222,7 @@ function makeDef(b: V2Block, order: string, ctx: DefContext, dateMode?: 'datetim
     case 'multiselect':
       def = {
         ...base,
+        ...(roleOf(b) ? { role: roleOf(b) } : {}),
         type: 'multiselect',
         config: { multiple: true, options: dedupeOptions(optionsOf(b)).map((o) => ({ id: optionIdFor(base.id, o.text), label: o.text, color: o.color })) },
       };

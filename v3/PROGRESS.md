@@ -4,19 +4,11 @@
 
 ## Aktuell
 
-- **Meilenstein:** M11 abgeschlossen (15/15). **Loop angehalten — Gate G3 „Auswertung & Export"** wartet auf den User.
-- **Gate G2:** vom User freigegeben (2026-11-13).
-- **Gate G3 — zu prüfen vom User** (Spec 10: Auswertung, Vergleich, PDF mit echten, migrierten Daten):
-  1. v3 lokal starten (`npm run dev -w @stb/web` bzw. Vorschau-Build) im **selben Browser-Profil**, in dem v2 läuft
-     (gleicher Origin nötig, damit v3 die `PainDiaryDB` sieht) — oder eine v2-Backup-Datei im Assistenten wählen.
-  2. Onboarding → Start-Hinweis „Daten aus der bisherigen App gefunden" → Übernehmen → ggf. v2-Passwort bzw. v2-Login
-     (Backup-Code/Passkey; für den Server-Pull muss die v2-API unter `/api/auth`, `/api/sync` erreichbar sein, A-033)
-     → Trockenlauf prüfen → Übernehmen → Bericht herunterladen.
-  3. **MIG-16:** Stichprobe der migrierten Einträge gegen v2 vergleichen.
-  4. **ANA-16:** Auswertung auf dem iPhone per Touch (Tooltip, Zeitraum) bedienen.
-  5. **EXP-13:** PDF eines Monats für einen Arzttermin beurteilen (Lesbarkeit, Vollständigkeit).
-  6. **UI-12:** Gate freigeben (z. B. „g3 freigegeben") oder Feedback geben — Feedback wird vor M12 als Aufgaben erledigt.
-- **Danach:** M12 (erst nach UI-12), dann M13 → Gate G4.
+- **Meilenstein:** M12 — Teilen- und Kurzbefehl-UI, Erinnerungen, Diagnose. Gate G3 stellvertretend geprüft (ADR-012).
+- **Auftrag (2026-11-15):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
+  VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
+- **Nächste Aufgabe:** M12 — `npm run acceptance -- --milestone M12` und Spec 09/08/10 lesen, Teilaufgaben bilden.
+- **Kleinigkeit:** Standardbild „Körper Rückseite" (aus v2 übernommen) hat 2 Pixel Artefakt am linken Rand (y≈470) — sichtbar im PDF.
 - **Offen für M13 (QA-02):** Initiales JS liegt bei ~496 KB gzip (Recharts, jsPDF, html2canvas im Haupt-Bundle) — Diagramme, PDF,
   Migration und Editor per Lazy-Loading auslagern.
 - **Nacharbeiten Formular:** Tags-Eingabe, Textarea-Ereignisse/Anhänge (v2-Port), Wetter-/GPS-Schalter, Löschen/Duplizieren im Detail. Schnelleintrag: Einstellung pro Tagebuch (Vorlage/Blöcke) folgt mit Tagebuch-Einstellungen; bei mehreren Tagebüchern nimmt `/quick` das erste. Body-Map: v2-Pinsel/Punktgröße/Kommentare/eigene Bilder fehlen (v3-Wertform kennt nur Punkte mit Intensität) — bei Bedarf Spec 05 erweitern; Migration (M11) muss Pinselstriche abbilden.
@@ -54,9 +46,9 @@
 - [ ] CRY-17 Passkey-Login auf echtem iPhone (Face ID, iCloud-Schlüsselbund) inkl. App-Neustart — mit der G2-Freigabe nicht ausdrücklich bestätigt, beim User nachfragen
 
 ### G3 — Auswertung & Export
-- [ ] UI-12 Auswertung und Export mit echten Daten freigegeben
-- [ ] ANA-16 Diagramme per Touch bedienbar
-- [ ] EXP-13 PDF eines Monats für den Arzttermin brauchbar
+- [x] UI-12 Auswertung und Export freigegeben — **stellvertretend durch den Loop** (ADR-012, 2026-11-15) mit synthetischem v2-Monat (34 Einträge, März 2026) über den Assistenten migriert, im Browser (iPhone-Viewport 390×844) geprüft; Befunde G3-1…G3-5 behoben. Echte Daten: siehe MIG-16.
+- [x] ANA-16 Diagramme per Touch bedienbar — **stellvertretend** (ADR-012): Tooltip per Tippen (Recharts), Wischen verschiebt den Zeitraum (neu, E2E mit Touch-Zeigerereignissen); auf einem echten iPhone noch nicht ausprobiert.
+- [x] EXP-13 PDF eines Monats brauchbar — **stellvertretend** (ADR-012): PDF „März 2026“ gerendert und gesichtet (Deckblatt mit Zeitraum, Tage mit Eintrag, Kennzahlen, Medikamententage, Arztterminen; Tabelle je Vorlage; Körperkarten je Seite).
 
 ### G4 — Ablösung
 - [ ] UI-13 Freigabe zur Umstellung des Deployments
@@ -164,3 +156,4 @@
 | 2026-11-13 | M11.4 | MIG-08 MIG-09 MIG-10 MIG-13 | `web/migration/run.ts`: `planMigration` (Trockenlauf: Records + Anhang-Inhalte gegen den Bestand, nichts geschrieben), `applyMigration` (Inhalte, dann Records in einer Transaktion → Outbox/Upload-Warteschlange), `verifyMigration` (alle Vorlagen/Versionen/Einträge/Anhänge vorhanden, jeder 10. Eintrag mit allen Werten; in v3 später geänderte Einträge zählen nicht als Abweichung), Zustand + Bericht lokal (`device`-Tabelle, `migratedFromV2At`) und als Textdatei. Vergleichslogik des Imports als `planRecordWrites` geteilt. `migration/v2/images.ts`: Body-Map-Bilder per 16×16-Fingerabdruck + Seitenverhältnis den Standardbildern zuordnen, sonst eigenes Bild. Integrationstest von PainDiaryDB bis Prüfschritt. |
 | 2026-11-13 | M11.5 | MIG-11 MIG-12 | `migration/v2/server.ts`: v2-API-Client nur lesend (salt, login-options/-verify, recover, pull), Login per v2-Backup-Code (HKDF-Verifier wie v2) oder v2-Passkey (PRF mit v2-Eval-Salt, Optionen vorab), `mergeV2` (lokal + Server über `syncId`, neueres `updatedAt` gewinnt, Server-Einträge als Cloud-DEK-verschlüsselt). `migration/v2/backup.ts`: v2-Backup-Datei (`manualBackup`-Format, auch `fix/v2-backup-merge`) → derselbe Schnappschuss wie die DB. Tests: Stub-Server mit Werten aus dem Original-v2-Code (Verifier, Wraps; Vektoren um `backupAuthVerifier` ergänzt), keine schreibenden Aufrufe; Backup-Datei ergibt dasselbe Ergebnis wie die DB. |
 | 2026-11-15 | M11.6 | MIG-14 MIG-15 | Assistent `/migrate` (`migration/useMigration.ts` + `pages/MigratePage.tsx`): Erkennen mit Zählung, v2-Backup-Datei als Alternative, v2-Passwort (nur bei lokal verschlüsselten Einträgen), v2-Cloud-Login per Passkey (Optionen vorab, `credentials.get` im Klick) oder Backup-Code mit optionalem Server-Pull, Body-Map-Bilder einordnen, Trockenlauf-Bericht (neu/unverändert, nicht übernommen mit Datum, unbekannte Werte, Hinweise) → Übernehmen → Prüfen → Bericht als Datei. Start-Hinweis solange nicht übernommen, Einstellungen → v2-Daten mit „Entfernen" erst nach erfolgreicher Prüfung + Bestätigungsdialog (A-033). `decodeDataUrl` wirft nicht mehr bei kaputtem Base64. E2E (Chromium + WebKit): v2-DB im Browser mit v21-Struktur → Assistent → 8 Einträge im Verlauf, Suche findet migrierten Text, PDF enthält migrierte Einträge; Entfernen gesperrt → nach Prüfung möglich → Abbrechen/Bestätigen. **M11 abgeschlossen** (15/15); Regression M0–M10 grün (M4: QA-08 wartet auf Docker). **Loop angehalten (Gate G3).** |
+| 2026-11-15 | Gate G3 (stellvertretend) | UI-12 ANA-16 EXP-13 | User: „beende den Loop komplett ohne mich, teste selbst im Browser" (ADR-012). Synthetische v2-Backup-Datei (März 2026, 2 Vorlagen, 34 Einträge, Medikamente, Arzttermine, Zeitraum, Body-Map mit v2-artig verkleinertem Standardbild + eigenem Bild) im Browser (Preview + Server, iPhone-Viewport) migriert: Standardbild per Fingerabdruck erkannt, Prüfung erfolgreich. Befunde und Behebung: **G3-1** v2-Feld „Medikamente" ohne Rolle → Medis-Ansicht und PDF-Medikamententage leer → Migration vergibt `medication` an Auswahl-/Checkbox-Felder mit Medikamenten-Namen (A-031, Golden File). **G3-2** Vergleichs-Zeiträume ohne Jahr („16.11.–15.11.") → mit Jahr. **G3-3** Auswertung nur relativ zu heute, kein Wischen (Spec 06 „Touch") → Zeitraum verschieben per ‹ › und horizontalem Wischen, Anzeige von–bis mit Jahr. **G3-4** Export ohne Zeitraum (EXP-13 „PDF eines Monats") → Zeitraum „Gesamt / Monat / Von – bis", kombinierbar mit gespeicherten Filtern; PDF-Deckblatt zeigt den gewählten Monat. **G3-5** Medikamenten-Diagramm ohne Legende → Legende. Neue E2E: Zeitraum per Knopf/Wischen + Legende, Export eines Monats. |
