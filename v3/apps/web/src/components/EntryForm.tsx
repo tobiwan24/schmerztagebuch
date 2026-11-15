@@ -21,6 +21,7 @@ import {
   type TimeInput,
 } from '@stb/core';
 import { Button } from '@/components/ui/button';
+import { TemplateIcon } from '@/components/TemplateIcon';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -137,13 +138,17 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
           <div className="flex flex-wrap gap-2">
             {templates.map((t) => (
               <Button key={t.id} type="button" size="sm" variant={t.id === template.id ? 'default' : 'outline'} aria-pressed={t.id === template.id} onClick={() => void selectTemplate(t.id)}>
+                <TemplateIcon icon={t.icon} color={t.color} className={t.id === template.id ? 'text-primary-foreground' : undefined} />
                 {t.name}
               </Button>
             ))}
           </div>
         </fieldset>
       ) : (
-        <p className="text-sm text-muted-foreground">{template.name}</p>
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <TemplateIcon icon={template.icon} color={template.color} />
+          {template.name}
+        </p>
       )}
 
       <TimeField time={current.time} error={timeError} onChange={setTime} />

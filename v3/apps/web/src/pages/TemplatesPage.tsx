@@ -2,7 +2,8 @@
 // endgültiges Löschen nur mit Bestätigung und Anzahl betroffener Einträge (BLK-15), Anlage aus dem Katalog.
 // Reihenfolge ändert nur `Template.order` (Fractional Index) — keine neue Vorlagenversion.
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { Archive, ArchiveRestore, GripVertical, Plus, Trash2 } from 'lucide-react';
+import { Link } from 'react-router';
+import { Archive, ArchiveRestore, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { TEMPLATE_CATALOG, instantiateCatalogTemplate, keyBetween, type Template } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/PageHeader';
+import { TemplateIcon } from '@/components/TemplateIcon';
 import { EmptyState, ErrorState } from '@/components/StateView';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
@@ -104,6 +106,14 @@ export function TemplatesPage() {
                   ))}
               </Card>
             </section>
+          ) : null}
+          {query.data.diaryId ? (
+            <Button asChild variant="outline">
+              <Link to="/more/templates/new">
+                <Plus aria-hidden />
+                {de.templates.create}
+              </Link>
+            </Button>
           ) : null}
           {query.data.diaryId ? (
             <section className="flex flex-col gap-2">
@@ -212,10 +222,16 @@ function SortableTemplates({
           >
             <GripVertical aria-hidden />
           </Button>
+          <TemplateIcon icon={r.template.icon} color={r.template.color} />
           <span className="flex flex-1 flex-col">
             <span>{r.template.name}</span>
             <span className="text-xs text-muted-foreground">{de.templates.entryCount(r.entries)}</span>
           </span>
+          <Button asChild variant="ghost" size="icon">
+            <Link to={`/more/templates/${r.template.id}`} aria-label={de.templates.edit(r.template.name)}>
+              <Pencil aria-hidden />
+            </Link>
+          </Button>
           <Button variant="ghost" size="icon" aria-label={de.templates.archive(r.template.name)} onClick={() => onArchive(r.template)}>
             <Archive aria-hidden />
           </Button>

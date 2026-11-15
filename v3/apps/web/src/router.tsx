@@ -35,6 +35,8 @@ export const router = createBrowserRouter([
           { path: '/more/settings', element: <SettingsPage /> },
           { path: '/more/settings/diagnose', lazy: page(() => import('@/pages/DiagnosticsPage'), 'DiagnosticsPage') },
           { path: '/more/templates', lazy: page(() => import('@/pages/TemplatesPage'), 'TemplatesPage') },
+          { path: '/more/templates/new', lazy: page(() => import('@/pages/TemplateEditorPage'), 'TemplateEditorPage') },
+          { path: '/more/templates/:id', lazy: page(() => import('@/pages/TemplateEditorPage'), 'TemplateEditorPage') },
           { path: '/more/diaries', element: <DiariesPage /> },
           { path: '/more/diaries/:id/shortcut', lazy: page(() => import('@/pages/ShortcutPage'), 'ShortcutPage') },
           { path: '/more/diaries/:id/members', lazy: page(() => import('@/pages/MembersPage'), 'MembersPage') },
