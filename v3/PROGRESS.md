@@ -7,8 +7,8 @@
 - **Meilenstein:** M14 „Nacharbeiten v2-Parität" aktuell (0/28 IDs, M14.0 Doku erledigt); danach/parallel der Teil-Meilenstein M14b „v2-Parität, Rest" (0/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M14.2 (Editor-Domäne in core: `newBlock`, `validateTemplateDraft`, `moveBlock`, `removeBlock`, `duplicateTemplate`; BLK-22). Reihenfolge laut Plan: Editor zuerst; M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-049.
-- **Erledigt in M14:** (Doku M14.0)
+- **Nächste Aufgabe:** M14.3 (Editor-Seite; BLK-23). Reihenfolge laut Plan: Editor zuerst; M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-049.
+- **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22)
 - **Erledigt in M14b:** (Doku M14b.0)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. **Achtung:** `npm run verify` überschreibt `reports/vitest.json` mit übersprungenem QA-08 → vor `npm run acceptance` gesamt `npm run verify:docker` (Docker Desktop muss laufen).
@@ -19,7 +19,7 @@
 | # | Inhalt | IDs |
 |---|---|---|
 | M14.1 | Bild-Artefakt „Körper Rückseite" (Alpha x 0–1, y 469–476), Regressionstest, `fast-png` (DECISIONS) | BLK-40 |
-| M14.2 | Editor-Domäne in core (`template-editor.ts`) | BLK-22 |
+| M14.2 | Editor-Domäne in core (`template-editor.ts`) — erledigt | BLK-22 |
 | M14.3 | Editor-Seite: Route, leere Vorlage, Name/Icon/Farbe, Duplizieren | BLK-23 |
 | M14.15d | Vorlagen-Kacheln und Begrüßung auf Start — M14b | BLK-44 |
 | M14.4a | Blöcke: Palette, Label/Pflicht/Rolle, Konfiguration slider/checkbox/text/textarea/date (Grundlage) | (BLK-24) |
@@ -88,7 +88,7 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M11 | erledigt | 15/15 IDs → Gate G3 (wartet auf User) |
 | M12 | erledigt | 9/9 IDs |
 | M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
-| M14 | aktuell | 0/28 IDs offen — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
+| M14 | aktuell | 1/28 IDs erledigt — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
 | M14b | offen | 0/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
@@ -225,3 +225,4 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | 2026-11-16 | M4-Nachtrag | QA-08 | Docker Desktop läuft: `npm run verify:docker` grün (compose up --build, Health über nginx mit Version 3.0.0…, Seite 200, compose down -v). Fix: `docker compose` asynchron (`execFile`), sonst blockiert der Build den Vitest-Worker → „Timeout calling onTaskUpdate". Gesamt-Akzeptanz 155/155 automatisiert. |
 | 2026-11-16 | M14.0 | — | Doku für M14 „Nacharbeiten v2-Parität": 28 neue Akzeptanz-IDs (DM-14, SYN-17/18, BLK-22…BLK-40, UI-14…UI-19) in Spec 02/04/05/10, Textentwürfe (Vorlagen-Editor, Tags, Löschen/Duplizieren, Textarea, Schnelleintrag, Wetter ohne Warten, Ortssuche, Umnummerierung), MILESTONES-Zeile M14 im selben Commit, A-036–A-049 in DECISIONS (A-016/A-021 verwiesen), Aufgabenliste M14.1–M14.22. Befunde: Body-Map war mit M8b schon erledigt (Notizen veraltet, entfernt); Wetter-Dienst war nirgends angeschlossen; Vorlagen-Editor-UI fehlte; Ursache: Ansichtstabelle von Spec 10 hatte keine IDs. GATE-G4 „Bekannte Lücken" auf M14 verwiesen. |
 | 2026-11-16 | M14b.0 | — | Doku für den Teil-Meilenstein M14b „v2-Parität, Rest": 22 neue Akzeptanz-IDs (BLK-41…44, ANA-17…21, EXP-14…17, CRY-18…20, UI-20…24, MIG-17) in Spec 03/05/06/07/10/11, UI-19 (Safari-Hinweis) und BLK-24 (Optionsfarben/Reihenfolge) erweitert, Spec-Texte (02 `hideLabel`, 03 Sitzung, 06 FilterSpec/Sortierung/Zeiträume, 07 PDF-Layouts + Auto-Sicherung, 10 Paritätstabelle), MILESTONES-Zeile M14b im selben Commit, A-049 neu gefasst (Umschalter kommt, UI-24), A-050–A-058, GATE-G4 Bekannte Lücken, Aufgabenliste erweitert. Befund: Der Nachtrag sprach von 21 neuen IDs, es sind 22 (4+5+4+3+5+1). |
+| 2026-11-16 | M14.2 | BLK-22 | `core/template-editor.ts`: `newBlock(type, ids, afterOrder)` (Standard-config A-037, Label zunächst leer), `validateTemplateDraft` (Codes NAME_EMPTY, LABEL_EMPTY, SLIDER_RANGE, SLIDER_STEP, OPTIONS_EMPTY, OPTION_LABEL_EMPTY/DUPLICATE; Optionslabels ohne Groß-/Kleinschreibung), `moveBlock`/`removeBlock`, `duplicateTemplate(source, ids, clock, nextOrder)`; `OPTION_COLORS`, `BLOCK_TYPES`. |
