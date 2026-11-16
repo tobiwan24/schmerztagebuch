@@ -1,6 +1,6 @@
 // Mehr → Export & Backup (Spec 07): Export (JSON v1, CSV long/wide, optional gefiltert), verschlüsseltes Backup,
 // Import mit Vorschau (neu / geändert / unverändert, „Als Kopie"). Alles entsteht und bleibt auf dem Gerät.
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Download, FileUp, ShieldCheck } from 'lucide-react';
 import type { BackupSecret } from '@stb/crypto';
 import { parseExport, type CsvProfile, type ExportV1, type PdfImageSize } from '@stb/export';
@@ -191,6 +191,9 @@ function BackupCard({ localOnly }: { localOnly: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  useEffect(() => {
+    if (window.location.hash === '#backup') document.getElementById('backup')?.scrollIntoView?.();
+  }, []);
 
   async function run(e: FormEvent) {
     e.preventDefault();
@@ -213,7 +216,7 @@ function BackupCard({ localOnly }: { localOnly: boolean }) {
 
   const last = state.status === 'ok' ? state.data.last : null;
   return (
-    <Card>
+    <Card id="backup">
       <CardHeader>
         <CardTitle>{t.backupTitle}</CardTitle>
         <CardDescription>{t.backupHint}</CardDescription>

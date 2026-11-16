@@ -12,6 +12,14 @@ export function onUpdateAvailable(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
+/** Testnaht (E2E): zeigt den Update-Hinweis ohne echten neuen Service Worker. */
+if (typeof window !== 'undefined') {
+  window.addEventListener('stb:test-update-available', () => {
+    waitingWorker ??= { postMessage: () => undefined } as unknown as ServiceWorker;
+    notify();
+  });
+}
+
 /** Wartenden SW aktivieren; nach dem Wechsel lädt die App neu. */
 export function applyUpdate(): void {
   updateRequested = true;

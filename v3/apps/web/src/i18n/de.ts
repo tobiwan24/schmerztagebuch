@@ -698,6 +698,7 @@ export const de = {
   update: {
     available: 'Neue Version verfügbar.',
     restart: 'Neu starten',
+    backupFirst: 'Vorher Backup erstellen',
   },
   notFound: {
     title: 'Seite nicht gefunden',
