@@ -2,8 +2,10 @@
 // Zeitpunkt = jetzt, `meta.source = 'quick'`; weitere Felder später im Eintrag ergänzbar. Pflichtfelder gelten hier nicht.
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { initialWeatherMeta, quickEntrySelection, valuesToSave, type DiaryWeatherSettings, type Diary, type Entry, type FormValues, type QuickEntrySelection, type TemplateState } from '@stb/core';
+import { initialWeatherMeta, quickEntryOptions, valuesToSave, type DiaryWeatherSettings, type Diary, type Entry, type FormValues, type QuickEntrySelection, type TemplateState } from '@stb/core';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { TemplateIcon } from '@/components/TemplateIcon';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState, ErrorState } from '@/components/StateView';
 import { WeatherSwitch, useDiaryWeatherSettings, useGpsChoice } from '@/components/WeatherSwitch';
@@ -19,22 +21,32 @@ export function QuickPage() {
   const [values, setValues] = useState<FormValues>({});
   const [empty, setEmpty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [chosen, setChosen] = useState<string | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
   const wanted = useSearchParams()[0].get('diary');
   const writable = useWritableDiaries();
   const writableIds = writable.status === 'ok' ? writable.data.map((d) => d.id).join() : null;
   // Mehrere beschreibbare Tagebücher ohne Angabe → Auswahl (A-041); sonst das gewählte bzw. einzige Tagebuch.
-  const query = useQuery<{ choose: Diary[] | null; selection: QuickEntrySelection | null }>(async () => {
-    if (writable.status !== 'ok') return { choose: null, selection: null };
+  const query = useQuery<{ choose: Diary[] | null; options: QuickEntrySelection[]; lastTemplateId: string | null }>(async () => {
+    if (writable.status !== 'ok') return { choose: null, options: [], lastTemplateId: null };
     const list = writable.data;
-    if (!wanted && list.length > 1) return { choose: list, selection: null };
+    if (!wanted && list.length > 1) return { choose: list, options: [], lastTemplateId: null };
     const diary = wanted ? list.find((d) => d.id === wanted) : list[0];
-    if (!diary) return { choose: null, selection: null };
+    if (!diary) return { choose: null, options: [], lastTemplateId: null };
     const states = (await Promise.all((await data.diary.listTemplates(diary.id)).map((t) => data.diary.getTemplate(t.id)))).filter(
       (s): s is TemplateState => s !== undefined,
     );
-    return { choose: null, selection: quickEntrySelection(diary, states) };
+    // Vorausgewählt: die Vorlage des zuletzt gespeicherten Eintrags (A-070), sonst die erste.
+    const last = (await data.diary.listEntries(diary.id)).reduce<Entry | null>((a, e) => (!a || e.recordedAt > a.recordedAt ? e : a), null);
+    return { choose: null, options: quickEntryOptions(diary, states), lastTemplateId: last?.templateId ?? null };
   }, [data.diary, wanted, writableIds]);
-  const selection = query.status === 'ok' ? query.data.selection : null;
+  const options = query.status === 'ok' ? query.data.options : [];
+  const selection = (query.status === 'ok' ? options.find((o) => o.state.template.id === (chosen ?? query.data.lastTemplateId)) : undefined) ?? options[0] ?? null;
+  const switchTo = (id: string) => {
+    if (id === selection?.state.template.id) return;
+    if (Object.keys(valuesToSave(selection!.state.version, values)).length > 0) setPending(id);
+    else setChosen(id);
+  };
   const weatherSettings = useDiaryWeatherSettings(selection?.state.template.diaryId);
   const [useGps, setUseGps] = useGpsChoice(weatherSettings);
 
@@ -77,6 +89,22 @@ export function QuickPage() {
           ))}
         </section>
       ) : null}
+      {selection && options.length > 1 ? (
+        <fieldset className="flex flex-col gap-2" data-testid="quick-template-choice">
+          <legend className="mb-2 text-sm font-medium">{de.quick.template}</legend>
+          <div className="flex flex-wrap gap-2">
+            {options.map((o) => {
+              const active = o.state.template.id === selection.state.template.id;
+              return (
+                <Button key={o.state.template.id} type="button" size="sm" variant={active ? 'default' : 'outline'} aria-pressed={active} onClick={() => switchTo(o.state.template.id)}>
+                  <TemplateIcon icon={o.state.template.icon} color={o.state.template.color} className={active ? 'text-primary-foreground' : undefined} />
+                  {o.state.template.name}
+                </Button>
+              );
+            })}
+          </div>
+        </fieldset>
+      ) : null}
       {query.status === 'ok' && writable.status === 'ok' && !query.data.choose && (!selection || selection.blocks.length === 0) ? (
         <>
           <EmptyState title={de.quick.noBlocksTitle} hint={de.quick.noBlocksHint} />
@@ -105,6 +133,18 @@ export function QuickPage() {
           </Button>
         </form>
       ) : null}
+      <Dialog open={pending !== null} onClose={() => setPending(null)} aria-labelledby="quick-switch-title">
+        <DialogTitle id="quick-switch-title">{de.entry.switchTitle}</DialogTitle>
+        <DialogDescription>{de.entry.switchHint}</DialogDescription>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => setPending(null)}>
+            {de.entry.keepEditing}
+          </Button>
+          <Button type="button" variant="destructive" onClick={() => (setChosen(pending), setValues({}), setEmpty(false), setPending(null))}>
+            {de.entry.switchConfirm}
+          </Button>
+        </DialogFooter>
+      </Dialog>
     </>
   );
 }

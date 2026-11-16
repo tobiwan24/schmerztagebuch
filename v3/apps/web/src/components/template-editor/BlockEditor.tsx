@@ -18,7 +18,7 @@ const t = de.templates.editor;
 const PALETTE: readonly BlockType[] = ['slider', 'checkbox', 'multiselect', 'text', 'textarea', 'date', 'bodymap'];
 
 export function BlockEditor({
-  blocks, issues, newId, onChange,
+  blocks, issues, newId, onChange, quickIds, onQuickChange,
 }: {
   /** Nach `order` sortiert. */
   blocks: BlockDef[];
@@ -26,6 +26,9 @@ export function BlockEditor({
   issues: Map<string, string[]>;
   newId: () => string;
   onChange: (blocks: BlockDef[]) => void;
+  /** Blöcke im Schnelleintrag (A-070); unversioniert, daher getrennt von `blocks`. */
+  quickIds: readonly string[];
+  onQuickChange: (id: string, on: boolean) => void;
 }) {
   const replace = (next: BlockDef) => onChange(blocks.map((b) => (b.id === next.id ? next : b)));
   const [dragId, setDragId] = useState<string | null>(null);
@@ -57,6 +60,7 @@ export function BlockEditor({
         {t.blocks}
       </h2>
       <p className="text-xs text-muted-foreground">{t.blocksHint}</p>
+      <p className="text-xs text-muted-foreground">{t.quickHint}</p>
       {blocks.length > 0 ? (
         <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => onChange(setHideLabel(blocks, !blocks.every((b) => b.hideLabel === true)))}>
           {blocks.every((b) => b.hideLabel === true) ? t.showAllLabels : t.hideAllLabels}
@@ -71,6 +75,8 @@ export function BlockEditor({
           messages={issues.get(b.id) ?? []}
           newId={newId}
           onChange={replace}
+          quick={quickIds.includes(b.id)}
+          onQuick={(on) => onQuickChange(b.id, on)}
           dragging={dragId === b.id}
           cardRef={(el) => {
             if (el) refs.current.set(b.id, el);
@@ -116,13 +122,15 @@ interface GripHandlers {
 }
 
 function BlockCard({
-  def, index, messages, newId, onChange, dragging, cardRef, onRemove, grip,
+  def, index, messages, newId, onChange, quick, onQuick, dragging, cardRef, onRemove, grip,
 }: {
   def: BlockDef;
   index: number;
   messages: string[];
   newId: () => string;
   onChange: (def: BlockDef) => void;
+  quick: boolean;
+  onQuick: (on: boolean) => void;
   dragging: boolean;
   cardRef: (el: HTMLElement | null) => void;
   onRemove: () => void;
@@ -174,6 +182,12 @@ function BlockCard({
         <Checkbox id={id('hideLabel')} checked={def.hideLabel === true} onChange={(e) => onChange(setHideLabel([def], e.target.checked)[0]!)} />
         <Label htmlFor={id('hideLabel')} className="font-normal">
           {t.hideLabel}
+        </Label>
+      </div>
+      <div className="flex items-center gap-3">
+        <Checkbox id={id('quick')} checked={quick} onChange={(e) => onQuick(e.target.checked)} />
+        <Label htmlFor={id('quick')} className="font-normal">
+          {t.quick}
         </Label>
       </div>
       <div className="flex items-center gap-3">

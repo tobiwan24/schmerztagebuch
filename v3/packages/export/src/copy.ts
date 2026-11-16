@@ -67,7 +67,7 @@ export function copyWithNewIds(doc: ExportV1, newId: () => string): ExportV1 {
         ...(d.diary.settings.quickEntryBlockIds ? { quickEntryBlockIds: d.diary.settings.quickEntryBlockIds.map(m) } : {}),
       },
     },
-    templates: d.templates.map((t) => ({ ...t, id: m(t.id), diaryId: m(t.diaryId), versions: t.versions.map((v) => ({ ...v, blocks: v.blocks.map(block) })) })),
+    templates: d.templates.map((t) => ({ ...t, id: m(t.id), diaryId: m(t.diaryId), ...(t.quickBlockIds ? { quickBlockIds: t.quickBlockIds.map(m) } : {}), versions: t.versions.map((v) => ({ ...v, blocks: v.blocks.map(block) })) })),
     entries: d.entries.map((e) => ({
       ...e, id: m(e.id), diaryId: m(e.diaryId), templateId: m(e.templateId),
       values: Object.fromEntries(Object.entries(e.values).map(([k, v]) => [m(k), value(v)])),

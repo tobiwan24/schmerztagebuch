@@ -90,4 +90,12 @@ describe('Editor-Domäne', () => {
     expect(copyIds.some((id) => origIds.has(id))).toBe(false);
     expect(copy.version.blocks.map((b) => b.label)).toEqual(['Symptome', 'Schmerz']);
   });
+
+  it('duplicateTemplate übernimmt die Schnelleintrag-Auswahl mit den neuen Block-IDs', () => {
+    const sl = labelled(newBlock('slider', ids), 'Schmerz');
+    const tx = labelled(newBlock('text', ids, sl.order), 'Notiz');
+    const orig = createTemplate({ id: ids.newId(), diaryId: ids.newId(), name: 'T', order: keyBetween(null, null), quickBlockIds: [tx.id], blocks: [sl, tx] }, clock);
+    const copy = duplicateTemplate(orig, ids, clock, null);
+    expect(copy.template.quickBlockIds).toEqual([copy.version.blocks[1]!.id]);
+  });
 });

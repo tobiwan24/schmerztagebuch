@@ -111,13 +111,16 @@ export function removeBlock(blocks: readonly BlockDef[], id: string): BlockDef[]
  */
 export function duplicateTemplate(source: TemplateState, ids: IdGenerator, clock: Clock, nextOrder: string | null): TemplateState {
   const { template, version } = source;
+  const idMap = new Map<string, string>();
   const blocks = version.blocks.map((b): BlockDef => {
     const id = ids.newId();
+    idMap.set(b.id, id);
     if (b.type === 'multiselect') {
       return { ...b, id, config: { ...b.config, options: b.config.options.map((o) => ({ ...o, id: ids.newId() })) } };
     }
     return { ...b, id };
   });
+  const quick = template.quickBlockIds?.flatMap((q) => idMap.get(q) ?? []);
   return createTemplate(
     {
       id: ids.newId(),
@@ -126,6 +129,7 @@ export function duplicateTemplate(source: TemplateState, ids: IdGenerator, clock
       ...(template.icon !== undefined ? { icon: template.icon } : {}),
       ...(template.color !== undefined ? { color: template.color } : {}),
       order: keyBetween(template.order, nextOrder),
+      ...(quick?.length ? { quickBlockIds: quick } : {}),
       blocks,
     },
     clock,

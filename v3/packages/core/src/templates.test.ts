@@ -171,4 +171,15 @@ describe('Einträge', () => {
     expect(schema.safeParse({ ...entryFor(s, { [slider.id]: 1 }), templateId: newId() }).success).toBe(false);
     expect(schema.safeParse({ ...entryFor(s, { [slider.id]: 1 }), meta: { source: 'fax', timezone: 'UTC' } }).success).toBe(false);
   });
+
+  it('Schnelleintrag-Auswahl der Vorlage ändert keine Version und lässt sich entfernen', () => {
+    const s = base();
+    const id = s.version.blocks[0]!.id;
+    const set = updateTemplate(s, { quickBlockIds: [id] }, clock);
+    expect(set.newVersion).toBe(false);
+    expect(set.state.template.quickBlockIds).toEqual([id]);
+    const cleared = updateTemplate(set.state, { quickBlockIds: null }, clock);
+    expect(cleared.state.template.quickBlockIds).toBeUndefined();
+    expect(cleared.state.template.currentVersion).toBe(1);
+  });
 });

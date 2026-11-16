@@ -49,6 +49,8 @@ export const templateSchema = z.strictObject({
   icon: z.string().optional(),
   color: z.string().optional(),
   order: orderKeySchema,
+  /** Blöcke für den Schnelleintrag (Reihenfolge folgt der Vorlage); unversioniert, nur Darstellung (A-070). */
+  quickBlockIds: z.array(idSchema).optional(),
   currentVersion: z.number().int().min(1),
   archived: z.boolean(),
   createdAt: isoDateTime,
@@ -91,6 +93,7 @@ export interface NewTemplate {
   icon?: string;
   color?: string;
   order: string;
+  quickBlockIds?: string[];
   blocks: BlockDef[];
 }
 
@@ -108,6 +111,8 @@ export interface TemplatePatch {
   color?: string;
   order?: string;
   archived?: boolean;
+  /** `null` entfernt die Auswahl (Standardregel, Spec 05 „Schnelleintrag"). Ändert keine Version. */
+  quickBlockIds?: string[] | null;
   blocks?: BlockDef[];
 }
 
@@ -126,7 +131,7 @@ export function updateTemplate(
   history: readonly TemplateVersion[] = [],
 ): { state: TemplateState; newVersion: boolean } {
   const now = isoNow(clock);
-  const { blocks, ...meta } = patch;
+  const { blocks, quickBlockIds, ...meta } = patch;
   let version = state.version;
   let newVersion = false;
 
@@ -151,7 +156,10 @@ export function updateTemplate(
     }
   }
 
-  const template = templateSchema.parse({ ...state.template, ...meta, currentVersion: version.version, updatedAt: now });
+  const merged: Record<string, unknown> = { ...state.template, ...meta, currentVersion: version.version, updatedAt: now };
+  if (quickBlockIds === null) delete merged.quickBlockIds;
+  else if (quickBlockIds !== undefined) merged.quickBlockIds = quickBlockIds;
+  const template = templateSchema.parse(merged);
   return { state: { template, version }, newVersion };
 }
 

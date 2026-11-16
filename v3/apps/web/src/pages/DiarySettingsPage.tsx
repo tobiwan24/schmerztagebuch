@@ -2,7 +2,7 @@
 // Nur der Besitzer ändert; Mitglieder mit anderer Rolle sehen die Werte nur lesend (Spec 09).
 import { useState, type FormEvent } from 'react';
 import { useParams } from 'react-router';
-import { sortedBlocks, updateDiarySettings, type Diary, type TemplateState } from '@stb/core';
+import { updateDiarySettings, type Diary } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -35,8 +35,7 @@ export function DiarySettingsPage() {
   const query = useQuery(async () => {
     const diary = await data.diary.getDiary(id);
     if (!diary) return null;
-    const states = await Promise.all((await data.diary.listTemplates(id)).filter((x) => !x.archived).map((x) => data.diary.getTemplate(x.id)));
-    return { diary, templates: states.filter((s): s is TemplateState => s !== undefined) };
+    return { diary };
   }, [data.diary, id]);
   const readOnly = members.query.status === 'ok' && members.query.data.cloud && members.query.data.myRole !== 'owner';
   return (
@@ -45,20 +44,18 @@ export function DiarySettingsPage() {
       {query.status === 'loading' ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
       {query.status === 'error' ? <ErrorState onRetry={query.retry} /> : null}
       {query.status === 'ok' && !query.data ? <ErrorState detail={t.notFound} /> : null}
-      {query.status === 'ok' && query.data && members.query.status !== 'loading' ? <SettingsForm key={query.data.diary.id} diary={query.data.diary} templates={query.data.templates} readOnly={readOnly} /> : null}
+      {query.status === 'ok' && query.data && members.query.status !== 'loading' ? <SettingsForm key={query.data.diary.id} diary={query.data.diary} readOnly={readOnly} /> : null}
     </>
   );
 }
 
-function SettingsForm({ diary, templates, readOnly }: { diary: Diary; templates: TemplateState[]; readOnly: boolean }) {
+function SettingsForm({ diary, readOnly }: { diary: Diary; readOnly: boolean }) {
   const data = useData();
   const [name, setName] = useState(diary.name);
   const [timezone, setTimezone] = useState(diary.settings.timezone);
   const [enabled, setEnabled] = useState(diary.settings.weather.enabled);
   const [location, setLocation] = useState(diary.settings.weather.location);
   const [gpsDefault, setGpsDefault] = useState(diary.settings.weather.gpsDefault);
-  const [quickTemplate, setQuickTemplate] = useState(templates.some((x) => x.template.id === diary.settings.quickEntryTemplateId) ? (diary.settings.quickEntryTemplateId ?? '') : '');
-  const [quickBlocks, setQuickBlocks] = useState<string[]>(diary.settings.quickEntryBlockIds ?? []);
   const [showErrors, setShowErrors] = useState(false);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -73,9 +70,8 @@ function SettingsForm({ diary, templates, readOnly }: { diary: Diary; templates:
     try {
       const s = await data.stamper.stamp();
       const current = (await data.diary.getDiary(diary.id)) ?? diary;
-      const patch = { name, timezone, weather: { enabled, gpsDefault, location: location ?? null }, quickEntryTemplateId: quickTemplate || null, quickEntryBlockIds: quickTemplate && quickBlocks.length ? quickBlocks : null };
-      const known = templates.map((x) => ({ id: x.template.id, blockIds: x.version.blocks.map((b) => b.id) }));
-      await data.diary.saveDiary(updateDiarySettings(current, patch, { hlc: s.hlc, updatedAt: s.at }, { templates: known }));
+      const patch = { name, timezone, weather: { enabled, gpsDefault, location: location ?? null } };
+      await data.diary.saveDiary(updateDiarySettings(current, patch, { hlc: s.hlc, updatedAt: s.at }));
       setSaved(true);
     } finally {
       setBusy(false);
@@ -115,32 +111,6 @@ function SettingsForm({ diary, templates, readOnly }: { diary: Diary; templates:
           onChange={(l) => (setLocation(l ?? undefined), setEnabled(l !== null), setSaved(false))}
         />
         {!location ? <p className="text-sm text-muted-foreground">{t.weatherNoLocation}</p> : null}
-      </fieldset>
-      <fieldset className="flex flex-col gap-3">
-        <legend className="mb-1 text-sm font-medium">{t.quickTitle}</legend>
-        <Label htmlFor="diary-quick-template">{t.quickTemplate}</Label>
-        <Select id="diary-quick-template" value={quickTemplate} disabled={readOnly} onChange={(e) => (setQuickTemplate(e.target.value), setQuickBlocks([]), setSaved(false))}>
-          <option value="">{t.quickDefault}</option>
-          {templates.map((x) => (
-            <option key={x.template.id} value={x.template.id}>{x.template.name}</option>
-          ))}
-        </Select>
-        {quickTemplate ? (
-          <>
-            <p className="text-sm font-medium">{t.quickBlocks}</p>
-            {sortedBlocks(templates.find((x) => x.template.id === quickTemplate)!.version).map((b) => (
-              <Label key={b.id} className="min-h-11 gap-3">
-                <Checkbox
-                  checked={quickBlocks.includes(b.id)}
-                  disabled={readOnly}
-                  onChange={(e) => (setQuickBlocks(e.target.checked ? [...quickBlocks, b.id] : quickBlocks.filter((x) => x !== b.id)), setSaved(false))}
-                />
-                {b.label}
-              </Label>
-            ))}
-            <p className="text-sm text-muted-foreground">{t.quickBlocksHint}</p>
-          </>
-        ) : null}
       </fieldset>
       {readOnly ? null : (
         <div className="flex items-center gap-3">

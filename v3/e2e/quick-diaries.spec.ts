@@ -4,18 +4,17 @@ import { go, onboardWithPassword } from './helpers';
 test.describe('Schnelleintrag je Tagebuch', () => {
   test.describe.configure({ timeout: 90_000 });
 
-  test('BLK-37: Einstellung je Tagebuch, Knopf je Tagebuch auf Start, /quick?diary= und Auswahl ohne Parameter', async ({ page }) => {
+  test('BLK-37: Auswahl im Editor, Knopf je Tagebuch auf Start, /quick?diary= und Auswahl ohne Parameter', async ({ page }) => {
     await onboardWithPassword(page);
 
-    // Ein Tagebuch: ein Knopf; Einstellung: Vorlage + nur das Feld „Notizen"
+    // Ein Tagebuch: ein Knopf; Auswahl im Vorlagen-Editor (BLK-45): nur das Feld „Notizen"
     await go(page, '/');
     await expect(page.getByRole('link', { name: /Schnell eintragen/ })).toHaveCount(1);
-    await go(page, '/more/diaries');
-    await page.getByTestId('diary-card').getByRole('link', { name: 'Einstellungen' }).click();
-    await page.getByLabel('Vorlage für den Schnelleintrag').selectOption({ label: 'Allgemeines Schmerz-Tagebuch' });
-    await page.getByLabel('Notizen', { exact: true }).check();
+    await go(page, '/more/templates');
+    await page.getByRole('link', { name: 'Allgemeines Schmerz-Tagebuch bearbeiten' }).click();
+    await page.getByTestId('block-editor-card').filter({ has: page.locator('input[value="Notizen"]') }).getByLabel('Im Schnelleintrag').check();
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByText('Gespeichert.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
 
     await go(page, '/quick');
     await expect(page.getByLabel('Notizen')).toBeVisible();

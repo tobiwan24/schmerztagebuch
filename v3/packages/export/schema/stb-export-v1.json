@@ -1251,6 +1251,12 @@
                 "order": {
                   "type": "string"
                 },
+                "quickBlockIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
                 "currentVersion": {
                   "type": "integer",
                   "minimum": 1,

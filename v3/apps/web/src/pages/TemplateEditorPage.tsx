@@ -65,12 +65,15 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
   const [icon, setIcon] = useState(state?.template.icon ?? DEFAULT_TEMPLATE_ICON);
   const [color, setColor] = useState(state?.template.color ?? DEFAULT_TEMPLATE_COLOR);
   const [blocks, setBlocks] = useState<BlockDef[]>(() => [...(state?.version.blocks ?? [])].sort(compareByOrder));
+  const [quickIds, setQuickIds] = useState<string[]>(state?.template.quickBlockIds ?? []);
   const [showErrors, setShowErrors] = useState(false);
   const [busy, setBusy] = useState(false);
   // Ungespeicherte Änderungen: Vergleich mit dem Ausgangszustand (Hinzufügen und wieder Entfernen ist keine Änderung, BLK-25).
-  const snapshot = (n: string, i: string, c: string, b: readonly BlockDef[]) => canonical({ n, i, c, b: [...b].sort(compareByOrder) });
-  const initialSnapshot = useRef(snapshot(name, icon, color, blocks));
-  const dirty = snapshot(name, icon, color, blocks) !== initialSnapshot.current;
+  // Schnelleintrag-Auswahl nur für noch vorhandene Blöcke, in Vorlagen-Reihenfolge (A-070).
+  const quickOf = (b: readonly BlockDef[], q: readonly string[]) => [...b].sort(compareByOrder).filter((x) => q.includes(x.id)).map((x) => x.id);
+  const snapshot = (n: string, i: string, c: string, b: readonly BlockDef[], q: readonly string[]) => canonical({ n, i, c, b: [...b].sort(compareByOrder), q: quickOf(b, q) });
+  const initialSnapshot = useRef(snapshot(name, icon, color, blocks, quickIds));
+  const dirty = snapshot(name, icon, color, blocks, quickIds) !== initialSnapshot.current;
   const leaving = useRef(false);
   const blocker = useBlocker(({ currentLocation, nextLocation }) => dirty && !leaving.current && currentLocation.pathname !== nextLocation.pathname);
   useEffect(() => {
@@ -95,12 +98,13 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
       const trimmed = name.trim();
       if (state) {
         // Name/Icon/Farbe sind Metadaten (keine neue Version); geänderte Blöcke ergeben Version n+1 (DM-06).
-        const next = updateTemplate(state, { name: trimmed, icon, color, blocks }, { now: data.now });
+        const quick = quickOf(blocks, quickIds);
+        const next = updateTemplate(state, { name: trimmed, icon, color, blocks, quickBlockIds: quick.length ? quick : null }, { now: data.now });
         if (next.newVersion) await data.diary.saveTemplate(next.state);
         else await data.diary.saveTemplateMeta(next.state.template);
       } else {
         await data.diary.saveTemplate(
-          createTemplate({ id: data.newId(), diaryId: loaded.diaryId, name: trimmed, icon, color, order: keyBetween(loaded.lastOrder, null), blocks }, { now: data.now }),
+          createTemplate({ id: data.newId(), diaryId: loaded.diaryId, name: trimmed, icon, color, order: keyBetween(loaded.lastOrder, null), blocks, ...(quickOf(blocks, quickIds).length ? { quickBlockIds: quickOf(blocks, quickIds) } : {}) }, { now: data.now }),
         );
       }
       leaving.current = true;
@@ -142,7 +146,7 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
         ) : null}
       </div>
       <TemplateStylePicker icon={icon} color={color} onIcon={setIcon} onColor={setColor} />
-      <BlockEditor blocks={blocks} issues={blockIssues} newId={data.newId} onChange={setBlocks} />
+      <BlockEditor blocks={blocks} issues={blockIssues} newId={data.newId} onChange={setBlocks} quickIds={quickIds} onQuickChange={(id, on) => setQuickIds(on ? [...quickIds, id] : quickIds.filter((x) => x !== id))} />
       <div className="flex flex-col gap-2">
         <Button type="submit" disabled={busy}>
           {de.templates.editor.save}
