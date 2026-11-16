@@ -5,6 +5,7 @@ import type { Entry } from '@stb/core';
 import { Card } from '@/components/ui/card';
 import { EmptyState, ErrorState } from '@/components/StateView';
 import { useData } from '@/data/DataContext';
+import { useDiaryScope } from '@/data/diary-scope';
 import { useQuery } from '@/data/useQuery';
 import { formatDay, formatEntryTime, groupByDay } from '@/lib/entry-format';
 import { de } from '@/i18n/de';
@@ -16,16 +17,18 @@ function rowTime(e: Entry): string {
 }
 
 /** `onlyIds`: nur diese Einträge zeigen (Filter aktiv); `null` = alle. */
-export function EntryListState({ emptyTitle, emptyHint, onlyIds = null }: { emptyTitle: string; emptyHint: string; onlyIds?: ReadonlySet<string> | null }) {
+export function EntryListState({ emptyTitle, emptyHint, onlyIds = null, allowAllDiaries = false }: { emptyTitle: string; emptyHint: string; onlyIds?: ReadonlySet<string> | null; allowAllDiaries?: boolean }) {
   const { diary, now } = useData();
+  const { diaryId } = useDiaryScope(allowAllDiaries);
   const query = useQuery(async () => {
     const [entries, templates] = await Promise.all([diary.listAllEntries(), diary.listAllTemplates()]);
     return { entries, names: new Map(templates.map((t) => [t.id, t.name])) };
   }, [diary]);
   if (query.status === 'loading') return <p className="text-muted-foreground">{de.app.loading}</p>;
   if (query.status === 'error') return <ErrorState onRetry={query.retry} />;
-  if (query.data.entries.length === 0) return <EmptyState title={emptyTitle} hint={emptyHint} />;
-  const shown = onlyIds ? query.data.entries.filter((e) => onlyIds.has(e.id)) : query.data.entries;
+  const scoped = diaryId ? query.data.entries.filter((e) => e.diaryId === diaryId) : query.data.entries;
+  if (scoped.length === 0) return <EmptyState title={emptyTitle} hint={emptyHint} />;
+  const shown = onlyIds ? scoped.filter((e) => onlyIds.has(e.id)) : scoped;
   if (shown.length === 0) return <EmptyState title={de.history.noMatches} hint={de.history.noMatchesHint} />;
   return (
     <div data-testid="entry-list" className="flex flex-col gap-4">

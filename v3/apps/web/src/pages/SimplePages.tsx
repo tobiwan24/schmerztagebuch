@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
 import { EntryListState } from '@/components/EntryListState';
 import { useData } from '@/data/DataContext';
+import { useDiaryScope } from '@/data/diary-scope';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 
@@ -23,7 +24,8 @@ export function HistoryPage() {
     const medOptionIds = [...new Set(versions.flatMap((v) => v.blocks.flatMap((b) => (b.role === 'medication' && b.type === 'multiselect' ? b.config.options.map((o) => o.id) : []))))];
     return { diaryIds: diaries.map((d) => d.id), medOptionIds };
   }, [diary]);
-  const diaryIds = meta.status === 'ok' ? meta.data.diaryIds : [];
+  const scope = useDiaryScope(true);
+  const diaryIds = meta.status === 'ok' ? (scope.diaryId ? [scope.diaryId] : meta.data.diaryIds) : [];
   const medOptionIds = meta.status === 'ok' ? meta.data.medOptionIds : [];
   const active = isActive(filter);
   const specKey = JSON.stringify(active ? toSpec(filter, diaryIds, medOptionIds) : null);
@@ -43,7 +45,7 @@ export function HistoryPage() {
       <PageHeader title={de.history.title} />
       {diaryIds.length ? <HistoryFilters state={filter} onChange={setFilter} diaryIds={diaryIds} medOptionIds={medOptionIds} /> : null}
       {active && !ids ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
-      {!active || ids ? <EntryListState emptyTitle={de.history.emptyTitle} emptyHint={de.history.emptyHint} onlyIds={active ? ids : null} /> : null}
+      {!active || ids ? <EntryListState emptyTitle={de.history.emptyTitle} emptyHint={de.history.emptyHint} onlyIds={active ? ids : null} allowAllDiaries /> : null}
       <Button asChild variant="outline">
         <Link to="/entry/new">
           <Plus aria-hidden />

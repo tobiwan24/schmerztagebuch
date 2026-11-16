@@ -12,6 +12,10 @@ export const de = {
     more: 'Mehr',
     back: 'Zurück',
   },
+  diaryScope: {
+    label: 'Tagebuch',
+    all: 'Alle Tagebücher',
+  },
   start: {
     title: 'Start',
     quickEntry: 'Schnell eintragen',

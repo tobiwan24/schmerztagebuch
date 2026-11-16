@@ -16,6 +16,7 @@ import { EmptyState, ErrorState } from '@/components/StateView';
 import { BODYMAP_PRESETS, intensityFill } from '@/components/blocks/bodymap-presets';
 import { useAnalysis } from '@/data/AnalysisContext';
 import { useData } from '@/data/DataContext';
+import { useDiaryScope } from '@/data/diary-scope';
 import { useQuery } from '@/data/useQuery';
 import type { AnalysisClient } from '@/workers/analysis-service';
 import { cn } from '@/lib/utils';
@@ -55,6 +56,7 @@ function useWorker<T>(fn: (c: AnalysisClient) => Promise<T>, deps: readonly unkn
 
 export function AnalysisPage() {
   const { diary, now } = useData();
+  const scope = useDiaryScope(true);
   const entries = useQuery(async () => ({ count: (await diary.listAllEntries()).length, diaryIds: (await diary.listDiaries()).map((d) => d.id) }), [diary]);
   const [view, setView] = useState<View>('trend');
   const [range, setRange] = useState<Range>('30d');
@@ -71,7 +73,8 @@ export function AnalysisPage() {
   const from = addDays(to, -(RANGE_DAYS[range] - 1));
   const older = () => setShift((s) => s + 1);
   const newer = () => setShift((s) => Math.max(0, s - 1));
-  const spec: FilterSpec = { diaryIds: entries.data.diaryIds, range: { from, to } };
+  const diaryIds = scope.diaryId ? [scope.diaryId] : entries.data.diaryIds;
+  const spec: FilterSpec = { diaryIds, range: { from, to } };
 
   async function exportPng() {
     if (!viewRef.current) return;
@@ -129,12 +132,12 @@ export function AnalysisPage() {
         onPointerCancel={() => (swipe.current = null)}
       >
         {view === 'trend' ? <TrendView spec={spec} /> : null}
-        {view === 'calendar' ? <CalendarView diaryIds={entries.data.diaryIds} /> : null}
+        {view === 'calendar' ? <CalendarView diaryIds={diaryIds} /> : null}
         {view === 'meds' ? <MedsView spec={spec} /> : null}
         {view === 'freq' ? <FreqView spec={spec} from={from} to={to} /> : null}
         {view === 'body' ? <BodyView spec={spec} /> : null}
       </section>
-      {view !== 'calendar' ? <CompareCard diaryIds={entries.data.diaryIds} from={from} to={to} /> : null}
+      {view !== 'calendar' ? <CompareCard diaryIds={diaryIds} from={from} to={to} /> : null}
     </>
   );
 }

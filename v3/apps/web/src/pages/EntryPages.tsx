@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { EmptyState, ErrorState } from '@/components/StateView';
 import { EntryForm } from '@/components/EntryForm';
 import { useData } from '@/data/DataContext';
+import { useDiaryScope } from '@/data/diary-scope';
 import { useQuery } from '@/data/useQuery';
 import { formatEntryTime } from '@/lib/entry-format';
 import { de } from '@/i18n/de';
@@ -17,10 +18,13 @@ import { de } from '@/i18n/de';
 export function EntryEditorPage() {
   const { id } = useParams();
   const { diary } = useData();
+  const { diaryId } = useDiaryScope(false);
   const query = useQuery(async () => {
-    const templates = (await diary.listAllTemplates()).filter((t) => !t.archived);
+    // Vorauswahl: Vorlagen des gewählten Tagebuchs zuerst (UI-24)
+    const all = (await diary.listAllTemplates()).filter((t) => !t.archived);
+    const templates = diaryId ? [...all.filter((t) => t.diaryId === diaryId), ...all.filter((t) => t.diaryId !== diaryId)] : all;
     return { templates, entry: id ? await diary.getEntry(id) : undefined };
-  }, [diary, id]);
+  }, [diary, id, diaryId]);
   return (
     <>
       <PageHeader title={id ? de.entry.editTitle : de.entry.newTitle} back />

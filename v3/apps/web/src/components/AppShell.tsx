@@ -7,6 +7,8 @@ import { useAuth } from '@/auth/AuthContext';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
 import { SyncStatus } from '@/components/SyncStatus';
+import { DiarySwitcher } from '@/components/DiarySwitcher';
+import { DiaryScopeProvider } from '@/data/diary-scope';
 import { BarChart3, Home, List, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { de } from '@/i18n/de';
@@ -35,6 +37,7 @@ export function AppShell() {
   const here = location.pathname + location.search + location.hash;
   const unlockHref = `/unlock?next=${encodeURIComponent(here)}`;
   return (
+    <DiaryScopeProvider enabled={status === 'unlocked'}>
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
       {locked ? (
         <div role="status" data-testid="lock-banner" className="flex items-center justify-between gap-2 border-b bg-muted px-4 py-2 text-sm">
@@ -51,6 +54,7 @@ export function AppShell() {
       ) : null}
       <SyncStatus />
       <main className="flex flex-1 flex-col gap-4 p-4 pb-24">
+        {locked ? null : <DiarySwitcher />}
         {locked && !OPEN_WHEN_LOCKED.includes(location.pathname) ? (
           <section data-testid="locked-view" className="flex flex-col gap-3">
             <h1 className="text-xl font-semibold">{de.lock.lockedTitle}</h1>
@@ -90,5 +94,6 @@ export function AppShell() {
         </ul>
       </nav>
     </div>
+    </DiaryScopeProvider>
   );
 }
