@@ -139,7 +139,7 @@ export function removeBlock(blocks: readonly BlockDef[], id: string): BlockDef[]
 }
 
 /**
- * Kopie einer Vorlage: neue IDs für Vorlage, Blöcke und Optionen, Name „… (Kopie)", Version 1.
+ * Kopie einer Vorlage: neue IDs für Vorlage, Blöcke, Optionen, Medikamenten-Vorgaben und Übungs-Stufen, Name „… (Kopie)", Version 1.
  * `nextOrder` = Order-Key der Vorlage direkt nach dem Original (oder `null`); die Kopie landet dazwischen.
  */
 export function duplicateTemplate(source: TemplateState, ids: IdGenerator, clock: Clock, nextOrder: string | null): TemplateState {
@@ -150,6 +150,12 @@ export function duplicateTemplate(source: TemplateState, ids: IdGenerator, clock
     idMap.set(b.id, id);
     if (b.type === 'multiselect') {
       return { ...b, id, config: { ...b.config, options: b.config.options.map((o) => ({ ...o, id: ids.newId() })) } };
+    }
+    if (b.type === 'medication') {
+      return { ...b, id, config: { ...b.config, presets: b.config.presets.map((p) => ({ ...p, id: ids.newId() })) } };
+    }
+    if (b.type === 'exercise') {
+      return { ...b, id, config: { ...b.config, ...(b.config.levels ? { levels: b.config.levels.map((l) => ({ ...l, id: ids.newId() })) } : {}) } };
     }
     return { ...b, id };
   });

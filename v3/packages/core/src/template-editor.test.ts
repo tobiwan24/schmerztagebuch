@@ -11,7 +11,12 @@ const ids = createIdGenerator(clock);
 
 const labelled = (b: BlockDef, label = 'X'): BlockDef => ({ ...b, label });
 const optionIds = (blocks: readonly BlockDef[]): string[] =>
-  blocks.flatMap((b) => [b.id, ...(b.type === 'multiselect' ? b.config.options.map((o) => o.id) : [])]);
+  blocks.flatMap((b) => [
+    b.id,
+    ...(b.type === 'multiselect' ? b.config.options.map((o) => o.id) : []),
+    ...(b.type === 'medication' ? b.config.presets.map((p) => p.id) : []),
+    ...(b.type === 'exercise' ? (b.config.levels ?? []).map((l) => l.id) : []),
+  ]);
 
 describe('Editor-Domäne', () => {
   it('BLK-43: setHideLabel schaltet einen Block oder alle um; „aus“ entfernt das Feld', () => {
@@ -98,6 +103,27 @@ describe('Editor-Domäne', () => {
     expect(copyIds).toHaveLength(origIds.size);
     expect(copyIds.some((id) => origIds.has(id))).toBe(false);
     expect(copy.version.blocks.map((b) => b.label)).toEqual(['Symptome', 'Schmerz']);
+  });
+
+  it('BLK-22: duplicateTemplate vergibt auch für Medikamenten-Vorgaben und Übungs-Stufen neue IDs (Werte bleiben erhalten)', () => {
+    const med = labelled(newBlock('medication', ids), 'Medikamente');
+    const medWith = { ...med, config: { ...med.config, presets: [{ id: ids.newId(), name: 'Ibuprofen', dose: 400, unit: 'mg', color: '#ef4444' }, { id: ids.newId(), name: 'Paracetamol', unit: 'mg', color: '#3b82f6' }] } } as BlockDef;
+    const ex = labelled(newBlock('exercise', ids, med.order), 'Dehnen');
+    const exWith = { ...ex, config: { ...ex.config, levels: [{ id: ids.newId(), label: 'leicht' }, { id: ids.newId(), label: 'schwer' }] } } as BlockDef;
+    const orig = createTemplate({ id: ids.newId(), diaryId: ids.newId(), name: 'Mix', order: keyBetween(null, null), blocks: [medWith, exWith] }, clock);
+    const copy = duplicateTemplate(orig, ids, clock, null);
+    const origIds = new Set(optionIds(orig.version.blocks));
+    const copyIds = optionIds(copy.version.blocks);
+    expect(origIds.size).toBe(6);
+    expect(copyIds).toHaveLength(6);
+    expect(copyIds.some((id) => origIds.has(id))).toBe(false);
+    const [cm, ce] = copy.version.blocks;
+    expect(cm!.type === 'medication' && cm!.config.presets.map(({ name, dose, unit }) => ({ name, dose, unit }))).toEqual([
+      { name: 'Ibuprofen', dose: 400, unit: 'mg' },
+      { name: 'Paracetamol', dose: undefined, unit: 'mg' },
+    ]);
+    expect(ce!.type === 'exercise' && ce!.config.levels?.map((l) => l.label)).toEqual(['leicht', 'schwer']);
+    expect(templateVersionSchema.safeParse(copy.version).success).toBe(true);
   });
 
   it('duplicateTemplate übernimmt die Schnelleintrag-Auswahl mit den neuen Block-IDs', () => {
