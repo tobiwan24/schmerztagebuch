@@ -7,3 +7,4 @@ export * from './fixture.js';
 export * from './big-fixture.js';
 export * from './correlate.js';
 export * from './lift.js';
+export * from './rules.js';

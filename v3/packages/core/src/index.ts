@@ -18,3 +18,4 @@ export * from './migration-v2/index.js';
 export * from './template-editor.js';
 export * from './tags.js';
 export * from './training.js';
+export * from './notification-rule.js';
