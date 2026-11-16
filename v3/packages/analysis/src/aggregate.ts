@@ -61,6 +61,20 @@ export function dailySeries(entries: readonly WsEntry[], t: NumericTarget, mode:
     });
 }
 
+export interface PointValue {
+  entryId: string;
+  /** Zeitpunkt des Eintrags (ISO). */
+  at: string;
+  value: number;
+}
+
+/** Einzelwerte eines numerischen Ziels, aufsteigend nach Zeit — keine Tagesaggregation (Spec 06, Zeitraum „Tag"). */
+export function entrySeries(entries: readonly WsEntry[], t: NumericTarget): PointValue[] {
+  return entries
+    .flatMap((e) => numericValues(e, t).map((value) => ({ entryId: e.id, at: e.occurredAt, value })))
+    .sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+}
+
 export interface PeriodStats {
   /** Anzahl Tage mit Wert (Grundlage aller Kennzahlen). */
   n: number;

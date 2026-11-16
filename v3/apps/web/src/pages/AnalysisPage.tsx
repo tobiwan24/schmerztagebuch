@@ -24,10 +24,10 @@ import { exportViewAsPng } from '@/lib/export-png';
 import { de } from '@/i18n/de';
 
 type View = 'trend' | 'calendar' | 'meds' | 'freq' | 'body';
-type Range = '7d' | '30d' | '90d' | '1y';
+type Range = 'day' | '7d' | '30d' | '90d' | '6m' | '1y';
 const VIEWS: View[] = ['trend', 'calendar', 'meds', 'freq', 'body'];
-const RANGES: Range[] = ['7d', '30d', '90d', '1y'];
-const RANGE_DAYS: Record<Range, number> = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 };
+const RANGES: Range[] = ['day', '7d', '30d', '90d', '6m', '1y'];
+const RANGE_DAYS: Record<Range, number> = { day: 1, '7d': 7, '30d': 30, '90d': 90, '6m': 182, '1y': 365 };
 const PALETTE = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
 
 const today = (now: number) => new Date(now).toLocaleDateString('en-CA');
@@ -80,7 +80,7 @@ export function AnalysisPage() {
     if (!viewRef.current) return;
     setExporting(true);
     try {
-      const period = view === 'calendar' ? '' : ` · ${shortDay(from)}–${shortDay(to)}${to.slice(0, 4)}`;
+      const period = view === 'calendar' ? '' : range === 'day' ? ` · ${longDay(to)}` : ` · ${shortDay(from)}–${shortDay(to)}${to.slice(0, 4)}`;
       await exportViewAsPng(viewRef.current, `${de.analysis.viewNames[view]}${period}`, de.analysis.pngFileName(view, to));
     } finally {
       setExporting(false);
@@ -109,7 +109,7 @@ export function AnalysisPage() {
       {view !== 'calendar' ? (
         <div className="flex items-center justify-between gap-2">
           <Button size="sm" variant="ghost" aria-label={de.analysis.olderPeriod} onClick={older}>‹</Button>
-          <span data-testid="analysis-period" className="text-sm tabular-nums">{longDay(from)} – {longDay(to)}</span>
+          <span data-testid="analysis-period" className="text-sm tabular-nums">{range === 'day' ? longDay(to) : `${longDay(from)} – ${longDay(to)}`}</span>
           <Button size="sm" variant="ghost" aria-label={de.analysis.newerPeriod} disabled={shift === 0} onClick={newer}>›</Button>
         </div>
       ) : null}
@@ -131,7 +131,7 @@ export function AnalysisPage() {
         }}
         onPointerCancel={() => (swipe.current = null)}
       >
-        {view === 'trend' ? <TrendView spec={spec} /> : null}
+        {view === 'trend' ? <TrendView spec={spec} intraday={range === 'day'} /> : null}
         {view === 'calendar' ? <CalendarView diaryIds={diaryIds} /> : null}
         {view === 'meds' ? <MedsView spec={spec} /> : null}
         {view === 'freq' ? <FreqView spec={spec} from={from} to={to} /> : null}
@@ -157,7 +157,7 @@ function BlockPicker({ blocks, value, onChange }: { blocks: { blockId: string; l
   );
 }
 
-function TrendView({ spec }: { spec: FilterSpec }) {
+function TrendView({ spec, intraday }: { spec: FilterSpec; intraday: boolean }) {
   const { now } = useData();
   const key = JSON.stringify(spec);
   const blocks = useWorker((c) => c.blocks(), []);
@@ -165,7 +165,9 @@ function TrendView({ spec }: { spec: FilterSpec }) {
   const [picked, setPicked] = useState<string>();
   const blockId = picked ?? numeric.find((b) => b.role === 'outcome')?.blockId ?? numeric[0]?.blockId;
   const series = useWorker((c) => (blockId ? c.dailySeries({ blockId }, { spec, now: now() }) : Promise.resolve([])), [key, blockId]);
+  const points = useWorker((c) => (intraday && blockId ? c.entrySeries({ blockId }, { spec, now: now() }) : Promise.resolve([])), [key, blockId, intraday]);
   const events = useWorker((c) => c.events({ spec, now: now() }), [key]);
+  if (intraday) return <IntradayCard label={numeric.find((b) => b.blockId === blockId)?.label ?? ''} points={points} numeric={numeric} blockId={blockId} onPick={setPicked} events={events ?? []} />;
   if (!series) return <p className="text-muted-foreground">{de.app.loading}</p>;
   const label = numeric.find((b) => b.blockId === blockId)?.label ?? '';
   return (
@@ -201,6 +203,45 @@ function TrendView({ spec }: { spec: FilterSpec }) {
           <ul data-testid="event-marks" className="flex flex-col gap-1 text-xs text-muted-foreground">
             {events!.map((ev, i) => (
               <li key={i}>{`◆ ${shortDay(ev.day)} ${ev.category === 'doctor' ? de.analysis.doctor : de.analysis.event}: ${ev.title}`}</li>
+            ))}
+          </ul>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Zeitraum „Tag" (ANA-17): Einzelwerte über der Uhrzeit, keine Tagesaggregation. */
+function IntradayCard({ label, points, numeric, blockId, onPick, events }: { label: string; points: { entryId: string; at: string; value: number }[] | null; numeric: { blockId: string; label: string; templateName: string }[]; blockId: string | undefined; onPick: (id: string) => void; events: { day: string; category: string; title: string }[] }) {
+  if (!points) return <p className="text-muted-foreground">{de.app.loading}</p>;
+  const clock = (h: number) => `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
+  const data = points.map((p) => {
+    const d = new Date(p.at);
+    return { hour: d.getHours() + d.getMinutes() / 60, value: p.value };
+  });
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{de.analysis.trendTitleDay(label)}</CardTitle>
+        <p className="text-xs text-muted-foreground" data-testid="trend-n">{de.analysis.nValues(points.length)}</p>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <BlockPicker blocks={numeric} value={blockId} onChange={onPick} />
+        {points.length === 0 ? <p className="text-sm text-muted-foreground">{de.analysis.noValues}</p> : (
+          <ChartContainer config={{ value: { label, color: 'var(--chart-1)' } }}>
+            <LineChart data={data} margin={{ left: -20, right: 8, top: 16 }}>
+              <CartesianGrid vertical={false} />
+              <XAxis type="number" dataKey="hour" domain={[0, 24]} ticks={[0, 4, 8, 12, 16, 20, 24]} tickFormatter={(h: number) => clock(h)} tickLine={false} axisLine={false} />
+              <YAxis tickLine={false} axisLine={false} allowDecimals={false} />
+              <Tooltip content={<ChartTooltipContent />} labelFormatter={(h) => clock(Number(h))} />
+              <Line dataKey="value" name={label} type="linear" stroke="var(--color-value)" strokeWidth={2} dot={{ r: 4 }} isAnimationActive={false} />
+            </LineChart>
+          </ChartContainer>
+        )}
+        {events.length ? (
+          <ul data-testid="event-marks" className="flex flex-col gap-1 text-xs text-muted-foreground">
+            {events.map((ev, i) => (
+              <li key={i}>{`◆ ${ev.category === 'doctor' ? de.analysis.doctor : de.analysis.event}: ${ev.title}`}</li>
             ))}
           </ul>
         ) : null}

@@ -1,7 +1,7 @@
 // Analyse-Dienst (Spec 06 „Arbeitsset"): hält Arbeitsset und Suchindex im Speicher des Web Workers. Rein und ohne DOM,
 // damit er in Tests direkt (und im Worker über `attachAnalysisService`) läuft. Die Logik selbst liegt in `@stb/analysis`.
 import {
-  applyFilter, bodymapOverview, buildWorkingSet, comparePeriods, createSearchIndex, dailySeries, eventMarks, medicationDaysByMonth, optionDays,
+  applyFilter, bodymapOverview, buildWorkingSet, comparePeriods, createSearchIndex, dailySeries, entrySeries, eventMarks, medicationDaysByMonth, optionDays,
   type DailyMode, type DayRange, type FilterSpec, type NumericTarget, type SearchIndex, type WorkingSet, type WorkingSetInput,
 } from '@stb/analysis';
 import type { Role } from '@stb/core';
@@ -32,6 +32,9 @@ export function createAnalysisService() {
     },
     dailySeries(target: NumericTarget, opts: { spec?: FilterSpec; now: number; mode?: DailyMode }) {
       return dailySeries(scope(opts.spec, opts.now), target, opts.mode);
+    },
+    entrySeries(target: NumericTarget, opts: { spec?: FilterSpec; now: number }) {
+      return entrySeries(scope(opts.spec, opts.now), target);
     },
     compare(target: NumericTarget, a: DayRange, b: DayRange, opts: { spec?: FilterSpec; now: number; mode?: DailyMode; threshold?: number }) {
       return comparePeriods(scope(opts.spec, opts.now), target, a, b, opts);
@@ -108,6 +111,6 @@ export function createAnalysisClient(port: Port): AnalysisClient {
       pending.set(id, { resolve, reject });
       port.postMessage({ id, method, args } satisfies Request);
     });
-  const methods: AnalysisMethod[] = ['load', 'filter', 'search', 'dailySeries', 'compare', 'optionDays', 'medicationDays', 'events', 'bodymap', 'blocks'];
+  const methods: AnalysisMethod[] = ['load', 'filter', 'search', 'dailySeries', 'entrySeries', 'compare', 'optionDays', 'medicationDays', 'events', 'bodymap', 'blocks'];
   return Object.fromEntries(methods.map((m) => [m, call(m)])) as AnalysisClient;
 }

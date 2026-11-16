@@ -1,11 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { buildWorkingSet, type WsEntry } from './working-set.js';
 import { applyFilter } from './filter.js';
-import { bodymapOverview, comparePeriods, dailySeries, eventMarks, medicationDaysByMonth, optionDays, periodStats, previousRange } from './aggregate.js';
+import { bodymapOverview, comparePeriods, dailySeries, entrySeries, eventMarks, medicationDaysByMonth, optionDays, periodStats, previousRange } from './aggregate.js';
 import { FIX, FIXTURE_NOW, fixtureDiaries, fixtureEntries, fixtureExtraEntries, fixtureTemplatesV2, fixtureVersionsV2 } from './fixture.js';
 
 const ws = buildWorkingSet({ entries: [...fixtureEntries, ...fixtureExtraEntries], templates: fixtureTemplatesV2, versions: fixtureVersionsV2, diaries: fixtureDiaries });
 const pain = { blockId: FIX.pain };
+
+describe('Einzelwerte (Zeitraum „Tag“)', () => {
+  it('entrySeries liefert jeden Einzelwert ohne Tagesaggregation, aufsteigend nach Zeit', () => {
+    const two = ws.entries.filter((e) => e.day === '2026-03-02'); // e02 = 3, e09 = 2, e12 ohne Wert
+    const pts = entrySeries(two, pain);
+    expect(pts.map((p) => p.value).sort()).toEqual([2, 3]);
+    expect(pts.map((p) => Date.parse(p.at))).toEqual([...pts.map((p) => Date.parse(p.at))].sort((a, b) => a - b));
+    expect(entrySeries(ws.entries, pain).length).toBe(dailySeries(ws.entries, pain).reduce((s, d) => s + d.n, 0));
+  });
+});
 
 describe('Tagesaggregation', () => {
   it('ANA-05: Tage in der Tagebuch-Zeitzone (Europe/Berlin), unabhängig von der Geräte-Zeitzone', () => {
