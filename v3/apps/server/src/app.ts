@@ -12,6 +12,9 @@ import { registerIntakeRoutes } from './intake/routes.js';
 import { registerAccountRoutes } from './auth/account-routes.js';
 import { registerBlobRoutes } from './blobs/routes.js';
 import { registerShareRoutes } from './shares/routes.js';
+import { registerLlmRoutes } from './llm/routes.js';
+import { createLlmProvider } from './llm/provider.js';
+import type { LlmProvider } from '@stb/llm';
 
 export interface AppDeps {
   config: ServerConfig;
@@ -20,10 +23,12 @@ export interface AppDeps {
   now?: () => number;
   /** Ziel für strukturierte Logs (JSON, ohne Bodies). Ohne Angabe: keine Logs. */
   logStream?: Writable;
+  /** Nur Tests: Provider statt des aus `config.llm` erzeugten (z. B. FakeProvider). */
+  llmProvider?: LlmProvider | null;
 }
 
 /** Baut die Fastify-App (ohne `listen`), damit Tests `fastify.inject` nutzen können. */
-export function buildApp({ config, db, auth = noAuth, now = () => Date.now(), logStream }: AppDeps): FastifyInstance {
+export function buildApp({ config, db, auth = noAuth, now = () => Date.now(), logStream, llmProvider }: AppDeps): FastifyInstance {
   // Strukturierte Logs ohne Bodies (Spec 12): Fastify protokolliert nur Methode, URL, Status, Dauer.
   const app = Fastify({ logger: logStream ? { level: 'info', stream: logStream } : false, bodyLimit: 8 * 1024 * 1024 });
 
@@ -35,6 +40,7 @@ export function buildApp({ config, db, auth = noAuth, now = () => Date.now(), lo
   registerIntakeRoutes(app, { db, auth, now });
   registerBlobRoutes(app, { db, auth, now, blobDir: config.blobDir });
   registerShareRoutes(app, { db, auth, now });
+  registerLlmRoutes(app, { db, auth, now, provider: llmProvider !== undefined ? llmProvider : createLlmProvider(config.llm), dailyTokens: config.llm?.dailyTokens ?? 50_000 });
   registerAccountRoutes(app, {
     db, auth, now, rp: { rpId: config.rpId, rpName: 'Schmerztagebuch', origins: config.allowedOrigins },
     ...(config.rateLimits ? { limits: config.rateLimits } : {}),

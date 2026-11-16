@@ -16,7 +16,30 @@ const envSchema = z.object({
   // Rate-Limits (Spec 03): Anmeldung pro IP und Minute, Recovery pro IP bzw. Benutzername und 15 Minuten.
   AUTH_RATE_LIMIT_PER_MIN: z.coerce.number().int().min(1).default(30),
   RECOVERY_RATE_LIMIT_PER_15MIN: z.coerce.number().int().min(1).default(5),
+  // LLM (Spec 08, M19): Standard aus; Schlüssel bzw. URL müssen zum gewählten Provider passen.
+  LLM_PROVIDER: z.enum(['off', 'ollama', 'anthropic']).default('off'),
+  LLM_DAILY_TOKENS: z.coerce.number().int().min(1).default(50_000),
+  OLLAMA_URL: z.string().trim().optional(),
+  OLLAMA_MODEL: z.string().trim().min(1).default('qwen2.5:7b-instruct'),
+  ANTHROPIC_API_KEY: z.string().trim().optional(),
+  ANTHROPIC_MODEL: z.string().trim().min(1).default('claude-opus-5-5'),
+}).superRefine((e, ctx) => {
+  if (e.LLM_PROVIDER === 'ollama' && !z.url().safeParse(e.OLLAMA_URL).success) {
+    ctx.addIssue({ code: 'custom', path: ['OLLAMA_URL'], message: 'URL erforderlich bei LLM_PROVIDER=ollama' });
+  }
+  if (e.LLM_PROVIDER === 'anthropic' && !e.ANTHROPIC_API_KEY) {
+    ctx.addIssue({ code: 'custom', path: ['ANTHROPIC_API_KEY'], message: 'erforderlich bei LLM_PROVIDER=anthropic' });
+  }
 });
+
+export interface LlmConfig {
+  provider: 'off' | 'ollama' | 'anthropic';
+  dailyTokens: number;
+  ollamaUrl?: string;
+  ollamaModel: string;
+  anthropicApiKey?: string;
+  anthropicModel: string;
+}
 
 export interface ServerConfig {
   rpId: string;
@@ -27,6 +50,8 @@ export interface ServerConfig {
   host: string;
   /** Optional (Standard 30 / 5); Tests setzen höhere Werte. */
   rateLimits?: { authPerMinute: number; recoveryPer15Min: number };
+  /** Optional; ohne Angabe ist das LLM aus. */
+  llm?: LlmConfig;
 }
 
 export class ConfigError extends Error {
@@ -48,6 +73,10 @@ export function loadConfig(env: Record<string, string | undefined>): ServerConfi
   return {
     rpId: e.RP_ID, allowedOrigins: e.ALLOWED_ORIGINS, databasePath: e.DATABASE_PATH, blobDir: e.BLOB_DIR, port: e.PORT, host: e.HOST,
     rateLimits: { authPerMinute: e.AUTH_RATE_LIMIT_PER_MIN, recoveryPer15Min: e.RECOVERY_RATE_LIMIT_PER_15MIN },
+    llm: {
+      provider: e.LLM_PROVIDER, dailyTokens: e.LLM_DAILY_TOKENS, ollamaModel: e.OLLAMA_MODEL, anthropicModel: e.ANTHROPIC_MODEL,
+      ...(e.OLLAMA_URL ? { ollamaUrl: e.OLLAMA_URL } : {}), ...(e.ANTHROPIC_API_KEY ? { anthropicApiKey: e.ANTHROPIC_API_KEY } : {}),
+    },
   };
 }
 

@@ -26,6 +26,9 @@
     },
     {
       "path": "../../packages/crypto"
+    },
+    {
+      "path": "../../packages/llm"
     }
   ]
 }
