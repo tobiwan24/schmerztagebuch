@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { Copy, Pencil, Trash2 } from 'lucide-react';
 import { AttachmentList } from '@/components/AttachmentList';
 import { useAuthorName } from '@/data/useSharing';
-import { displayValue, duplicateEntryInput, type TextareaValue } from '@stb/core';
+import { displayValue, duplicateEntryInput, type BodymapValue, type TextareaValue } from '@stb/core';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState, ErrorState } from '@/components/StateView';
 import { EntryForm, type EntryPrefill } from '@/components/EntryForm';
+import { BodyMapView } from '@/components/blocks/BodyMapField';
 import { useData } from '@/data/DataContext';
 import { useDiaryScope } from '@/data/diary-scope';
 import { useQuery } from '@/data/useQuery';
@@ -113,6 +114,11 @@ export function EntryDetailPage() {
                 </div>
               ))}
           </Card>
+          {query.data.fields
+            .filter((f) => f.block.type === 'bodymap' && f.value !== undefined)
+            .map((f) => (
+              <BodyMapView key={f.block.id} value={f.value as BodymapValue} diaryId={query.data!.entry.diaryId} label={f.block.label} />
+            ))}
           {eventsOf(query.data.fields).length > 0 ? (
             <section className="flex flex-col gap-2" data-testid="events">
               <h2 className="text-sm font-medium text-muted-foreground">{de.entry.eventsHeading}</h2>

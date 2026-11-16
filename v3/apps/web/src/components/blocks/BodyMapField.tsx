@@ -320,7 +320,7 @@ export function BodyMapField({ id, value, defaultPresetId, onChange, diaryId, on
   );
 }
 
-function MarkShape({ mark, n, w, h }: { mark: Mark; n: number; w: number; h: number }) {
+export function MarkShape({ mark, n, w, h }: { mark: Mark; n: number; w: number; h: number }) {
   const d = (mark.size ?? DEFAULT_SIZE) * w;
   const x = mark.x * w;
   const y = mark.y * h;
@@ -347,5 +347,43 @@ function MarkShape({ mark, n, w, h }: { mark: Mark; n: number; w: number; h: num
         {`#${n}`}
       </text>
     </g>
+  );
+}
+
+/**
+ * Schreibgeschützte Darstellung (Eintrags-Detail, BLK-47): dasselbe Bild + dieselben Markierungen wie `BodyMapField`
+ * (gemeinsame `MarkShape`), Standard- oder eigenes Bild des Tagebuchs, darunter Nummern, Art, Intensität und Kommentare.
+ */
+export function BodyMapView({ value, diaryId, label }: { value: BodymapValue; diaryId: string; label: string }) {
+  const { diary } = useData();
+  const own = useQuery(async () => diary.listBodymapImages(diaryId), [diary, diaryId]);
+  const ownImage = own.status === 'ok' ? own.data.find((i) => i.id === value.presetId) : undefined;
+  const preset = presetById(value.presetId) ?? BODYMAP_PRESETS[0];
+  const image = ownImage ? { src: ownImage.dataUrl, name: ownImage.name } : { src: preset.src, name: de.bodymap.presets[preset.id] };
+  const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
+  return (
+    <section data-testid="bodymap-view" className="flex flex-col gap-2" aria-label={label}>
+      <h2 className="text-sm font-medium text-muted-foreground">{label}</h2>
+      <div className="relative overflow-hidden rounded-lg border-2">
+        <img src={image.src} alt={image.name} className="block max-h-[60vh] w-full object-contain" draggable={false} onLoad={(e) => setDims({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })} />
+        {dims ? (
+          <svg className="pointer-events-none absolute inset-0 size-full" viewBox={`0 0 ${dims.w} ${dims.h}`} preserveAspectRatio="xMidYMid meet" aria-hidden>
+            {value.points.map((m, i) => (
+              <MarkShape key={m.id} mark={m} n={i + 1} w={dims.w} h={dims.h} />
+            ))}
+          </svg>
+        ) : null}
+      </div>
+      {value.points.length > 0 ? (
+        <ul className="flex flex-col gap-1 text-sm">
+          {value.points.map((m, i) => (
+            <li key={m.id} data-testid="bodymap-view-mark">
+              {de.bodymap.markLabel(i + 1, m.kind === 'brush', m.intensity ?? 5)}
+              {m.comment ? <span className="text-muted-foreground"> — {m.comment}</span> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   );
 }

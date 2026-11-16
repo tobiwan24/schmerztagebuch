@@ -107,5 +107,67 @@ test.describe('Body-Map', () => {
     const dims = await f.getByTestId('bodymap-canvas').locator('img').evaluate((el: HTMLImageElement) => ({ w: el.naturalWidth, h: el.naturalHeight }));
     expect(Math.abs(dims.w / dims.h - 4 / 3)).toBeLessThan(0.02);
   });
-});
 
+  test('BLK-47: Eintrags-Detail zeigt Körperkarte mit Bild und Markierungen schreibgeschützt (Standardbild, eigenes Bild, ohne Markierung)', async ({ page }) => {
+    const f = field(page);
+    const canvas = f.getByTestId('bodymap-canvas');
+    await f.getByRole('button', { name: 'Klein' }).click();
+    await tapAt(canvas, 0.3, 0.2);
+    await f.getByLabel('Kommentar zu Markierung 1').fill('dumpf');
+    await f.getByRole('button', { name: 'Pinsel', exact: true }).click();
+    await strokeAcross(page, canvas, [0.4, 0.5], [0.6, 0.7]);
+    const editorSvg = await canvas.locator('svg').innerHTML();
+    await page.getByRole('button', { name: 'Speichern' }).click();
+
+    // Detail (Standardbild): gleiche Zeichnung wie im Editor, Nummern und Kommentar, nicht bearbeitbar
+    const view = page.getByTestId('bodymap-view');
+    await expect(view).toBeVisible();
+    const img = view.getByRole('img', { name: 'Körper Vorderseite' });
+    expect(await img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+    await expect(view.locator('svg g[data-mark-kind]')).toHaveCount(2);
+    expect(await view.locator('svg').innerHTML()).toBe(editorSvg);
+    await expect(view.getByTestId('bodymap-view-mark').nth(0)).toContainText('#1 · Punkt');
+    await expect(view.getByTestId('bodymap-view-mark').nth(0)).toContainText('dumpf');
+    await expect(view.getByTestId('bodymap-view-mark').nth(1)).toContainText('#2 · Pinsel');
+    await expect(view.getByRole('button')).toHaveCount(0);
+    await expect(view.getByRole('textbox')).toHaveCount(0);
+
+    // Feld ohne Markierung (z. B. aus Import): Bild ohne Marker
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          const open = indexedDB.open('stb-v3');
+          open.onsuccess = () => {
+            const store = open.result.transaction('records', 'readwrite').objectStore('records');
+            const all = store.getAll();
+            all.onsuccess = () => {
+              for (const r of all.result as { kind: string; payload: string }[]) {
+                if (r.kind !== 'entry') continue;
+                const e = JSON.parse(r.payload) as { values: Record<string, { points: unknown[] }> };
+                for (const v of Object.values(e.values)) if (v && Array.isArray(v.points)) v.points = [];
+                store.put({ ...r, payload: JSON.stringify(e) });
+              }
+              resolve();
+            };
+          };
+        }),
+    );
+    await go(page, '/');
+    await page.getByTestId('entry-row').click();
+    await expect(view).toBeVisible();
+    await expect(view.getByRole('img', { name: 'Körper Vorderseite' })).toBeVisible();
+    await expect(view.locator('svg g[data-mark-kind]')).toHaveCount(0);
+
+    // Eigenes Bild: neuer Eintrag mit zugeschnittenem Bild und einer Markierung
+    await go(page, '/entry/new');
+    const g = field(page);
+    await g.locator('input[type=file]').setInputFiles(fileURLToPath(new URL('../apps/web/src/assets/bodymap/fuss-plantar.png', import.meta.url)));
+    await page.getByRole('dialog').getByRole('button', { name: 'Übernehmen' }).click();
+    await expect(g.getByRole('button', { name: 'Eigenes Bild 1' })).toHaveAttribute('aria-pressed', 'true');
+    await tapAt(g.getByTestId('bodymap-canvas'), 0.5, 0.5);
+    await page.getByRole('button', { name: 'Speichern' }).click();
+    await expect(view).toBeVisible();
+    await expect(view.getByRole('img', { name: 'Eigenes Bild 1' })).toBeVisible();
+    await expect(view.locator('svg g[data-mark-kind]')).toHaveCount(1);
+  });
+});

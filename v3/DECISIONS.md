@@ -97,6 +97,7 @@ Der Loop ergänzt hier neue Annahmen und jede neue npm-Abhängigkeit.
 | A-071 | **Verlauf ohne „Neuer Eintrag" (UI-25):** Nur Start hat den festen Button; Spec 10 angepasst. | Verlauf dient Lesen/Filtern/Export (User-Feedback). | entschieden (Loop, User-Feedback 2026-11-16) |
 | A-072 | **Body-Map in der Detailansicht (BLK-47):** Wiederverwendung der Zeichenlogik des BodyMap-Felds im Nur-Lesen-Modus. | Keine zweite Render-Implementierung. | entschieden (Loop, User-Feedback 2026-11-16) |
 | A-073 | **Export im Verlauf (EXP-18):** Der Export-Dialog nimmt die FilterSpec als Vorbelegung (Zeitraum/Auswahl), Dateien enthalten nur die gefilterten Einträge. | Filter + Export ist der Hauptnutzen (z. B. Arztbericht). | entschieden (Loop, User-Feedback 2026-11-16) |
+| A-074 | **Body-Map-Detail (BLK-47) nur bei gespeichertem Wert:** `BodyMapView` erscheint für jedes Körperkarten-Feld, dessen Wert im Eintrag steht (auch mit leerer Markierungsliste → Bild ohne Marker); fehlt der Wert ganz, bleibt das Feld weg. Die Zeile „N Punkte" in der Feldliste bleibt. | Die UI speichert leere Körperkarten nicht (`isEmpty`); ein Bild ohne Eintrag wäre Rauschen. Importierte/ältere Einträge mit leerer Liste zeigen trotzdem das Bild. | entschieden (Loop) |
 
 ## Abhängigkeiten
 
