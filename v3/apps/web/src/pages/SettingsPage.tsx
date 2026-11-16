@@ -42,7 +42,7 @@ export function SettingsPage() {
               {de.lock.lockNow}
             </Button>
           )}
-          {auth.status === 'unlocked' && auth.accountMode === 'local-only' ? <FactorsSection /> : null}
+          {auth.status === 'unlocked' && auth.accountMode !== null ? <FactorsSection /> : null}
         </CardContent>
       </Card>
       {auth.status === 'unlocked' && auth.accountMode === 'local-only' ? <UpgradeToCloud /> : null}

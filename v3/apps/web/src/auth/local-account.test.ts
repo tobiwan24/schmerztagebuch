@@ -78,7 +78,7 @@ describe('Passkey-Klick-Handler', () => {
 });
 
 describe('Faktorverwaltung (local-only)', () => {
-  it('M14.33a: Passwort ändern — alter Passwort-Wrap ungültig, neuer entsperrt dieselbe UMK, Backup-Code unverändert', async () => {
+  it('CRY-18: Passwort ändern — alter Passwort-Wrap ungültig, neuer entsperrt dieselbe UMK, Backup-Code unverändert', async () => {
     const { umk, backupCode } = await createLocalAccount(db, { factor: { kind: 'password', password: 'altes passwort 1' }, now });
     await setPassword(db, umk, 'neues passwort 2');
     await expect(unlockLocal(db, { kind: 'password', password: 'altes passwort 1' })).rejects.toMatchObject({ code: 'unwrap-failed' });
@@ -87,7 +87,7 @@ describe('Faktorverwaltung (local-only)', () => {
     expect((await loadAccount(db))?.wraps.filter((w) => w.factor === 'password')).toHaveLength(1);
   });
 
-  it('M14.33a: Passkey hinzufügen und entfernen — nur mit bleibendem Passwort; allein als Faktor nicht entfernbar', async () => {
+  it('CRY-18: Passkey hinzufügen und entfernen — nur mit bleibendem Passwort; allein als Faktor nicht entfernbar', async () => {
     const { umk } = await createLocalAccount(db, { factor: { kind: 'password', password: 'passwort eins 1' }, now });
     await addPasskey(db, umk, { prf: prf(5), credentialId: 'cred-5' });
     expect(await raw(await unlockLocal(db, { kind: 'passkey', prf: prf(5) }))).toEqual(await raw(umk));
@@ -110,7 +110,7 @@ describe('Faktorverwaltung (local-only)', () => {
     }
   });
 
-  it('M14.33a: Backup-Code erneuern — erst nach commit() gilt der neue Code, der alte wird ungültig', async () => {
+  it('CRY-18: Backup-Code erneuern — erst nach commit() gilt der neue Code, der alte wird ungültig', async () => {
     const { umk, backupCode: oldCode } = await createLocalAccount(db, { factor: { kind: 'password', password: 'passwort eins 1' }, now });
     const pending = await prepareBackupCodeRenewal(db, umk);
     expect(pending.backupCode).not.toBe(oldCode);

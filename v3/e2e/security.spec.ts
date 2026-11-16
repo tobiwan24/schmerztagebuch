@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { PASSWORD, addVirtualAuthenticator, finishDiarySetup, go, lockViaSettings, onboardWithPassword } from './helpers';
+import { PASSWORD, addDeviceWithBackupCode, addVirtualAuthenticator, finishDiarySetup, go, lockViaSettings, onboardWithCloud, onboardWithPassword, uniqueUser } from './helpers';
 
 // Mehrfaches PBKDF2 (600k) je Schritt: unter Volllast mehr Zeit.
 test.describe.configure({ timeout: 120_000 });
@@ -21,7 +21,7 @@ async function unlockWithPassword(page: Page, password: string) {
 }
 
 test.describe('Zugang verwalten (nur auf diesem Gerät)', () => {
-  test('M14.33a: Passwort ändern verlangt das aktuelle Passwort; das alte Passwort gilt danach nicht mehr', async ({ page }) => {
+  test('CRY-18: Passwort ändern verlangt das aktuelle Passwort; das alte Passwort gilt danach nicht mehr', async ({ page }) => {
     await onboardWithPassword(page);
     await openSettings(page);
     await page.getByRole('button', { name: 'Passwort ändern' }).click();
@@ -44,7 +44,7 @@ test.describe('Zugang verwalten (nur auf diesem Gerät)', () => {
     await expect(page.getByRole('heading', { name: 'Start' })).toBeVisible({ timeout: 30_000 });
   });
 
-  test('M14.33a: Backup-Code erneuern zeigt einen neuen Code mit Pflichtbestätigung; der alte Code gilt nicht mehr', async ({ page }) => {
+  test('CRY-18: Backup-Code erneuern zeigt einen neuen Code mit Pflichtbestätigung; der alte Code gilt nicht mehr', async ({ page }) => {
     const oldCode = await onboardWithPassword(page);
     await openSettings(page);
     await page.getByRole('button', { name: 'Backup-Code erneuern' }).click();
@@ -74,7 +74,7 @@ test.describe('Zugang verwalten (nur auf diesem Gerät)', () => {
     }
   });
 
-  test('M14.33a: Passkey hinzufügen, damit entsperren und wieder entfernen (Passwort bleibt)', async ({ page, browserName }) => {
+  test('CRY-18: Passkey hinzufügen, damit entsperren und wieder entfernen (Passwort bleibt)', async ({ page, browserName }) => {
     test.skip(browserName !== 'chromium', 'Virtueller Authenticator nur über CDP (Chromium)');
     await addVirtualAuthenticator(page);
     await onboardWithPassword(page);
@@ -97,7 +97,7 @@ test.describe('Zugang verwalten (nur auf diesem Gerät)', () => {
     await expect(page.getByRole('button', { name: 'Passkey hinzufügen' })).toBeVisible();
   });
 
-  test('M14.33a: der Passkey als einziger Faktor kann nicht entfernt werden; ein Passwort lässt sich hinzufügen', async ({ page, browserName }) => {
+  test('CRY-18: der Passkey als einziger Faktor kann nicht entfernt werden; ein Passwort lässt sich hinzufügen', async ({ page, browserName }) => {
     test.skip(browserName !== 'chromium', 'Virtueller Authenticator nur über CDP (Chromium)');
     await addVirtualAuthenticator(page);
     await page.goto('/');
@@ -117,5 +117,43 @@ test.describe('Zugang verwalten (nur auf diesem Gerät)', () => {
     await page.getByRole('button', { name: 'Speichern' }).click();
     await expect(page.getByTestId('factors-done')).toContainText('Passwort gespeichert', { timeout: 30_000 });
     await expect(page.getByRole('button', { name: 'Passkey entfernen' })).toBeEnabled();
+  });
+});
+
+test.describe('Zugang verwalten (Konto)', () => {
+  test('CRY-18: Backup-Code im Konto erneuern ersetzt Code und Server-Wrap; mit dem alten Code ist keine Anmeldung mehr möglich', async ({ page, browser, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Virtueller Authenticator nur über CDP (Chromium)');
+    await addVirtualAuthenticator(page);
+    const user = uniqueUser('renew');
+    const oldCode = await onboardWithCloud(page, user);
+    await openSettings(page);
+    // Im Konto gibt es nur den Backup-Code zu erneuern (Passwort/Passkey: nur auf diesem Gerät)
+    await expect(page.getByRole('button', { name: 'Passwort ändern' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Backup-Code erneuern' }).click();
+    const newCode = (await page.getByTestId('backup-code').textContent({ timeout: 30_000 })) ?? '';
+    expect(newCode).toMatch(/^[A-Z2-7]{8}(-[A-Z2-7]{8}){3}$/);
+    expect(newCode).not.toBe(oldCode);
+    await expect(page.getByRole('button', { name: 'Weiter' })).toBeDisabled();
+    await page.getByLabel('Ich habe den Code sicher aufbewahrt').check();
+    await page.getByRole('button', { name: 'Weiter' }).click();
+    await expect(page.getByTestId('factors-done')).toContainText('Neuer Backup-Code gespeichert', { timeout: 30_000 });
+
+    // Zweitgerät: alter Code wird vom Server abgelehnt …
+    const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, locale: 'de-DE' });
+    const other = await ctx.newPage();
+    await addVirtualAuthenticator(other);
+    await other.goto('/');
+    await other.getByRole('button', { name: 'Weiter' }).click();
+    await other.getByRole('button', { name: /Mit Konto/ }).click();
+    await other.getByRole('button', { name: 'Ich habe schon ein Konto' }).click();
+    await other.getByRole('button', { name: 'Mit Backup-Code anmelden' }).click();
+    await other.getByLabel('Benutzername').fill(user);
+    await other.getByLabel('Backup-Code').fill(oldCode);
+    await other.getByRole('button', { name: 'Weiter' }).click();
+    await expect(other.locator('[data-error-code="wrong-backup-code"]')).toBeVisible({ timeout: 30_000 });
+    await ctx.close();
+    // … der neue Code funktioniert
+    const added = await addDeviceWithBackupCode(browser, user, newCode);
+    await added.context().close();
   });
 });

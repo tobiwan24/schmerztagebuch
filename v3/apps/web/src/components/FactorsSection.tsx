@@ -19,7 +19,8 @@ const t = de.factors;
 type Action = 'password' | 'passkey-add' | 'passkey-remove' | 'backup';
 
 export function FactorsSection() {
-  const { db, session, credentials, rpId } = useAuth();
+  const { db, session, credentials, rpId, accountMode, cloud } = useAuth();
+  const local = accountMode === 'local-only';
   const [info, setInfo] = useState<{ hasPassword: boolean; hasPasskey: boolean } | null>(null);
   const [action, setAction] = useState<Action | null>(null);
   const [verified, setVerified] = useState(false);
@@ -71,7 +72,7 @@ export function FactorsSection() {
     setVerified(true);
     if (a === 'backup') {
       try {
-        setPending(await prepareBackupCodeRenewal(db, session.umk()));
+        setPending(local ? await prepareBackupCodeRenewal(db, session.umk()) : await cloud.prepareBackupCodeRenewal());
       } catch (e) {
         setError(toAuthErrorCode(e));
       }
@@ -209,11 +210,13 @@ export function FactorsSection() {
 
       {action === null ? (
         <div className="flex flex-col gap-2">
-          <Button variant="outline" onClick={() => void begin('password')}>
-            <KeyRound aria-hidden />
-            {info.hasPassword ? t.passwordChange : t.passwordSet}
-          </Button>
-          {info.hasPasskey ? (
+          {local ? (
+            <Button variant="outline" onClick={() => void begin('password')}>
+              <KeyRound aria-hidden />
+              {info.hasPassword ? t.passwordChange : t.passwordSet}
+            </Button>
+          ) : null}
+          {!local ? null : info.hasPasskey ? (
             <>
               <Button variant="outline" disabled={!info.hasPassword} onClick={() => void begin('passkey-remove')}>
                 <Fingerprint aria-hidden />

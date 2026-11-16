@@ -115,7 +115,7 @@ describe('Auto-Sicherung', () => {
 });
 
 describe('Auto-Sicherung und Faktoren', () => {
-  it('M14.33a: nach Passwortwechsel öffnet nur noch das neue Passwort die Sicherung (Kopie der Wraps aktualisiert)', async () => {
+  it('CRY-18: nach Passwortwechsel öffnet nur noch das neue Passwort die Sicherung (Kopie der Wraps aktualisiert)', async () => {
     await seed();
     const { umk } = await createLocalAccount(db, { factor: { kind: 'password', password: 'altes passwort 1' }, now: clock.now });
     const named = new AutoBackupDb(); // Standardname, wie ihn refreshAutoBackupWraps verwendet

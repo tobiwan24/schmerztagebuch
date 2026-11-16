@@ -169,3 +169,24 @@ describe('Konto per Passkey', () => {
     expect(last).toBe(429);
   });
 });
+
+describe('Backup-Code erneuern', () => {
+  it('CRY-18: eingeloggt werden Backup-Wrap und Verifier ersetzt; der alte Code gilt nicht mehr, der neue schon; ohne Sitzung 401', async () => {
+    const { res } = await register('karl');
+    const cookie = cookieOf(res);
+    const payload = { umkWrapBackup: 'wrap-b-neu', backupAuth: 'backup-auth-token-2222222222222222' };
+    expect((await app.inject({ method: 'PUT', url: '/api/v1/auth/backup-code', payload })).statusCode).toBe(401);
+    expect((await app.inject({ method: 'PUT', url: '/api/v1/auth/backup-code', headers: { cookie }, payload: { umkWrapBackup: 'x' } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'PUT', url: '/api/v1/auth/backup-code', headers: { cookie }, payload })).statusCode).toBe(204);
+
+    const me = await app.inject({ method: 'GET', url: '/api/v1/auth/me', headers: { cookie } });
+    const wraps = me.json().keys as { kind: string; blob: string }[];
+    expect(wraps.filter((k) => k.kind === 'umk-wrap-backup').map((k) => k.blob)).toEqual(['wrap-b-neu']);
+    expect(wraps.find((k) => k.kind === 'umk-wrap-passkey')?.blob).toBe('wrap-p');
+
+    const old = await app.inject({ method: 'POST', url: '/api/v1/auth/recovery/start', payload: { username: 'karl', backupAuth: 'backup-auth-token-0000000000000000' } });
+    expect(old.json()).toEqual({ error: 'wrong-backup-code' });
+    const fresh = await app.inject({ method: 'POST', url: '/api/v1/auth/recovery/start', payload: { username: 'karl', backupAuth: 'backup-auth-token-2222222222222222' } });
+    expect(fresh.statusCode).toBe(200);
+  });
+});

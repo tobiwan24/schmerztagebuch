@@ -4,12 +4,12 @@
 
 ## Aktuell
 
-- **Meilenstein:** M14 „Nacharbeiten v2-Parität" erledigt (28/28 IDs, Skript „OK"; Abschlussaufgabe M14.22 läuft mit M14b); aktuell der Teil-Meilenstein M14b „v2-Parität, Rest" (14/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
+- **Meilenstein:** M14 „Nacharbeiten v2-Parität" erledigt (28/28 IDs, Skript „OK"; Abschlussaufgabe M14.22 läuft mit M14b); aktuell der Teil-Meilenstein M14b „v2-Parität, Rest" (15/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M14.33b CRY-18 Konto-Teil (Backup-Code erneuern mit Server-Wrap + Verifier, Passkey im Konto; Server-Endpunkt, danach `verify:docker`). Entscheidungen: A-036 bis A-068.
+- **Nächste Aufgabe:** M14.34 Geräteliste, Abmelden, Sperren (CRY-19). Entscheidungen: A-036 bis A-068.
 - **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29), M14.16 (BLK-30), M14.17 (BLK-31), M14.18 (BLK-35, BLK-36), M14.19 (UI-16, UI-19), M14.1 (BLK-40), M14.20 (UI-17), M14.21 (UI-18)
-- **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15), M14.31 (EXP-17), M14.32 (EXP-16)
+- **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15), M14.31 (EXP-17), M14.32 (EXP-16), M14.33 (CRY-18)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. **Achtung:** `npm run verify` überschreibt `reports/vitest.json` mit übersprungenem QA-08 → vor `npm run acceptance` gesamt `npm run verify:docker` (Docker Desktop muss laufen).
 - **Nacharbeiten (Formular, Vorlagen-Editor, Tagebuch-Einstellungen, Wetter-Anbindung, Umnummerierung n+2, Bild-Artefakt, Parität):** ersetzt durch M14. Body-Map (Pinsel, Größe, Kommentar, eigene Bilder) ist seit M8b erledigt.
@@ -55,7 +55,7 @@
 | M14.30 | PDF-Layout Dashboard + Auswahl der Multiselects (nach M14.29) — M14b — erledigt | EXP-15 |
 | M14.31 | Auto-Sicherung, Kern (Schlüssel, Format, Ablage, Auslöser) — M14b — erledigt | EXP-17 |
 | M14.32 | Hinweis „Backup wiederherstellen" bei leerer DB (nach M14.31) — M14b — erledigt | EXP-16 |
-| M14.33 | Sicherheit: Passwort ändern, Passkey hinzufügen/entfernen, Backup-Code erneuern (ggf. zwei Commits: local / Konto) — M14b | CRY-18 |
+| M14.33 | Sicherheit: Passwort ändern, Passkey hinzufügen/entfernen, Backup-Code erneuern (ggf. zwei Commits: local / Konto) — M14b — erledigt | CRY-18 |
 | M14.34 | Geräteliste, Abmelden, Sperren (Server-Endpunkt `GET/DELETE /api/v1/devices` falls nötig → DECISIONS A-022) (nach M14.33) — M14b | CRY-19 |
 | M14.35 | Sperre: Dauer, Widerruf, Inaktivität — M14b | CRY-20 |
 | M14.36 | Konto: „Jetzt synchronisieren", Wechsel zurück auf local-only — M14b | UI-20 |
@@ -89,7 +89,7 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M12 | erledigt | 9/9 IDs |
 | M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
 | M14 | erledigt | 28/28 IDs (Skript OK nach vollem E2E: 166 grün) — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
-| M14b | aktuell | 14/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
+| M14b | aktuell | 15/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
 
@@ -267,4 +267,5 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | 2026-11-16 | M14.31 | EXP-17 | Auto-Sicherung: `data/auto-backup.ts` (eigene IndexedDB `stb-v3-autobackup`, Datensatz `latest`: Datei im Format .stbbackup mit zufälligem Sicherungsschlüssel, dieser mit der UMK verpackt, Kopie der UMK-Faktor-Wraps; `runAutoBackup` höchstens 1×/24 h, `force` vor Updates, nie mit leerem Bestand; `readAutoBackup` mit Passwort oder Backup-Code), `useAutoBackup`/`AutoBackup` (30 s entprellt nach lokalen Schreibvorgängen), Update-Banner „Neustart“ sichert vorher. Neue Domain `autoBackupKey`. A-066. Integrationstest: nach Löschen von stb-v3 mit beiden Faktoren wiederherstellbar, falscher Faktor → unwrap-failed, Speicher ohne Klartext-Marker. Erkenntnis: Python-`open()` ohne `encoding='utf-8'` zerstört unter Windows Umlaute (cp1252) — immer encoding angeben. |
 | 2026-11-16 | M14.32 | EXP-16 | `RestoreBackupBanner` auf Start (leere DB, wegklickbar über `keys` `restore-banner:dismissed`, nicht bei unmigrierten v2-Daten mit Einträgen): Link zur Import-Seite und, falls vorhanden, Auto-Sicherung per Dialog (Backup-Code oder Passwort) über lazy geladenes `restore-auto-backup.ts` (Import-Plan, idempotent). E2E `restore-banner.spec.ts`: Hinweis/Wegklicken/Reload, v2-Daten, kompletter Weg (Auto-Sicherung per Seitenuhr-Vorspulen, stb-v3 löschen, neues Konto, Wiederherstellung, falsches Passwort). `createV2Db` nach `helpers.ts` verschoben. A-067. |
 | 2026-11-16 | M14.33a | (CRY-18) | Zugang verwalten, local-only: `local-account.ts` (`setPassword`, `addPasskey`, `removePasskey`, `prepareBackupCodeRenewal`, `factorInfo`, `FactorManagementError`), `FactorsSection` in Einstellungen → Sicherheit (Rückfrage mit aktuellem Passwort, Passkey-Anlage im eigenen Klick, Pflichtbestätigung des neuen Backup-Codes), Ablage der Auto-Sicherung in `auto-backup-store.ts` ausgelagert (leicht) mit `refreshAutoBackupWraps` (ersetzter Faktor öffnet die Sicherung nicht mehr). Tests: Unit (Faktoren, Sicherung), E2E `security.spec.ts` (Passwort, Backup-Code, Passkey Chromium). CRY-18 erst mit M14.33b (Konto) vollständig. A-068. Erkenntnis: In WebKit schlug einmal eine Specdatei mit „browserContext.newPage: Target page, context or browser has been closed“ in Folge-Tests fehl (WebKit-Absturz, nicht reproduzierbar, Wiederholung grün) — gleiche Klasse wie die Lastflakes. |
+| 2026-11-16 | M14.33b | CRY-18 | Konto-Teil: Server `PUT /api/v1/auth/backup-code` (eingeloggt, ersetzt Backup-Wrap + Verifier atomar, Hash des Tokens), Client `AccountApi.renewBackupCode`, `prepareCloudBackupCodeRenewal` (Server zuerst, dann lokal), `AuthApi.cloud.prepareBackupCodeRenewal`; `FactorsSection` zeigt im Konto nur „Backup-Code erneuern“. Tests: Server-Integration, Web+Server-Integration (alter Code überall ungültig), E2E (Zweitgerät lehnt alten Code ab, neuer geht). Tests der Aufgabe M14.33 jetzt unter ID CRY-18. A-068 ergänzt (Passwort/Passkey-Verwaltung nur local-only; Passkey entfernen im Konto Backlog). Server berührt → `verify:docker` NACHHOLEN (QA-08): Docker-Image-Build des Servers gelingt, der Web-Build lässt Docker Desktop abstürzen (buildkit EOF / WSL-Fehler, Host-Speicher knapp: ~1,5 GB frei neben 7,7-GB-VM) — Umgebungsproblem, kein Testfehler. Erkenntnis: `verify` scheiterte zweimal an Worker-OOM (Speicherdruck, 3–4 GB frei), der dritte Lauf war grün. |
 Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19, `navigation.spec` UI-05 Fehlerzustand) unter Volllast; einzeln erneut gelaufen: grün.

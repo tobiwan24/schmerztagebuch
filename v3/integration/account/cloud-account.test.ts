@@ -10,7 +10,7 @@ import { sessionAuth } from '../../apps/server/src/auth/sessions.js';
 import { createSoftAuthenticator } from '../../apps/server/src/auth/soft-authenticator.js';
 import { StbDb } from '../../apps/web/src/data/db.js';
 import { AccountApiError, type AccountApi, type CredentialJson } from '../../apps/web/src/auth/account-api.js';
-import { createCloudDiary, loginOnNewDevice, openDiaryKeys, prepareCloudRecovery, prepareCloudRegistration, startCloudRecovery } from '../../apps/web/src/auth/cloud-account.js';
+import { createCloudDiary, loginOnNewDevice, openDiaryKeys, prepareCloudBackupCodeRenewal, prepareCloudRecovery, prepareCloudRegistration, startCloudRecovery } from '../../apps/web/src/auth/cloud-account.js';
 import { unlockLocal } from '../../apps/web/src/auth/local-account.js';
 
 const ORIGIN = 'http://localhost:4173';
@@ -32,7 +32,7 @@ async function server() {
 /** AccountApi über fastify.inject mit eigenem Cookie-Speicher (ein Gerät = ein Browser). */
 function injectApi(app: FastifyInstance): AccountApi & { cookie: () => string } {
   let cookie = '';
-  async function call<T>(method: 'GET' | 'POST', url: string, payload?: unknown): Promise<T> {
+  async function call<T>(method: 'GET' | 'POST' | 'PUT', url: string, payload?: unknown): Promise<T> {
     const res = await app.inject({ method, url, headers: cookie ? { cookie } : {}, ...(payload === undefined ? {} : { payload: payload as object }) });
     const set = res.headers['set-cookie'];
     if (set) cookie = String(set).split(';')[0]!;
@@ -47,6 +47,7 @@ function injectApi(app: FastifyInstance): AccountApi & { cookie: () => string } 
     loginVerify: (body) => call('POST', '/api/v1/auth/login/verify', body),
     recoveryStart: (body) => call('POST', '/api/v1/auth/recovery/start', body),
     recoveryFinish: (body) => call('POST', '/api/v1/auth/recovery/finish', body),
+    renewBackupCode: (body) => call('PUT', '/api/v1/auth/backup-code', body),
     createDiary: (body) => call('POST', '/api/v1/diaries', body),
     listDiaries: () => call('GET', '/api/v1/diaries'),
   };
@@ -149,5 +150,35 @@ describe('Konto „Mit Konto"', () => {
 
     // alter Backup-Code gilt nicht mehr
     await expect(startCloudRecovery(injectApi(app), { username: 'carla', backupCode: reg.backupCode })).rejects.toMatchObject({ code: 'wrong-backup-code' });
+  });
+
+  it('CRY-18: Backup-Code im Konto erneuern ersetzt Wrap und Verifier auf Server und Gerät; der alte Code gilt nirgends mehr, der neue überall', async () => {
+    const { app } = await server();
+    const apiA = injectApi(app);
+    const dbA = await localDb();
+    const passkey = createSoftAuthenticator();
+    const prf = crypto.getRandomValues(new Uint8Array(32));
+    const { challengeId, options } = await apiA.registerOptions('dora');
+    const credential = passkey.register({ challenge: options.challenge, rpId: 'localhost', origin: ORIGIN, userHandle: options.user.id }) as CredentialJson;
+    const reg = await prepareCloudRegistration(dbA, apiA, { challengeId, username: 'dora', credential, prf, now });
+    await reg.commit();
+
+    const renewal = await prepareCloudBackupCodeRenewal(dbA, apiA, reg.umk);
+    expect(renewal.backupCode).not.toBe(reg.backupCode);
+    // vor commit() gilt noch der alte Code (Server und Gerät)
+    await expect(startCloudRecovery(injectApi(app), { username: 'dora', backupCode: reg.backupCode })).resolves.toBeTruthy();
+    await renewal.commit();
+
+    // Server: alter Code abgelehnt, neuer akzeptiert
+    await expect(startCloudRecovery(injectApi(app), { username: 'dora', backupCode: reg.backupCode })).rejects.toMatchObject({ code: 'wrong-backup-code' });
+    const start = await startCloudRecovery(injectApi(app), { username: 'dora', backupCode: renewal.backupCode });
+    // der neue Backup-Wrap auf dem Server entpackt dieselbe UMK
+    const backupWrap = JSON.parse(start.keys.find((k) => k.kind === 'umk-wrap-backup')!.blob);
+    const { unwrapUmk } = await import('@stb/crypto');
+    expect(await raw(await unwrapUmk(backupWrap, { kind: 'backup', code: renewal.backupCode }))).toEqual(await raw(reg.umk));
+    // Gerät: alter Code ungültig, neuer und Passkey gültig
+    await expect(unlockLocal(dbA, { kind: 'backup', code: reg.backupCode })).rejects.toMatchObject({ code: 'unwrap-failed' });
+    expect(await raw(await unlockLocal(dbA, { kind: 'backup', code: renewal.backupCode }))).toEqual(await raw(reg.umk));
+    expect(await raw(await unlockLocal(dbA, { kind: 'passkey', prf }))).toEqual(await raw(reg.umk));
   });
 });

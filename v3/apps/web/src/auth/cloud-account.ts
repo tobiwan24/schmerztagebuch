@@ -274,3 +274,28 @@ export async function syncMemberships(
 }
 
 export const isCloudAccount = (a: unknown): a is CloudAccount => (a as { mode?: string } | undefined)?.mode === 'cloud-primary';
+
+/**
+ * Backup-Code erneuern im Konto (CRY-18): neuer Code + Wrap der bestehenden UMK. `commit()` (nach der Pflichtbestätigung)
+ * ersetzt zuerst Wrap und Verifier auf dem Server, dann lokal — scheitert der Server, bleibt der alte Code gültig.
+ */
+export async function prepareCloudBackupCodeRenewal(
+  db: StbDb,
+  api: AccountApi,
+  umk: CryptoKey,
+): Promise<{ backupCode: string; commit(): Promise<UmkWrap[]> }> {
+  const account = (await loadAccount(db)) as CloudAccount | undefined;
+  if (!isCloudAccount(account)) throw new Error('Kein Konto auf diesem Gerät');
+  const backupCode = await generateBackupCode();
+  const backupWrap = await wrapUmk(umk, { kind: 'backup', code: backupCode });
+  const backupAuth = await deriveBackupAuth(backupCode);
+  return {
+    backupCode,
+    async commit() {
+      await api.renewBackupCode({ umkWrapBackup: JSON.stringify(backupWrap), backupAuth });
+      const wraps = [...account.wraps.filter((w) => w.factor !== 'backup'), backupWrap];
+      await db.keys.put({ id: ACCOUNT_ID, value: { ...account, wraps } satisfies CloudAccount });
+      return wraps;
+    },
+  };
+}

@@ -4,11 +4,11 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { UmkFactor } from '@stb/crypto';
 import { StbDb } from '@/data/db';
 import { createCryptoSession, type CryptoSession } from '@/data/crypto-session';
-import { hasAccount, loadAccount, unlockLocal, type PendingAccount } from './local-account';
+import { hasAccount, loadAccount, unlockLocal, type PendingAccount, type PendingBackupCode } from './local-account';
 import { preparePasskeyRequest, prfOutput, type CredentialsLike } from './passkey';
 import { createFetchAccountApi, type AccountApi } from './account-api';
 import {
-  createCloudDiary, isCloudAccount, loginOnNewDevice, openDiaryKeys, prepareCloudRecovery, prepareCloudRegistration, prepareUpgradeToCloud,
+  createCloudDiary, isCloudAccount, loginOnNewDevice, openDiaryKeys, prepareCloudBackupCodeRenewal, prepareCloudRecovery, prepareCloudRegistration, prepareUpgradeToCloud,
   startCloudRecovery, type CloudAccount,
 } from './cloud-account';
 import { creationOptionsFromServer, credentialToJson, requestOptionsFromServer } from './webauthn-json';
@@ -58,6 +58,8 @@ export interface CloudAuth {
   prepareRecovery(input: { start: RecoveryStart; credential: Credential }): Promise<PendingAccount>;
   /** Wechsel „nur auf diesem Gerät" → „Mit Konto" (entsperrt): bestehende UMK bleibt, neuer Backup-Code; `finishPending` lädt hoch. */
   prepareUpgrade(input: { challengeId: string; username: string; credential: Credential }): Promise<PendingAccount>;
+  /** Backup-Code erneuern im Konto (CRY-18): `commit()` ersetzt Wrap + Verifier auf dem Server und lokal (nach der Pflichtbestätigung). */
+  prepareBackupCodeRenewal(): Promise<PendingBackupCode>;
   /** Tagebuch auf dem Server anlegen (DK für die eigene Identity) und in der Sitzung bereitstellen. */
   createDiary(diaryId: string): Promise<void>;
 }
@@ -183,6 +185,7 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
           username: start.username, backupCode: start.backupCode, start: start.raw, credential: credentialToJson(credential), prf, now,
         });
       },
+      prepareBackupCodeRenewal: () => prepareCloudBackupCodeRenewal(db, server, session.umk()),
       async createDiary(diaryId) {
         const account = await loadAccount(db);
         if (!isCloudAccount(account)) return;

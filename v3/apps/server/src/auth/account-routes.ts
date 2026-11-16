@@ -13,6 +13,7 @@ import {
   AuthFlowError,
   USER_KEY_KINDS,
   authenticationOptions,
+  hashBackupAuth,
   createDiary,
   registrationOptions,
   userKeys,
@@ -47,6 +48,8 @@ const registerVerifyBody = z.strictObject({
 const loginVerifyBody = z.strictObject({ challengeId: z.string().min(1).max(64), response: webauthnResponse, device });
 const createDiaryBody = z.strictObject({ diaryId: z.string().min(1).max(64), wrappedDk: blob });
 const recoveryStartBody = z.strictObject({ username, backupAuth: z.string().min(16).max(256) });
+// Backup-Code erneuern (CRY-18): neuer Wrap + Verifier; der Server speichert vom Verifier nur den Hash.
+const backupRenewBody = z.strictObject({ umkWrapBackup: blob, backupAuth: z.string().min(16).max(256) });
 const recoveryFinishBody = z.strictObject({ challengeId: z.string().min(1).max(64), response: webauthnResponse, keys: z.array(userKey).min(3).max(4), device });
 
 const STATUS: Record<AuthFlowError['code'], number> = { 'challenge-expired': 400, 'username-taken': 409, 'verification-failed': 401, 'no-credential': 404, 'wrong-backup-code': 401 };
@@ -137,6 +140,21 @@ export function registerAccountRoutes(
     if (!r) return reply;
     const s = createSession(db, r.userId, r.deviceId, now());
     return reply.header('set-cookie', s.setCookie).code(201).send(r);
+  });
+
+  /** Backup-Code erneuern (eingeloggt): Backup-Wrap und Verifier atomar ersetzen — der alte Code gilt danach nicht mehr. */
+  app.put('/api/v1/auth/backup-code', async (req, reply) => {
+    if (limited(req.ip, reply)) return reply;
+    const p = await requirePrincipal(auth, req, reply);
+    if (!p) return reply;
+    const body = backupRenewBody.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid-request' });
+    db.transaction(() => {
+      db.prepare("DELETE FROM user_keys WHERE user_id = ? AND kind IN ('umk-wrap-backup', 'backup-verifier')").run(p.userId);
+      db.prepare("INSERT INTO user_keys (user_id, kind, credential_id, blob) VALUES (?, 'umk-wrap-backup', '', ?)").run(p.userId, body.data.umkWrapBackup);
+      db.prepare("INSERT INTO user_keys (user_id, kind, credential_id, blob) VALUES (?, 'backup-verifier', '', ?)").run(p.userId, hashBackupAuth(body.data.backupAuth));
+    })();
+    return reply.code(204).send();
   });
 
   app.get('/api/v1/auth/me', async (req, reply) => {

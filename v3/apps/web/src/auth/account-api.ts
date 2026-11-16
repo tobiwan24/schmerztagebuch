@@ -30,6 +30,8 @@ export interface AccountApi {
   /** Recovery / Gerät hinzufügen per Backup-Code (A-023). */
   recoveryStart(body: { username: string; backupAuth: string }): Promise<{ challengeId: string; options: Record<string, unknown> & { challenge: string; user: { id: string } }; keys: UserKey[] }>;
   recoveryFinish(body: { challengeId: string; response: CredentialJson; keys: UserKey[]; device: NewDevice }): Promise<{ userId: string; deviceId: string }>;
+  /** Backup-Code erneuern (eingeloggt): neuer Backup-Wrap und Verifier-Token ersetzen die alten (CRY-18). */
+  renewBackupCode(body: { umkWrapBackup: string; backupAuth: string }): Promise<void>;
   createDiary(body: { diaryId: string; wrappedDk: string }): Promise<void>;
   listDiaries(): Promise<DiaryMembership[]>;
 }
@@ -69,6 +71,7 @@ export function createFetchAccountApi(baseUrl = '', fetchFn: typeof fetch = glob
     loginVerify: (body) => call('POST', '/api/v1/auth/login/verify', body),
     recoveryStart: (body) => call('POST', '/api/v1/auth/recovery/start', body),
     recoveryFinish: (body) => call('POST', '/api/v1/auth/recovery/finish', body),
+    renewBackupCode: (body) => call('PUT', '/api/v1/auth/backup-code', body),
     createDiary: (body) => call('POST', '/api/v1/diaries', body),
     listDiaries: () => call('GET', '/api/v1/diaries'),
   };
