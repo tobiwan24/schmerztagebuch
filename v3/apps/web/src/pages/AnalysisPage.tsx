@@ -4,7 +4,7 @@
 import { TOUR_RING } from '@/tour/anchor';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FilePlus, ImageDown } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
 import { addDays, type FilterSpec } from '@stb/analysis';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -378,8 +378,10 @@ function FreqView({ spec, from, to }: { spec: FilterSpec; from: string; to: stri
   const [picked, setPicked] = useState<string>();
   const blockId = picked ?? choice[0]?.blockId;
   const days = useWorker((c) => (blockId ? c.optionDays({ blockId }, { from, to }, { spec, now: now() }) : Promise.resolve([])), [JSON.stringify(spec), blockId]);
+  const meds = useWorker((c) => c.optionDays({ role: 'medication' }, { from, to }, { spec, now: now() }), [JSON.stringify(spec), from, to]);
   if (!days) return <p className="text-muted-foreground">{de.app.loading}</p>;
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle className="text-base">{de.analysis.frequencies}</CardTitle>
@@ -396,6 +398,39 @@ function FreqView({ spec, from, to }: { spec: FilterSpec; from: string; to: stri
             </BarChart>
           </ChartContainer>
         )}
+      </CardContent>
+    </Card>
+    {meds && meds.length > 0 ? <MedPie meds={meds} /> : null}
+    </>
+  );
+}
+
+/** Kreisdiagramm „Medikamente“ (ANA-23): Anteil je Medikament an den Einnahme-Tagen im Zeitraum. */
+function MedPie({ meds }: { meds: { optionId: string; label: string; days: number }[] }) {
+  const total = meds.reduce((s, m) => s + m.days, 0);
+  const pct = (n: number) => `${Math.round((n / total) * 100)} %`;
+  return (
+    <Card data-testid="med-pie">
+      <CardHeader>
+        <CardTitle className="text-base">{de.analysis.medicationShare}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <ChartContainer config={Object.fromEntries(meds.map((m, i) => [`m${i}`, { label: m.label, color: PALETTE[i % PALETTE.length]! }]))} className="h-56">
+          <PieChart>
+            <Tooltip content={<ChartTooltipContent formatter={(v) => `${v} ${de.analysis.daysLabel}`} />} />
+            <Pie data={meds.map((m) => ({ name: m.label, value: m.days }))} dataKey="value" nameKey="name" innerRadius={40} outerRadius={80} isAnimationActive={false}>
+              {meds.map((m, i) => <Cell key={m.optionId} fill={PALETTE[i % PALETTE.length]} />)}
+            </Pie>
+          </PieChart>
+        </ChartContainer>
+        <ul data-testid="med-pie-legend" className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+          {meds.map((m, i) => (
+            <li key={m.optionId} className="flex items-center gap-2">
+              <svg aria-hidden className="size-3" viewBox="0 0 12 12"><rect width="12" height="12" rx="2" fill={PALETTE[i % PALETTE.length]} /></svg>
+              {m.label}: {pct(m.days)} ({m.days} {de.analysis.daysLabel})
+            </li>
+          ))}
+        </ul>
       </CardContent>
     </Card>
   );

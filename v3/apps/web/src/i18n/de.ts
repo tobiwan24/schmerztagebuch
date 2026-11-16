@@ -78,6 +78,7 @@ export const de = {
     nextMonth: 'Nächster Monat',
     calendarHint: (label: string) => `Farbe = Tageswert von „${label}“; leere Tage = kein Eintrag.`,
     weekdays: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
+    medicationShare: 'Medikamente: Anteil je Medikament',
     noMedication: 'Im Zeitraum sind keine Medikamente erfasst.',
     markerLine: 'Markierungslinie (Tage)',
     daysLabel: 'Tage',
