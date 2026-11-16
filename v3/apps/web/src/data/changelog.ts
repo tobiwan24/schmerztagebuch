@@ -4,6 +4,17 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.3.0-alpha.1',
+    date: '2026-11-16',
+    points: [
+      'Neu: Übungen. Im Vorlagen-Editor markierst du eine Vorlage als Trainingsvorlage und legst Übungen mit Sätzen, Wiederholungen, Dauer, Ablauf, Video-Link und Stufen an.',
+      'Neu: Auf Start führt die Kachel „Übungen“ Schritt für Schritt durch dein Training, mit Timer, Stufe und Schmerz bei der Übung. Das Ergebnis ist ein normaler Eintrag im Verlauf.',
+      'Neu: Trainingsvorlagen können an Funktionsphasen gebunden sein und erscheinen dann nur in diesen Phasen.',
+      'Neu: Auswertung → Übungen zeigt Trainingstage je Woche und den Verlauf der Stufen.',
+      'Neu: Eine eigene Erinnerung für Übungen mit eigener Uhrzeit und eigenen Tagen (Einstellungen → Erinnerungen).',
+    ],
+  },
+  {
     version: '3.2.0-alpha.1',
     date: '2026-11-16',
     points: [
