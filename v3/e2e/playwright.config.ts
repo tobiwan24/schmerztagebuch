@@ -10,6 +10,12 @@ export default defineConfig({
   // WebKit unter Windows stürzte bei 6 parallelen Workern ab (Last); 2 Worker sind stabil.
   workers: 2,
   retries: 0,
+  // Jeder Test startet in einem frischen Browser-Kontext ohne Cache: Die App (Bundle, Lazy-Chunks, 2× PBKDF2 mit 600k beim
+  // Onboarding) wird neu geladen und übersetzt. Auf einem Windows-Rechner mit zwei parallelen Browsern (WebKit ist dabei am
+  // langsamsten) schwankt das um ein Vielfaches; die Playwright-Vorgaben (30 s je Test, 5 s je Erwartung) reißen dann
+  // vereinzelt. Gewartet wird weiter gezielt auf Bereitschaft (sichtbare Elemente, `data-route`), nur die Obergrenze ist höher.
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
   reporter: [['list'], ['json', { outputFile: '../reports/playwright.json' }]],
   outputDir: '../reports/playwright-artifacts',
   use: {
