@@ -7,12 +7,14 @@ import { loadAccount } from '@/auth/local-account';
 import { createSharingApi, type Member } from '@/sharing/api';
 import { acceptInvitationWith, createInvitationLink, INVITATION_SECRET_KIND, openInvitation, type InvitationSecretRecord } from '@/sharing/flow';
 import { leaveDiary } from '@/sharing/leave';
+import { isSyncDetached } from './sync-detached';
 import { useData } from './DataContext';
 import { loadMembers, saveMembers } from './members-cache';
 import { useSync } from './SyncContext';
 import { useQuery } from './useQuery';
 
 async function self(db: ReturnType<typeof useAuth>['db']) {
+  if (await isSyncDetached(db)) return null; // zurückgestellt: keine Server-Anfragen (UI-20)
   const account: unknown = await loadAccount(db);
   return isCloudAccount(account) ? { userId: account.cloud.userId, username: account.cloud.username, identityPub: account.cloud.identityPublicKey } : null;
 }

@@ -133,9 +133,9 @@ test.describe('Zugang verwalten (Konto)', () => {
     const newCode = (await page.getByTestId('backup-code').textContent({ timeout: 30_000 })) ?? '';
     expect(newCode).toMatch(/^[A-Z2-7]{8}(-[A-Z2-7]{8}){3}$/);
     expect(newCode).not.toBe(oldCode);
-    await expect(page.getByRole('button', { name: 'Weiter' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Weiter', exact: true })).toBeDisabled();
     await page.getByLabel('Ich habe den Code sicher aufbewahrt').check();
-    await page.getByRole('button', { name: 'Weiter' }).click();
+    await page.getByRole('button', { name: 'Weiter', exact: true }).click();
     await expect(page.getByTestId('factors-done')).toContainText('Neuer Backup-Code gespeichert', { timeout: 30_000 });
 
     // Zweitgerät: alter Code wird vom Server abgelehnt …

@@ -38,13 +38,13 @@ export interface DataApi {
 const DataContext = createContext<DataApi | null>(null);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const { db, now, accountMode } = useAuth();
+  const { db, now, syncAttached } = useAuth();
   const [revision, setRevision] = useState(0);
   const bumpRevision = useCallback(() => setRevision((r) => r + 1), []);
   const base = useMemo(() => {
     const registry = createCodecRegistry([plainCodec]);
     const writes = new EventTarget();
-    const raw = createRecordRepository(db, { registry, writeCodec: 'plain', clock: { now }, outbox: accountMode === 'cloud-primary' });
+    const raw = createRecordRepository(db, { registry, writeCodec: 'plain', clock: { now }, outbox: syncAttached });
     const notify = <T,>(p: Promise<T>) => p.then((v) => (writes.dispatchEvent(new Event('write')), v));
     const records: RecordRepository = {
       ...raw,
@@ -55,7 +55,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const { newId } = createIdGenerator({ now });
     return { records, diary: createDiaryRepository(records), attachments: createAttachmentRepository(db, records, { now }), conflicts: createConflictRepository(db, registry, 'plain'), newId, stamper: createStamper(db, { now }, newId), now, registry, writes,
       weather: createWeatherService({ fetchFn: (input, init) => fetch(input, init), geolocation: navigator.geolocation, now }) };
-  }, [db, now, accountMode]);
+  }, [db, now, syncAttached]);
   const api = useMemo<DataApi>(() => ({ ...base, revision, bumpRevision }), [base, revision, bumpRevision]);
   return <DataContext.Provider value={api}>{children}</DataContext.Provider>;
 }

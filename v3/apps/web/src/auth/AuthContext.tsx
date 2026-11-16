@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { UmkFactor } from '@stb/crypto';
 import { StbDb } from '@/data/db';
 import { createCryptoSession, type CryptoSession } from '@/data/crypto-session';
+import { SYNC_DETACHED_ID, isSyncDetached } from '@/data/sync-detached';
 import { createIdleMonitor, loadLockSettings } from '@/data/lock-settings';
 import { discardLocalKeys, loadDevices, type DeviceView } from './devices';
 import { hasAccount, loadAccount, unlockLocal, type PendingAccount, type PendingBackupCode } from './local-account';
@@ -22,6 +23,10 @@ export interface AuthApi {
   status: AuthStatus;
   /** Art des Kontos auf diesem Gerät (`null` ohne Konto). Bestimmt Outbox und Sync (Spec 04 „Modi"). */
   accountMode: 'local-only' | 'cloud-primary' | null;
+  /** Synchronisiert dieses Gerät? `cloud-primary` und nicht auf „nur dieses Gerät“ zurückgestellt (UI-20). */
+  syncAttached: boolean;
+  /** Setzt den Gerätemerker „Sync zurückgestellt“ (nach `switchToLocalOnly` für alle Tagebücher). */
+  setSyncAttached(attached: boolean): Promise<void>;
   db: StbDb;
   session: CryptoSession;
   credentials: CredentialsLike;
@@ -82,10 +87,14 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [accountMode, setAccountMode] = useState<AuthApi['accountMode']>(null);
   const [accountVersion, setAccountVersion] = useState(0);
+  const [detached, setDetached] = useState(false);
 
   // Nach jedem Statuswechsel (Konto angelegt, Login auf neuem Gerät, …) die Kontoart neu lesen.
   useEffect(() => {
     let cancelled = false;
+    void db.device.get(SYNC_DETACHED_ID).then((row) => {
+      if (!cancelled) setDetached(row?.value === true);
+    });
     void loadAccount(db).then((a) => {
       if (!cancelled) setAccountMode(a ? (isCloudAccount(a) ? 'cloud-primary' : 'local-only') : null);
     });
@@ -135,6 +144,12 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
   const api = useMemo<AuthApi>(() => ({
     status,
     accountMode,
+    syncAttached: accountMode === 'cloud-primary' && !detached,
+    async setSyncAttached(attached) {
+      if (attached) await db.device.delete(SYNC_DETACHED_ID);
+      else await db.device.put({ id: SYNC_DETACHED_ID, value: true });
+      setDetached(!attached);
+    },
     db,
     session,
     credentials: navigator.credentials,
@@ -227,11 +242,12 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
       },
       async createDiary(diaryId) {
         const account = await loadAccount(db);
-        if (!isCloudAccount(account)) return;
+        // Auf „nur dieses Gerät“ zurückgestellt: neue Tagebücher bleiben lokal (UI-20, A-076).
+        if (!isCloudAccount(account) || (await isSyncDetached(db))) return;
         session.setDiaryKey(diaryId, await createCloudDiary(db, server, account, diaryId), 1);
       },
     },
-  }), [status, accountMode, db, session, now, server]);
+  }), [status, accountMode, detached, db, session, now, server]);
 
   /** Cloud-Konto: lokal bekannte DKs öffnen (offline möglich), damit die Sync-Engine ver-/entschlüsseln kann. */
   async function loadDiaryKeys(umk: CryptoKey) {

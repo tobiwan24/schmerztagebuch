@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { CloudRegister } from '@/components/CloudSetup';
 import { BackupCodeStep } from '@/components/BackupCodeStep';
 import { LockSettingsCard } from '@/components/LockSettingsCard';
+import { CloudAccountCard } from '@/components/CloudAccountCard';
 import { DevicesSection } from '@/components/DevicesSection';
 import { FactorsSection } from '@/components/FactorsSection';
 import { AuthErrorNotice } from '@/components/AuthErrorNotice';
@@ -49,15 +50,8 @@ export function SettingsPage() {
       </Card>
       {auth.status === 'unlocked' ? <LockSettingsCard /> : null}
       {auth.status === 'unlocked' && auth.accountMode === 'local-only' ? <UpgradeToCloud /> : null}
-      {auth.accountMode === 'cloud-primary' ? (
-        <Card data-testid="account-card">
-          <CardHeader>
-            <CardTitle>{de.settings.account}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">{de.settings.cloudActive}</CardContent>
-        </Card>
-      ) : null}
-      {auth.status === 'unlocked' && auth.accountMode === 'cloud-primary' ? <DevicesSection /> : null}
+      {auth.accountMode === 'cloud-primary' ? <CloudAccountCard /> : null}
+      {auth.status === 'unlocked' && auth.syncAttached ? <DevicesSection /> : null}
       <Card>
         <CardHeader>
           <CardTitle>{de.settings.appearance}</CardTitle>

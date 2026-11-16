@@ -4,6 +4,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAuth } from '@/auth/AuthContext';
 import { createSyncEngine, type SyncEngine } from '@/sync/engine';
+import { SyncModeError, switchToLocalOnly } from '@/sync/mode';
 import { createFetchTransport } from '@/sync/transport';
 import { quickEntrySelection, type HlcClock, type TemplateState } from '@stb/core';
 import { createIntakeApi } from '@/intake/api';
@@ -14,6 +15,7 @@ import { loadAccount } from '@/auth/local-account';
 import { createSharingApi } from '@/sharing/api';
 import { confirmAcceptances } from '@/sharing/invitations';
 import { invitationSecretFor } from '@/sharing/flow';
+import { isSyncDetached } from './sync-detached';
 import { saveMembers } from './members-cache';
 import { useData } from './DataContext';
 
@@ -26,11 +28,16 @@ export interface SyncApi {
   /** Mindestens ein Lauf ist abgeschlossen (z. B. nach dem Login auf einem neuen Gerät). */
   ready: boolean;
   syncNow(): Promise<void>;
+  /**
+   * Zurück auf „nur dieses Gerät“ (UI-20, SYN-12): vollständig pullen, bei nicht leerer Outbox blockiert; danach sind alle
+   * Tagebücher `local-only` und es gehen keine Requests mehr an den Server.
+   */
+  detach(): Promise<{ ok: true } | { ok: false; reason: 'outbox-not-empty' | 'server-unreachable'; pending: number }>;
   /** Anhang-Inhalt vom Server laden (nur Cloud-Tagebücher); `undefined`, wenn nicht verfügbar. */
   fetchBlob(diaryId: string, id: string): Promise<Uint8Array<ArrayBuffer> | undefined>;
 }
 
-const DISABLED: SyncApi = { state: 'disabled', pending: 0, ready: true, syncNow: async () => undefined, fetchBlob: async () => undefined };
+const DISABLED: SyncApi = { state: 'disabled', pending: 0, ready: true, syncNow: async () => undefined, detach: async () => ({ ok: false, reason: 'server-unreachable', pending: 0 }), fetchBlob: async () => undefined };
 const SyncContext = createContext<SyncApi>(DISABLED);
 
 const WRITE_DEBOUNCE_MS = 300;
@@ -38,7 +45,7 @@ const WRITE_DEBOUNCE_MS = 300;
 export function SyncProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const data = useData();
-  const enabled = auth.status === 'unlocked' && auth.accountMode === 'cloud-primary';
+  const enabled = auth.status === 'unlocked' && auth.syncAttached;
   const [engine, setEngine] = useState<SyncEngine | null>(null);
   const [state, setState] = useState<SyncState>('syncing');
   const [pending, setPending] = useState(0);
@@ -128,8 +135,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     try {
       await membershipsBefore();
       await engine.sync();
-      await sharingAfter();
-      await pickupAll();
+      // Währenddessen auf „nur dieses Gerät“ zurückgestellt (UI-20)? Dann keine weiteren Server-Anfragen.
+      if (!(await isSyncDetached(db))) {
+        await sharingAfter();
+        await pickupAll();
+      }
       const n = await countPending();
       setState(n > 0 ? 'pending' : 'synced');
     } catch {
@@ -173,6 +183,21 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     };
   }, [engine, writes, syncNow, countPending]);
 
+  const detach = useCallback<SyncApi['detach']>(async () => {
+    if (!engine) return { ok: false, reason: 'server-unreachable', pending: 0 };
+    try {
+      await running.current?.catch(() => undefined);
+      for (const s of (await db.sync_state.toArray()).filter((x) => x.mode === 'cloud-primary')) {
+        await switchToLocalOnly(db, s.diaryId, { pull: () => engine.pullDiary(s.diaryId).then(() => undefined) });
+      }
+    } catch (e) {
+      if (e instanceof SyncModeError) return { ok: false, reason: e.code, pending: e.pending };
+      throw e;
+    }
+    await auth.setSyncAttached(false);
+    return { ok: true };
+  }, [engine, db, auth]);
+
   const fetchBlob = useCallback(
     async (diaryId: string, id: string) => {
       if (!engine) return undefined;
@@ -182,7 +207,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     [engine, db],
   );
 
-  const api = useMemo<SyncApi>(() => (enabled ? { state, pending, ready, syncNow, fetchBlob } : DISABLED), [enabled, state, pending, ready, syncNow, fetchBlob]);
+  const api = useMemo<SyncApi>(() => (enabled ? { state, pending, ready, syncNow, detach, fetchBlob } : DISABLED), [enabled, state, pending, ready, syncNow, detach, fetchBlob]);
   return <SyncContext.Provider value={api}>{children}</SyncContext.Provider>;
 }
 
