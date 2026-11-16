@@ -129,3 +129,32 @@ export function upgradeEntryVersion(
   }
   return { upgraded: true, templateVersion: current.version };
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Duplizieren (BLK-36)
+
+/**
+ * Vorbelegung des Formulars für „Duplizieren": Werte des Eintrags auf die aktuelle Vorlagenversion abgebildet.
+ * Archivierte Felder (nicht mehr in der aktuellen Version) und Werte, die dort ungültig wären, entfallen; Anhänge werden
+ * nie übernommen (sie gehören zum Original). Der Zeitpunkt setzt das Formular auf „jetzt".
+ */
+export function duplicateEntryInput(
+  entry: { templateId: string; templateVersion: number; values: Record<string, unknown>; tags: readonly string[] },
+  entryVersion: TemplateVersion,
+  current: TemplateVersion,
+): { templateId: string; templateVersion: number; values: FormValues; tags: string[] } {
+  if (entryVersion.templateId !== entry.templateId || current.templateId !== entry.templateId) throw new RangeError('Vorlagenversion passt nicht zum Eintrag');
+  const values: FormValues = {};
+  for (const def of current.blocks) {
+    let raw = entry.values[def.id];
+    if (raw === undefined) continue;
+    if (def.type === 'textarea' && raw && typeof raw === 'object') {
+      const rest = { ...(raw as Record<string, unknown>) };
+      delete rest.attachmentIds;
+      raw = rest;
+    }
+    const parsed = parseBlockValue(def.type, def.config as never, raw);
+    if (parsed.success && !isValueEmpty(def, raw)) values[def.id] = raw;
+  }
+  return { templateId: entry.templateId, templateVersion: current.version, values, tags: [...entry.tags] };
+}

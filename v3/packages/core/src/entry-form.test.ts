@@ -7,6 +7,7 @@ import {
   isDirty,
   missingRequired,
   upgradeEntryVersion,
+  duplicateEntryInput,
   nowTimeInput,
   timeInputFrom,
   timeToEntry,
@@ -94,5 +95,33 @@ describe('Version eines Eintrags beim Bearbeiten heben', () => {
     const entry = { templateId: version.templateId, templateVersion: 1, values: {} };
     expect(upgradeEntryVersion(entry, bump(version.blocks.filter((b) => b.id !== pain!.id))).upgraded).toBe(true);
     expect(upgradeEntryVersion(entry, version)).toEqual({ upgraded: false, templateVersion: 1 });
+  });
+});
+
+describe('Eintrag duplizieren', () => {
+  const entry = { templateId: template.id, templateVersion: version.version, tags: ['Arbeit'] };
+
+  it('BLK-36: Werte und Tags werden übernommen, Anhänge nicht', () => {
+    const values = { [pain!.id]: 4, [notes!.id]: { text: 'Hallo', attachmentIds: [newId()], events: [{ id: newId(), category: 'event', title: 'Sport' }] } };
+    const out = duplicateEntryInput({ ...entry, values }, version, version);
+    expect(out.tags).toEqual(['Arbeit']);
+    expect(out.values[pain!.id]).toBe(4);
+    const note = out.values[notes!.id] as { text: string; attachmentIds?: string[]; events: unknown[] };
+    expect(note.text).toBe('Hallo');
+    expect(note.attachmentIds).toBeUndefined();
+    expect(note.events).toHaveLength(1);
+  });
+
+  it('BLK-36: Textarea nur mit Anhängen wird leer und entfällt', () => {
+    const out = duplicateEntryInput({ ...entry, values: { [notes!.id]: { attachmentIds: [newId()] } } }, version, version);
+    expect(notes!.id in out.values).toBe(false);
+  });
+
+  it('BLK-36: archivierte Felder und in der aktuellen Version ungültige Werte entfallen', () => {
+    const current = { ...version, version: 2, blocks: version.blocks.filter((b) => b.id !== notes!.id).map((b) => (b.id === pain!.id ? { ...b, config: { ...b.config, max: 3 } } : b)) } as typeof version;
+    const out = duplicateEntryInput({ ...entry, values: { [pain!.id]: 7, [notes!.id]: { text: 'weg' }, [bodymap!.id]: { presetId: DEFAULT_BODYMAP_PRESET_ID, points: [] } } }, version, current);
+    expect(out.templateVersion).toBe(2);
+    expect(pain!.id in out.values).toBe(false);
+    expect(notes!.id in out.values).toBe(false);
   });
 });

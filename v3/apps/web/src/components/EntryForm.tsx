@@ -55,7 +55,14 @@ interface Loaded {
   version: TemplateVersion;
 }
 
-export function EntryForm({ templates, entry }: { templates: Template[]; entry?: Entry }) {
+/** Vorbelegung beim Duplizieren (BLK-36): Werte und Tags des Originals, Zeitpunkt = jetzt. */
+export interface EntryPrefill {
+  templateId: string;
+  values: FormValues;
+  tags: string[];
+}
+
+export function EntryForm({ templates, entry, prefill }: { templates: Template[]; entry?: Entry; prefill?: EntryPrefill }) {
   const data = useData();
   const navigate = useNavigate();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
@@ -76,6 +83,8 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
   const [pendingTemplate, setPendingTemplate] = useState<string | null>(null);
   /** Bearbeiten: Eintrag bleibt auf älterer Version, weil beim Heben ein Wert verloren ginge (BLK-27). */
   const [keptOldVersion, setKeptOldVersion] = useState(false);
+  /** Duplizieren: gilt nur für die erste Vorlagenwahl beim Öffnen. */
+  const prefillRef = useRef(prefill);
 
   function clearPending() {
     setPending((prev) => {
@@ -99,9 +108,13 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
       version = (await data.diary.getTemplate(templateId))?.version;
     }
     if (!version) return;
+    const fill = prefillRef.current?.templateId === templateId ? prefillRef.current : undefined;
+    prefillRef.current = undefined;
     const next: FormSnapshot = entry
       ? { templateId, values: { ...entry.values }, time: timeInputFrom(entry), tags: entry.tags }
-      : { templateId, values: initialValues(version), time: current?.time ?? nowTimeInput(data.now()), tags: current?.tags ?? [] };
+      : fill
+        ? { templateId, values: { ...initialValues(version), ...fill.values }, time: nowTimeInput(data.now()), tags: fill.tags }
+        : { templateId, values: initialValues(version), time: current?.time ?? nowTimeInput(data.now()), tags: current?.tags ?? [] };
     if (!entry) clearPending();
     setLoaded({ template, version });
     // Vorlagenwechsel ohne Eingabe ist keine Änderung (BLK-09): Ausgangszustand wandert mit.
@@ -111,7 +124,7 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
   }
 
   useEffect(() => {
-    const first = entry?.templateId ?? templates[0]?.id;
+    const first = entry?.templateId ?? prefill?.templateId ?? templates[0]?.id;
     if (first) void selectTemplate(first);
     // Nur beim Öffnen; spätere Wechsel über die Auswahl.
   }, []);

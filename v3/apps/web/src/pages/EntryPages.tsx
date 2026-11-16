@@ -1,15 +1,17 @@
 // Eintrag: neu (`/entry/new`), bearbeiten (`/entry/:id/edit`), Detail (`/entry/:id`) — Spec 05/10, Wireframes eintrag/verlauf.
-import { Link, useParams } from 'react-router';
-import { Pencil } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
+import { Copy, Pencil, Trash2 } from 'lucide-react';
 import { AttachmentList } from '@/components/AttachmentList';
 import { useAuthorName } from '@/data/useSharing';
-import { displayValue, type TextareaValue } from '@stb/core';
+import { displayValue, duplicateEntryInput, type TextareaValue } from '@stb/core';
+import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState, ErrorState } from '@/components/StateView';
-import { EntryForm } from '@/components/EntryForm';
+import { EntryForm, type EntryPrefill } from '@/components/EntryForm';
 import { useData } from '@/data/DataContext';
 import { useDiaryScope } from '@/data/diary-scope';
 import { useQuery } from '@/data/useQuery';
@@ -20,12 +22,23 @@ export function EntryEditorPage() {
   const { id } = useParams();
   const { diary } = useData();
   const { diaryId } = useDiaryScope(false);
+  const from = useSearchParams()[0].get('from');
   const query = useQuery(async () => {
     // Vorauswahl: Vorlagen des gewählten Tagebuchs zuerst (UI-24)
     const all = (await diary.listAllTemplates()).filter((t) => !t.archived);
     const templates = diaryId ? [...all.filter((t) => t.diaryId === diaryId), ...all.filter((t) => t.diaryId !== diaryId)] : all;
-    return { templates, entry: id ? await diary.getEntry(id) : undefined };
-  }, [diary, id, diaryId]);
+    // Duplizieren (BLK-36): Vorbelegung aus dem Original, nur wenn dessen Vorlage noch wählbar ist
+    let prefill: EntryPrefill | undefined;
+    const source = !id && from ? await diary.getEntry(from) : undefined;
+    if (source && templates.some((t) => t.id === source.templateId)) {
+      const [entryVersion, current] = await Promise.all([diary.getTemplateVersion(source.templateId, source.templateVersion), diary.getTemplate(source.templateId)]);
+      if (entryVersion && current) {
+        const { templateId, values, tags } = duplicateEntryInput(source, entryVersion, current.version);
+        prefill = { templateId, values, tags };
+      }
+    }
+    return { templates, entry: id ? await diary.getEntry(id) : undefined, prefill };
+  }, [diary, id, diaryId, from]);
   return (
     <>
       <PageHeader title={id ? de.entry.editTitle : de.entry.newTitle} back />
@@ -41,7 +54,7 @@ export function EntryEditorPage() {
         </>
       ) : null}
       {query.status === 'ok' && (id ? query.data.entry : query.data.templates.length > 0) ? (
-        <EntryForm templates={query.data.templates} entry={query.data.entry} />
+        <EntryForm key={from ?? id ?? 'new'} templates={query.data.templates} entry={query.data.entry} prefill={query.data.prefill} />
       ) : null}
     </>
   );
@@ -49,12 +62,27 @@ export function EntryEditorPage() {
 
 export function EntryDetailPage() {
   const { id = '' } = useParams();
-  const { diary } = useData();
+  const { diary, attachments, stamper } = useData();
+  const navigate = useNavigate();
+  const [deleting, setDeleting] = useState(false);
+  const [busy, setBusy] = useState(false);
   const query = useQuery(async () => {
     const view = await diary.getEntryView(id);
     const tpl = view ? await diary.getTemplate(view.entry.templateId) : undefined;
     return view ? { ...view, templateName: tpl?.template.name ?? '' } : undefined;
   }, [diary, id]);
+  async function remove(diaryId: string) {
+    setBusy(true);
+    try {
+      const s = await stamper.stamp();
+      for (const a of await attachments.listForEntry(diaryId, id)) await attachments.remove(a.id);
+      await diary.deleteEntry(id, { hlc: s.hlc, updatedAt: s.at });
+      void navigate('/', { replace: true });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <>
       <PageHeader title={de.entry.title} back />
@@ -114,6 +142,24 @@ export function EntryDetailPage() {
               {de.entry.edit}
             </Link>
           </Button>
+          <Button asChild variant="outline">
+            <Link to={`/entry/new?from=${id}`}>
+              <Copy aria-hidden />
+              {de.entry.duplicate}
+            </Link>
+          </Button>
+          <Button variant="outline" className="text-destructive" onClick={() => setDeleting(true)}>
+            <Trash2 aria-hidden />
+            {de.entry.delete}
+          </Button>
+          <Dialog open={deleting} onClose={() => setDeleting(false)} aria-labelledby="delete-entry-title">
+            <DialogTitle id="delete-entry-title">{de.entry.deleteTitle}</DialogTitle>
+            <DialogDescription>{de.entry.deleteText}</DialogDescription>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleting(false)}>{de.entry.deleteCancel}</Button>
+              <Button variant="destructive" disabled={busy} onClick={() => void remove(query.data!.entry.diaryId)}>{de.entry.deleteConfirm}</Button>
+            </DialogFooter>
+          </Dialog>
         </>
       ) : null}
     </>
