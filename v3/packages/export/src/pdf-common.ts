@@ -1,7 +1,7 @@
 // Gemeinsames der PDF-Layouts (Spec 07 „PDF"): Optionen, Bildgrößen wie v2, WinAnsi-Text, Dokument, Kopf-/Fußzeile.
 import { jsPDF } from 'jspdf';
 import type { BodymapValue } from '@stb/core';
-import type { Report } from './pdf-model.js';
+import type { Report, ReportChart } from './pdf-model.js';
 
 export type PdfImageSize = 'a4' | 'a5' | 'a6' | 'none';
 /** Bildgrößen wie v2 (`IMAGE_SIZE_MM`). */
@@ -18,7 +18,7 @@ export interface RenderedImage {
   height: number;
 }
 
-export type PdfLayout = 'table' | 'cards';
+export type PdfLayout = 'table' | 'cards' | 'dashboard';
 
 export interface PdfOptions {
   /** Standard `table`. */
@@ -26,6 +26,10 @@ export interface PdfOptions {
   imageSize: PdfImageSize;
   password?: string;
   renderBodymap: (value: BodymapValue) => Promise<RenderedImage | null>;
+  /** Dashboard-Layout: Diagrammbild des Zeitraums (Browser: Canvas); ohne Bild bleibt der Platz leer. */
+  renderChart?: (chart: ReportChart) => Promise<RenderedImage | null>;
+  /** Dashboard-Layout: Multiselect-Blöcke (Block-IDs), deren Häufigkeiten gezeigt werden. */
+  multiselectBlockIds?: string[];
 }
 
 export const MARGIN = 15;

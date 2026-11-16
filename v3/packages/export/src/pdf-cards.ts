@@ -1,6 +1,7 @@
 // PDF-Layout „Karten" (Spec 07, EXP-14), portiert aus v2 `renderCardsLayout`: A4 hoch, je Eintrag eine Karte mit Zeit,
 // Vorlage, allen Werten (Label links, Wert rechts) und dem Body-Map-Bild in der gewählten Größe.
 import type { Report } from './pdf-model.js';
+import type { jsPDF } from 'jspdf';
 import { MARGIN, addPageFooters, createPdfDoc, fitImage, fmtDay, pdfText, type PdfOptions } from './pdf-common.js';
 
 const LABEL_W = 50;
@@ -10,9 +11,23 @@ const LINE = 4;
 export async function renderCardsPdf(report: Report, opts: PdfOptions): Promise<Uint8Array> {
   const doc = createPdfDoc('portrait', opts.password);
   const W = doc.internal.pageSize.getWidth();
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.text(pdfText(report.title), MARGIN, MARGIN + 3);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text(pdfText(`${fmtDay(report.from)} - ${fmtDay(report.to)} · ${report.entryCount} Einträge`), W - MARGIN, MARGIN + 3, { align: 'right' });
+  await drawCards(doc, report, opts, MARGIN + 10);
+  addPageFooters(doc, report);
+  return new Uint8Array(doc.output('arraybuffer'));
+}
+
+/** Zeichnet die Karten ab Höhe `startY` auf der aktuellen Seite (neue Seiten nach Bedarf). */
+export async function drawCards(doc: jsPDF, report: Report, opts: PdfOptions, startY: number): Promise<void> {
+  const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
   const contentW = W - 2 * MARGIN;
-  let y = MARGIN;
+  let y = startY;
   const text = (s: string, x: number, yy: number, o?: Parameters<typeof doc.text>[3]) => doc.text(pdfText(s), x, yy, o);
   const guard = (h: number) => {
     if (y + h > H - FOOTER) {
@@ -20,15 +35,6 @@ export async function renderCardsPdf(report: Report, opts: PdfOptions): Promise<
       y = MARGIN;
     }
   };
-
-  // Kopf nur auf der ersten Seite
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  text(report.title, MARGIN, y + 3);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  text(`${fmtDay(report.from)} - ${fmtDay(report.to)} · ${report.entryCount} Einträge`, W - MARGIN, y + 3, { align: 'right' });
-  y += 10;
 
   for (const card of report.cards) {
     guard(24);
@@ -81,7 +87,4 @@ export async function renderCardsPdf(report: Report, opts: PdfOptions): Promise<
     }
     y += 4;
   }
-
-  addPageFooters(doc, report);
-  return new Uint8Array(doc.output('arraybuffer'));
 }

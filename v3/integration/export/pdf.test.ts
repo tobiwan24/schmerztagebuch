@@ -114,3 +114,36 @@ describe('PDF-Layout Karten', () => {
     expect(Buffer.from(locked).toString('latin1')).not.toContain('Testtagebuch');
   }, 60_000);
 });
+
+describe('PDF-Layout Dashboard', () => {
+  it('EXP-15: Dashboard mit Diagrammbild, Kennzahlen der outcome-Blöcke und Häufigkeiten nur der gewählten Multiselects', async () => {
+    const symptoms = report.multiselects.find((m) => m.label === 'Begleitsymptome')!;
+    const triggers = report.multiselects.find((m) => m.label === 'Auslöser')!;
+    expect(symptoms.options.find((o) => o.label === 'Übelkeit')?.days).toBe(1);
+    expect(report.chart?.points.length).toBeGreaterThan(0);
+    let chartCalls = 0;
+    const render = (ids: string[], renderChart = async () => (chartCalls++, IMG)) =>
+      renderReportPdf(report, { layout: 'dashboard', imageSize: 'none', renderBodymap: async () => null, renderChart, multiselectBlockIds: ids });
+
+    const r = await inspect(await render([symptoms.blockId]));
+    expect(chartCalls).toBe(1);
+    expect(r.images).toHaveLength(1); // Diagramm
+    expect(r.text).toContain('Verlaufsbericht');
+    expect(r.text).toMatch(/Kennzahlen/);
+    expect(r.text).toMatch(/Mittelwert 5\b/);
+    expect(r.text).toContain('Begleitsymptome (Tage mit Auswahl)');
+    expect(r.text).toContain('Übelkeit: 1 Tage');
+    expect(r.text).not.toContain('Auslöser (Tage mit Auswahl)'); // nicht gewählt
+    expect(r.text).toContain('Neurologie'); // Arztbesuch
+    expect(r.text).toContain('Migräne-Tracking'); // Karten folgen
+
+    const both = await inspect(await render([symptoms.blockId, triggers.blockId]));
+    expect(both.text).toContain('Auslöser (Tage mit Auswahl)');
+    const none = await inspect(await render([]));
+    expect(none.text).not.toContain('(Tage mit Auswahl)');
+
+    const locked = await renderReportPdf(report, { layout: 'dashboard', imageSize: 'none', password: 'Arzt-2026', renderBodymap: async () => null });
+    await expect(open(locked)).rejects.toMatchObject({ name: 'PasswordException' });
+    expect((await inspect(locked, 'Arzt-2026')).images).toHaveLength(0);
+  }, 60_000);
+});

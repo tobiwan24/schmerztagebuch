@@ -7,6 +7,7 @@ import { parseExport, type CsvProfile, type ExportV1, type PdfImageSize, type Pd
 import type { FilterSpec, SavedFilter } from '@stb/analysis';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -41,6 +42,16 @@ function ExportCard() {
   const [filter, setFilter] = useState<SavedFilter | null>(null);
   const [imageSize, setImageSize] = useState<PdfImageSize>('a5');
   const [layout, setLayout] = useState<PdfLayout>('table');
+  /** Multiselect-Blöcke für das Dashboard-Layout: standardmäßig alle, abgewählte merkt sich diese Menge. */
+  const [skipped, setSkipped] = useState<Set<string>>(new Set());
+  const multiselects = useQuery(async () => {
+    const [templates, versions] = await Promise.all([diary.listAllTemplates(), diary.listAllTemplateVersions()]);
+    return templates.filter((x) => !x.archived).flatMap((x) => {
+      const v = versions.find((y) => y.templateId === x.id && y.version === x.currentVersion);
+      return (v?.blocks ?? []).filter((b) => b.type === 'multiselect').map((b) => ({ id: b.id, label: b.label, template: x.name }));
+    });
+  }, [diary]);
+  const msList = multiselects.status === 'ok' ? multiselects.data : [];
   const [pdfPassword, setPdfPassword] = useState('');
   const [period, setPeriod] = useState<Period>('all');
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
@@ -54,7 +65,7 @@ function ExportCard() {
     setBusy(true);
     try {
       const spec = effectiveFilter(filter?.filter, period, { month, from: rangeFrom, to: rangeTo }, diaryIds.status === 'ok' ? diaryIds.data : []);
-      const f = await exportFile(format, { profile, imageSize, layout, ...(pdfPassword ? { password: pdfPassword } : {}), ...(spec ? { filter: spec } : {}) });
+      const f = await exportFile(format, { profile, imageSize, layout, multiselectBlockIds: msList.filter((m) => !skipped.has(m.id)).map((m) => m.id), ...(pdfPassword ? { password: pdfPassword } : {}), ...(spec ? { filter: spec } : {}) });
       downloadText(f.name, f.text, f.mime);
     } finally {
       setBusy(false);
@@ -78,12 +89,26 @@ function ExportCard() {
         {format === 'pdf' ? (
           <>
             <ToggleGroup aria-label={t.layout}>
-              {(['table', 'cards'] as PdfLayout[]).map((l) => (
+              {(['table', 'cards', 'dashboard'] as PdfLayout[]).map((l) => (
                 <ToggleGroupItem key={l} pressed={layout === l} onClick={() => setLayout(l)}>
                   {t.layouts[l]}
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>
+            {layout === 'dashboard' && msList.length ? (
+              <fieldset className="flex flex-col gap-2">
+                <legend className="mb-1 text-sm font-medium">{t.multiselects}</legend>
+                {msList.map((m) => (
+                  <div key={m.id} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`ms-${m.id}`} checked={!skipped.has(m.id)}
+                      onChange={(ev) => setSkipped((prev) => { const next = new Set(prev); if (ev.target.checked) next.delete(m.id); else next.add(m.id); return next; })}
+                    />
+                    <Label htmlFor={`ms-${m.id}`}>{t.multiselectLabel(m.label, m.template)}</Label>
+                  </div>
+                ))}
+              </fieldset>
+            ) : null}
             <ToggleGroup aria-label={t.imageSize}>
               {(['a4', 'a5', 'a6', 'none'] as PdfImageSize[]).map((s) => (
                 <ToggleGroupItem key={s} pressed={imageSize === s} onClick={() => setImageSize(s)}>

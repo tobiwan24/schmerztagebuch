@@ -60,6 +60,21 @@ test.describe('Export & Backup', () => {
     expect(Buffer.from(await text(pdf), 'utf8').subarray(0, 5).toString('latin1')).toBe('%PDF-');
   });
 
+  test('Dashboard-Layout: Auswahl der Multiselects, PDF wird erzeugt', async ({ page }) => {
+    await onboardWithPassword(page);
+    await go(page, '/more/templates');
+    await page.getByRole('button', { name: /Kopfschmerz-Tagebuch/ }).click();
+    await expect(page.getByTestId('template-row')).toHaveCount(2);
+    await addEntry(page, 'STB-E2E-MARKER Dashboard');
+    await go(page, '/more/export');
+    await page.getByRole('group', { name: 'PDF-Layout' }).getByRole('button', { name: 'Dashboard' }).click();
+    const auswahl = page.getByRole('group', { name: 'Häufigkeiten im Dashboard' });
+    await expect(auswahl.getByRole('checkbox')).toHaveCount(3);
+    await auswahl.getByLabel(/^Auslöser/).uncheck();
+    const [pdf] = await Promise.all([page.waitForEvent('download', { timeout: 30_000 }), page.getByRole('button', { name: 'Herunterladen', exact: true }).click()]);
+    expect(Buffer.from(await text(pdf), 'utf8').subarray(0, 5).toString('latin1')).toBe('%PDF-');
+  });
+
   test('Export eines Monats: nur Einträge des gewählten Monats', async ({ page }) => {
     await onboardWithPassword(page);
     await addEntry(page, 'STB-E2E-MARKER Monat');

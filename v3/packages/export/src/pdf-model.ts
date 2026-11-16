@@ -2,12 +2,13 @@
 // (Zeitraum, Tage mit Eintrag, Kennzahlen der `outcome`-Blöcke, Medikamententage, Arzttermine), Tabelle je Vorlage
 // (archivierte Felder alter Versionen gekennzeichnet) und die Body-Maps des Zeitraums.
 import {
-  applyFilter, buildWorkingSet, eventMarks, medicationDaysByMonth, periodStats, type FilterSpec, type WsEntry,
+  applyFilter, buildWorkingSet, eventMarks, medicationDaysByMonth, dailySeries, optionDays, periodStats, type FilterSpec, type WsEntry,
 } from '@stb/analysis';
 import type { BodymapValue } from '@stb/core';
 import type { ExportSource } from './json-v1.js';
 
 export interface ReportStat {
+  blockId: string;
   label: string;
   template: string;
   n: number;
@@ -45,6 +46,22 @@ export interface ReportCard {
   fields: ReportCardField[];
 }
 
+/** Häufigkeit der Optionen eines Multiselect-Blocks (Tage mit Auswahl im Zeitraum, wie in der Auswertung). */
+export interface ReportFrequency {
+  blockId: string;
+  label: string;
+  template: string;
+  options: { label: string; days: number; share: number }[];
+}
+
+/** Tageswerte des ersten `outcome`-Blocks für das Diagramm im Dashboard-Layout; das Bild rendert der Aufrufer. */
+export interface ReportChart {
+  label: string;
+  from: string;
+  to: string;
+  points: { day: string; value: number }[];
+}
+
 export interface Report {
   title: string;
   diaryNames: string[];
@@ -59,6 +76,8 @@ export interface Report {
   tables: ReportTable[];
   bodymaps: ReportBodymap[];
   cards: ReportCard[];
+  multiselects: ReportFrequency[];
+  chart: ReportChart | null;
   createdAt: string;
 }
 
@@ -89,7 +108,7 @@ export function buildReport(src: ExportSource, opts: { now: number; filter?: Fil
   for (const e of entries) for (const f of e.fields) if (f.role === 'outcome' && f.value.kind === 'numeric' && !outcomeBlocks.has(f.blockId)) outcomeBlocks.set(f.blockId, { label: f.label, template: e.templateName });
   const stats = [...outcomeBlocks].map(([blockId, b]) => {
     const s = periodStats(entries, { blockId }, range);
-    return { label: b.label, template: b.template, n: s.n, mean: s.mean, median: s.median, max: s.max };
+    return { blockId, label: b.label, template: b.template, n: s.n, mean: s.mean, median: s.median, max: s.max };
   });
   const meds = new Map<string, number>();
   for (const m of medicationDaysByMonth(entries)) meds.set(m.label, (meds.get(m.label) ?? 0) + m.days);
@@ -139,6 +158,17 @@ export function buildReport(src: ExportSource, opts: { now: number; filter?: Fil
     return { when: when(e, r, tz.get(e.diaryId) ?? 'UTC'), template: e.templateName, tags: e.tags, fields };
   });
 
+  const msBlocks = new Map<string, { label: string; template: string }>();
+  for (const e of entries) for (const f of e.fields) if (f.value.kind === 'options' && !msBlocks.has(f.blockId)) msBlocks.set(f.blockId, { label: f.label, template: e.templateName });
+  const multiselects: ReportFrequency[] = [...msBlocks].map(([blockId, b]) => ({
+    blockId, label: b.label, template: b.template,
+    options: optionDays(entries, { blockId }, range).map((o) => ({ label: o.label, days: o.days, share: o.share })),
+  }));
+  const first = [...outcomeBlocks][0];
+  const chart: ReportChart | null = first
+    ? { label: first[1].label, from: range.from, to: range.to, points: dailySeries(entries.filter((e) => e.day >= range.from && e.day <= range.to), { blockId: first[0] }).map((d) => ({ day: d.day, value: d.value })) }
+    : null;
+
   return {
     title: opts.title ?? 'Schmerztagebuch – Bericht',
     diaryNames: src.diaries.filter((d) => entries.some((e) => e.diaryId === d.id)).map((d) => d.name),
@@ -153,6 +183,8 @@ export function buildReport(src: ExportSource, opts: { now: number; filter?: Fil
     tables,
     bodymaps,
     cards,
+    multiselects,
+    chart,
     createdAt: new Date(opts.now).toISOString(),
   };
 }

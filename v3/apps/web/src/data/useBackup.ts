@@ -4,6 +4,7 @@ import type { BackupSecret } from '@stb/crypto';
 import type { FilterSpec } from '@stb/analysis';
 import { buildReport, exportCsvLong, exportCsvWide, renderReportPdf, type CsvProfile, type ExportV1, type PdfImageSize, type PdfLayout } from '@stb/export';
 import { createBodymapRenderer } from '@/lib/pdf-bodymap';
+import { renderChartImage } from '@/lib/pdf-chart';
 import { useAuth } from '@/auth/AuthContext';
 import { unlockLocal } from '@/auth/local-account';
 import { APP_VERSION } from '@/version';
@@ -21,13 +22,13 @@ export function useBackup() {
   const query = state;
 
   const exportFile = useCallback(
-    async (format: ExportFormat, opts: { profile?: CsvProfile; filter?: FilterSpec; imageSize?: PdfImageSize; layout?: PdfLayout; password?: string }): Promise<{ name: string; text: string | Uint8Array; mime: string }> => {
+    async (format: ExportFormat, opts: { profile?: CsvProfile; filter?: FilterSpec; imageSize?: PdfImageSize; layout?: PdfLayout; multiselectBlockIds?: string[]; password?: string }): Promise<{ name: string; text: string | Uint8Array; mime: string }> => {
       const stamp = new Date(now()).toISOString().slice(0, 10);
       if (format === 'pdf') {
         const src = await collectExportSource(data.diary);
         const report = buildReport(src, { now: now(), ...(opts.filter ? { filter: opts.filter } : {}) });
         const renderBodymap = createBodymapRenderer(new Map(src.bodymapImages.map((i) => [i.id, i.dataUrl])));
-        const bytes = await renderReportPdf(report, { imageSize: opts.imageSize ?? 'a5', layout: opts.layout ?? 'table', renderBodymap, ...(opts.password ? { password: opts.password } : {}) });
+        const bytes = await renderReportPdf(report, { imageSize: opts.imageSize ?? 'a5', layout: opts.layout ?? 'table', renderBodymap, renderChart: renderChartImage, multiselectBlockIds: opts.multiselectBlockIds ?? [], ...(opts.password ? { password: opts.password } : {}) });
         return { name: `schmerztagebuch-bericht-${stamp}.pdf`, text: bytes, mime: 'application/pdf' };
       }
       if (format === 'json') {

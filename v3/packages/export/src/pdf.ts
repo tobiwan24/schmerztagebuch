@@ -5,12 +5,14 @@ import type { jsPDF } from 'jspdf';
 import type { Report } from './pdf-model.js';
 import { MARGIN, PDF_IMAGE_SIZE_MM, addPageFooters, createPdfDoc, fmtDay, fmtNum, pdfText, type PdfOptions } from './pdf-common.js';
 import { renderCardsPdf } from './pdf-cards.js';
+import { renderDashboardPdf } from './pdf-dashboard.js';
 
 export * from './pdf-common.js';
 
-/** Tabellenlayout (A4 quer, Standard) oder Kartenlayout (A4 hoch), je nach `opts.layout`. */
+/** Tabellenlayout (A4 quer, Standard) Karten- oder Dashboard-Layout (A4 hoch), je nach `opts.layout`. */
 export async function renderReportPdf(report: Report, opts: PdfOptions): Promise<Uint8Array> {
   if (opts.layout === 'cards') return renderCardsPdf(report, opts);
+  if (opts.layout === 'dashboard') return renderDashboardPdf(report, opts);
   const doc = createPdfDoc('landscape', opts.password);
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
