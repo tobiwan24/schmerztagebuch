@@ -4,11 +4,6 @@ import { AppShell } from '@/components/AppShell';
 import { RouteMarker } from '@/components/RouteMarker';
 import { StartPage } from '@/pages/StartPage';
 import { HistoryPage, MorePage, NotFoundPage } from '@/pages/SimplePages';
-import { SettingsPage } from '@/pages/SettingsPage';
-import { EntryDetailPage, EntryEditorPage } from '@/pages/EntryPages';
-import { QuickPage } from '@/pages/QuickPage';
-import { DiariesPage } from '@/pages/DiariesPage';
-import { OnboardingPage } from '@/pages/OnboardingPage';
 import { UnlockPage } from '@/pages/UnlockPage';
 
 /**
@@ -23,7 +18,7 @@ export const router = createBrowserRouter([
   {
     element: <RouteMarker />,
     children: [
-      { path: '/onboarding', element: <OnboardingPage /> },
+      { path: '/onboarding', lazy: page(() => import('@/pages/OnboardingPage'), 'OnboardingPage') },
       { path: '/unlock', element: <UnlockPage /> },
       {
         element: <AppShell />,
@@ -32,21 +27,21 @@ export const router = createBrowserRouter([
           { path: '/history', element: <HistoryPage /> },
           { path: '/analysis', lazy: page(() => import('@/pages/AnalysisPage'), 'AnalysisPage') },
           { path: '/more', element: <MorePage /> },
-          { path: '/more/settings', element: <SettingsPage /> },
+          { path: '/more/settings', lazy: page(() => import('@/pages/SettingsPage'), 'SettingsPage') },
           { path: '/more/settings/diagnose', lazy: page(() => import('@/pages/DiagnosticsPage'), 'DiagnosticsPage') },
           { path: '/more/templates', lazy: page(() => import('@/pages/TemplatesPage'), 'TemplatesPage') },
           { path: '/more/templates/new', lazy: page(() => import('@/pages/TemplateEditorPage'), 'TemplateEditorPage') },
           { path: '/more/templates/:id', lazy: page(() => import('@/pages/TemplateEditorPage'), 'TemplateEditorPage') },
-          { path: '/more/diaries', element: <DiariesPage /> },
+          { path: '/more/diaries', lazy: page(() => import('@/pages/DiariesPage'), 'DiariesPage') },
           { path: '/more/diaries/new', lazy: page(() => import('@/pages/DiaryCreatePage'), 'DiaryCreatePage') },
           { path: '/more/diaries/:id/settings', lazy: page(() => import('@/pages/DiarySettingsPage'), 'DiarySettingsPage') },
           { path: '/more/diaries/:id/shortcut', lazy: page(() => import('@/pages/ShortcutPage'), 'ShortcutPage') },
           { path: '/more/diaries/:id/members', lazy: page(() => import('@/pages/MembersPage'), 'MembersPage') },
           { path: '/more/export', lazy: page(() => import('@/pages/ExportPage'), 'ExportPage') },
-          { path: '/entry/new', element: <EntryEditorPage /> },
-          { path: '/entry/:id', element: <EntryDetailPage /> },
-          { path: '/entry/:id/edit', element: <EntryEditorPage /> },
-          { path: '/quick', element: <QuickPage /> },
+          { path: '/entry/new', lazy: page(() => import('@/pages/EntryPages'), 'EntryEditorPage') },
+          { path: '/entry/:id', lazy: page(() => import('@/pages/EntryPages'), 'EntryDetailPage') },
+          { path: '/entry/:id/edit', lazy: page(() => import('@/pages/EntryPages'), 'EntryEditorPage') },
+          { path: '/quick', lazy: page(() => import('@/pages/QuickPage'), 'QuickPage') },
           { path: '/migrate', lazy: page(() => import('@/pages/MigratePage'), 'MigratePage') },
           { path: '/invite', lazy: page(() => import('@/pages/InvitePage'), 'InvitePage') },
           { path: '*', element: <NotFoundPage /> },
