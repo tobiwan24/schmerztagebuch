@@ -13,7 +13,7 @@ export * from './entry-form.js';
 export * from './quick-entry.js';
 export { canonical, deepEqual } from './canonical.js';
 export { createHlcClock, compareHlc, formatHlc, parseHlc, maxHlc, type HlcClock, type HlcParts } from './hlc.js';
-export { mapIntakeToValues, buildShortcutPrompt, normalizeLabel, type IntakeInput, type IntakeMapping } from './intake.js';
+export { mapIntakeToValues, buildShortcutPrompt, describeBlocksForPrompt, normalizeLabel, type IntakeInput, type IntakeMapping } from './intake.js';
 export * from './migration-v2/index.js';
 export * from './template-editor.js';
 export * from './tags.js';

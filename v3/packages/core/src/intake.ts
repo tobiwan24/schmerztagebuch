@@ -160,9 +160,9 @@ export function mapIntakeToValues(input: IntakeInput, version: TemplateVersion):
   return out;
 }
 
-/** Kopierbarer Prompt für das Modell im Kurzbefehl: beschreibt das JSON-Ziel aus der aktuellen Vorlagenversion. */
-export function buildShortcutPrompt(templateName: string, version: TemplateVersion): string {
-  const blocks = [...version.blocks].sort(compareByOrder).map((b) => {
+/** Beschreibung der Blöcke einer Vorlagenversion für Modelle (ID, Label, Typ, Wertebereich, Optionen); gemeinsame Quelle für Kurzbefehl und LLM. */
+export function describeBlocksForPrompt(version: TemplateVersion): Record<string, unknown>[] {
+  return [...version.blocks].sort(compareByOrder).map((b) => {
     const base = { id: b.id, label: b.label, type: b.type, ...(b.description ? { description: b.description } : {}) };
     switch (b.type) {
       case 'slider':
@@ -181,6 +181,11 @@ export function buildShortcutPrompt(templateName: string, version: TemplateVersi
         return { ...base, value: 'Text' };
     }
   });
+}
+
+/** Kopierbarer Prompt für das Modell im Kurzbefehl: beschreibt das JSON-Ziel aus der aktuellen Vorlagenversion. */
+export function buildShortcutPrompt(templateName: string, version: TemplateVersion): string {
+  const blocks = describeBlocksForPrompt(version);
   const schema = { template: templateName, blocks };
   return [
     `Wandle das Diktat in JSON für die Vorlage „${templateName}" um.`,
