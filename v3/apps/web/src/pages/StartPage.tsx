@@ -7,6 +7,7 @@ import { BackupReminder } from '@/components/BackupReminder';
 import { V2Banner } from '@/components/V2DataCard';
 import { InstallBanner } from '@/components/InstallBanner';
 import { ConflictBanner } from '@/components/ConflictBanner';
+import { RestoreBackupBanner } from '@/components/RestoreBackupBanner';
 import { InboxCard } from '@/components/InboxCard';
 import { useWritableDiaries } from '@/data/useSharing';
 import { de } from '@/i18n/de';
@@ -21,6 +22,7 @@ export function StartPage() {
       <InstallBanner />
       <ConflictBanner />
       <V2Banner />
+      <RestoreBackupBanner />
       <InboxCard />
       <BackupReminder />
       {quick.map((q) => (

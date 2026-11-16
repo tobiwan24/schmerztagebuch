@@ -1,36 +1,6 @@
 import { test, expect, type Download, type Page } from '@playwright/test';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { buildV2Dump } from '../packages/core/src/migration-v2/fixture';
-import { go, onboardWithPassword } from './helpers';
-
-/** Legt im Browser eine v2-`PainDiaryDB` an — Stores/Indizes wie Dexie v21 (IndexedDB-Version 210). */
-async function createV2Db(page: Page) {
-  const dump = buildV2Dump();
-  await page.evaluate(async (d) => {
-    await new Promise<void>((resolve, reject) => {
-      const req = indexedDB.open('PainDiaryDB', 210);
-      req.onupgradeneeded = () => {
-        const db = req.result;
-        const t = db.createObjectStore('templates', { keyPath: 'id', autoIncrement: true });
-        for (const i of ['name', 'order', 'syncId']) t.createIndex(i, i);
-        const e = db.createObjectStore('entries', { keyPath: 'id', autoIncrement: true });
-        for (const i of ['templateId', 'timestamp', 'encrypted', 'syncId']) e.createIndex(i, i);
-        e.createIndex('tags', 'tags', { multiEntry: true });
-        db.createObjectStore('settings', { keyPath: 'key' });
-      };
-      req.onsuccess = () => {
-        const db = req.result;
-        const tx = db.transaction(['templates', 'entries', 'settings'], 'readwrite');
-        for (const t of d.templates) tx.objectStore('templates').put(t);
-        for (const e of d.entries) tx.objectStore('entries').put({ ...e, timestamp: new Date(e.timestamp) });
-        for (const s of d.settings) tx.objectStore('settings').put(s);
-        tx.oncomplete = () => (db.close(), resolve());
-        tx.onerror = () => reject(tx.error);
-      };
-      req.onerror = () => reject(req.error);
-    });
-  }, dump);
-}
+import { createV2Db, go, onboardWithPassword } from './helpers';
 
 const v2DbExists = (page: Page) => page.evaluate(async () => (await indexedDB.databases()).some((d) => d.name === 'PainDiaryDB'));
 
