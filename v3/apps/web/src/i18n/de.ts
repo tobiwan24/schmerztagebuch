@@ -385,6 +385,7 @@ export const de = {
     },
   },
   diaries: {
+    create: 'Tagebuch anlegen',
     settings: 'Einstellungen',
     settingsTitle: 'Tagebuch-Einstellungen',
     notFound: 'Dieses Tagebuch wurde nicht gefunden.',

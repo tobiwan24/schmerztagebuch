@@ -1,6 +1,7 @@
 // Mehr → Tagebücher (Spec 10): Liste der Tagebücher mit Kurzbefehl (08) und Mitgliedern (09).
 import { Link } from 'react-router';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
 import { ErrorState } from '@/components/StateView';
@@ -36,6 +37,12 @@ export function DiariesPage() {
             </Card>
           ))
         : null}
+      <Button asChild variant="outline">
+        <Link to="/more/diaries/new">
+          <Plus aria-hidden />
+          {t.create}
+        </Link>
+      </Button>
     </>
   );
 }

@@ -38,6 +38,7 @@ export const router = createBrowserRouter([
           { path: '/more/templates/new', lazy: page(() => import('@/pages/TemplateEditorPage'), 'TemplateEditorPage') },
           { path: '/more/templates/:id', lazy: page(() => import('@/pages/TemplateEditorPage'), 'TemplateEditorPage') },
           { path: '/more/diaries', element: <DiariesPage /> },
+          { path: '/more/diaries/new', lazy: page(() => import('@/pages/DiaryCreatePage'), 'DiaryCreatePage') },
           { path: '/more/diaries/:id/settings', lazy: page(() => import('@/pages/DiarySettingsPage'), 'DiarySettingsPage') },
           { path: '/more/diaries/:id/shortcut', lazy: page(() => import('@/pages/ShortcutPage'), 'ShortcutPage') },
           { path: '/more/diaries/:id/members', lazy: page(() => import('@/pages/MembersPage'), 'MembersPage') },

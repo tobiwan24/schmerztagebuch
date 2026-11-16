@@ -16,8 +16,8 @@ export interface DiaryChoice {
 
 const SUBJECTS: readonly DiarySubject[] = ['human', 'animal', 'other'];
 
-export function DiaryStep({ onNext }: { onNext: (c: DiaryChoice) => void }) {
-  const [name, setName] = useState<string>(de.onboarding.diaryDefaultName);
+export function DiaryStep({ onNext, initialName = de.onboarding.diaryDefaultName }: { onNext: (c: DiaryChoice) => void; initialName?: string }) {
+  const [name, setName] = useState<string>(initialName);
   const [subject, setSubject] = useState<DiarySubject>('human');
   const [error, setError] = useState(false);
 
