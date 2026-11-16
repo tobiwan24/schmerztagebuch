@@ -20,7 +20,7 @@ const diaryId = newId();
 
 describe('Vorlagenkatalog', () => {
   it('BLK-16: jede v2-Katalogvorlage ist in v3 verfügbar (gleiche ID, Name, Icon)', () => {
-    expect(TEMPLATE_CATALOG.map((c) => c.id)).toEqual(v2.templates.map((x) => x.id));
+    expect(TEMPLATE_CATALOG.slice(0, v2.templates.length).map((c) => c.id)).toEqual(v2.templates.map((x) => x.id));
     for (const old of v2.templates) {
       const c = TEMPLATE_CATALOG.find((x) => x.id === old.id)!;
       expect(c.name).toBe(old.name);
@@ -65,5 +65,18 @@ describe('Vorlagenkatalog', () => {
 
   it('BLK-16: unbekannte Katalog-ID wirft', () => {
     expect(() => instantiateCatalogTemplate('gibt-es-nicht', { id: newId(), diaryId, order: 'V', newId }, clock)).toThrow();
+  });
+
+  it('BLK-50: Katalog-Vorlage „Schmerztagebuch mit Medikamenten" ist gültig und nutzt den Medikamenten-Block', () => {
+    const c = TEMPLATE_CATALOG.find((x) => x.id === 'pain-medication')!;
+    expect(c.name).toBe('Schmerztagebuch mit Medikamenten');
+    const s = instantiateCatalogTemplate(c.id, { id: newId(), diaryId, order: 'V', newId }, clock);
+    expect(templateSchema.safeParse(s.template).success).toBe(true);
+    expect(templateVersionSchema.safeParse(s.version).success).toBe(true);
+    const med = s.version.blocks.find((b) => b.type === 'medication');
+    expect(med?.role).toBe('medication');
+    if (med?.type !== 'medication') throw new Error('kein Medikamenten-Block');
+    expect(med.config.presets.map((p) => [p.name, p.dose, p.unit])).toEqual([['Ibuprofen', 400, 'mg'], ['Paracetamol', 500, 'mg'], ['Metamizol', 500, 'mg']]);
+    expect(med.config.allowFree).toBe(true);
   });
 });

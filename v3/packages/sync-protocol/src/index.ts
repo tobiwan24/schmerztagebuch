@@ -69,7 +69,14 @@ export type PullResponse = z.infer<typeof pullResponseSchema>;
 
 export const INTAKE_BODY_MAX_BYTES = 16 * 1024;
 
-const intakeValue = z.union([z.number(), z.string(), z.boolean(), z.array(z.string())]);
+const intakeMedication = z.strictObject({
+  name: z.string().min(1).max(200),
+  dose: z.union([z.number(), z.string()]).optional(),
+  unit: z.string().max(20).optional(),
+  at: z.string().optional(),
+  effect: z.union([z.number(), z.string()]).optional(),
+});
+const intakeValue = z.union([z.number(), z.string(), z.boolean(), z.array(z.string()), intakeMedication, z.array(intakeMedication)]);
 
 export const intakeBodySchema = z.strictObject({
   templateId: z.string().min(1).max(128).optional(),

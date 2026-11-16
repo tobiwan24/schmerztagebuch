@@ -4,6 +4,7 @@
 // und ermöglichen den Standard-Schnelleintrag.
 import type { Clock } from './env.js';
 import { keyBetween } from './fractional-index.js';
+import { DEFAULT_MEDICATION_UNITS } from './blocks/index.js';
 import { createTemplate, type BlockDef, type Role, type TemplateState } from './templates.js';
 
 /** v2-Standard-Preset der Body-Map (ID aus v2 `bodymapPresets.ts` übernommen, Migration ordnet darüber zu). */
@@ -12,6 +13,7 @@ export const DEFAULT_BODYMAP_PRESET_ID = 'default-koerper-vorderseite';
 type BlockSpec =
   | { type: 'slider'; label: string; role?: Role; min?: number; max?: number; step?: number }
   | { type: 'multiselect'; label: string; role?: Role; options: [label: string, color: string][] }
+  | { type: 'medication'; label: string; role?: Role; presets: [name: string, dose: number, unit: string, color: string][] }
   | { type: 'bodymap'; label: string; role?: Role }
   | { type: 'textarea'; label: string; role?: Role };
 
@@ -88,6 +90,21 @@ export const TEMPLATE_CATALOG: readonly CatalogEntry[] = [
       notes,
     ],
   },
+  // v3.x (M16): nutzt den Medikamenten-Block statt einer Auswahlliste (Spec 05, BLK-50).
+  {
+    id: 'pain-medication',
+    name: 'Schmerztagebuch mit Medikamenten',
+    icon: 'Pill',
+    description: 'Schmerzstärke, Medikamente mit Dosis und Uhrzeit, Notizen',
+    blocks: [
+      pain,
+      {
+        type: 'medication', label: 'Medikamente', role: 'medication',
+        presets: [['Ibuprofen', 400, 'mg', '#3b82f6'], ['Paracetamol', 500, 'mg', '#10b981'], ['Metamizol', 500, 'mg', '#f59e0b']],
+      },
+      notes,
+    ],
+  },
 ];
 
 function toBlockDef(spec: BlockSpec, order: string, newId: () => string): BlockDef {
@@ -100,6 +117,16 @@ function toBlockDef(spec: BlockSpec, order: string, newId: () => string): BlockD
         ...base,
         type: 'multiselect',
         config: { multiple: true, options: spec.options.map(([label, color]) => ({ id: newId(), label, color })) },
+      };
+    case 'medication':
+      return {
+        ...base,
+        type: 'medication',
+        config: {
+          presets: spec.presets.map(([name, dose, unit, color]) => ({ id: newId(), name, dose, unit, color })),
+          units: [...DEFAULT_MEDICATION_UNITS],
+          allowFree: true,
+        },
       };
     case 'bodymap':
       return { ...base, type: 'bodymap', config: { defaultPresetId: DEFAULT_BODYMAP_PRESET_ID } };

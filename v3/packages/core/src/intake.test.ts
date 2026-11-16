@@ -73,3 +73,48 @@ describe('Kurzbefehl-Prompt', () => {
     expect(JSON.parse(json).blocks).toHaveLength(state.version.blocks.length);
   });
 });
+
+describe('Kurzbefehl: Medikamente', () => {
+  const med = instantiateCatalogTemplate('pain-medication', { id: newId(), diaryId: newId(), order: 'V', newId }, clock);
+  const block = med.version.blocks.find((b) => b.type === 'medication')!;
+  const presetId = (name: string) => (block.type === 'medication' ? block.config.presets.find((p) => p.name === name)!.id : '');
+
+  it('BLK-50: Namen werden auf Presets abgebildet (Dosis und Einheit aus dem Preset), Unbekanntes frei', () => {
+    const r = mapIntakeToValues({ values: { medikamente: ['ibuprofen', 'Arnika'] } }, med.version);
+    expect(r.errors).toEqual([]);
+    const items = (r.values[block.id] as { items: { id: string; presetId?: string; name: string; dose?: number; unit?: string }[] }).items;
+    expect(items).toHaveLength(2);
+    expect(items[0]).toMatchObject({ presetId: presetId('Ibuprofen'), name: 'Ibuprofen', dose: 400, unit: 'mg' });
+    expect(items[1]).toMatchObject({ name: 'Arnika' });
+    expect(items[1]!.presetId).toBeUndefined();
+    expect(new Set(items.map((i) => i.id)).size).toBe(2);
+  });
+
+  it('BLK-50: Objekte mit Dosis (Komma), Uhrzeit und Wirkung werden übernommen', () => {
+    const r = mapIntakeToValues(
+      { values: { [block.id]: [{ name: 'Paracetamol', dose: '1000', at: '2026-03-01T08:00:00+01:00', effect: 4 }] } },
+      med.version,
+    );
+    expect(r.errors).toEqual([]);
+    expect((r.values[block.id] as { items: unknown[] }).items[0]).toMatchObject({ name: 'Paracetamol', dose: 1000, unit: 'mg', effect: 4 });
+  });
+
+  it('BLK-50: ungültige Dosis und unbekannter Name ohne allowFree landen als Fehler (Eingang)', () => {
+    const bad = mapIntakeToValues({ values: { Medikamente: { name: 'Ibuprofen', dose: 'viel' } } }, med.version);
+    expect(bad.errors).toHaveLength(1);
+    expect(bad.values[block.id]).toBeUndefined();
+    const strict: typeof med.version = {
+      ...med.version,
+      blocks: med.version.blocks.map((b) => (b.type === 'medication' ? { ...b, config: { ...b.config, allowFree: false } } : b)),
+    };
+    const r = mapIntakeToValues({ values: { Medikamente: 'Arnika' } }, strict);
+    expect(r.errors).toHaveLength(1);
+    expect(r.errors[0]!.message).toContain('Arnika');
+  });
+
+  it('BLK-50: der Prompt beschreibt den Medikamenten-Block mit den Vorgaben', () => {
+    const p = buildShortcutPrompt('Schmerztagebuch mit Medikamenten', med.version);
+    expect(p).toContain('Ibuprofen');
+    expect(p).toContain('"type": "medication"');
+  });
+});
