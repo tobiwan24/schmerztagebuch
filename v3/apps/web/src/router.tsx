@@ -18,6 +18,8 @@ export const router = createBrowserRouter([
     element: <RouteMarker />,
     children: [
       { path: '/onboarding', lazy: page(() => import('@/pages/OnboardingPage'), 'OnboardingPage') },
+      // Arzt-Link-Ansicht (EXP-23): außerhalb der AppShell, ohne Entsperr-Prüfung, nur lesend
+      { path: '/r/:id', lazy: page(() => import('@/pages/ReportViewerPage'), 'ReportViewerPage') },
       { path: '/unlock', lazy: page(() => import('@/pages/UnlockPage'), 'UnlockPage') },
       {
         element: <AppShell />,

@@ -13,6 +13,9 @@ export class ReportLinkError extends Error {
   }
 }
 
+/** Link-ID aus dem Pfad `/r/<id>`; `null`, wenn der Pfad kein Arzt-Link ist. */
+export const reportIdFromPath = (pathname: string): string | null => /^\/r\/([A-Za-z0-9_-]{22})\/?$/.exec(pathname)?.[1] ?? null;
+
 export interface CreatedReportLink {
   id: string;
   link: string;
