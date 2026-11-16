@@ -805,6 +805,16 @@ export const de = {
     persistDenied: 'Nicht gewährt — der Browser kann Daten bei Speicherknappheit löschen. Sichere regelmäßig ein Backup.',
     persistUnknown: 'Dieser Browser gibt keine Auskunft.',
   },
+  danger: {
+    title: 'Gefahr-Zone',
+    hint: 'Löscht alle Einträge, Vorlagen, Schlüssel und die Auto-Sicherung auf diesem Gerät. Eine Datei-Sicherung (Backup) bleibt unberührt.',
+    serverStays: 'Daten auf dem Server bleiben erhalten; du kannst dich später wieder anmelden.',
+    start: 'Alle Daten auf diesem Gerät löschen',
+    typeWord: (word: string) => `Zur Bestätigung „${word}“ eingeben`,
+    confirm: 'Endgültig löschen',
+    cancel: 'Abbrechen',
+    failed: 'Das Löschen ist fehlgeschlagen. Schließe andere Tabs der App und versuche es erneut.',
+  },
   update: {
     available: 'Neue Version verfügbar.',
     restart: 'Neu starten',

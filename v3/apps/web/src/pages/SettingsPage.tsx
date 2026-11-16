@@ -12,6 +12,7 @@ import { BackupCodeStep } from '@/components/BackupCodeStep';
 import { LockSettingsCard } from '@/components/LockSettingsCard';
 import { CloudAccountCard } from '@/components/CloudAccountCard';
 import { DevicesSection } from '@/components/DevicesSection';
+import { DangerZone } from '@/components/DangerZone';
 import { FactorsSection } from '@/components/FactorsSection';
 import { AuthErrorNotice } from '@/components/AuthErrorNotice';
 import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
@@ -82,6 +83,7 @@ export function SettingsPage() {
       <Button asChild variant="outline">
         <Link to="/more/settings/diagnose">{de.diagnostics.open}</Link>
       </Button>
+      {auth.status !== 'loading' && auth.accountMode !== null ? <DangerZone /> : null}
     </>
   );
 }
