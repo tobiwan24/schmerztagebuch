@@ -139,6 +139,7 @@ export const de = {
     edit: 'Bearbeiten',
     notFound: 'Dieser Eintrag existiert nicht (mehr).',
     archivedField: 'archiviertes Feld',
+    oldVersionHint: 'Dieser Eintrag stammt aus einer älteren Fassung der Vorlage. Neue Felder sind hier nicht verfügbar, weil sonst Werte verloren gingen.',
     attachments: 'Anhänge',
     recordedBy: (name: string) => `Erfasst von ${name}`,
     openAttachment: 'Öffnen',

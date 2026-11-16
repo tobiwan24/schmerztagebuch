@@ -3,6 +3,7 @@ import { createIdGenerator } from './ids.js';
 import { keyBetween } from './fractional-index.js';
 import { createTemplate, updateTemplate, type BlockDef, type Entry } from './templates.js';
 import { resolveEntryView } from './entry-view.js';
+import { displayValue } from './entry-form.js';
 
 let t = 1_700_000_000_000;
 const clock = { now: () => (t += 1000) };
@@ -69,5 +70,20 @@ describe('Eintragsansicht über Vorlagenversionen', () => {
   it('DM-08: Version passt nicht zum Eintrag → Fehler', () => {
     const { v1, entry } = fixture();
     expect(() => resolveEntryView({ ...entry, templateVersion: 2 }, v1.version, v1.version)).toThrow();
+  });
+});
+
+describe('Optionslabels über die Eintragsversion', () => {
+  it('BLK-26: umbenannte/entfernte Option zeigt das Label der Eintragsversion, nie die Options-ID', () => {
+    const opt = (label: string) => ({ id: newId(), label, color: 'blue' });
+    const [a, b] = [opt('Übelkeit'), opt('Aura')];
+    const ms: BlockDef = { id: newId(), type: 'multiselect', label: 'Symptome', required: false, order: keyBetween(null, null), config: { options: [a, b], multiple: true } };
+    const t1 = createTemplate({ id: newId(), diaryId: newId(), name: 'M', order: keyBetween(null, null), blocks: [ms] }, clock);
+    const entry = { templateId: t1.template.id, templateVersion: 1, values: { [ms.id]: [a.id, b.id] } };
+    const renamed: BlockDef = { ...ms, label: 'Beschwerden', config: { options: [{ ...a, label: 'Brechreiz' }], multiple: true } };
+    const t2 = updateTemplate(t1, { blocks: [renamed] }, clock).state.version;
+    const [field] = resolveEntryView(entry, t1.version, t2);
+    expect(displayValue(field!.block, field!.value)).toBe('Übelkeit, Aura');
+    expect(field!.block.label).toBe('Beschwerden');
   });
 });

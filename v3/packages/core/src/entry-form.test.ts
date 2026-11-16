@@ -6,6 +6,7 @@ import {
   initialValues,
   isDirty,
   missingRequired,
+  upgradeEntryVersion,
   nowTimeInput,
   timeInputFrom,
   timeToEntry,
@@ -66,5 +67,32 @@ describe('Eintragsformular-Logik', () => {
     expect(isDirty(base, { ...base, values: initialValues(version) })).toBe(false);
     expect(isDirty(base, { ...base, values: { ...base.values, [pain!.id]: 3 } })).toBe(true);
     expect(isDirty(base, { ...base, time: { mode: 'point', at: '2026-02-01T10:00' } })).toBe(true);
+  });
+});
+
+describe('Version eines Eintrags beim Bearbeiten heben', () => {
+  const bump = (blocks: typeof version.blocks): typeof version => ({ ...version, version: version.version + 1, blocks });
+
+  it('BLK-27: alle Werte in der aktuellen Version gültig → Eintrag wird auf die aktuelle Version gehoben', () => {
+    const entry = { templateId: version.templateId, templateVersion: 1, values: { [pain!.id]: 4 } };
+    const extra = { id: newId(), type: 'text' as const, label: 'Neu', required: false, order: keyBetween(notes!.order, null), config: {} };
+    expect(upgradeEntryVersion(entry, bump([...version.blocks, extra]))).toEqual({ upgraded: true, templateVersion: 2 });
+  });
+
+  it('BLK-27: entfernter Block mit Wert → Version bleibt (nichts geht verloren)', () => {
+    const entry = { templateId: version.templateId, templateVersion: 1, values: { [pain!.id]: 4 } };
+    expect(upgradeEntryVersion(entry, bump(version.blocks.filter((b) => b.id !== pain!.id)))).toEqual({ upgraded: false, templateVersion: 1 });
+  });
+
+  it('BLK-27: Wert in der aktuellen Version ungültig (Slider-Bereich verkleinert) → Version bleibt', () => {
+    const entry = { templateId: version.templateId, templateVersion: 1, values: { [pain!.id]: 9 } };
+    const narrowed = version.blocks.map((b) => (b.id === pain!.id && b.type === 'slider' ? { ...b, config: { ...b.config, max: 5 } } : b));
+    expect(upgradeEntryVersion(entry, bump(narrowed))).toEqual({ upgraded: false, templateVersion: 1 });
+  });
+
+  it('BLK-27: Eintrag ohne Wert für entfernten Block wird gehoben; gleiche Version bleibt unverändert', () => {
+    const entry = { templateId: version.templateId, templateVersion: 1, values: {} };
+    expect(upgradeEntryVersion(entry, bump(version.blocks.filter((b) => b.id !== pain!.id))).upgraded).toBe(true);
+    expect(upgradeEntryVersion(entry, version)).toEqual({ upgraded: false, templateVersion: 1 });
   });
 });

@@ -1,7 +1,7 @@
 // Repository-Integrationstests. Laufen unverändert mit Codec `plain` und Test-Codec `aes` (DM-09).
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createIdGenerator, createTemplate, keyBetween, updateTemplate, type BlockDef, type Entry, type TemplateState } from '@stb/core';
+import { createIdGenerator, createTemplate, displayValue, keyBetween, updateTemplate, type BlockDef, type Entry, type TemplateState } from '@stb/core';
 import { generateDiaryKey } from '@stb/crypto';
 import { StbDb } from '../db.js';
 import { plainCodec } from '../codec/plain.js';
@@ -116,6 +116,21 @@ for (const codecId of ['plain', 'aes'] as const) {
       expect(view?.fields.map((f) => [f.block.label, f.value])).toEqual([['Schmerz', 4], ['Notiz', 'n'], ['Schlaf', 8]]);
       // neuer Eintrag referenziert Version 2 und ist gültig
       await repo.saveEntry(entry(r.state, { [sleep.id]: 1 }));
+    });
+
+    it(`BLK-26 (${codecId}): Detail zeigt Optionslabels der Eintragsversion, auch nach Umbenennen und Entfernen`, async () => {
+      const a = { id: newId(), label: 'Übelkeit', color: 'blue' };
+      const b = { id: newId(), label: 'Aura', color: 'red' };
+      const ms: BlockDef = { id: newId(), type: 'multiselect', label: 'Symptome', required: false, order: keyBetween(null, null), config: { options: [a, b], multiple: true } };
+      const state = createTemplate({ id: newId(), diaryId, name: 'M', order: keyBetween(null, null), blocks: [ms] }, clock);
+      await repo.saveTemplate(state);
+      const e = entry(state, { [ms.id]: [a.id, b.id] });
+      await repo.saveEntry(e);
+      const v2 = updateTemplate(state, { blocks: [{ ...ms, config: { options: [{ ...a, label: 'Brechreiz' }], multiple: true } }] }, clock, [state.version]).state;
+      await repo.saveTemplate(v2);
+      const view = await repo.getEntryView(e.id);
+      const field = view!.fields[0]!;
+      expect(displayValue(field.block, field.value)).toBe('Übelkeit, Aura');
     });
 
     if (codecId === 'aes') {

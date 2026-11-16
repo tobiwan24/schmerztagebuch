@@ -1,6 +1,6 @@
 // Fachlogik des Eintragsformulars (Spec 05 „Einträge"): Ausgangswerte, Pflichtfelder, Zeitangabe, Dirty-Vergleich.
 // Rein und ohne UI, damit sie im Formular und in Tests identisch gilt.
-import { blockModules, type BlockModule } from './blocks/index.js';
+import { blockModules, parseBlockValue, type BlockModule } from './blocks/index.js';
 import { canonical } from './canonical.js';
 import { compareByOrder } from './fractional-index.js';
 import type { BlockDef, EntryPeriod, TemplateVersion } from './templates.js';
@@ -106,4 +106,26 @@ export interface FormSnapshot {
 
 export function isDirty(initial: FormSnapshot, current: FormSnapshot): boolean {
   return canonical(initial) !== canonical(current);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Version beim Bearbeiten heben (BLK-27, A-038)
+
+/**
+ * Beim Bearbeiten eines Eintrags einer älteren Vorlagenversion: Wird er auf die aktuelle Version gehoben, sieht das
+ * Formular neue Felder. Das geschieht nur, wenn dabei kein Wert verloren geht — jeder vorhandene Wert braucht einen
+ * Block gleichen Typs in der aktuellen Version und muss dort gültig sein. Sonst bleibt die Version des Eintrags.
+ */
+export function upgradeEntryVersion(
+  entry: { templateId: string; templateVersion: number; values: Record<string, unknown> },
+  current: TemplateVersion,
+): { upgraded: boolean; templateVersion: number } {
+  const stay = { upgraded: false, templateVersion: entry.templateVersion };
+  if (current.templateId !== entry.templateId || current.version <= entry.templateVersion) return stay;
+  const byId = new Map(current.blocks.map((b) => [b.id, b]));
+  for (const [blockId, raw] of Object.entries(entry.values)) {
+    const def = byId.get(blockId);
+    if (!def || !parseBlockValue(def.type, def.config as never, raw).success) return stay;
+  }
+  return { upgraded: true, templateVersion: current.version };
 }

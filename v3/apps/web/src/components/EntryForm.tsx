@@ -11,6 +11,7 @@ import {
   timeInputFrom,
   timeToEntry,
   updateTemplate,
+  upgradeEntryVersion,
   validateTime,
   valuesToSave,
   type Entry,
@@ -45,14 +46,23 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
   const [showErrors, setShowErrors] = useState(false);
   const [saving, setSaving] = useState(false);
   const leaving = useRef(false);
+  /** Bearbeiten: Eintrag bleibt auf älterer Version, weil beim Heben ein Wert verloren ginge (BLK-27). */
+  const [keptOldVersion, setKeptOldVersion] = useState(false);
 
-  // Vorlage laden. Neu: aktuelle Version. Bearbeiten: Version des Eintrags (Werte bleiben gültig, Spec 02).
+  // Vorlage laden. Neu: aktuelle Version. Bearbeiten: aktuelle Version, wenn kein Wert verloren geht, sonst die Version
+  // des Eintrags (Spec 02, A-038).
   async function selectTemplate(templateId: string) {
     const template = templates.find((t) => t.id === templateId);
     if (!template) return;
-    const version = entry
-      ? await data.diary.getTemplateVersion(entry.templateId, entry.templateVersion)
-      : (await data.diary.getTemplate(templateId))?.version;
+    let version: TemplateVersion | undefined;
+    if (entry) {
+      const currentState = await data.diary.getTemplate(entry.templateId);
+      const up = currentState ? upgradeEntryVersion(entry, currentState.version) : undefined;
+      version = up?.upgraded ? currentState?.version : await data.diary.getTemplateVersion(entry.templateId, entry.templateVersion);
+      setKeptOldVersion(!!currentState && !up?.upgraded && currentState.version.version > entry.templateVersion);
+    } else {
+      version = (await data.diary.getTemplate(templateId))?.version;
+    }
     if (!version) return;
     const next: FormSnapshot = entry
       ? { templateId, values: { ...entry.values }, time: timeInputFrom(entry), tags: entry.tags }
@@ -114,7 +124,7 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
       if (entry) {
         const rest: Omit<Entry, 'period'> & { period?: Entry['period'] } = { ...entry };
         delete rest.period;
-        next = { ...rest, ...time, values, tags: [...current.tags], updatedAt: s.at, hlc: s.hlc };
+        next = { ...rest, ...time, templateVersion: loaded.version.version, values, tags: [...current.tags], updatedAt: s.at, hlc: s.hlc };
       } else {
         next = {
           id: data.newId(), diaryId: loaded.template.diaryId, templateId: loaded.template.id, templateVersion: loaded.version.version,
@@ -150,6 +160,12 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
           {template.name}
         </p>
       )}
+
+      {keptOldVersion ? (
+        <p role="status" data-testid="old-version-hint" className="text-sm text-muted-foreground">
+          {de.entry.oldVersionHint}
+        </p>
+      ) : null}
 
       <TimeField time={current.time} error={timeError} onChange={setTime} />
 
