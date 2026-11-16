@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router';
 import { Pencil } from 'lucide-react';
 import { AttachmentList } from '@/components/AttachmentList';
 import { useAuthorName } from '@/data/useSharing';
-import { displayValue } from '@stb/core';
+import { displayValue, type TextareaValue } from '@stb/core';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -85,6 +85,19 @@ export function EntryDetailPage() {
                 </div>
               ))}
           </Card>
+          {eventsOf(query.data.fields).length > 0 ? (
+            <section className="flex flex-col gap-2" data-testid="events">
+              <h2 className="text-sm font-medium text-muted-foreground">{de.entry.eventsHeading}</h2>
+              <Card className="gap-0 py-0">
+                {eventsOf(query.data.fields).map((e) => (
+                  <div key={e.id} data-testid="event" className="flex items-center justify-between gap-4 border-b px-4 py-3 last:border-b-0">
+                    <span>{e.title}</span>
+                    <Badge variant="secondary">{e.category === 'doctor' ? de.entry.categoryDoctor : de.entry.categoryEvent}</Badge>
+                  </div>
+                ))}
+              </Card>
+            </section>
+          ) : null}
           {query.data.entry.tags.length > 0 ? (
             <ul className="flex flex-wrap gap-2" aria-label={de.entry.tagsSet}>
               {query.data.entry.tags.map((t) => (
@@ -110,6 +123,11 @@ export function EntryDetailPage() {
 /** Anhang-IDs aller Textarea-Felder eines Eintrags (Reihenfolge der Felder). */
 function attachmentIdsOf(fields: readonly { block: { type: string }; value: unknown }[]): string[] {
   return fields.flatMap((f) => (f.block.type === 'textarea' ? ((f.value as { attachmentIds?: string[] } | undefined)?.attachmentIds ?? []) : []));
+}
+
+/** Ereignisse und Arztbesuche aller Textarea-Felder eines Eintrags. */
+function eventsOf(fields: readonly { block: { type: string }; value: unknown }[]): { id: string; category: 'event' | 'doctor'; title: string }[] {
+  return fields.flatMap((f) => (f.block.type === 'textarea' ? ((f.value as TextareaValue | undefined)?.events ?? []) : []));
 }
 
 /** „Erfasst von …" — nur in geteilten Tagebüchern (Spec 09, SHR-10). */

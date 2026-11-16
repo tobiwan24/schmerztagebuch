@@ -1,8 +1,9 @@
 // Eintragsformular (Spec 05 „Einträge", Wireframe eintrag.html): Vorlage, Zeitangabe Zeitpunkt/Zeitraum, Blöcke,
 // Pflichtfelder (BLK-07), Warnung bei ungespeicherten Änderungen nur nach echter Änderung (BLK-09), Speichern unten fixiert.
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { useBlocker, useNavigate } from 'react-router';
 import {
+  checkAttachmentFile,
   initialValues,
   initialWeatherMeta,
   isDirty,
@@ -16,6 +17,7 @@ import {
   upgradeEntryVersion,
   validateTime,
   valuesToSave,
+  type AttachmentMeta,
   type DiaryWeatherSettings,
   type Entry,
   type FormSnapshot,
@@ -34,11 +36,19 @@ import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { WeatherSwitch, useDiaryWeatherSettings, useGpsChoice } from '@/components/WeatherSwitch';
 import { BlockField } from '@/components/blocks/BlockField';
+import type { AttachmentApi } from '@/components/blocks/TextareaField';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 
 const SWIPE_PX = 60;
+
+/** Angehängte, noch nicht gespeicherte Datei (BLK-30: erst beim Speichern wird geschrieben). */
+interface PendingAttachment {
+  meta: AttachmentMeta;
+  bytes: Uint8Array<ArrayBuffer>;
+  previewUrl?: string;
+}
 
 interface Loaded {
   template: Template;
@@ -49,6 +59,8 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
   const data = useData();
   const navigate = useNavigate();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const loadedRef = useRef<Loaded | null>(null);
+  loadedRef.current = loaded;
   const [initial, setInitial] = useState<FormSnapshot | null>(null);
   const [current, setCurrent] = useState<FormSnapshot | null>(null);
   const [showErrors, setShowErrors] = useState(false);
@@ -56,11 +68,21 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
   const leaving = useRef(false);
   /** Eintrags-ID steht beim Öffnen fest, damit Anhänge schon vor dem Speichern auf den Eintrag verweisen können (BLK-30). */
   const entryId = useRef(entry?.id ?? data.newId());
+  const [pending, setPending] = useState<Map<string, PendingAttachment>>(new Map());
+  /** Bearbeiten: vorhandene Anhänge, die der Nutzer entfernt hat — gelöscht erst beim Speichern. */
+  const removedExisting = useRef<Set<string>>(new Set());
   const swipe = useRef<{ x: number; y: number } | null>(null);
   /** Vorlagenwechsel mit Eingaben erst nach Rückfrage (BLK-42, BLK-09-Regel). */
   const [pendingTemplate, setPendingTemplate] = useState<string | null>(null);
   /** Bearbeiten: Eintrag bleibt auf älterer Version, weil beim Heben ein Wert verloren ginge (BLK-27). */
   const [keptOldVersion, setKeptOldVersion] = useState(false);
+
+  function clearPending() {
+    setPending((prev) => {
+      for (const p of prev.values()) if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+      return new Map();
+    });
+  }
 
   // Vorlage laden. Neu: aktuelle Version. Bearbeiten: aktuelle Version, wenn kein Wert verloren geht, sonst die Version
   // des Eintrags (Spec 02, A-038).
@@ -80,6 +102,7 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
     const next: FormSnapshot = entry
       ? { templateId, values: { ...entry.values }, time: timeInputFrom(entry), tags: entry.tags }
       : { templateId, values: initialValues(version), time: current?.time ?? nowTimeInput(data.now()), tags: current?.tags ?? [] };
+    if (!entry) clearPending();
     setLoaded({ template, version });
     // Vorlagenwechsel ohne Eingabe ist keine Änderung (BLK-09): Ausgangszustand wandert mit.
     setInitial((prev) => (!discard && prev && current && isDirty(prev, current) ? prev : next));
@@ -97,6 +120,52 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
   const diaryId = loaded?.template.diaryId;
   const known = useQuery(async () => (diaryId ? (await data.diary.listEntries(diaryId)).map((e) => e.tags) : []), [data.diary, diaryId]);
   const knownTags = known.status === 'ok' ? known.data : [];
+
+  const existing = useQuery(async () => (entry ? await data.attachments.listForEntry(entry.diaryId, entry.id) : []), [data.attachments, entry?.id, entry?.diaryId]);
+  const pendingRef = useRef(pending);
+  pendingRef.current = pending;
+  useEffect(() => () => {
+    for (const p of pendingRef.current.values()) if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+  }, []);
+  const attachmentApi: AttachmentApi = useMemo(
+    () => ({
+      info(id) {
+        const p = pendingRef.current.get(id);
+        if (p) return { id, name: p.meta.name, kind: p.meta.kind, ...(p.previewUrl ? { previewUrl: p.previewUrl } : {}) };
+        const m = existing.status === 'ok' ? existing.data.find((x) => x.id === id) : undefined;
+        return m ? { id, name: m.name, kind: m.kind } : undefined;
+      },
+      async add(file) {
+        const verdict = checkAttachmentFile({ mime: file.type, sizeBytes: file.size });
+        if (!verdict.ok) return { error: verdict.reason };
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const id = data.newId();
+        const meta: AttachmentMeta = {
+          id, diaryId: loadedRef.current?.template.diaryId ?? '', entryId: entryId.current, kind: verdict.kind, mime: file.type.toLowerCase(),
+          name: (file.name.trim() || (verdict.kind === 'pdf' ? 'Dokument.pdf' : 'Foto')).slice(-200), sizeBytes: file.size, createdAt: new Date(data.now()).toISOString(),
+        };
+        const previewUrl = verdict.kind === 'image' ? URL.createObjectURL(new Blob([bytes], { type: meta.mime })) : undefined;
+        setPending((prev) => new Map(prev).set(id, { meta, bytes, ...(previewUrl ? { previewUrl } : {}) }));
+        pendingRef.current = new Map(pendingRef.current).set(id, { meta, bytes, ...(previewUrl ? { previewUrl } : {}) });
+        return { id };
+      },
+      remove(id) {
+        const p = pendingRef.current.get(id);
+        if (p) {
+          if (p.previewUrl) URL.revokeObjectURL(p.previewUrl);
+          setPending((prev) => {
+            const next = new Map(prev);
+            next.delete(id);
+            return next;
+          });
+          const next = new Map(pendingRef.current);
+          next.delete(id);
+          pendingRef.current = next;
+        } else removedExisting.current.add(id);
+      },
+    }),
+    [data, existing],
+  );
 
   const weatherSettings = useDiaryWeatherSettings(loaded?.template.diaryId);
   const [useGps, setUseGps] = useGpsChoice(weatherSettings);
@@ -161,6 +230,12 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
       const s = await data.stamper.stamp();
       const time = timeToEntry(current.time);
       const values = valuesToSave(loaded.version, current.values);
+      // Anhänge: nur Dateien, die noch in einem Textarea-Wert stehen; vorhandene, die der Nutzer entfernt hat, werden gelöscht (BLK-30).
+      const keptIds = new Set(Object.values(values).flatMap((v) => (v && typeof v === 'object' && 'attachmentIds' in v ? ((v as { attachmentIds?: string[] }).attachmentIds ?? []) : [])));
+      await data.attachments.commit({
+        add: [...pending.values()].filter((p) => keptIds.has(p.meta.id)).map(({ meta, bytes }) => ({ meta: { ...meta, diaryId: loaded.template.diaryId }, bytes })),
+        removeIds: [...removedExisting.current].filter((id) => !keptIds.has(id)),
+      });
       let next: Entry;
       let gpsFollowUp: DiaryWeatherSettings | null = null;
       if (entry) {
@@ -225,7 +300,7 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
       {sortedBlocks(version).map((def) => (
         <BlockField
           key={def.id} def={def} value={current.values[def.id]} invalid={missing.has(def.id)} onChange={(v) => setValues({ ...current.values, [def.id]: v })}
-          diaryId={template.diaryId} onSetDefault={setBlockDefault}
+          diaryId={template.diaryId} onSetDefault={setBlockDefault} attachments={attachmentApi} newId={data.newId}
         />
       ))}
 

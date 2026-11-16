@@ -7,8 +7,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Textarea } from '@/components/ui/textarea';
 import { BodyMapField } from './BodyMapField';
+import { TextareaField, type AttachmentApi } from './TextareaField';
 import { optionTone } from '@/lib/option-colors';
 import { cn } from '@/lib/utils';
 import { de } from '@/i18n/de';
@@ -22,9 +22,12 @@ export interface BlockFieldProps {
   diaryId?: string;
   /** Body-Map: „Als Standard für dieses Feld". */
   onSetDefault?: (blockId: string, presetId: string) => Promise<void>;
+  /** Textarea: Anhänge des Formulars (BLK-30/31) und ID-Quelle für Ereignisse. */
+  attachments?: AttachmentApi;
+  newId?: () => string;
 }
 
-export function BlockField({ def, value, onChange, invalid, diaryId, onSetDefault }: BlockFieldProps) {
+export function BlockField({ def, value, onChange, invalid, diaryId, onSetDefault, attachments, newId }: BlockFieldProps) {
   const id = `block-${def.id}`;
   const errorId = `${id}-error`;
   const aria = { 'aria-invalid': invalid || undefined, 'aria-describedby': invalid ? errorId : undefined };
@@ -36,7 +39,7 @@ export function BlockField({ def, value, onChange, invalid, diaryId, onSetDefaul
         {def.required ? <span aria-label={de.entry.required}>{' *'}</span> : null}
       </Label>
       {def.description ? <p className="text-xs text-muted-foreground">{def.description}</p> : null}
-      <FieldInput id={id} def={def} value={value} onChange={onChange} aria={aria} diaryId={diaryId} onSetDefault={onSetDefault ? (pid) => onSetDefault(def.id, pid) : undefined} />
+      <FieldInput id={id} def={def} value={value} onChange={onChange} aria={aria} diaryId={diaryId} onSetDefault={onSetDefault ? (pid) => onSetDefault(def.id, pid) : undefined} attachments={attachments} newId={newId} />
       {invalid ? (
         <p id={errorId} role="alert" className="text-sm text-destructive">
           {de.entry.requiredMissing}
@@ -67,8 +70,8 @@ function InfoHint({ id, text }: { id: string; text: string }) {
 type Aria = { 'aria-invalid'?: true; 'aria-describedby'?: string };
 
 function FieldInput({
-  id, def, value, onChange, aria, diaryId, onSetDefault,
-}: { id: string; def: BlockDef; value: unknown; onChange: (v: unknown) => void; aria: Aria; diaryId?: string; onSetDefault?: (presetId: string) => Promise<void> }) {
+  id, def, value, onChange, aria, diaryId, onSetDefault, attachments, newId,
+}: { id: string; def: BlockDef; value: unknown; onChange: (v: unknown) => void; aria: Aria; diaryId?: string; onSetDefault?: (presetId: string) => Promise<void>; attachments?: AttachmentApi; newId?: () => string }) {
   switch (def.type) {
     case 'slider': {
       const v = typeof value === 'number' ? value : undefined;
@@ -140,11 +143,14 @@ function FieldInput({
           {...aria}
         />
       );
-    case 'textarea': {
-      // Ereignisse und Anhänge folgen mit dem Port der v2-Komponente; vorhandene bleiben erhalten.
-      const v = (value as TextareaValue | undefined) ?? {};
-      return <Textarea id={id} value={v.text ?? ''} onChange={(e) => onChange({ ...v, text: e.target.value || undefined })} {...aria} />;
-    }
+    case 'textarea':
+      return (
+        <TextareaField
+          id={id} value={value as TextareaValue | undefined} onChange={onChange} aria={aria} attachments={attachments} newId={newId}
+          // Ereignisse brauchen eine ID-Quelle (UUID v7); ohne sie (Schnelleintrag) nur Text.
+          config={newId ? def.config : { ...def.config, allowEvents: false }}
+        />
+      );
     case 'date':
       return <DateInput id={id} mode={def.config.mode} value={value as DateValue | undefined} onChange={onChange} aria={aria} />;
     case 'bodymap':
