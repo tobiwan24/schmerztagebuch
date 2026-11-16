@@ -17,6 +17,12 @@ describe('Analyse-Worker-Protokoll', () => {
     const meds = await client.medicationDays({ now: FIXTURE_NOW });
     expect(meds.map((m) => [m.label, m.days])).toEqual([['Ibuprofen', 3], ['Paracetamol', 2]]);
     expect(await client.training({ now: FIXTURE_NOW })).toEqual({ weeks: [], totalDays: 0, levels: [] });
+    // Zusammenhänge (ANA-26/27): Fixture hat weniger als 14 gemeinsame Tage bzw. 10 Fälle → keine Zahl
+    const corr = await client.correlation({ blockId: FIX.pain }, { blockId: FIX.pain }, 0, { now: FIXTURE_NOW });
+    expect(corr).toMatchObject({ enough: false, rho: null });
+    const lifts = await client.triggers({ outcome: { blockId: FIX.back }, threshold: 5, lag: 0, trigger: { role: 'trigger' }, now: FIXTURE_NOW });
+    expect(lifts.length).toBeGreaterThan(0);
+    expect(lifts.every((l) => !l.enough && l.lift === null)).toBe(true);
     port1.close();
     port2.close();
   });

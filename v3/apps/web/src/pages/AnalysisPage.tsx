@@ -2,7 +2,7 @@
 // Körperkarte — fest, nicht konfigurierbar. Dazu der Zeitraumvergleich. Rein beschreibend, jede Kennzahl mit n.
 // Daten aus dem Analyse-Worker (`useAnalysis`).
 import { TOUR_RING } from '@/tour/anchor';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useMemo, useRef, useState } from 'react';
 import { FilePlus, ImageDown } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
 import { addDays, type FilterSpec } from '@stb/analysis';
@@ -16,20 +16,20 @@ import { ChartEntryDialog } from '@/components/ChartEntryDialog';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState, ErrorState } from '@/components/StateView';
 import { BODYMAP_PRESETS, intensityFill } from '@/components/blocks/bodymap-presets';
-import { useAnalysis } from '@/data/AnalysisContext';
 import { useData } from '@/data/DataContext';
 import { useDiaryScope } from '@/data/diary-scope';
 import { useQuery } from '@/data/useQuery';
-import type { AnalysisClient } from '@/workers/analysis-service';
+import { BlockPicker, useWorker } from '@/components/AnalysisShared';
 import { cn } from '@/lib/utils';
 import { exportViewAsPng, renderViewAsPng } from '@/lib/export-png';
 import { de } from '@/i18n/de';
 
-type View = 'trend' | 'calendar' | 'meds' | 'freq' | 'body' | 'training';
+type View = 'trend' | 'calendar' | 'meds' | 'freq' | 'body' | 'corr' | 'training';
 type Range = 'day' | '7d' | '30d' | '90d' | '6m' | '1y';
-const VIEWS: View[] = ['trend', 'calendar', 'meds', 'freq', 'body'];
+const VIEWS: View[] = ['trend', 'calendar', 'meds', 'freq', 'body', 'corr'];
 /** „Übungen“ erscheint nur, wenn es erledigte Übungen gibt (ANA-25). */
 const VIEWS_WITH_TRAINING: View[] = [...VIEWS, 'training'];
+const CorrelationView = lazy(() => import('@/components/CorrelationView').then((m) => ({ default: m.CorrelationView })));
 const RANGES: Range[] = ['day', '7d', '30d', '90d', '6m', '1y'];
 const RANGE_DAYS: Record<Range, number> = { day: 1, '7d': 7, '30d': 30, '90d': 90, '6m': 182, '1y': 365 };
 const PALETTE = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
@@ -41,22 +41,6 @@ const shortDay = (day: string) => `${day.slice(8, 10)}.${day.slice(5, 7)}.`;
 const longDay = (day: string) => `${shortDay(day)}${day.slice(0, 4)}`;
 /** Mindestweg (px) für eine Wisch-Geste, die den Zeitraum verschiebt (Spec 06 „Touch"). */
 const SWIPE_PX = 60;
-
-/** Abfrage an den Worker, neu bei geändertem Arbeitsset (`version`) oder Abhängigkeiten. */
-function useWorker<T>(fn: (c: AnalysisClient) => Promise<T>, deps: readonly unknown[]): T | null {
-  const { client, version } = useAnalysis();
-  const [data, setData] = useState<T | null>(null);
-  useEffect(() => {
-    if (!client) return;
-    let cancelled = false;
-    void fn(client).then((d) => !cancelled && setData(d));
-    return () => {
-      cancelled = true;
-    };
-    // `fn` ist pro Render neu; neu geladen wird über `deps` und `version`.
-  }, [client, version, ...deps]);
-  return data;
-}
 
 export function AnalysisPage() {
   const { diary, now } = useData();
@@ -157,25 +141,11 @@ export function AnalysisPage() {
         {view === 'meds' ? <MedsView spec={spec} /> : null}
         {view === 'freq' ? <FreqView spec={spec} from={from} to={to} /> : null}
         {view === 'body' ? <BodyView spec={spec} /> : null}
+        {view === 'corr' ? <Suspense fallback={<p className="text-muted-foreground">{de.app.loading}</p>}><CorrelationView spec={spec} /></Suspense> : null}
         {view === 'training' ? <TrainingView spec={spec} /> : null}
       </section>
       {view !== 'calendar' ? <CompareCard diaryIds={diaryIds} from={from} to={to} /> : null}
     </>
-  );
-}
-
-/** Feldauswahl; gleich benannte Felder verschiedener Vorlagen tragen den Vorlagennamen. */
-function BlockPicker({ blocks, value, onChange }: { blocks: { blockId: string; label: string; templateName: string }[]; value: string | undefined; onChange: (id: string) => void }) {
-  if (blocks.length < 2) return null;
-  const dup = (label: string) => blocks.filter((b) => b.label === label).length > 1;
-  return (
-    <div role="group" aria-label={de.analysis.block} className="flex flex-wrap gap-2">
-      {blocks.map((b) => (
-        <Button key={b.blockId} size="sm" variant={b.blockId === value ? 'default' : 'outline'} aria-pressed={b.blockId === value} onClick={() => onChange(b.blockId)}>
-          {dup(b.label) ? de.analysis.blockOf(b.label, b.templateName) : b.label}
-        </Button>
-      ))}
-    </div>
   );
 }
 
