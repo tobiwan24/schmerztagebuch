@@ -20,9 +20,8 @@ import { requestPersistentStorage } from '@/lib/install';
 import { prepareLocalAccount, type PendingAccount } from '@/auth/local-account';
 import { useAuth } from '@/auth/AuthContext';
 import { de } from '@/i18n/de';
+import { SETUP_STEPS, enterSetup, type Step } from './onboarding-steps';
 
-type Step = 'install' | 'mode' | 'factor' | 'cloud' | 'cloud-login' | 'cloud-recovery' | 'backup' | 'diary' | 'location' | 'template';
-const SETUP_STEPS: readonly Step[] = ['diary', 'location', 'template'];
 
 export function OnboardingPage() {
   const auth = useAuth();
@@ -55,7 +54,7 @@ export function OnboardingPage() {
     setBusy(true);
     try {
       await auth.finishPending(pending);
-      setStep('diary');
+      setStep(enterSetup);
     } finally {
       setBusy(false);
     }
@@ -131,7 +130,7 @@ export function OnboardingPage() {
       ) : null}
       {current === 'cloud-login' ? (
         <>
-          <CloudLogin onDone={() => setStep('diary')} />
+          <CloudLogin onDone={() => setStep(enterSetup)} />
           <RecoveryLink onClick={() => setStep('cloud-recovery')} />
         </>
       ) : null}
