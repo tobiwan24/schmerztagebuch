@@ -501,6 +501,26 @@
                 "properties": {
                   "kind": {
                     "type": "string",
+                    "const": "attachment"
+                  },
+                  "attachmentKind": {
+                    "type": "string",
+                    "enum": [
+                      "image",
+                      "pdf"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
                     "const": "event"
                   },
                   "category": {
@@ -957,6 +977,26 @@
                       "additionalProperties": false
                     }
                   ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "attachment"
+                    },
+                    "attachmentKind": {
+                      "type": "string",
+                      "enum": [
+                        "image",
+                        "pdf"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false
                 },
                 {
                   "type": "object",
@@ -2478,6 +2518,26 @@
                             "properties": {
                               "kind": {
                                 "type": "string",
+                                "const": "attachment"
+                              },
+                              "attachmentKind": {
+                                "type": "string",
+                                "enum": [
+                                  "image",
+                                  "pdf"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "kind"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
                                 "const": "event"
                               },
                               "category": {
@@ -2934,6 +2994,26 @@
                                   "additionalProperties": false
                                 }
                               ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "const": "attachment"
+                                },
+                                "attachmentKind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "image",
+                                    "pdf"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "kind"
+                              ],
+                              "additionalProperties": false
                             },
                             {
                               "type": "object",

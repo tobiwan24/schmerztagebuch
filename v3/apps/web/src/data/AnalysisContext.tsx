@@ -18,7 +18,7 @@ const RELOAD_DEBOUNCE_MS = 250;
 
 export function AnalysisProvider({ children }: { children: ReactNode }) {
   const { status } = useAuth();
-  const { diary, writes, revision } = useData();
+  const { diary, attachments, writes, revision } = useData();
   const [client, setClient] = useState<AnalysisClient | null>(null);
   const [version, setVersion] = useState(0);
   const [dirty, setDirty] = useState(0);
@@ -52,16 +52,16 @@ export function AnalysisProvider({ children }: { children: ReactNode }) {
     if (!client) return;
     let cancelled = false;
     void (async () => {
-      const [entries, templates, versions, diaries] = await Promise.all([
-        diary.listAllEntries(), diary.listAllTemplates(), diary.listAllTemplateVersions(), diary.listDiaries(),
+      const [entries, templates, versions, diaries, metas] = await Promise.all([
+        diary.listAllEntries(), diary.listAllTemplates(), diary.listAllTemplateVersions(), diary.listDiaries(), attachments.listAll(),
       ]);
-      await client.load({ entries, templates, versions, diaries });
+      await client.load({ entries, templates, versions, diaries, attachments: metas.map((m) => ({ entryId: m.entryId, kind: m.kind })) });
       if (!cancelled) setVersion((v) => v + 1);
     })();
     return () => {
       cancelled = true;
     };
-  }, [client, diary, revision, dirty]);
+  }, [client, diary, attachments, revision, dirty]);
 
   const api = useMemo(() => ({ client: version > 0 ? client : null, version }), [client, version]);
   return <AnalysisContext.Provider value={api}>{children}</AnalysisContext.Provider>;

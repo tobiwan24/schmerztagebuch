@@ -4,12 +4,12 @@
 
 ## Aktuell
 
-- **Meilenstein:** M14 „Nacharbeiten v2-Parität" aktuell (28/28 IDs laut Skript, M14.0 Doku erledigt); danach/parallel der Teil-Meilenstein M14b „v2-Parität, Rest" (5/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
+- **Meilenstein:** M14 „Nacharbeiten v2-Parität" erledigt (28/28 IDs, Skript „OK"; Abschlussaufgabe M14.22 läuft mit M14b); aktuell der Teil-Meilenstein M14b „v2-Parität, Rest" (6/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M14.24–M14.26 Verlauf laut Tabelle. M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-062.
+- **Nächste Aufgabe:** M14.25–M14.26 Verlauf laut Tabelle. M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-062.
 - **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29), M14.16 (BLK-30), M14.17 (BLK-31), M14.18 (BLK-35, BLK-36), M14.19 (UI-16, UI-19), M14.1 (BLK-40), M14.20 (UI-17), M14.21 (UI-18)
-- **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24)
+- **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. **Achtung:** `npm run verify` überschreibt `reports/vitest.json` mit übersprungenem QA-08 → vor `npm run acceptance` gesamt `npm run verify:docker` (Docker Desktop muss laufen).
 - **Nacharbeiten (Formular, Vorlagen-Editor, Tagebuch-Einstellungen, Wetter-Anbindung, Umnummerierung n+2, Bild-Artefakt, Parität):** ersetzt durch M14. Body-Map (Pinsel, Größe, Kommentar, eigene Bilder) ist seit M8b erledigt.
@@ -41,7 +41,7 @@
 | M14.15 | Tags: core-Regeln, `TagInput`, Chips im Detail — erledigt | BLK-28 BLK-29 |
 | M14.15c | Vorlagen per Wischen wechseln — M14b — erledigt | BLK-42 |
 | M14.16 | Anhänge im Repository (`remove`, Reihenfolge, Limits), Entry-ID beim Öffnen — erledigt | BLK-30 |
-| M14.24 | Filter-/Sortier-Logik in analysis (Working-Set um Anhang-Arten erweitern) — M14b | ANA-19 |
+| M14.24 | Filter-/Sortier-Logik in analysis (Working-Set um Anhang-Arten erweitern) — M14b — erledigt | ANA-19 |
 | M14.25 | Verlauf: Filter-UI (Zeitraum frei, Vorlagen, Inhalt) — M14b | ANA-18 |
 | M14.26 | Verlauf: Sortierung und seitenweises Laden — M14b | ANA-20 |
 | M14.17 | Port der Textarea (Ereignisse, Foto/PDF) — erledigt | BLK-31 |
@@ -88,8 +88,8 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M11 | erledigt | 15/15 IDs → Gate G3 (wartet auf User) |
 | M12 | erledigt | 9/9 IDs |
 | M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
-| M14 | aktuell | 28/28 IDs erledigt (Skript, nach vollem E2E zu bestätigen) — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
-| M14b | aktuell | 5/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
+| M14 | erledigt | 28/28 IDs (Skript OK nach vollem E2E: 166 grün) — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
+| M14b | aktuell | 6/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
 
@@ -254,3 +254,5 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | 2026-11-16 | M14.1 | BLK-40 | `koerper-rueckseite.png`: 15 sichtbare Pixel bei x 0–1, y 469–476 auf Alpha 0 (RGB unverändert, nur v3-Kopie; v2 unberührt). Test `bodymap-assets.test.ts` dekodiert beide Standardbilder mit `fast-png` 8.0.0 (neu, root dev, DECISIONS) und prüft die äußeren 4 Spalten; vor der Korrektur rot (Rückseite), Vorderseite war schon sauber. |
 | 2026-11-16 | M14.20 | UI-17 | `UpdateBanner`: im Modus local-only zusätzlich „Vorher Backup erstellen" (navigiert per `router.navigate` zu `/more/export#backup`, Card `id="backup"` scrollt in Sicht); mit Konto nicht. Testnaht `stb:test-update-available` (window-Event) in `sw-client.ts`, weil der E2E-Server keinen zweiten SW-Stand hat. E2E `update-banner.spec.ts` (local-only Chromium+WebKit, Konto nur Chromium). Erkenntnis: `acceptance` liest den letzten Playwright-Lauf — nach Teil-Läufen sinkt die Zahl, erst ein voller `test:e2e` stellt sie wieder her. |
 | 2026-11-16 | M14.21 | UI-18 | `data/repositories/conflicts.ts` (`list`, `unseenCount`, `markAllSeen`, direkt am Store ohne Outbox, da ConflictLog lokal bleibt), in `DataContext` als `conflicts`; Seite `ConflictLogPage` (lazy, `/more/settings/konflikte`, Link in den Einstellungen): Art, Feld, unterlegener Wert (gekürzt), Zeitpunkt, Link zum Eintrag, Badge „Neu"; Öffnen markiert alles als gesehen. `ConflictBanner` auf Start. E2E `conflict-log.spec.ts` mit synthetisch in IndexedDB geschriebenen Records (Chromium + WebKit). Initiales JS 232,5 KB gzip. |
+| 2026-11-16 | M14.24 | ANA-19 | `@stb/analysis`: Bedingung `attachment` (`attachmentKind` image/pdf, ohne Art = irgendein Anhang), `WsEntry.attachmentKinds` aus neuem optionalem `WorkingSetInput.attachments` (`hasAttachment` zählt Metadaten mit), `sortEntries` + `SORT_ORDERS` (`newest`/`oldest`/`template_az`/`template_date`, stabil, `de`-Collation; az behält Eingabereihenfolge, date = neueste zuerst). `bodymap` und `event`-Kategorie existierten (A-025) und sind jetzt zusätzlich getestet. `AnalysisContext` übergibt `attachments.listAll()` an den Worker. Range-Presets `day`/`6m` bleiben M14.27. |
+| 2026-11-16 | M14 | alle | Skript `acceptance --milestone M14`: 28 erfüllt, OK (Voller E2E-Lauf 166 grün, 17 übersprungen). M14b: 6/22. Erkenntnisse: (1) JSON-Schema des Exports (`packages/export/schema/stb-export-v1.json`) ist generiert und muss nach Änderungen am FilterSpec mit `node scripts/gen-export-schema.mjs` (nach `npx tsc -b packages/export`) neu erzeugt werden — sonst rot in EXP-01 und ARC-01. (2) WebKit-Onboarding (Schritt „Später") hängt unter voller Last gelegentlich (2 Läufe je 1–2 Fehler an wechselnden Tests, einzeln grün) — Flake, nicht inhaltlich; beobachten. (3) Test-Zustand „Banner fehlt" ist vor dem Laden vakuos wahr — Tests auf IDB-Zustand pollen. |

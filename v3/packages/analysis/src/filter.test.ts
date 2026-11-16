@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { applyFilter, conditionSchema, filterSpecSchema, normalizeText, type FilterSpec } from './filter.js';
-import { buildWorkingSet } from './working-set.js';
+import { applyFilter, conditionSchema, filterSpecSchema, matchesCondition, normalizeText, sortEntries, type FilterSpec, type SortOrder } from './filter.js';
+import { buildWorkingSet, type WsEntry } from './working-set.js';
 import { createSearchIndex } from './search.js';
 import { FIX, FIXTURE_NOW, fixtureDiaries, fixtureEntries, fixtureTemplates, fixtureVersions } from './fixture.js';
 
@@ -114,5 +114,49 @@ describe('Volltextsuche', () => {
 
   it('Normalform: ä≙ae, ß≙ss, Groß/klein egal', () => {
     expect(normalizeText('Übelkeit Größe STRAẞE')).toBe('uebelkeit groesse strasse');
+  });
+});
+
+describe('Verlaufsfilter und Sortierung', () => {
+  const withAtt = buildWorkingSet({
+    entries: fixtureEntries, templates: fixtureTemplates, versions: fixtureVersions, diaries: fixtureDiaries,
+    attachments: [{ entryId: 'e01', kind: 'image' }, { entryId: 'e03', kind: 'pdf' }, { entryId: 'e03', kind: 'image' }, { entryId: 'e07', kind: 'image' }],
+  });
+  const ids = (spec: Partial<FilterSpec>) => applyFilter(withAtt, { ...base, ...spec } as FilterSpec, { now: FIXTURE_NOW }).map((e) => e.id).sort();
+
+  it('ANA-19: attachment nach Art (image/pdf) aus attachmentMeta, ohne Art = irgendein Anhang, UND mit Ereignis-Kategorie', () => {
+    expect(ids({ conditions: [{ kind: 'attachment', attachmentKind: 'image' }] })).toEqual(['e01', 'e03', 'e07']);
+    expect(ids({ conditions: [{ kind: 'attachment', attachmentKind: 'pdf' }] })).toEqual(['e03']);
+    expect(ids({ conditions: [{ kind: 'attachment' }] })).toEqual(['e01', 'e03', 'e07']);
+    expect(ids({ conditions: [{ kind: 'attachment', attachmentKind: 'image' }, { kind: 'event', category: 'doctor' }] })).toEqual(['e03']);
+    expect(ids({ conditions: [{ kind: 'event', category: 'event' }] })).toEqual(['e07']);
+    expect(withAtt.byId.get('e03')?.attachmentKinds).toEqual(['image', 'pdf']);
+    expect(run({ conditions: [{ kind: 'attachment', attachmentKind: 'image' }] })).toEqual([]); // ohne Metadaten
+  });
+
+  it('ANA-19: bodymap (nicht leer, optional Preset) trifft nur Einträge mit Punkten', () => {
+    const mk = (id: string, points: number): WsEntry => ({
+      id, diaryId: 'd', templateId: 't', templateName: 'T', occurredAt: '2026-03-01T10:00:00.000Z', day: '2026-03-01', tags: [], source: 'app', authorId: 'u',
+      hasAttachment: false, attachmentKinds: [], weather: {},
+      fields: [{ blockId: 'bm', type: 'bodymap', label: 'K', archived: false, value: { kind: 'points', presetId: 'p1', points: Array.from({ length: points }, () => ({ x: 0.5, y: 0.5 })) }, display: '', optionLabels: [] }],
+    });
+    expect(matchesCondition(mk('a', 2), { kind: 'bodymap' })).toBe(true);
+    expect(matchesCondition(mk('b', 0), { kind: 'bodymap' })).toBe(false);
+    expect(matchesCondition(mk('a', 2), { kind: 'bodymap', blockId: 'bm', region: 'p2' })).toBe(false);
+  });
+
+  it('ANA-19: sortEntries newest, oldest, template_az, template_date — stabil, Eingabe unverändert', () => {
+    const mk = (id: string, templateName: string, day: string): WsEntry => ({
+      id, diaryId: 'd', templateId: templateName, templateName, occurredAt: `${day}T10:00:00.000Z`, day, tags: [], source: 'app', authorId: 'u',
+      hasAttachment: false, attachmentKinds: [], weather: {}, fields: [],
+    });
+    const input = [mk('1', 'Rücken', '2026-03-02'), mk('2', 'Ärzte', '2026-03-01'), mk('3', 'Rücken', '2026-03-05'), mk('4', 'Kopf', '2026-03-05'), mk('5', 'Kopf', '2026-03-05')];
+    const before = input.map((e) => e.id);
+    const order = (o: SortOrder) => sortEntries(input, o).map((e) => e.id);
+    expect(order('newest')).toEqual(['3', '4', '5', '1', '2']);
+    expect(order('oldest')).toEqual(['2', '1', '3', '4', '5']);
+    expect(order('template_az')).toEqual(['2', '4', '5', '1', '3']);
+    expect(order('template_date')).toEqual(['2', '4', '5', '3', '1']);
+    expect(input.map((e) => e.id)).toEqual(before);
   });
 });

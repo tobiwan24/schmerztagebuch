@@ -2,6 +2,8 @@
 // Werte werden über die Block-ID der **Eintragsversion** gelesen — so bleiben Werte entfernter Blöcke auswertbar (DM-08).
 import { analyzeBlockValue, displayValue, type AnalysisValue, type BlockDef, type Entry, type Role, type Template, type TemplateVersion } from '@stb/core';
 
+export type AttachmentKind = 'image' | 'pdf';
+
 export interface WsField {
   blockId: string;
   type: BlockDef['type'];
@@ -27,6 +29,8 @@ export interface WsEntry {
   source: Entry['meta']['source'];
   authorId: string;
   hasAttachment: boolean;
+  /** Arten der Anhänge laut `attachmentMeta` (ohne Duplikate; leer, solange die Metadaten fehlen). */
+  attachmentKinds: AttachmentKind[];
   fields: WsField[];
   weather: Record<string, number>;
 }
@@ -58,6 +62,8 @@ export interface WorkingSetInput {
   templates: readonly Template[];
   versions: readonly TemplateVersion[];
   diaries: readonly { id: string; settings: { timezone: string } }[];
+  /** Anhang-Metadaten (`attachmentMeta`); bestimmen `attachmentKinds`. */
+  attachments?: readonly { entryId: string; kind: AttachmentKind }[];
 }
 
 export function buildWorkingSet(input: WorkingSetInput): WorkingSet {
@@ -70,6 +76,9 @@ export function buildWorkingSet(input: WorkingSetInput): WorkingSet {
     const cur = versions.get(versionKey(t.id, t.currentVersion));
     if (cur) currentBlocks.set(t.id, new Map(cur.blocks.map((b) => [b.id, b])));
   }
+
+  const kindsByEntry = new Map<string, Set<AttachmentKind>>();
+  for (const a of input.attachments ?? []) kindsByEntry.set(a.entryId, (kindsByEntry.get(a.entryId) ?? new Set<AttachmentKind>()).add(a.kind));
 
   const entries: WsEntry[] = [];
   for (const e of input.entries) {
@@ -101,7 +110,8 @@ export function buildWorkingSet(input: WorkingSetInput): WorkingSet {
     entries.push({
       id: e.id, diaryId: e.diaryId, templateId: e.templateId, templateName: templates.get(e.templateId)?.name ?? '', occurredAt: e.occurredAt,
       day: dayIn(e.occurredAt, timezones.get(e.diaryId) ?? e.meta.timezone), tags: e.tags, source: e.meta.source, authorId: e.authorId,
-      hasAttachment: fields.some((f) => f.value.kind === 'textEvents' && f.value.attachmentCount > 0), fields, weather,
+      hasAttachment: kindsByEntry.has(e.id) || fields.some((f) => f.value.kind === 'textEvents' && f.value.attachmentCount > 0),
+      attachmentKinds: [...(kindsByEntry.get(e.id) ?? [])].sort(), fields, weather,
     });
   }
   entries.sort((a, b) => (a.occurredAt < b.occurredAt ? 1 : a.occurredAt > b.occurredAt ? -1 : 0));

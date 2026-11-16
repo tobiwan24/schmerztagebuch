@@ -65,7 +65,7 @@ describe('Periodenvergleich', () => {
   it('ANA-09: „Wenige Daten" genau dann, wenn eine Seite n < 7 hat', () => {
     const mk = (day: string, v: number): WsEntry => ({
       id: day, diaryId: 'd', templateId: 't', templateName: 'T', occurredAt: `${day}T10:00:00.000Z`, day, tags: [], source: 'app', authorId: 'u',
-      hasAttachment: false, weather: {}, fields: [{ blockId: 'p', type: 'slider', label: 'P', archived: false, value: { kind: 'numeric', value: v }, display: String(v), optionLabels: [] }],
+      hasAttachment: false, attachmentKinds: [], weather: {}, fields: [{ blockId: 'p', type: 'slider', label: 'P', archived: false, value: { kind: 'numeric', value: v }, display: String(v), optionLabels: [] }],
     });
     const days = (from: number, count: number) => Array.from({ length: count }, (_, i) => mk(`2026-01-${String(from + i).padStart(2, '0')}`, i));
     const a = { from: '2026-01-01', to: '2026-01-10' };
@@ -102,7 +102,7 @@ describe('Markierungen', () => {
   it('Body-Map-Übersicht fasst Punkte je Bild zusammen', () => {
     const mk = (id: string, presetId: string, n: number): WsEntry => ({
       id, diaryId: 'd', templateId: 't', templateName: 'T', occurredAt: '2026-01-01T10:00:00.000Z', day: '2026-01-01', tags: [], source: 'app', authorId: 'u',
-      hasAttachment: false, weather: {},
+      hasAttachment: false, attachmentKinds: [], weather: {},
       fields: [{ blockId: 'bm', type: 'bodymap', label: 'B', archived: false, display: '', optionLabels: [], value: { kind: 'points', presetId, points: Array.from({ length: n }, (_, i) => ({ x: i / 10, y: 0.5 })) } }],
     });
     expect(bodymapOverview([mk('a', 'front', 2), mk('b', 'front', 1), mk('c', 'back', 3)]).map((o) => [o.presetId, o.entries, o.points.length])).toEqual([

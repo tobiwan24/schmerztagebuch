@@ -29,6 +29,27 @@ async function seedConflicts(page: Page) {
   );
 }
 
+/** Wartet, bis alle ConflictLog-Records in der lokalen DB als gesehen gespeichert sind (Markieren läuft im Hintergrund). */
+async function expectAllSeen(page: Page) {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<boolean>((resolve) => {
+            const open = indexedDB.open('stb-v3');
+            open.onsuccess = () => {
+              const all = open.result.transaction('records').objectStore('records').getAll();
+              all.onsuccess = () => {
+                const logs = (all.result as { kind: string; payload: string }[]).filter((r) => r.kind === 'conflictLog');
+                resolve(logs.length === 2 && logs.every((r) => (JSON.parse(r.payload) as { seenByUser: boolean }).seenByUser));
+              };
+            };
+          }),
+      ),
+    )
+    .toBe(true);
+}
+
 test.describe('Konfliktprotokoll', () => {
   test.describe.configure({ timeout: 90_000 });
 
@@ -48,6 +69,7 @@ test.describe('Konfliktprotokoll', () => {
     await expect(page.getByTestId('conflict-row').last()).toContainText('Eintrag');
     await expect(page.getByTestId('conflict-row').last()).toContainText('Unterlegen-Wert-7');
     await expect(page.getByTestId('conflict-row').last()).toContainText('values.slider');
+    await expectAllSeen(page);
 
     await go(page, '/more');
     await go(page, '/');
