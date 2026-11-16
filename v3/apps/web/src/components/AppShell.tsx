@@ -9,6 +9,8 @@ import { useQuery } from '@/data/useQuery';
 import { SyncStatus } from '@/components/SyncStatus';
 import { DiarySwitcher } from '@/components/DiarySwitcher';
 import { WhatsNewGate } from '@/components/WhatsNewGate';
+import { TourGate } from '@/tour/TourGate';
+import { TOUR_RING } from '@/tour/anchor';
 import { DiaryScopeProvider } from '@/data/diary-scope';
 import { BarChart3, Home, List, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -55,6 +57,7 @@ export function AppShell() {
       ) : null}
       <SyncStatus />
       {status === 'unlocked' ? <WhatsNewGate /> : null}
+      {status === 'unlocked' ? <TourGate /> : null}
       <main className="flex flex-1 flex-col gap-4 p-4 pb-24">
         {locked ? null : <DiarySwitcher />}
         {locked && !OPEN_WHEN_LOCKED.includes(location.pathname) ? (
@@ -73,7 +76,8 @@ export function AppShell() {
       </main>
       <nav
         aria-label={de.nav.label}
-        className="fixed inset-x-0 bottom-0 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
+        data-tour="nav"
+        className={cn('fixed inset-x-0 bottom-0 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur', TOUR_RING)}
       >
         <ul className="mx-auto grid max-w-md grid-cols-4">
           {TABS.map(({ to, label, Icon, end }) => (

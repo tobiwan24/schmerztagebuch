@@ -586,6 +586,7 @@ export const de = {
     unseen: 'Neu',
   },
   tour: {
+    heading: 'Tutorial',
     cardLabel: 'Kurzanleitung',
     progress: (n: number, total: number) => `Schritt ${n} von ${total}`,
     next: 'Weiter',

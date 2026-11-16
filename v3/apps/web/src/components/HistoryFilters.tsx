@@ -1,5 +1,7 @@
 // Verlauf: Suche, Filter-Chips und gespeicherte Filter (Spec 06/10, Wireframe verlauf.html). Baut eine `FilterSpec`;
 // die Treffer liefert der Analyse-Worker. Gespeicherte Filter sind synchronisierte `savedFilter`-Records (ANA-11).
+import { cn } from '@/lib/utils';
+import { TOUR_RING } from '@/tour/anchor';
 import { useEffect, useRef, useState } from 'react';
 import { Star, X } from 'lucide-react';
 import type { FilterSpec, SavedFilter } from '@stb/analysis';
@@ -129,7 +131,7 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
   }
 
   return (
-    <section className="flex flex-col gap-3" aria-label={de.history.filters}>
+    <section data-tour="history-filters" className={cn('flex flex-col gap-3', TOUR_RING)} aria-label={de.history.filters}>
       <div className="flex flex-col gap-2">
         <Label htmlFor="history-search" className="sr-only">
           {de.history.search}

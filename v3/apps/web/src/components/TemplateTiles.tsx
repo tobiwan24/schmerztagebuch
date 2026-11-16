@@ -1,5 +1,7 @@
 // Start: Begrüßung (Konto-Modus mit Benutzernamen) und Vorlagen-Kacheln (BLK-44). Ein Tipp öffnet das Formular mit
 // dieser Vorlage. Gezeigt werden aktive Vorlagen beschreibbarer Tagebücher in Vorlagen-Reihenfolge.
+import { cn } from '@/lib/utils';
+import { TOUR_RING } from '@/tour/anchor';
 import { Link } from 'react-router';
 import { useAuth } from '@/auth/AuthContext';
 import { isCloudAccount } from '@/auth/cloud-account';
@@ -26,7 +28,7 @@ export function TemplateTiles() {
   const { tiles, username } = query.data;
   if (tiles.length === 0 && !username) return null;
   return (
-    <section data-testid="template-tiles" aria-label={de.start.tilesLabel} className="flex flex-col gap-2">
+    <section data-testid="template-tiles" data-tour="start-tiles" aria-label={de.start.tilesLabel} className={cn('flex flex-col gap-2', TOUR_RING)}>
       {username ? <p data-testid="greeting" className="text-sm text-muted-foreground">{de.start.greeting(username)}</p> : null}
       {tiles.length > 0 ? (
         <div className="grid grid-cols-2 gap-2">

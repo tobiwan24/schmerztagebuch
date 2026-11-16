@@ -50,6 +50,17 @@ export const resetTour = (): TourState => EMPTY_TOUR;
 
 export const isPageDone = (s: TourState, page: TourPage): boolean => s.skipAll || s.done.includes(page);
 
+/** Tour-Seite zu einem Pfad (Start, neuer Eintrag, Verlauf, Auswertung, Vorlagen-Editor); sonst `null`. */
+export function tourPageForPath(pathname: string): TourPage | null {
+  const p = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  if (p === '/') return 'start';
+  if (p === '/entry/new') return 'entry';
+  if (p === '/history') return 'history';
+  if (p === '/analysis') return 'analysis';
+  if (p === '/more/templates/new' || /^\/more\/templates\/[^/]+$/.test(p)) return 'editor';
+  return null;
+}
+
 /** Schritte der Seite, deren Ziel vorhanden ist (UI-28); Reihenfolge bleibt erhalten. */
 export function resolveSteps(steps: readonly TourStep[], page: TourPage, hasTarget: (target: string) => boolean): TourStep[] {
   return steps.filter((s) => s.page === page && hasTarget(s.target));

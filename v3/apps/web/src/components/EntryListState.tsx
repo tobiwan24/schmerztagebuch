@@ -1,4 +1,6 @@
 // Einträge nach Tagen gruppiert (Spec 10 „Verlauf"), mit Lade-, Fehler- und Leerzustand. Zeile öffnet das Detail.
+import { cn } from '@/lib/utils';
+import { TOUR_RING } from '@/tour/anchor';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { ChevronRight } from 'lucide-react';
@@ -43,7 +45,7 @@ export function EntryListState({ emptyTitle, emptyHint, onlyIds = null, allowAll
     limit,
   );
   return (
-    <div data-testid="entry-list" className="flex flex-col gap-4">
+    <div data-testid="entry-list" data-tour="history-list" className={cn('flex flex-col gap-4', TOUR_RING)}>
       {groups.map((g) => (
         <section key={g.key} className="flex flex-col gap-2" data-testid="entry-day">
           <h2 className="text-sm font-medium text-muted-foreground">{'day' in g.by ? formatDay(g.by.day, now()) : g.by.template}</h2>

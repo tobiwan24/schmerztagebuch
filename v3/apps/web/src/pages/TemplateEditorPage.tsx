@@ -1,6 +1,8 @@
 // Vorlagen-Editor (Spec 05 „Vorlagen-Editor", A-037): Route `/more/templates/new` und `/more/templates/:id`.
 // Name/Icon/Farbe ändern nur `Template` (keine neue Version); Änderungen an den Blöcken erzeugen Version n+1.
 // Blockeditor: Palette, Bezeichnung, Pflicht, Rolle, Konfiguration, Umsortieren, Entfernen; Warnung bei ungespeicherten Änderungen.
+import { cn } from '@/lib/utils';
+import { TOUR_RING } from '@/tour/anchor';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useBlocker, useNavigate, useParams } from 'react-router';
 import { Copy } from 'lucide-react';
@@ -146,8 +148,10 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
         ) : null}
       </div>
       <TemplateStylePicker icon={icon} color={color} onIcon={setIcon} onColor={setColor} />
+      <div data-tour="editor-blocks" className={TOUR_RING}>
       <BlockEditor blocks={blocks} issues={blockIssues} newId={data.newId} onChange={setBlocks} quickIds={quickIds} onQuickChange={(id, on) => setQuickIds(on ? [...quickIds, id] : quickIds.filter((x) => x !== id))} />
-      <div className="flex flex-col gap-2">
+      </div>
+      <div data-tour="editor-save" className={cn('flex flex-col gap-2', TOUR_RING)}>
         <Button type="submit" disabled={busy}>
           {de.templates.editor.save}
         </Button>

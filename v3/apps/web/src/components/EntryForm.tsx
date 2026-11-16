@@ -1,5 +1,7 @@
 // Eintragsformular (Spec 05 „Einträge", Wireframe eintrag.html): Vorlage, Zeitangabe Zeitpunkt/Zeitraum, Blöcke,
 // Pflichtfelder (BLK-07), Warnung bei ungespeicherten Änderungen nur nach echter Änderung (BLK-09), Speichern unten fixiert.
+import { cn } from '@/lib/utils';
+import { TOUR_RING } from '@/tour/anchor';
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { useBlocker, useNavigate } from 'react-router';
 import {
@@ -308,14 +310,16 @@ export function EntryForm({ templates, entry, prefill }: { templates: Template[]
         </p>
       ) : null}
 
-      <TimeField time={current.time} error={timeError} onChange={setTime} />
+      <div data-tour="entry-fields" className={cn('flex flex-col gap-6', TOUR_RING)}>
+        <TimeField time={current.time} error={timeError} onChange={setTime} />
 
-      {sortedBlocks(version).map((def) => (
-        <BlockField
-          key={def.id} def={def} value={current.values[def.id]} invalid={missing.has(def.id)} onChange={(v) => setValues({ ...current.values, [def.id]: v })}
-          diaryId={template.diaryId} onSetDefault={setBlockDefault} attachments={attachmentApi} newId={data.newId}
-        />
-      ))}
+        {sortedBlocks(version).map((def) => (
+          <BlockField
+            key={def.id} def={def} value={current.values[def.id]} invalid={missing.has(def.id)} onChange={(v) => setValues({ ...current.values, [def.id]: v })}
+            diaryId={template.diaryId} onSetDefault={setBlockDefault} attachments={attachmentApi} newId={data.newId}
+          />
+        ))}
+      </div>
 
       <TagInput tags={current.tags} onChange={setTags} known={knownTags} />
 
@@ -327,7 +331,7 @@ export function EntryForm({ templates, entry, prefill }: { templates: Template[]
         </p>
       ) : null}
 
-      <div className="sticky bottom-20 z-10 bg-background/95 py-2 backdrop-blur">
+      <div data-tour="entry-save" className={cn('sticky bottom-20 z-10 bg-background/95 py-2 backdrop-blur', TOUR_RING)}>
         <Button type="submit" size="lg" className="w-full" disabled={saving}>
           {saving ? de.entry.saving : de.entry.save}
         </Button>

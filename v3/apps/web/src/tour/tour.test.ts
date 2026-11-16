@@ -12,6 +12,7 @@ import {
   resetTour,
   resolveSteps,
   serializeTourState,
+  tourPageForPath,
   skipAllPages,
   writeTourState,
 } from './tour';
@@ -60,5 +61,15 @@ describe('Tour-Logik', () => {
       expect(t?.body.length, s.id).toBeGreaterThan(0);
     }
     expect(Object.keys(de.tour.steps).sort()).toEqual(TOUR_STEPS.map((s) => s.id).sort());
+  });
+
+  it('UI-28: Pfade werden den Tour-Seiten zugeordnet', () => {
+    expect(tourPageForPath('/')).toBe('start');
+    expect(tourPageForPath('/entry/new')).toBe('entry');
+    expect(tourPageForPath('/history/')).toBe('history');
+    expect(tourPageForPath('/analysis')).toBe('analysis');
+    expect(tourPageForPath('/more/templates/new')).toBe('editor');
+    expect(tourPageForPath('/more/templates/abc')).toBe('editor');
+    for (const p of ['/more', '/more/templates', '/entry/abc', '/more/settings', '/unlock']) expect(tourPageForPath(p), p).toBeNull();
   });
 });

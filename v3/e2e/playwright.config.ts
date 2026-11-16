@@ -32,7 +32,11 @@ export default defineConfig({
     // sonst blockiert der modale Dialog die Bedienung. `whats-new.spec.ts` überschreibt das für die Prüfung des Dialogs.
     storageState: {
       cookies: [],
-      origins: [{ origin: `http://localhost:${PORT}`, localStorage: [{ name: 'stb-v3-whatsnew', value: APP_VERSION }] }],
+      origins: [{ origin: `http://localhost:${PORT}`, localStorage: [
+          { name: 'stb-v3-whatsnew', value: APP_VERSION },
+          // Tour (UI-29) aus: „alle überspringen“, sonst verdeckt die Karte Bedienelemente. `tour.spec.ts` überschreibt das.
+          { name: 'stb-v3-tour', value: JSON.stringify({ done: [], skipAll: true }) },
+        ] }],
     },
   },
   projects: [

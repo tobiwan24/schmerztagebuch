@@ -12,6 +12,7 @@ import { BackupCodeStep } from '@/components/BackupCodeStep';
 import { LockSettingsCard } from '@/components/LockSettingsCard';
 import { CloudAccountCard } from '@/components/CloudAccountCard';
 import { DevicesSection } from '@/components/DevicesSection';
+import { TourRestartCard } from '@/tour/TourRestartCard';
 import { UpdateSettingsCard } from '@/components/UpdateSettings';
 import { DangerZone } from '@/components/DangerZone';
 import { FactorsSection } from '@/components/FactorsSection';
@@ -77,6 +78,7 @@ export function SettingsPage() {
       </Card>
       <PersistCard />
       <UpdateSettingsCard />
+      <TourRestartCard />
       <ReminderCard />
       <V2DataCard />
       <Button asChild variant="outline">

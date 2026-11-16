@@ -1,6 +1,7 @@
 // Auswertung (Spec 06 „Standard-Ansichten", Wireframe auswertung.html): Verlauf, Kalender, Medikamententage, Häufigkeiten,
 // Körperkarte — fest, nicht konfigurierbar. Dazu der Zeitraumvergleich. Rein beschreibend, jede Kennzahl mit n.
 // Daten aus dem Analyse-Worker (`useAnalysis`).
+import { TOUR_RING } from '@/tour/anchor';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FilePlus, ImageDown } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
@@ -102,7 +103,7 @@ export function AnalysisPage() {
         ))}
       </ToggleGroup>
       {view !== 'calendar' ? (
-        <ToggleGroup aria-label={de.history.range}>
+        <ToggleGroup aria-label={de.history.range} data-tour="analysis-range" className={TOUR_RING}>
           {RANGES.map((r) => (
             <ToggleGroupItem key={r} pressed={range === r} onClick={() => (setRange(r), setShift(0))}>
               {de.analysis.ranges[r]}
@@ -134,7 +135,8 @@ export function AnalysisPage() {
       <section
         ref={viewRef}
         data-testid={`analysis-view-${view}`}
-        className="flex touch-pan-y flex-col gap-3"
+        data-tour="analysis-charts"
+        className={cn('flex touch-pan-y flex-col gap-3', TOUR_RING)}
         onPointerDown={(e) => (swipe.current = e.pointerType === 'mouse' ? null : { x: e.clientX, y: e.clientY })}
         onPointerUp={(e) => {
           const s = swipe.current;

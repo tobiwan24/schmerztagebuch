@@ -1,3 +1,5 @@
+import { cn } from '@/lib/utils';
+import { TOUR_RING } from '@/tour/anchor';
 import { Link } from 'react-router';
 import { Plus, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,8 +30,8 @@ export function StartPage() {
       <CloudSyncBanner />
       <InboxCard />
       <BackupReminder />
-      {quick.map((q) => (
-        <Button key={q.to} asChild size="lg" className="h-16 text-base">
+      {quick.map((q, i) => (
+        <Button key={q.to} asChild size="lg" data-tour={i === 0 ? 'start-quick' : undefined} className={cn('h-16 text-base', TOUR_RING)}>
           <Link to={q.to}>
             <Zap aria-hidden />
             {q.label}
