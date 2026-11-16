@@ -25,6 +25,7 @@ export const router = createBrowserRouter([
           { path: '/', element: <StartPage /> },
           { path: '/history', lazy: page(() => import('@/pages/HistoryPage'), 'HistoryPage') },
           { path: '/analysis', lazy: page(() => import('@/pages/AnalysisPage'), 'AnalysisPage') },
+          { path: '/training', lazy: page(() => import('@/pages/TrainingPage'), 'TrainingPage') },
           { path: '/more', element: <MorePage /> },
           { path: '/more/settings', lazy: page(() => import('@/pages/SettingsPage'), 'SettingsPage') },
           { path: '/more/settings/konflikte', lazy: page(() => import('@/pages/ConflictLogPage'), 'ConflictLogPage') },

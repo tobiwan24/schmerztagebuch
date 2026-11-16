@@ -1,13 +1,14 @@
 // Eingabe je Blocktyp (Spec 05 „Blocktypen"). Werte in den Formen aus @stb/core; leere Werte bleiben `undefined`/leer.
 import { useState } from 'react';
 import { Check, Info } from 'lucide-react';
-import type { BlockDef, BodymapValue, CheckboxValue, DateValue, MedicationValue, TextareaValue } from '@stb/core';
+import type { BlockDef, BodymapValue, CheckboxValue, DateValue, ExerciseValue, MedicationValue, TextareaValue } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { BodyMapField } from './BodyMapField';
+import { ExerciseField } from './ExerciseField';
 import { MedicationField } from './MedicationField';
 import { TextareaField, type AttachmentApi } from './TextareaField';
 import { optionTone } from '@/lib/option-colors';
@@ -158,6 +159,8 @@ function FieldInput({
       return <DateInput id={id} mode={def.config.mode} value={value as DateValue | undefined} onChange={onChange} aria={aria} />;
     case 'medication':
       return <MedicationField id={id} config={def.config} value={value as MedicationValue | undefined} onChange={onChange} newId={itemId} />;
+    case 'exercise':
+      return <ExerciseField id={id} config={def.config} value={value as ExerciseValue | undefined} onChange={onChange} />;
     case 'bodymap':
       return (
         <BodyMapField
