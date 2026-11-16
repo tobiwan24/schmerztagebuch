@@ -7,7 +7,7 @@
 - **Meilenstein:** M14, M14b und M14c erledigt (Gesamt-Akzeptanz 211/211 automatisiert, QA-08 erfüllt: `verify:docker` 2026-11-16 grün; manuell 6/10). **v3.x (M15–M24) geplant**, Beginn mit M15.1. **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md) (aktualisiert 2026-11-16). Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M17.1 (BLK-51, `P/core/src/blocks/exercise.ts`; Aufgabenliste „v3.x“ unten). M16 erledigt (Version 3.2.0-alpha.1). Plan v3.x: Aufgabenliste „v3.x“ unten, Entscheidungen A-080 bis A-095. G4-Abnahme (PDF mit echten Daten) bleibt beim User.
+- **Nächste Aufgabe:** M17.2 (BLK-52, `P/core/src/training.ts`; Aufgabenliste „v3.x“ unten). M16 erledigt (Version 3.2.0-alpha.1). Plan v3.x: Aufgabenliste „v3.x“ unten, Entscheidungen A-080 bis A-095. G4-Abnahme (PDF mit echten Daten) bleibt beim User.
 - **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29), M14.16 (BLK-30), M14.17 (BLK-31), M14.18 (BLK-35, BLK-36), M14.19 (UI-16, UI-19), M14.1 (BLK-40), M14.20 (UI-17), M14.21 (UI-18)
 - **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15), M14.31 (EXP-17), M14.32 (EXP-16), M14.33 (CRY-18), M14.34 (CRY-19), M14.35 (CRY-20), M14.36 (UI-20), M14.37 (UI-21), M14.38 (UI-22), M14.39 (UI-23), M14.15d (BLK-44)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
@@ -87,7 +87,7 @@ Abkürzungen: W = `apps/web/src`, S = `apps/server/src`, P = `packages`. Reihenf
 | M16.5 | Editor (Palette, Konfiguration), `MedicationField`, Detailansicht — erledigt | BLK-49 |
 | M16.6 | Kreisdiagramm „Medikamente“ in `AnalysisPage` — erledigt | ANA-23 |
 | M16.7 | Abschluss M16 — erledigt | — |
-| M17.1 | `P/core/src/blocks/exercise.ts` | BLK-51 |
+| M17.1 | `P/core/src/blocks/exercise.ts` — erledigt | BLK-51 |
 | M17.2 | `P/core/src/training.ts`, `templates.ts`, Export-Schema | BLK-52 |
 | M17.3 | `P/analysis/src/training.ts` | ANA-24 |
 | M17.4 | Editor: Trainingsvorlage, Phasen, Übungsblock | UI-31 |
@@ -394,3 +394,4 @@ Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19,
 | 2026-11-16 | M16.4 | EXP-20 | Export für `medication`: neue `medication-text.ts` (Zelle mit Uhrzeit in Tagebuch-Zeitzone, A-096), genutzt von CSV long/wide und PDF-Tabelle/Karten (`pdf-model`); `copyWithNewIds` schreibt Vorgaben- und Positions-IDs um. JSON-Schema war seit M16.1 aktuell (`gen-export-schema` ohne Diff). Test `medication.test.ts`: CSV, Schema + Roundtrip, PDF in drei Layouts, Kopie. |
 | 2026-11-16 | M16.6 | ANA-23 | Häufigkeiten: zusätzliche Karte `MedPie` (Recharts Pie, `optionDays({ role: 'medication' })`, Anteil je Medikament an der Summe der Einnahme-Tage, Legende mit Prozent und Tagen, Tooltip). Erscheint nur bei vorhandenen Medikamenten (auch bei Multiselect mit Rolle medication). E2E `medication-analysis.spec.ts`: Seed per IndexedDB, Katalog-Vorlage über die Vorlagenliste; Tooltip-Test per `page.mouse.click` auf das Segment (Playwright-`click` am Pie-Sektor wird vom SVG überdeckt). |
 | 2026-11-16 | M16.7 | — | Abschluss M16: `APP_VERSION` 3.2.0-alpha.1, Changelog-Eintrag (A-081), verify grün (Bundle 243,0 KB gzip), `test:e2e` komplett 250 grün/25 übersprungen, acceptance M16 6/6 OK. |
+| 2026-11-16 | M17.1 | BLK-51 | Blocktyp `exercise` (`core/blocks/exercise.ts`): config (description, steps ≤ 20, targetSets/Reps/DurationSec, videoUrl nur https, levels mit eindeutigen IDs), value `{done, sets?, reps?, durationSec?, levelId?, painDuring?}` (Stufe muss in config existieren), Analyse-Art `exercise` (done + numerische Werte + `levelLabel`/`levelIndex` für den Stufenverlauf in M17.3). `newBlock` (Rolle activity), i18n-Label, Export-Glossar/-Schema neu erzeugt. **Nicht in der Editor-Palette** (bleibt bis M17.4/M17.5, sonst fehlt die Formular-Darstellung); `BlockField` hat noch keinen `exercise`-Fall (M17.5 `ExerciseField`). |

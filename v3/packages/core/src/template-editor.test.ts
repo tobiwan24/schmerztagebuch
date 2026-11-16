@@ -27,8 +27,8 @@ describe('Editor-Domäne', () => {
     expect(all.every((x) => blockDefSchema.safeParse(x).success)).toBe(true);
   });
 
-  it('BLK-22: newBlock liefert für alle 8 Typen einen gültigen Block mit Standard-config', () => {
-    expect(BLOCK_TYPES).toHaveLength(8);
+  it('BLK-22: newBlock liefert für alle 9 Typen einen gültigen Block mit Standard-config', () => {
+    expect(BLOCK_TYPES).toHaveLength(9);
     let last: string | null = null;
     for (const type of BLOCK_TYPES) {
       const b = newBlock(type, ids, last);

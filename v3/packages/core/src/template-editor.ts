@@ -30,6 +30,8 @@ export function newBlock(type: BlockType, ids: IdGenerator, afterOrder: string |
       return { ...base, type, config: { defaultPresetId: DEFAULT_BODYMAP_PRESET_ID } };
     case 'medication':
       return { ...base, type, role: 'medication', config: { presets: [], units: [...DEFAULT_MEDICATION_UNITS], allowFree: true } };
+    case 'exercise':
+      return { ...base, type, role: 'activity', config: {} };
   }
 }
 

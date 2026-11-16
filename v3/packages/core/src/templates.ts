@@ -36,6 +36,7 @@ export const blockDefSchema = z.discriminatedUnion('type', [
   defFor('date'),
   defFor('bodymap'),
   defFor('medication'),
+  defFor('exercise'),
 ]);
 export type BlockDef = z.infer<typeof blockDefSchema>;
 

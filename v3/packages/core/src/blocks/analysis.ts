@@ -53,6 +53,19 @@ export interface MedicationsAnalysis {
   items: { name: string; presetId?: string; dose?: number; unit?: string; at?: string; effect?: number }[];
 }
 
+/** Übung (Training): „erledigt“ als Ereignis; Sätze, Wiederholungen, Dauer numerisch; Stufe mit Beschriftung und Position (0-basiert). */
+export interface ExerciseAnalysis {
+  kind: 'exercise';
+  done: boolean;
+  sets?: number;
+  reps?: number;
+  durationSec?: number;
+  levelId?: string;
+  levelLabel?: string;
+  levelIndex?: number;
+  painDuring?: number;
+}
+
 export type AnalysisValue =
   | NumericAnalysis
   | EventAnalysis
@@ -61,6 +74,7 @@ export type AnalysisValue =
   | TextEventsAnalysis
   | TimeAnalysis
   | PointsAnalysis
-  | MedicationsAnalysis;
+  | MedicationsAnalysis
+  | ExerciseAnalysis;
 
 export type AnalysisKind = AnalysisValue['kind'];

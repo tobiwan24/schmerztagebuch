@@ -79,6 +79,11 @@ const cases: Case[] = [
     validValues: [{ items: [] }, { items: [{ id: e1, name: 'Ibuprofen', dose: 400, unit: 'mg' }] }],
     invalidValues: [{}, { items: [{ id: e1, name: '', dose: 1 }] }, { items: [{ id: e1, name: 'X', dose: 0 }] }],
   },
+  {
+    type: 'exercise', config: {},
+    validValues: [{ done: false }, { done: true, sets: 3, reps: 10, durationSec: 60, painDuring: 3 }],
+    invalidValues: [{}, { done: true, painDuring: 11 }, { done: true, sets: -1 }, { done: true, levelId: e1 }],
+  },
 ];
 
 const invalidConfigs: [BlockType, unknown][] = [
@@ -93,6 +98,7 @@ const invalidConfigs: [BlockType, unknown][] = [
   ['date', { mode: 'week' }],
   ['bodymap', {}],
   ['medication', { presets: [] }],
+  ['exercise', { videoUrl: 'http://example.org' }],
 ];
 
 describe('Blockschemas', () => {

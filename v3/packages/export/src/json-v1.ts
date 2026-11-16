@@ -58,6 +58,7 @@ export const GLOSSARY: ExportV1['glossary'] = {
     date: 'Zeitpunkt, Zeitraum oder Dauer innerhalb eines Eintrags',
     bodymap: 'Körperkarte: Bild (Standard- oder eigenes Bild) und Markierungen mit normalisierten Koordinaten 0..1',
     medication: 'Medikamente: Liste von Positionen mit Name, optional Dosis (Zahl), Einheit, Uhrzeit (ISO) und Wirkung 0..10',
+    exercise: 'Übung (Training): erledigt ja/nein, optional Sätze, Wiederholungen, Dauer in Sekunden, Stufe und Schmerz während der Übung 0..10',
   },
   roles: {
     outcome: 'Ergebniswert, z. B. Schmerzstärke', symptom: 'Begleitsymptom', medication: 'Medikament', trigger: 'Möglicher Auslöser (beschreibend)',
