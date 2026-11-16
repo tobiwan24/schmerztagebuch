@@ -747,6 +747,18 @@ export const de = {
       changedBadge: 'Von der KI ausgefüllt',
       dismiss: 'Hinweis schließen',
     },
+    roles: {
+      button: 'Rollen vorschlagen',
+      needValid: 'Behebe zuerst die Fehler in den Bausteinen, dann kann die KI Rollen vorschlagen.',
+      consentTitle: 'Bausteine an die KI senden?',
+      extra: 'Gesendet werden Name, Bezeichnung, Beschreibung und Art der Bausteine, keine Einträge.',
+      resultTitle: 'Rollenvorschläge',
+      resultHint: 'Übernimm jeden Vorschlag einzeln oder verwirf ihn. Gespeichert wird erst mit „Vorlage speichern“.',
+      none: 'Die KI hat keine passenden Rollen vorgeschlagen.',
+      accept: 'Übernehmen',
+      reject: 'Verwerfen',
+      done: 'Fertig',
+    },
   },
   whatsNew: {
     title: (version: string) => `Neu in Version ${version}`,

@@ -12,6 +12,7 @@ import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/componen
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { LlmRolesButton } from '@/components/LlmRolesButton';
 import { PageHeader } from '@/components/PageHeader';
 import { ErrorState } from '@/components/StateView';
 import { BlockEditor } from '@/components/template-editor/BlockEditor';
@@ -72,6 +73,7 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
   const [training, setTraining] = useState(state?.template.purpose === 'training');
   const [phasesText, setPhasesText] = useState((state?.template.functionPhases ?? []).join(', '));
   const phases = parseFunctionPhases(phasesText);
+  const [draftId] = useState(() => data.newId());
   const [showErrors, setShowErrors] = useState(false);
   const [busy, setBusy] = useState(false);
   // Ungespeicherte Änderungen: Vergleich mit dem Ausgangszustand (Hinzufügen und wieder Entfernen ist keine Änderung, BLK-25).
@@ -185,6 +187,7 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
           </div>
         ) : null}
       </div>
+      <LlmRolesButton templateName={name} templateId={state?.template.id ?? draftId} blocks={blocks} valid={issues.length === 0} now={new Date(data.now()).toISOString()} onBlocks={setBlocks} />
       <div data-tour="editor-blocks" className={TOUR_RING}>
       <BlockEditor training={training} blocks={blocks} issues={blockIssues} newId={data.newId} onChange={setBlocks} quickIds={quickIds} onQuickChange={(id, on) => setQuickIds(on ? [...quickIds, id] : quickIds.filter((x) => x !== id))} />
       </div>

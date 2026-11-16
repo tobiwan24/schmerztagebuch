@@ -1,6 +1,6 @@
 // LLM-Endpunkte (Spec 08, M19.3): Anfrage- und Antwortformen. Der Klartext liegt nur im RAM des Servers (A-086).
 import { z } from 'zod';
-import { templateVersionSchema } from '@stb/core';
+import { ROLES, templateVersionSchema } from '@stb/core';
 
 /** Obergrenze je Anfrage (Bytes), Spec 08. */
 export const LLM_BODY_MAX_BYTES = 32 * 1024;
@@ -46,3 +46,13 @@ export const llmFillResponseSchema = z.object({
   values: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])),
 });
 export type LlmFillResponse = z.infer<typeof llmFillResponseSchema>;
+
+/** Antwort auf `roles`: Vorschläge je Block (der Server hat unbekannte Block-IDs bereits entfernt, der Client prüft erneut). */
+export const llmRolesResponseSchema = z.object({
+  suggestions: z.array(z.object({ blockId: z.string(), role: z.enum(ROLES), reason: z.string().optional() })),
+});
+export type LlmRolesResponse = z.infer<typeof llmRolesResponseSchema>;
+
+/** Antwort auf `summary`: ein bearbeitbarer Text. */
+export const llmSummaryResponseSchema = z.object({ summary: z.string().min(1) });
+export type LlmSummaryResponse = z.infer<typeof llmSummaryResponseSchema>;

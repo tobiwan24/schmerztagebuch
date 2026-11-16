@@ -1,7 +1,10 @@
 // KI-Client (Spec 08, M19): spricht nur mit dem eigenen Server (`/api/v1/llm/*`); Provider und Schlüssel liegen dort.
 // Opt-in (Standard aus) liegt im localStorage `stb-v3-llm`: Darstellungs-/Einwilligungsinformation ohne Gesundheitsdaten.
 // Nie Warteschlange oder Outbox: Der Klartext eines Vorgangs existiert nur im Arbeitsspeicher (A-086, A-088).
-import { llmFillResponseSchema, llmStatusSchema, type LlmFillRequest, type LlmFillResponse, type LlmStatus } from '@stb/sync-protocol';
+import {
+  llmFillResponseSchema, llmRolesResponseSchema, llmStatusSchema, llmSummaryResponseSchema,
+  type LlmFillRequest, type LlmFillResponse, type LlmRolesRequest, type LlmRolesResponse, type LlmStatus, type LlmSummaryRequest, type LlmSummaryResponse,
+} from '@stb/sync-protocol';
 
 export const LLM_OPT_IN_KEY = 'stb-v3-llm';
 
@@ -90,6 +93,20 @@ async function postLlm(kind: 'fill' | 'roles' | 'summary', payload: unknown, fet
 /** Freitext → Feldentwurf. Die Antwort ist nur ein Vorschlag; Prüfung gegen die Blöcke macht `applyFill`. */
 export async function requestFill(req: LlmFillRequest, fetchFn: typeof fetch = globalThis.fetch.bind(globalThis)): Promise<LlmFillResponse> {
   const parsed = llmFillResponseSchema.safeParse(await postLlm('fill', req, fetchFn));
+  if (!parsed.success) throw new LlmClientError('invalid-output');
+  return parsed.data;
+}
+
+/** Rollenvorschläge je Block (nur Entwurf, der Nutzer übernimmt einzeln). */
+export async function requestRoles(req: LlmRolesRequest, fetchFn: typeof fetch = globalThis.fetch.bind(globalThis)): Promise<LlmRolesResponse> {
+  const parsed = llmRolesResponseSchema.safeParse(await postLlm('roles', req, fetchFn));
+  if (!parsed.success) throw new LlmClientError('invalid-output');
+  return parsed.data;
+}
+
+/** Zusammenfassung für die Ärztin oder den Arzt (nur Entwurf; Text ist bearbeitbar). */
+export async function requestSummary(req: LlmSummaryRequest, fetchFn: typeof fetch = globalThis.fetch.bind(globalThis)): Promise<LlmSummaryResponse> {
+  const parsed = llmSummaryResponseSchema.safeParse(await postLlm('summary', req, fetchFn));
   if (!parsed.success) throw new LlmClientError('invalid-output');
   return parsed.data;
 }
