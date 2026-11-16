@@ -24,6 +24,7 @@ export function copyWithNewIds(doc: ExportV1, newId: () => string): ExportV1 {
         for (const b of v.blocks) {
           if (!map.has(b.id)) fresh(b.id);
           if (b.type === 'multiselect') for (const o of b.config.options) if (!map.has(o.id)) fresh(o.id);
+          if (b.type === 'medication') for (const p of b.config.presets) if (!map.has(p.id)) fresh(p.id);
         }
       }
     }
@@ -34,11 +35,17 @@ export function copyWithNewIds(doc: ExportV1, newId: () => string): ExportV1 {
 
   const block = (b: BlockDef): BlockDef => {
     if (b.type === 'multiselect') return { ...b, id: m(b.id), config: { ...b.config, options: b.config.options.map((o) => ({ ...o, id: m(o.id) })) } };
+    if (b.type === 'medication') return { ...b, id: m(b.id), config: { ...b.config, presets: b.config.presets.map((p) => ({ ...p, id: m(p.id) })) } };
     if (b.type === 'bodymap') return { ...b, id: m(b.id), config: { ...b.config, defaultPresetId: m(b.config.defaultPresetId) } };
     return { ...b, id: m(b.id) };
   };
   const value = (raw: unknown): unknown => {
     if (Array.isArray(raw)) return raw.map((x) => (typeof x === 'string' ? m(x) : x)); // Multiselect: Options-IDs
+    if (raw && typeof raw === 'object' && 'items' in raw && Array.isArray((raw as { items: unknown }).items)) {
+      // Medikamenten-Block: Positionen mit neuer ID, Verweis auf die Vorgabe umgeschrieben
+      const items = (raw as { items: { id: string; presetId?: string }[] }).items;
+      return { ...(raw as object), items: items.map((i) => ({ ...i, id: newId(), ...(i.presetId ? { presetId: m(i.presetId) } : {}) })) };
+    }
     if (raw && typeof raw === 'object' && 'presetId' in raw) return { ...(raw as object), presetId: m((raw as { presetId: string }).presetId) };
     if (raw && typeof raw === 'object' && 'attachmentIds' in raw) return { ...(raw as object), attachmentIds: (raw as { attachmentIds: string[] }).attachmentIds.map(m) };
     return raw;

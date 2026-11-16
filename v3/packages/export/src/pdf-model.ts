@@ -6,6 +6,7 @@ import {
 } from '@stb/analysis';
 import type { BodymapValue } from '@stb/core';
 import type { ExportSource } from './json-v1.js';
+import { medicationText } from './medication-text.js';
 
 export interface ReportStat {
   blockId: string;
@@ -131,7 +132,7 @@ export function buildReport(src: ExportSource, opts: { now: number; filter?: Fil
           const f = e.fields.find((x) => x.blockId === c.blockId);
           if (!f) return '';
           if (f.value.kind === 'options') return f.optionLabels.join(', ');
-          return f.display;
+          return f.value.kind === 'medications' ? (medicationText(raw.get(e.id)?.values[f.blockId], tz.get(e.diaryId) ?? 'UTC') ?? f.display) : f.display;
         }),
       })),
     });
@@ -150,7 +151,7 @@ export function buildReport(src: ExportSource, opts: { now: number; filter?: Fil
     const r = raw.get(e.id);
     const fields: ReportCardField[] = [];
     for (const f of e.fields) {
-      const text = f.value.kind === 'options' ? f.optionLabels.join(', ') : f.display;
+      const text = f.value.kind === 'options' ? f.optionLabels.join(', ') : f.value.kind === 'medications' ? (medicationText(r?.values[f.blockId], tz.get(e.diaryId) ?? 'UTC') ?? f.display) : f.display;
       const v = f.value.kind === 'points' ? (r?.values[f.blockId] as BodymapValue | undefined) : undefined;
       if (!text.trim() && !v?.points.length) continue;
       fields.push({ label: f.label, text, archived: f.archived, ...(v?.points.length ? { bodymap: v } : {}) });

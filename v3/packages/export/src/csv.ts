@@ -3,6 +3,7 @@
 // Formel-Injection (Textzellen mit `=`, `+`, `-`, `@` am Anfang bekommen ein `'`). Profile: Standard und Excel (DE) (A-029).
 import { applyFilter, buildWorkingSet, type FilterSpec, type WsEntry, type WsField } from '@stb/analysis';
 import type { ExportSource } from './json-v1.js';
+import { medicationText } from './medication-text.js';
 
 export type CsvProfile = 'standard' | 'excel-de';
 type Cell = { kind: 'text'; value: string } | { kind: 'number'; value: number } | { kind: 'empty' };
@@ -69,7 +70,8 @@ const unitOf = (src: ExportSource, blockId: string): string | undefined => {
 };
 
 /** Anzeigetext inkl. Kommentaren der Body-Map-Markierungen (Nutzerdaten, A-029). */
-function displayWithComments(f: WsField, raw: unknown): string {
+function displayWithComments(f: WsField, raw: unknown, timeZone: string): string {
+  if (f.value.kind === 'medications') return medicationText(raw, timeZone) ?? f.display;
   if (f.value.kind !== 'points') return f.display;
   const points = (raw as { points?: { comment?: string }[] } | undefined)?.points ?? [];
   const comments = points.map((p, i) => (p.comment ? `#${i + 1}: ${p.comment}` : '')).filter(Boolean);
@@ -77,7 +79,7 @@ function displayWithComments(f: WsField, raw: unknown): string {
 }
 
 /** Zahl und Text eines Feldwerts (long), Multiselect ausgenommen (eigene Zeilen je Option). */
-function valueCells(f: WsField, raw: unknown): [Cell, Cell] {
+function valueCells(f: WsField, raw: unknown, timeZone: string): [Cell, Cell] {
   const v = f.value;
   switch (v.kind) {
     case 'numeric':
@@ -85,9 +87,11 @@ function valueCells(f: WsField, raw: unknown): [Cell, Cell] {
     case 'event':
       return [num(v.occurred ? 1 : 0), text(f.display)];
     case 'points':
-      return [num(v.points.length), text(displayWithComments(f, raw))];
+      return [num(v.points.length), text(displayWithComments(f, raw, timeZone))];
     case 'time':
       return [num(v.durationMinutes), text(f.display)];
+    case 'medications':
+      return [{ kind: 'empty' }, text(displayWithComments(f, raw, timeZone))];
     default:
       return [{ kind: 'empty' }, text(f.display)];
   }
@@ -120,7 +124,7 @@ export function exportCsvLong(src: ExportSource, opts: { profile: CsvProfile; fi
         f.value.optionIds.forEach((id, i) => rows.push([...base(f), { kind: 'empty' }, { kind: 'empty' }, text(id), text(f.optionLabels[i]), { kind: 'empty' }, text(e.source), end]));
         continue;
       }
-      const [n, t] = valueCells(f, s.raw.get(e.id)?.values[f.blockId]);
+      const [n, t] = valueCells(f, s.raw.get(e.id)?.values[f.blockId], s.timezone.get(e.diaryId) ?? 'UTC');
       rows.push([...base(f), n, t, { kind: 'empty' }, { kind: 'empty' }, text(unitOf(src, f.blockId)), text(e.source), end]);
     }
   }
@@ -147,7 +151,7 @@ export function exportCsvWide(src: ExportSource, opts: { profile: CsvProfile; fi
       if (!f) return { kind: 'empty' };
       if (f.value.kind === 'numeric') return num(f.value.value);
       if (f.value.kind === 'options') return text(f.optionLabels.join('; '));
-      return text(displayWithComments(f, s.raw.get(e.id)?.values[f.blockId]));
+      return text(displayWithComments(f, s.raw.get(e.id)?.values[f.blockId], s.timezone.get(e.diaryId) ?? 'UTC'));
     }),
   ]);
   return toCsv(header, rows, opts.profile);

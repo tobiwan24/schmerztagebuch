@@ -119,6 +119,7 @@ Der Loop ergänzt hier neue Annahmen und jede neue npm-Abhängigkeit.
 | A-093 | **Lokale Verschlüsselung:** Opt-in; `occurredAt` im Index auf den Tag gekürzt; ohne Entsperren keine Daten (bestehende App-Sperre). | Spec 02. | entschieden (Loop) |
 | A-094 | **Integrationen:** nur lesend; der Zugangsstring (Token + Schlüssel) wird einmal angezeigt; MCP nur lokal per stdio, kein gehosteter MCP-Server. | Spec 03/07. | entschieden (Loop) |
 | A-095 | **Neue Abhängigkeiten v3.x:** `@anthropic-ai/sdk` (MIT, nur `packages/llm`/Server), `@modelcontextprotocol/sdk` (MIT, nur `apps/mcp`). Keine für Tutorial, QR oder Diagramme. Jede bekommt in ihrer Teilaufgabe einen eigenen Eintrag in der Abhängigkeitstabelle (feste Version ≥ 2 Wochen alt, verworfene Alternative). | QA-11; LOOP-Regel zu Abhängigkeiten. | entschieden (Loop) |
+| A-096 | **Medikamenten-Block im Export:** CSV (long und wide) und PDF (Tabelle, Karten) zeigen eine Zelle „Ibuprofen 400 mg 08:00; Arnika 5 Tropfen“; die Uhrzeit wird in der Zeitzone des Tagebuchs ausgegeben (`export/medication-text.ts`), nicht wie `toCsv` im Kern aus dem ISO-Text, weil die App Zeitpunkte als UTC speichert. Long-CSV: `value_number` leer. „Als Kopie“ vergibt Vorgaben- und Positions-IDs neu. | Spec 05/07, EXP-20. | entschieden (Loop) |
 
 ## Abhängigkeiten
 
