@@ -4,6 +4,17 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.5.0-alpha.1',
+    date: '2026-11-16',
+    points: [
+      'Neu: KI-Funktionen, wenn dein Server sie eingerichtet hat. Du schaltest sie unter Einstellungen → KI-Funktionen ausdrücklich ein, vorher ist nichts davon sichtbar.',
+      'Aus Text ausfüllen: Du beschreibst in eigenen Worten, wie es dir geht, und bekommst einen Entwurf für die Felder. Gespeichert wird erst, wenn du es bestätigst.',
+      'Im Vorlagen-Editor schlägt die KI Rollen für Bausteine vor, die du einzeln übernimmst oder verwirfst.',
+      'Zusammenfassung für den Arzt: Die KI formuliert aus deinen Kennzahlen einen Text, den du bearbeiten und als Abschnitt in den PDF-Export aufnehmen kannst. Notizen gehen nur mit, wenn du sie ausdrücklich freigibst.',
+      'Vor jedem Vorgang siehst du genau, was gesendet wird und an wen. Die KI stellt keine Diagnosen und gibt keine Therapieempfehlungen.',
+    ],
+  },
+  {
     version: '3.4.0-alpha.1',
     date: '2026-11-16',
     points: [
