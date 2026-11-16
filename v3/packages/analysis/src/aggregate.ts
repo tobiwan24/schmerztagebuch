@@ -160,7 +160,7 @@ export function previousRange(r: DayRange): DayRange {
  * Ereignisse eines Felds als (Schlüssel, Label): Optionen, angehakte Checkbox, Medikamente je Name (`medicationKey`;
  * die Schreibweise der Vorgabe hat Vorrang, sonst die erste).
  */
-function picksOf(f: WsField): [string, string, boolean][] {
+export function picksOf(f: WsField): [string, string, boolean][] {
   const v = f.value;
   if (v.kind === 'options') return v.optionIds.map((id, i) => [id, f.optionLabels[i] ?? id, false]);
   if (v.kind === 'event' && v.occurred) return [[f.blockId, f.label, false]];
