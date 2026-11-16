@@ -1257,6 +1257,20 @@
                     "type": "string"
                   }
                 },
+                "purpose": {
+                  "type": "string",
+                  "enum": [
+                    "diary",
+                    "training"
+                  ]
+                },
+                "functionPhases": {
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
                 "currentVersion": {
                   "type": "integer",
                   "minimum": 1,

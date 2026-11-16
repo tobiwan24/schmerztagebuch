@@ -149,6 +149,8 @@ export function duplicateTemplate(source: TemplateState, ids: IdGenerator, clock
       ...(template.color !== undefined ? { color: template.color } : {}),
       order: keyBetween(template.order, nextOrder),
       ...(quick?.length ? { quickBlockIds: quick } : {}),
+      ...(template.purpose !== undefined ? { purpose: template.purpose } : {}),
+      ...(template.functionPhases !== undefined ? { functionPhases: template.functionPhases } : {}),
       blocks,
     },
     clock,

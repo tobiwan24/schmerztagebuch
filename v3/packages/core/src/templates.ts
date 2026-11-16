@@ -9,6 +9,9 @@ export const ROLES = ['outcome', 'symptom', 'medication', 'trigger', 'activity',
 export const roleSchema = z.enum(ROLES);
 export type Role = z.infer<typeof roleSchema>;
 
+export const TEMPLATE_PURPOSES = ['diary', 'training'] as const;
+export type TemplatePurpose = (typeof TEMPLATE_PURPOSES)[number];
+
 export const orderKeySchema = z.string().refine(isValidOrderKey, { message: 'Ungültiger Order-Key' });
 
 const blockDefBase = z.strictObject({
@@ -53,6 +56,10 @@ export const templateSchema = z.strictObject({
   order: orderKeySchema,
   /** Blöcke für den Schnelleintrag (Reihenfolge folgt der Vorlage); unversioniert, nur Darstellung (A-070). */
   quickBlockIds: z.array(idSchema).optional(),
+  /** Verwendungszweck (Spec 05 „Training“); fehlt = `diary`. Unversioniert, nur Darstellung/Auswahl. */
+  purpose: z.enum(TEMPLATE_PURPOSES).optional(),
+  /** Funktionsphasen (Werte der Rolle `function`), in denen eine Trainingsvorlage erscheint; leer/fehlt = immer. */
+  functionPhases: z.array(z.number().finite()).max(20).optional(),
   currentVersion: z.number().int().min(1),
   archived: z.boolean(),
   createdAt: isoDateTime,
@@ -96,6 +103,8 @@ export interface NewTemplate {
   color?: string;
   order: string;
   quickBlockIds?: string[];
+  purpose?: TemplatePurpose;
+  functionPhases?: number[];
   blocks: BlockDef[];
 }
 
@@ -115,6 +124,10 @@ export interface TemplatePatch {
   archived?: boolean;
   /** `null` entfernt die Auswahl (Standardregel, Spec 05 „Schnelleintrag"). Ändert keine Version. */
   quickBlockIds?: string[] | null;
+  /** `null` entfernt den Wert (= `diary`). Ändert keine Version. */
+  purpose?: TemplatePurpose | null;
+  /** `null` entfernt die Auswahl (= immer). Ändert keine Version. */
+  functionPhases?: number[] | null;
   blocks?: BlockDef[];
 }
 
@@ -133,7 +146,7 @@ export function updateTemplate(
   history: readonly TemplateVersion[] = [],
 ): { state: TemplateState; newVersion: boolean } {
   const now = isoNow(clock);
-  const { blocks, quickBlockIds, ...meta } = patch;
+  const { blocks, quickBlockIds, purpose, functionPhases, ...meta } = patch;
   let version = state.version;
   let newVersion = false;
 
@@ -161,6 +174,10 @@ export function updateTemplate(
   const merged: Record<string, unknown> = { ...state.template, ...meta, currentVersion: version.version, updatedAt: now };
   if (quickBlockIds === null) delete merged.quickBlockIds;
   else if (quickBlockIds !== undefined) merged.quickBlockIds = quickBlockIds;
+  if (purpose === null) delete merged.purpose;
+  else if (purpose !== undefined) merged.purpose = purpose;
+  if (functionPhases === null) delete merged.functionPhases;
+  else if (functionPhases !== undefined) merged.functionPhases = functionPhases;
   const template = templateSchema.parse(merged);
   return { state: { template, version }, newVersion };
 }
