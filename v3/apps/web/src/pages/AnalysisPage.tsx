@@ -2,7 +2,7 @@
 // Körperkarte — fest, nicht konfigurierbar. Dazu der Zeitraumvergleich. Rein beschreibend, jede Kennzahl mit n.
 // Daten aus dem Analyse-Worker (`useAnalysis`).
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ImageDown } from 'lucide-react';
+import { FilePlus, ImageDown } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
 import { addDays, type FilterSpec } from '@stb/analysis';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { ChartEntryDialog } from '@/components/ChartEntryDialog';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState, ErrorState } from '@/components/StateView';
 import { BODYMAP_PRESETS, intensityFill } from '@/components/blocks/bodymap-presets';
@@ -20,7 +21,7 @@ import { useDiaryScope } from '@/data/diary-scope';
 import { useQuery } from '@/data/useQuery';
 import type { AnalysisClient } from '@/workers/analysis-service';
 import { cn } from '@/lib/utils';
-import { exportViewAsPng } from '@/lib/export-png';
+import { exportViewAsPng, renderViewAsPng } from '@/lib/export-png';
 import { de } from '@/i18n/de';
 
 type View = 'trend' | 'calendar' | 'meds' | 'freq' | 'body';
@@ -65,6 +66,7 @@ export function AnalysisPage() {
   const viewRef = useRef<HTMLElement>(null);
   const swipe = useRef<{ x: number; y: number } | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [chartEntryOpen, setChartEntryOpen] = useState(false);
 
   if (entries.status === 'error') return (<><PageHeader title={de.analysis.title} /><ErrorState onRetry={entries.retry} /></>);
   if (entries.status === 'loading') return (<><PageHeader title={de.analysis.title} /><p className="text-muted-foreground">{de.app.loading}</p></>);
@@ -76,12 +78,14 @@ export function AnalysisPage() {
   const diaryIds = scope.diaryId ? [scope.diaryId] : entries.data.diaryIds;
   const spec: FilterSpec = { diaryIds, range: { from, to } };
 
+  const period = view === 'calendar' ? '' : range === 'day' ? ` · ${longDay(to)}` : ` · ${shortDay(from)}–${shortDay(to)}${to.slice(0, 4)}`;
+  const viewTitle = `${de.analysis.viewNames[view]}${period}`;
+
   async function exportPng() {
     if (!viewRef.current) return;
     setExporting(true);
     try {
-      const period = view === 'calendar' ? '' : range === 'day' ? ` · ${longDay(to)}` : ` · ${shortDay(from)}–${shortDay(to)}${to.slice(0, 4)}`;
-      await exportViewAsPng(viewRef.current, `${de.analysis.viewNames[view]}${period}`, de.analysis.pngFileName(view, to));
+      await exportViewAsPng(viewRef.current, viewTitle, de.analysis.pngFileName(view, to));
     } finally {
       setExporting(false);
     }
@@ -113,10 +117,20 @@ export function AnalysisPage() {
           <Button size="sm" variant="ghost" aria-label={de.analysis.newerPeriod} disabled={shift === 0} onClick={newer}>›</Button>
         </div>
       ) : null}
-      <Button variant="outline" size="sm" className="self-end" disabled={exporting} onClick={() => void exportPng()}>
-        <ImageDown aria-hidden />
-        {de.analysis.exportPng}
-      </Button>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={() => setChartEntryOpen(true)}>
+          <FilePlus aria-hidden />
+          {de.analysis.chartEntry.open}
+        </Button>
+        <Button variant="outline" size="sm" disabled={exporting} onClick={() => void exportPng()}>
+          <ImageDown aria-hidden />
+          {de.analysis.exportPng}
+        </Button>
+      </div>
+      <ChartEntryDialog
+        open={chartEntryOpen} diaryIds={diaryIds} defaultCaption={viewTitle} onClose={() => setChartEntryOpen(false)}
+        render={() => (viewRef.current ? renderViewAsPng(viewRef.current, viewTitle) : Promise.reject(new Error('Ansicht fehlt')))}
+      />
       <section
         ref={viewRef}
         data-testid={`analysis-view-${view}`}

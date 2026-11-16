@@ -112,14 +112,19 @@ async function drawBodymap(container: HTMLElement, title: string, root: Element)
   return canvas;
 }
 
-/** Rendert die Ansicht in `root` als PNG und löst den Download aus. */
-export async function exportViewAsPng(root: HTMLElement, title: string, fileName: string): Promise<void> {
+/** Rendert die Ansicht in `root` als PNG. */
+export async function renderViewAsPng(root: HTMLElement, title: string): Promise<Blob> {
   const svg = root.querySelector<SVGSVGElement>('svg.recharts-surface');
   const grid = root.querySelector<HTMLElement>('[data-testid="calendar-grid"]');
   const body = root.querySelector<HTMLElement>('[data-testid="bodymap-overview"]');
   const canvas = svg ? await drawChart(svg, title, root) : grid ? drawCalendar(grid, title, root) : body ? await drawBodymap(body, title, root) : null;
   if (!canvas) throw new Error('Nichts zu exportieren');
-  const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG konnte nicht erzeugt werden'))), 'image/png'));
+  return new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG konnte nicht erzeugt werden'))), 'image/png'));
+}
+
+/** Rendert die Ansicht in `root` als PNG und löst den Download aus. */
+export async function exportViewAsPng(root: HTMLElement, title: string, fileName: string): Promise<void> {
+  const blob = await renderViewAsPng(root, title);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
