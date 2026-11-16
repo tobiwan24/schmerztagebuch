@@ -18,6 +18,6 @@ describe('CSP', () => {
     // keine add_header-Zeilen in locations (sonst entfallen dort die Server-Header)
     const inLocation = [...nginx.matchAll(/^\s*location[^{]*\{([^}]*)\}/gm)].some((m) => m[1]!.includes('add_header'));
     expect(inLocation).toBe(false);
-    expect(contentSecurityPolicy(['https://v2.example'])).toContain('connect-src \'self\' https://api.open-meteo.com https://archive-api.open-meteo.com https://v2.example');
+    expect(contentSecurityPolicy(['https://v2.example'])).toContain('connect-src \'self\' https://api.open-meteo.com https://archive-api.open-meteo.com https://geocoding-api.open-meteo.com https://v2.example');
   });
 });

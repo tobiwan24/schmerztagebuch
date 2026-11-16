@@ -7,8 +7,8 @@
 - **Meilenstein:** M14 „Nacharbeiten v2-Parität" aktuell (12/28 IDs, M14.0 Doku erledigt); danach/parallel der Teil-Meilenstein M14b „v2-Parität, Rest" (3/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M14.11 (Geocoding-Client und CSP-Domain, BLK-38). Reihenfolge laut Tabelle; M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-058.
-- **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37)
+- **Nächste Aufgabe:** M14.12 (Ort-UI in Einstellungen und Onboarding, BLK-39). Reihenfolge laut Tabelle; M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-058.
+- **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38)
 - **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.23 (UI-24)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. **Achtung:** `npm run verify` überschreibt `reports/vitest.json` mit übersprungenem QA-08 → vor `npm run acceptance` gesamt `npm run verify:docker` (Docker Desktop muss laufen).
@@ -34,7 +34,7 @@
 | M14.9 | Tagebuch anlegen (local-only und Konto) — erledigt | UI-15 |
 | M14.23 | Tagebuch-Umschalter (AppShell, gemerkt in `device`) — M14b — erledigt | UI-24 |
 | M14.10 | Schnelleintrag je Tagebuch, Knöpfe auf Start, `/quick?diary=` — erledigt | BLK-37 |
-| M14.11 | Geocoding-Client und CSP-Domain | BLK-38 |
+| M14.11 | Geocoding-Client und CSP-Domain — erledigt | BLK-38 |
 | M14.12 | Ort-UI in Einstellungen und Onboarding-Schritt | BLK-39 |
 | M14.13 | Wetter beim Speichern (Formular, Schnelleintrag, GPS-Schalter) | BLK-32 BLK-33 |
 | M14.14 | Nachtrag-Auslöser (Entsperren, `online`) | BLK-34 |
@@ -239,3 +239,4 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | 2026-11-16 | M14.23 | UI-24 | `data/diary-scope.tsx` (`DiaryScopeProvider` in der AppShell, Auswahl in `device` unter `active-diary`, Liste lädt bei `writes` neu) + `useDiaryScope(allowAll)`: wirksames Tagebuch oder `null` (= alle, auch bei nur einem Tagebuch); `components/DiarySwitcher.tsx` (shadcn-Select mit Icon/Farbe des Tagebuchs, nur bei ≥ 2 Tagebüchern auf Start/Verlauf/Auswertung, „Alle Tagebücher" nur in Verlauf/Auswertung, A-049). Filtert `EntryListState` (Start, Verlauf), Verlaufsfilter-Spec und Auswertung (`diaryIds`), Vorauswahl der Vorlage im neuen Eintrag. E2E (Chromium + WebKit) inkl. Neuladen. Ort/Wetter/Schnelleintrag nutzen die Auswahl mit M14.10. |
 | 2026-11-16 | M14.10 | BLK-37 | Tagebuch-Einstellungen: Schnelleintrag-Vorlage (Select, „Standard (automatisch)") und Feld-Häkchen (leer = Standardregel), Validierung über `updateDiarySettings(…, {templates})`. `useWritableDiaries` (local-only alle, Konto: Rolle ≠ viewer aus dem Mitglieder-Cache, unbekannt = Besitzer). Start: je beschreibbarem Tagebuch ein Knopf „Schnell eintragen · Name" (`/quick?diary=`), bei einem Tagebuch der gewohnte Knopf; `/quick` ohne Parameter bei mehreren beschreibbaren Tagebüchern: Auswahlliste (A-041). Unabhängig vom Umschalter (Spec: je Tagebuch ein Knopf). E2E (Chromium + WebKit), BLK-10 weiter grün. |
 | 2026-11-16 | Nachtrag A-002 | — | Rollenprüfung in Vorlagenliste und Vorlagen-Editor (`useIsOwner`, Mitglieder-Cache): Mitglieder ohne Besitzerrolle sehen Hinweis, Liste ohne Griff/Bearbeiten/Archivieren/Löschen, kein „Neue Vorlage"/Katalog, Editor zeigt nur den Hinweis (E2E im Sharing-Test). Vorlagenliste/neuer Entwurf folgen dem Tagebuch-Umschalter (A-059), der jetzt auch auf `/more/templates` erscheint. |
+| 2026-11-16 | M14.11 | BLK-38 | `weather/geocoding.ts`: `buildGeocodingUrl` (erst ab 2 Zeichen, `count=5`, `language=de`), `createGeocodingClient(fetch).search` (Label Ort, Region, Land; Fehler/offline = `GeocodingUnavailableError`), `locationFromPlace`/`locationFromPosition` (1 Dezimalstelle, Label Aktueller Standort (≈ lat, lon)). CSP um `https://geocoding-api.open-meteo.com` in `csp.ts`, `nginx.conf`, `csp.test.ts`. Hinweis bei Fehler und Entprellen folgen mit der UI (M14.12). |
