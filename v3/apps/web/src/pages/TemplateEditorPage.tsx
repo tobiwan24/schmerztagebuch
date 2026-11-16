@@ -15,6 +15,8 @@ import { BlockEditor } from '@/components/template-editor/BlockEditor';
 import { DEFAULT_TEMPLATE_COLOR, DEFAULT_TEMPLATE_ICON } from '@/components/TemplateIcon';
 import { TemplateStylePicker } from '@/components/TemplateStylePicker';
 import { useData } from '@/data/DataContext';
+import { useDiaryScope } from '@/data/diary-scope';
+import { useIsOwner } from '@/data/useSharing';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 
@@ -29,15 +31,19 @@ interface Loaded {
 export function TemplateEditorPage() {
   const { id } = useParams();
   const data = useData();
+  const scope = useDiaryScope(false);
   const query = useQuery<Loaded | null>(async () => {
-    const [diary] = await data.diary.listDiaries();
-    if (!diary) return null;
-    const orders = (await data.diary.listTemplates(diary.id)).map((t) => t.order).sort();
     const state = id ? ((await data.diary.getTemplate(id)) ?? null) : null;
     if (id && !state) return null;
+    // Bestehende Vorlage: ihr Tagebuch; neue: das gewählte Tagebuch (sonst das erste)
+    const all = await data.diary.listDiaries();
+    const diary = state ? all.find((d) => d.id === state.template.diaryId) : (all.find((d) => d.id === scope.diaryId) ?? all[0]);
+    if (!diary) return null;
+    const orders = (await data.diary.listTemplates(diary.id)).map((t) => t.order).sort();
     const after = state ? orders.filter((o) => o > state.template.order)[0] ?? null : null;
     return { diaryId: diary.id, state, nextOrder: after, lastOrder: orders.at(-1) ?? null };
-  }, [data.diary, id]);
+  }, [data.diary, id, scope.diaryId]);
+  const owner = useIsOwner(query.status === 'ok' && query.data ? query.data.diaryId : null);
 
   return (
     <>
@@ -45,7 +51,8 @@ export function TemplateEditorPage() {
       {query.status === 'loading' ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
       {query.status === 'error' ? <ErrorState onRetry={query.retry} /> : null}
       {query.status === 'ok' && query.data === null ? <ErrorState detail={de.templates.editor.notFound} /> : null}
-      {query.status === 'ok' && query.data ? <EditorForm key={id ?? 'new'} loaded={query.data} /> : null}
+      {query.status === 'ok' && query.data && owner === false ? <ErrorState detail={de.templates.readOnly} /> : null}
+      {query.status === 'ok' && query.data && owner === true ? <EditorForm key={id ?? 'new'} loaded={query.data} /> : null}
     </>
   );
 }

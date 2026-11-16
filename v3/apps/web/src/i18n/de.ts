@@ -160,6 +160,7 @@ export const de = {
   },
   templates: {
     title: 'Vorlagen',
+    readOnly: 'Nur der Besitzer des Tagebuchs kann Vorlagen ändern.',
     emptyTitle: 'Keine aktive Vorlage',
     emptyHint: 'Füge unten eine Vorlage aus dem Katalog hinzu.',
     archived: 'Archiviert',

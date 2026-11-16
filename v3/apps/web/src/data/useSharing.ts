@@ -89,6 +89,18 @@ export function useMembers(diaryId: string) {
   return { query, invite, revokeInvitation, changeRole, remove, leave, refresh: query.retry };
 }
 
+/** Darf dieses Gerät Vorlagen des Tagebuchs ändern (A-002: nur Besitzer bzw. local-only)? `null` = noch unbekannt. */
+export function useIsOwner(diaryId: string | null): boolean | null {
+  const { db } = useAuth();
+  const q = useQuery(async () => {
+    if (!diaryId) return null;
+    const me = await self(db);
+    if (!me) return true;
+    return ((await loadMembers(db, diaryId)).find((m) => m.principalId === me.userId)?.role ?? 'owner') === 'owner';
+  }, [db, diaryId]);
+  return q.status === 'ok' ? q.data : null;
+}
+
 /** Tagebücher, in die dieses Gerät schreiben darf: local-only alle, mit Konto Rolle Besitzer/Editor (Mitgliederliste aus dem lokalen Cache; unbekannt = Besitzer wie in `useMembers`). */
 export function useWritableDiaries() {
   const { db } = useAuth();

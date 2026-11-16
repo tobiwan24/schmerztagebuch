@@ -6,7 +6,7 @@ import { ALL_DIARIES, useDiaryScope } from '@/data/diary-scope';
 import { de } from '@/i18n/de';
 
 const WITH_ALL = ['/history', '/analysis'];
-const SHOWN_ON = ['/', ...WITH_ALL];
+const SHOWN_ON = ['/', '/more/templates', ...WITH_ALL];
 
 export function DiarySwitcher() {
   const { pathname } = useLocation();

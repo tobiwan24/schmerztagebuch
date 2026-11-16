@@ -14,6 +14,8 @@ import { PageHeader } from '@/components/PageHeader';
 import { TemplateIcon } from '@/components/TemplateIcon';
 import { EmptyState, ErrorState } from '@/components/StateView';
 import { useData } from '@/data/DataContext';
+import { useDiaryScope } from '@/data/diary-scope';
+import { useIsOwner } from '@/data/useSharing';
 import { useQuery } from '@/data/useQuery';
 import { cn } from '@/lib/utils';
 import { de } from '@/i18n/de';
@@ -25,13 +27,16 @@ interface Row {
 
 export function TemplatesPage() {
   const data = useData();
+  const scope = useDiaryScope(false);
   const query = useQuery(async () => {
-    const [diary] = await data.diary.listDiaries();
+    const all = await data.diary.listDiaries();
+    const diary = all.find((d) => d.id === scope.diaryId) ?? all[0];
     if (!diary) return { diaryId: null, rows: [] as Row[] };
     const templates = await data.diary.listTemplates(diary.id);
     const rows = await Promise.all(templates.map(async (t) => ({ template: t, entries: await data.diary.countTemplateEntries(t.id) })));
     return { diaryId: diary.id, rows: rows.sort((a, b) => (a.template.order < b.template.order ? -1 : a.template.order > b.template.order ? 1 : 0)) };
-  }, [data.diary]);
+  }, [data.diary, scope.diaryId]);
+  const canEdit = useIsOwner(query.status === 'ok' ? query.data.diaryId : null) !== false;
   const [deleting, setDeleting] = useState<Row | null>(null);
 
   // Änderungen nacheinander speichern: schnelles Ziehen + Pfeiltaste dürfen sich nicht überholen (letzte Aktion gewinnt).
@@ -73,11 +78,13 @@ export function TemplatesPage() {
       {query.status === 'error' ? <ErrorState onRetry={query.retry} /> : null}
       {query.status === 'ok' ? (
         <>
+          {canEdit ? null : <p role="status" className="text-sm text-muted-foreground">{de.templates.readOnly}</p>}
           {query.data.rows.filter((r) => !r.template.archived).length === 0 ? <EmptyState title={de.templates.emptyTitle} hint={de.templates.emptyHint} /> : null}
           <SortableTemplates
             key={query.data.rows.map((r) => r.template.id + r.template.order + String(r.template.archived)).join()}
             rows={query.data.rows.filter((r) => !r.template.archived)}
             busy={pending > 0}
+            readOnly={!canEdit}
             onMove={(t, order) => void saveMeta(t, { order })}
             onArchive={(t) => void saveMeta(t, { archived: true })}
             onDelete={setDeleting}
@@ -95,19 +102,21 @@ export function TemplatesPage() {
                         <span className="text-xs text-muted-foreground">{de.templates.entryCount(r.entries)}</span>
                       </span>
                       <span className="flex gap-1">
+                        {canEdit ? <>
                         <Button variant="ghost" size="icon" aria-label={de.templates.restore(r.template.name)} onClick={() => void saveMeta(r.template, { archived: false })}>
                           <ArchiveRestore aria-hidden />
                         </Button>
                         <Button variant="ghost" size="icon" aria-label={de.templates.delete(r.template.name)} onClick={() => setDeleting(r)}>
                           <Trash2 aria-hidden />
                         </Button>
+                        </> : null}
                       </span>
                     </div>
                   ))}
               </Card>
             </section>
           ) : null}
-          {query.data.diaryId ? (
+          {query.data.diaryId && canEdit ? (
             <Button asChild variant="outline">
               <Link to="/more/templates/new">
                 <Plus aria-hidden />
@@ -115,7 +124,7 @@ export function TemplatesPage() {
               </Link>
             </Button>
           ) : null}
-          {query.data.diaryId ? (
+          {query.data.diaryId && canEdit ? (
             <section className="flex flex-col gap-2">
               <h2 className="text-sm font-medium text-muted-foreground">{de.templates.fromCatalog}</h2>
               <div className="flex flex-col gap-2">
@@ -139,8 +148,8 @@ export function TemplatesPage() {
 }
 
 function SortableTemplates({
-  rows: initial, busy, onMove, onArchive, onDelete,
-}: { rows: Row[]; busy: boolean; onMove: (t: Template, order: string) => void; onArchive: (t: Template) => void; onDelete: (r: Row) => void }) {
+  rows: initial, busy, readOnly, onMove, onArchive, onDelete,
+}: { rows: Row[]; busy: boolean; readOnly: boolean; onMove: (t: Template, order: string) => void; onArchive: (t: Template) => void; onDelete: (r: Row) => void }) {
   const [rows, setRows] = useState(initial);
   const [dragId, setDragId] = useState<string | null>(null);
   const refs = useRef(new Map<string, HTMLDivElement>());
@@ -208,7 +217,7 @@ function SortableTemplates({
           data-testid="template-row"
           className={cn('flex min-h-12 items-center gap-2 border-b px-2 py-2 last:border-b-0', dragId === r.template.id && 'bg-accent')}
         >
-          <Button
+          {readOnly ? null : <Button
             variant="ghost"
             size="icon"
             className="cursor-grab touch-none"
@@ -221,21 +230,21 @@ function SortableTemplates({
             onKeyDown={(e) => onKeyDown(e, r.template.id)}
           >
             <GripVertical aria-hidden />
-          </Button>
+          </Button>}
           <TemplateIcon icon={r.template.icon} color={r.template.color} />
           <span className="flex flex-1 flex-col">
             <span>{r.template.name}</span>
             <span className="text-xs text-muted-foreground">{de.templates.entryCount(r.entries)}</span>
           </span>
-          <Button asChild variant="ghost" size="icon">
+          {readOnly ? null : <Button asChild variant="ghost" size="icon">
             <Link to={`/more/templates/${r.template.id}`} aria-label={de.templates.edit(r.template.name)}>
               <Pencil aria-hidden />
             </Link>
-          </Button>
-          <Button variant="ghost" size="icon" aria-label={de.templates.archive(r.template.name)} onClick={() => onArchive(r.template)}>
+          </Button>}
+          {readOnly ? null : <Button variant="ghost" size="icon" aria-label={de.templates.archive(r.template.name)} onClick={() => onArchive(r.template)}>
             <Archive aria-hidden />
-          </Button>
-          {r.entries === 0 ? (
+          </Button>}
+          {!readOnly && r.entries === 0 ? (
             <Button variant="ghost" size="icon" aria-label={de.templates.delete(r.template.name)} onClick={() => onDelete(r)}>
               <Trash2 aria-hidden />
             </Button>

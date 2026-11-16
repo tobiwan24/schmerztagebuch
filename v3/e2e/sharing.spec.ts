@@ -109,6 +109,15 @@ test.describe('Geteilte Tagebücher', () => {
     await b.getByTestId('diary-card').nth(sharedIndex).getByRole('link', { name: 'Einstellungen' }).click();
     await expect(b.getByLabel('Name')).toBeDisabled();
     await expect(b.getByRole('button', { name: 'Speichern' })).toHaveCount(0);
+    // A-002: Vorlagen des geteilten Tagebuchs nur für den Besitzer änderbar (Liste und Editor)
+    await go(b, '/more/templates');
+    await b.getByLabel('Tagebuch', { exact: true }).selectOption({ index: sharedIndex });
+    await expect(b.getByText('Nur der Besitzer des Tagebuchs kann Vorlagen ändern.')).toBeVisible();
+    await expect(b.getByRole('link', { name: 'Neue leere Vorlage' })).toHaveCount(0);
+    await expect(b.getByTestId('template-row').getByRole('link')).toHaveCount(0);
+    await go(b, '/more/templates/new');
+    await expect(b.getByText('Nur der Besitzer des Tagebuchs kann Vorlagen ändern.')).toBeVisible();
+    await expect(b.getByLabel('Name')).toHaveCount(0);
     await go(b, '/more/diaries');
 
     // SHR-09: beide bearbeiten denselben Eintrag gleichzeitig (offline), verschiedene Felder → zusammengeführt
