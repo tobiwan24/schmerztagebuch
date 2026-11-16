@@ -18,3 +18,4 @@ export { sealBackupFile, openBackupFile, readBackupHeader, BACKUP_FILE_FORMAT, B
 export { sealIdentityKey, openIdentityKey, type SealedIdentity } from './identity.js';
 export { sealForIntake, unsealIntake, type IntakeSeal } from './intake.js';
 export { createInvitationSecret, encryptInvitation, decryptInvitation, invitationMac, verifyInvitationMac, safetyNumber, updateVerification, type InvitationDetails, type VerificationState } from './invitation.js';
+export { generateShareId, generateShareKey, encryptReport, decryptReport, buildReportLink, parseReportKey } from './report-share.js';
