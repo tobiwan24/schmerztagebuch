@@ -4,11 +4,11 @@
 
 ## Aktuell
 
-- **Meilenstein:** M14 „Nacharbeiten v2-Parität" aktuell (19/28 IDs, M14.0 Doku erledigt); danach/parallel der Teil-Meilenstein M14b „v2-Parität, Rest" (5/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
+- **Meilenstein:** M14 „Nacharbeiten v2-Parität" aktuell (20/28 IDs, M14.0 Doku erledigt); danach/parallel der Teil-Meilenstein M14b „v2-Parität, Rest" (5/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M14.1 (BLK-40), danach M14.20/21; M14.24–M14.26 Verlauf laut Tabelle. M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-062.
-- **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29), M14.16 (BLK-30), M14.17 (BLK-31), M14.18 (BLK-35, BLK-36), M14.19 (UI-16, UI-19)
+- **Nächste Aufgabe:** M14.20 (UI-17), M14.21 (UI-18); M14.24–M14.26 Verlauf laut Tabelle. M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-062.
+- **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29), M14.16 (BLK-30), M14.17 (BLK-31), M14.18 (BLK-35, BLK-36), M14.19 (UI-16, UI-19), M14.1 (BLK-40)
 - **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. **Achtung:** `npm run verify` überschreibt `reports/vitest.json` mit übersprungenem QA-08 → vor `npm run acceptance` gesamt `npm run verify:docker` (Docker Desktop muss laufen).
@@ -18,7 +18,7 @@
 
 | # | Inhalt | IDs |
 |---|---|---|
-| M14.1 | Bild-Artefakt „Körper Rückseite" (Alpha x 0–1, y 469–476), Regressionstest, `fast-png` (DECISIONS) | BLK-40 |
+| M14.1 | Bild-Artefakt „Körper Rückseite" (Alpha x 0–1, y 469–476), Regressionstest, `fast-png` (DECISIONS) — erledigt | BLK-40 |
 | M14.2 | Editor-Domäne in core (`template-editor.ts`) — erledigt | BLK-22 |
 | M14.3 | Editor-Seite: Route, leere Vorlage, Name/Icon/Farbe, Duplizieren — erledigt | BLK-23 |
 | M14.15d | Vorlagen-Kacheln und Begrüßung auf Start — M14b | BLK-44 |
@@ -88,7 +88,7 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M11 | erledigt | 15/15 IDs → Gate G3 (wartet auf User) |
 | M12 | erledigt | 9/9 IDs |
 | M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
-| M14 | aktuell | 19/28 IDs erledigt — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
+| M14 | aktuell | 20/28 IDs erledigt — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
 | M14b | aktuell | 5/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
@@ -251,3 +251,4 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | 2026-11-16 | M14.17 | BLK-31 | `TextareaField` (Ereignis/Arztbesuch mit Titel, Foto/PDF mit Bildvorschau und Entfernen, Ablehnungsmeldungen) statt der reinen Textarea in `BlockField`; `EntryForm` hält Dateien bis zum Speichern (`attachments.commit`, vorhandene Anhänge werden erst beim Speichern gelöscht); Detail: Ereignisliste mit Kategorie + vorhandene Anhangsliste. E2E `entry-content.spec.ts` (Chromium + WebKit; Dateiauswahl über `getByLabel('Datei auswählen')`, Anhänge nacheinander wegen asynchronem Lesen über `latest`-Ref). A-062. |
 | 2026-11-16 | M14.18 | BLK-35 BLK-36 | core `duplicateEntryInput` (Werte auf aktuelle Version abgebildet, archivierte/ungültige Werte und `attachmentIds` entfallen); Formular `prefill` (nur erste Vorlagenwahl, Zeit = jetzt, Ausgang = Vorbelegung, also nicht dirty); Detail: Duplizieren (`/entry/new?from=<id>`) und Löschen mit Bestätigungsdialog (Anhänge per `attachments.remove`, Tombstone mit neuem HLC, danach Start). E2E `entry-actions.spec.ts`. Erkenntnis: nach Core-Änderung `npx tsc -b packages/core`, sonst baut der E2E-Server nicht. |
 | 2026-11-16 | M14.19 | UI-16 UI-19 | `lib/install.ts` (pure `installContext`: standalone / browser / ios-other-browser, `requestPersistentStorage`), `InstallBanner` auf Start (localStorage `stb.install-banner.dismissed`, Safari-Hinweis nur iOS-Fremdbrowser), `persist()` nach dem Anlegen des ersten Tagebuchs im Onboarding, `PersistCard` in den Einstellungen. E2E `install.spec.ts` (Chromium + WebKit; `persist` per Prototyp-Override, weil WebKit die Instanz nicht überschreiben lässt). Cloud-Login auf neuem Gerät mit vorhandenem Tagebuch durchläuft den Abschluss nicht (kein persist-Aufruf) — Status in den Einstellungen zeigt es. |
+| 2026-11-16 | M14.1 | BLK-40 | `koerper-rueckseite.png`: 15 sichtbare Pixel bei x 0–1, y 469–476 auf Alpha 0 (RGB unverändert, nur v3-Kopie; v2 unberührt). Test `bodymap-assets.test.ts` dekodiert beide Standardbilder mit `fast-png` 8.0.0 (neu, root dev, DECISIONS) und prüft die äußeren 4 Spalten; vor der Korrektur rot (Rückseite), Vorderseite war schon sauber. |
