@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useBlocker, useNavigate } from 'react-router';
 import {
   initialValues,
+  initialWeatherMeta,
   isDirty,
+  metaForEdit,
   missingRequired,
   nowTimeInput,
   sortedBlocks,
@@ -14,6 +16,7 @@ import {
   upgradeEntryVersion,
   validateTime,
   valuesToSave,
+  type DiaryWeatherSettings,
   type Entry,
   type FormSnapshot,
   type FormValues,
@@ -28,6 +31,7 @@ import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { WeatherSwitch, useDiaryWeatherSettings, useGpsChoice } from '@/components/WeatherSwitch';
 import { BlockField } from '@/components/blocks/BlockField';
 import { useData } from '@/data/DataContext';
 import { de } from '@/i18n/de';
@@ -80,6 +84,9 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
     // Nur beim Öffnen; spätere Wechsel über die Auswahl.
   }, []);
 
+  const weatherSettings = useDiaryWeatherSettings(loaded?.template.diaryId);
+  const [useGps, setUseGps] = useGpsChoice(weatherSettings);
+
   const dirty = initial !== null && current !== null && isDirty(initial, current);
   const blocker = useBlocker(({ currentLocation, nextLocation }) => dirty && !leaving.current && currentLocation.pathname !== nextLocation.pathname);
 
@@ -121,18 +128,25 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
       const time = timeToEntry(current.time);
       const values = valuesToSave(loaded.version, current.values);
       let next: Entry;
+      let gpsFollowUp: DiaryWeatherSettings | null = null;
       if (entry) {
         const rest: Omit<Entry, 'period'> & { period?: Entry['period'] } = { ...entry };
         delete rest.period;
-        next = { ...rest, ...time, templateVersion: loaded.version.version, values, tags: [...current.tags], updatedAt: s.at, hlc: s.hlc };
+        next = { ...rest, ...time, templateVersion: loaded.version.version, values, tags: [...current.tags], meta: metaForEdit(entry, time.occurredAt), updatedAt: s.at, hlc: s.hlc };
       } else {
+        // Wetter nur bei neuen Einträgen: fester Ort sofort als `weatherPending`; mit GPS-Schalter wird die Position danach bestimmt.
+        const settings = (await data.diary.getDiary(loaded.template.diaryId))?.settings.weather;
+        const initialMeta = settings && !useGps ? await initialWeatherMeta({ settings, useGps: false }, { currentPosition: () => Promise.reject(new Error('GPS aus')) }) : {};
+        if (settings?.enabled && useGps) gpsFollowUp = settings;
         next = {
           id: data.newId(), diaryId: loaded.template.diaryId, templateId: loaded.template.id, templateVersion: loaded.version.version,
           ...time, recordedAt: s.at, updatedAt: s.at, authorId: s.authorId, values, tags: [...current.tags],
-          meta: { source: 'app', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' }, hlc: s.hlc,
+          meta: { source: 'app', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', ...initialMeta }, hlc: s.hlc,
         };
       }
       await data.diary.saveEntry(next);
+      // Speichern wartet nie auf das Netz: Wetter (und ggf. Position) laufen im Hintergrund weiter (BLK-33).
+      if (gpsFollowUp || next.meta.weatherPending) void data.weather.followUp(data.diary, next.id, gpsFollowUp, data.stamper.stamp).catch(() => undefined);
       leaving.current = true;
       void navigate(`/entry/${next.id}`, { replace: true });
     } finally {
@@ -175,6 +189,8 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
           diaryId={template.diaryId} onSetDefault={setBlockDefault}
         />
       ))}
+
+      {!entry ? <WeatherSwitch settings={weatherSettings} checked={useGps} onChange={setUseGps} /> : null}
 
       {missing.size > 0 ? (
         <p role="alert" className="text-sm text-destructive">

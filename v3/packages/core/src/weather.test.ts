@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { needsWeatherRefetch, planWeather, resolveEntryWeather, roundLocation, type WeatherDeps } from './weather.js';
+import { initialWeatherMeta, metaForEdit, needsWeatherRefetch, planWeather, resolveEntryWeather, roundLocation, type WeatherDeps } from './weather.js';
 import type { Weather } from './templates.js';
 
 const weather: Weather = {
@@ -80,5 +80,31 @@ describe('Wetter-Regeln', () => {
 
   it('BLK-18: roundLocation rundet auf 1 Dezimalstelle', () => {
     expect(roundLocation({ lat: 48.149, lon: -0.051 })).toEqual({ lat: 48.1, lon: -0.1 });
+  });
+
+  it('BLK-32: initialWeatherMeta mit festem Ort setzt sofort weatherPending + gerundeten Ort (diary), ohne Position und ohne Abfrage', async () => {
+    const d = deps();
+    const meta = await initialWeatherMeta({ settings: { enabled: true, location: fixed, gpsDefault: false }, useGps: false }, d);
+    expect(meta).toEqual({ weatherPending: true, location: { lat: 48.1, lon: 11.6, origin: 'diary' } });
+    expect(d.currentPosition).not.toHaveBeenCalled();
+    expect(d.fetchWeather).not.toHaveBeenCalled();
+  });
+
+  it('BLK-32: initialWeatherMeta mit GPS-Schalter erst nach der Positionsbestimmung (gps), Rückfall auf festen Ort, sonst leer', async () => {
+    const settings = { enabled: true, location: fixed, gpsDefault: false };
+    expect(await initialWeatherMeta({ settings, useGps: true }, deps())).toEqual({ weatherPending: true, location: { lat: 52.5, lon: 13.4, origin: 'gps' } });
+    const broken = deps({ currentPosition: vi.fn(async () => { throw new Error('denied'); }) });
+    expect(await initialWeatherMeta({ settings, useGps: true }, broken)).toEqual({ weatherPending: true, location: { lat: 48.1, lon: 11.6, origin: 'diary' } });
+    expect(await initialWeatherMeta({ settings: { enabled: true, gpsDefault: true }, useGps: true }, broken)).toEqual({});
+    expect(await initialWeatherMeta({ settings: { enabled: false, location: fixed, gpsDefault: false }, useGps: true }, deps())).toEqual({});
+  });
+
+  it('BLK-32: metaForEdit ermittelt nur bei occurredAt-Änderung > 1 h am gespeicherten Ort neu und fragt nie GPS', () => {
+    const meta = { source: 'app' as const, timezone: 'UTC', weather, location: { lat: 52.5, lon: 13.4, origin: 'gps' as const } };
+    const entry = { occurredAt: '2026-03-01T10:00:00Z', meta };
+    expect(metaForEdit(entry, '2026-03-01T10:30:00Z')).toBe(meta);
+    expect(metaForEdit(entry, '2026-03-01T13:00:00Z')).toEqual({ source: 'app', timezone: 'UTC', location: meta.location, weatherPending: true });
+    const noLocation = { occurredAt: entry.occurredAt, meta: { source: 'app' as const, timezone: 'UTC' } };
+    expect(metaForEdit(noLocation, '2026-03-05T10:00:00Z')).toBe(noLocation.meta);
   });
 });

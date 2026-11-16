@@ -1,5 +1,4 @@
-// Onboarding-Schritte nach dem Konto (Spec 10): erstes Tagebuch (Name, Art) → Vorlage aus dem Katalog oder leer.
-// Wetter-Ort folgt mit den Tagebuch-Einstellungen (Spec 05 „Wetter": ohne Ort kein Wetter, Hinweis dort).
+// Onboarding-Schritte nach dem Konto (Spec 10): erstes Tagebuch (Name, Art) → Wetter-Ort (optional) → Vorlage aus dem Katalog oder leer.
 import { useState, type FormEvent } from 'react';
 import { Check } from 'lucide-react';
 import { TEMPLATE_CATALOG, type DiarySubject } from '@stb/core';

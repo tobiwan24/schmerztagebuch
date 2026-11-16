@@ -119,6 +119,8 @@ export const de = {
     title: 'Eintrag',
     newTitle: 'Neuer Eintrag',
     editTitle: 'Eintrag bearbeiten',
+    weatherUseGps: 'Aktuellen Standort verwenden',
+    weatherNoLocation: 'Für dieses Tagebuch ist kein Ort festgelegt: ohne Standort wird kein Wetter gespeichert.',
     template: 'Vorlage',
     noTemplateTitle: 'Noch keine Vorlage',
     noTemplateHint: 'Lege unter Mehr → Vorlagen eine Vorlage an, um Einträge zu erfassen.',

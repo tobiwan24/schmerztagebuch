@@ -1,8 +1,11 @@
 // Wetter beim Speichern und Nachtrag offline erfasster Einträge (Spec 05). Die Entscheidungslogik (Ort, GPS-Schalter,
 // Rundung, Pending) liegt pur in `@stb/core` (`resolveEntryWeather`); hier nur die Verdrahtung mit Browser-APIs.
-import { resolveEntryWeather, type DiaryWeatherSettings, type Entry, type LatLon, type WeatherDeps } from '@stb/core';
+import { initialWeatherMeta, resolveEntryWeather, type DiaryWeatherSettings, type LatLon, type Weather, type WeatherDeps } from '@stb/core';
 import { createOpenMeteoClient } from './open-meteo.js';
 import type { DiaryRepository } from '../data/repositories/diary.js';
+
+/** Stempel (HLC + Zeit) für eine Änderung am Eintrag. */
+export type Stamp = () => Promise<{ hlc: string; at: string }>;
 
 /** Minimale Geolocation-Schnittstelle (`navigator.geolocation`). */
 export interface GeolocationLike {
@@ -26,22 +29,53 @@ export function createWeatherService(deps: { fetchFn: typeof fetch; geolocation:
       return resolveEntryWeather({ settings, useGps, occurredAt }, weatherDeps);
     },
 
+    /**
+     * Ermittelt das Wetter eines gespeicherten Eintrags mit `weatherPending` (Ort aus `meta.location`, Zeit aus
+     * `occurredAt`) und schreibt es mit neuem HLC zurück. Fehlschlag (offline) → bleibt markiert, `false`.
+     */
+    async complete(repo: DiaryRepository, entryId: string, stamp: Stamp): Promise<boolean> {
+      const e = await repo.getEntry(entryId);
+      if (!e?.meta.weatherPending || !e.meta.location) return false;
+      let weather: Weather;
+      try {
+        weather = await client.fetchWeather({ lat: e.meta.location.lat, lon: e.meta.location.lon }, e.occurredAt);
+      } catch {
+        return false;
+      }
+      // Zwischenzeitlich geändert (z. B. neu bearbeitet)? Dann gehört das Ergebnis nicht mehr zu diesem Stand.
+      const fresh = await repo.getEntry(entryId);
+      if (!fresh?.meta.weatherPending || fresh.occurredAt !== e.occurredAt) return false;
+      const { weatherPending: _drop, ...meta } = fresh.meta;
+      void _drop;
+      const s = await stamp();
+      await repo.saveEntry({ ...fresh, meta: { ...meta, weather }, updatedAt: s.at, hlc: s.hlc });
+      return true;
+    },
+
+    /**
+     * Nach dem Speichern im Hintergrund (Speichern wartet nie auf das Netz, BLK-33): mit GPS-Schalter (`gps` = Einstellungen
+     * des Tagebuchs) zuerst die Position bestimmen und als Ort am Eintrag festhalten, danach das Wetter abrufen.
+     */
+    async followUp(repo: DiaryRepository, entryId: string, gps: DiaryWeatherSettings | null, stamp: Stamp): Promise<void> {
+      if (gps) {
+        const meta = await initialWeatherMeta({ settings: gps, useGps: true }, weatherDeps);
+        const e = await repo.getEntry(entryId);
+        if (!meta.location || !e) return;
+        const s = await stamp();
+        await repo.saveEntry({ ...e, meta: { ...e.meta, ...meta }, updatedAt: s.at, hlc: s.hlc });
+      }
+      await this.complete(repo, entryId, stamp);
+    },
+
     /** Trägt Wetter für Einträge mit `weatherPending` nach (Ort aus `meta.location`, Zeit aus `occurredAt`). */
     async backfill(repo: DiaryRepository, diaryId: string, nextHlc: () => string): Promise<{ filled: number; stillPending: number }> {
       let filled = 0;
       let stillPending = 0;
+      const stamp: Stamp = async () => ({ hlc: nextHlc(), at: new Date(deps.now()).toISOString() });
       for (const e of await repo.listEntries(diaryId)) {
         if (!e.meta.weatherPending || !e.meta.location) continue;
-        try {
-          const weather = await client.fetchWeather({ lat: e.meta.location.lat, lon: e.meta.location.lon }, e.occurredAt);
-          const { weatherPending: _drop, ...meta } = e.meta;
-          void _drop;
-          const updated: Entry = { ...e, meta: { ...meta, weather }, updatedAt: new Date(deps.now()).toISOString(), hlc: nextHlc() };
-          await repo.saveEntry(updated);
-          filled++;
-        } catch {
-          stillPending++;
-        }
+        if (await this.complete(repo, e.id, stamp)) filled++;
+        else stillPending++;
       }
       return { filled, stillPending };
     },

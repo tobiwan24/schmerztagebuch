@@ -10,6 +10,7 @@ import { createRecordRepository, type RecordRepository } from './repositories/re
 import { createDiaryRepository, type DiaryRepository } from './repositories/diary';
 import { createAttachmentRepository, type AttachmentRepository } from './repositories/attachments';
 import { createStamper, type Stamper } from './identity';
+import { createWeatherService } from '@/weather/service';
 
 export interface DataApi {
   records: RecordRepository;
@@ -21,6 +22,8 @@ export interface DataApi {
   /** HLC-Stempel und Autor für lokale Änderungen. */
   stamper: Stamper;
   now: () => number;
+  /** Wetter (Open-Meteo, Geolocation): nach dem Speichern im Hintergrund (BLK-33). */
+  weather: ReturnType<typeof createWeatherService>;
   registry: CodecRegistry;
   /** Ereignis `write` nach jeder erfolgreichen lokalen Änderung. */
   writes: EventTarget;
@@ -47,7 +50,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       remove: (id, payload) => notify(raw.remove(id, payload)),
     };
     const { newId } = createIdGenerator({ now });
-    return { records, diary: createDiaryRepository(records), attachments: createAttachmentRepository(db, records, { now }), newId, stamper: createStamper(db, { now }, newId), now, registry, writes };
+    return { records, diary: createDiaryRepository(records), attachments: createAttachmentRepository(db, records, { now }), newId, stamper: createStamper(db, { now }, newId), now, registry, writes,
+      weather: createWeatherService({ fetchFn: (input, init) => fetch(input, init), geolocation: navigator.geolocation, now }) };
   }, [db, now, accountMode]);
   const api = useMemo<DataApi>(() => ({ ...base, revision, bumpRevision }), [base, revision, bumpRevision]);
   return <DataContext.Provider value={api}>{children}</DataContext.Provider>;

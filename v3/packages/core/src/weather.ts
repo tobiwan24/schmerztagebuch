@@ -1,7 +1,7 @@
 // Wetter als Metadaten (Spec 05 „Wetter als Metadaten"): pure Regeln + Ablauf mit injizierten Abhängigkeiten.
 // Die eigentlichen Requests (Open-Meteo, Geolocation) liefern die Apps über `WeatherDeps`.
 import { z } from 'zod';
-import type { EntryMeta, Weather } from './templates.js';
+import type { Entry, EntryMeta, Weather } from './templates.js';
 
 export const diaryWeatherSettingsSchema = z.strictObject({
   enabled: z.boolean(),
@@ -61,6 +61,42 @@ export interface WeatherDeps {
 export type EntryWeatherMeta = Pick<EntryMeta, 'weather' | 'weatherPending' | 'location'>;
 
 /**
+ * Wetter-Metadaten beim Speichern eines neuen Eintrags, **ohne** Netzabfrage (BLK-32): fester Ort → sofort
+ * `weatherPending` + gerundeter Ort (`origin: 'diary'`); mit GPS-Schalter erst nach der Positionsbestimmung
+ * (`origin: 'gps'`, Rückfall auf den festen Ort, A-009). Kein Plan → `{}`.
+ */
+export async function initialWeatherMeta(
+  input: { settings: DiaryWeatherSettings; useGps: boolean },
+  deps: Pick<WeatherDeps, 'currentPosition'>,
+): Promise<EntryWeatherMeta> {
+  const plan = planWeather(input.settings, input.useGps);
+  if (plan.action === 'none') return {};
+  if (plan.origin === 'gps') {
+    try {
+      const p = roundLocation(await deps.currentPosition());
+      return { weatherPending: true, location: { lat: p.lat, lon: p.lon, origin: 'gps' } };
+    } catch {
+      const fallback = planWeather(input.settings, false);
+      if (fallback.action !== 'fetch' || fallback.origin !== 'diary') return {};
+      return { weatherPending: true, location: { lat: fallback.location.lat, lon: fallback.location.lon, origin: 'diary' } };
+    }
+  }
+  return { weatherPending: true, location: { lat: plan.location.lat, lon: plan.location.lon, origin: 'diary' } };
+}
+
+/**
+ * Meta eines bearbeiteten Eintrags (BLK-32): Ändert sich `occurredAt` um mehr als 1 h und ist ein Ort gespeichert,
+ * wird das Wetter am **gespeicherten** Ort neu ermittelt (`weatherPending`, altes Wetter entfällt). GPS wird beim
+ * Bearbeiten nie abgefragt; ohne gespeicherten Ort bleibt alles unverändert.
+ */
+export function metaForEdit(previous: Pick<Entry, 'occurredAt' | 'meta'>, nextOccurredAt: string): EntryMeta {
+  if (!previous.meta.location || !needsWeatherRefetch(previous.occurredAt, nextOccurredAt)) return previous.meta;
+  const { weather: _old, ...rest } = previous.meta;
+  void _old;
+  return { ...rest, weatherPending: true };
+}
+
+/**
  * Ermittelt die Wetter-Metadaten eines Eintrags. Kein Plan → `{}` (kein `weatherPending`).
  * GPS nicht verfügbar → Rückfall auf den festen Ort, sonst kein Wetter (DECISIONS A-009).
  * Abruf fehlgeschlagen (offline) → `weatherPending: true` mit gerundetem Ort für den späteren Nachtrag.
@@ -69,30 +105,11 @@ export async function resolveEntryWeather(
   input: { settings: DiaryWeatherSettings; useGps: boolean; occurredAt: string },
   deps: WeatherDeps,
 ): Promise<EntryWeatherMeta> {
-  const plan = planWeather(input.settings, input.useGps);
-  if (plan.action === 'none') return {};
-
-  let location: LatLon;
-  let origin: 'diary' | 'gps';
-  if (plan.origin === 'gps') {
-    try {
-      location = roundLocation(await deps.currentPosition());
-      origin = 'gps';
-    } catch {
-      const fallback = planWeather(input.settings, false);
-      if (fallback.action !== 'fetch' || fallback.origin !== 'diary') return {};
-      location = fallback.location;
-      origin = 'diary';
-    }
-  } else {
-    location = plan.location;
-    origin = 'diary';
-  }
-
-  const stored = { lat: location.lat, lon: location.lon, origin };
+  const initial = await initialWeatherMeta(input, deps);
+  if (!initial.location) return {};
   try {
-    return { weather: await deps.fetchWeather(location, input.occurredAt), location: stored };
+    return { weather: await deps.fetchWeather({ lat: initial.location.lat, lon: initial.location.lon }, input.occurredAt), location: initial.location };
   } catch {
-    return { weatherPending: true, location: stored };
+    return initial;
   }
 }

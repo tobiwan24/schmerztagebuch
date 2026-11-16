@@ -2,10 +2,11 @@
 // Zeitpunkt = jetzt, `meta.source = 'quick'`; weitere Felder später im Eintrag ergänzbar. Pflichtfelder gelten hier nicht.
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { quickEntrySelection, valuesToSave, type Diary, type Entry, type FormValues, type QuickEntrySelection, type TemplateState } from '@stb/core';
+import { initialWeatherMeta, quickEntrySelection, valuesToSave, type DiaryWeatherSettings, type Diary, type Entry, type FormValues, type QuickEntrySelection, type TemplateState } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState, ErrorState } from '@/components/StateView';
+import { WeatherSwitch, useDiaryWeatherSettings, useGpsChoice } from '@/components/WeatherSwitch';
 import { BlockField } from '@/components/blocks/BlockField';
 import { useData } from '@/data/DataContext';
 import { useWritableDiaries } from '@/data/useSharing';
@@ -34,6 +35,8 @@ export function QuickPage() {
     return { choose: null, selection: quickEntrySelection(diary, states) };
   }, [data.diary, wanted, writableIds]);
   const selection = query.status === 'ok' ? query.data.selection : null;
+  const weatherSettings = useDiaryWeatherSettings(selection?.state.template.diaryId);
+  const [useGps, setUseGps] = useGpsChoice(weatherSettings);
 
   async function save() {
     if (!selection) return;
@@ -43,12 +46,16 @@ export function QuickPage() {
     setSaving(true);
     try {
       const s = await data.stamper.stamp();
+      const settings = (await data.diary.getDiary(state.template.diaryId))?.settings.weather;
+      const initialMeta = settings && !useGps ? await initialWeatherMeta({ settings, useGps: false }, { currentPosition: () => Promise.reject(new Error('GPS aus')) }) : {};
+      const gpsFollowUp: DiaryWeatherSettings | null = settings?.enabled && useGps ? settings : null;
       const entry: Entry = {
         id: data.newId(), diaryId: state.template.diaryId, templateId: state.template.id, templateVersion: state.version.version,
         occurredAt: s.at, recordedAt: s.at, updatedAt: s.at, authorId: s.authorId, values: toSave, tags: [],
-        meta: { source: 'quick', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' }, hlc: s.hlc,
+        meta: { source: 'quick', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', ...initialMeta }, hlc: s.hlc,
       };
       await data.diary.saveEntry(entry);
+      if (gpsFollowUp || entry.meta.weatherPending) void data.weather.followUp(data.diary, entry.id, gpsFollowUp, data.stamper.stamp).catch(() => undefined);
       void navigate('/', { replace: true });
     } finally {
       setSaving(false);
@@ -84,6 +91,7 @@ export function QuickPage() {
           {selection.blocks.map((def) => (
             <BlockField key={def.id} def={def} diaryId={selection.state.template.diaryId} value={values[def.id]} invalid={false} onChange={(v) => (setValues({ ...values, [def.id]: v }), setEmpty(false))} />
           ))}
+          <WeatherSwitch settings={weatherSettings} checked={useGps} onChange={setUseGps} />
           {empty ? (
             <p role="alert" className="text-sm text-destructive">
               {de.quick.emptyHint}
