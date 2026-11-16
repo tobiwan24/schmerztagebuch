@@ -1,2 +1,2 @@
 /** Einzige Versionsquelle (Spec 12). Der Service Worker bekommt sie beim Build eingesetzt — kein manueller Abgleich wie in v2. */
-export const APP_VERSION = '3.1.0-alpha.1';
+export const APP_VERSION = '3.2.0-alpha.1';

@@ -4,6 +4,16 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.2.0-alpha.1',
+    date: '2026-11-16',
+    points: [
+      'Neu: Medikamente erfassen mit Name, Dosis, Einheit, Uhrzeit und Wirkung. Im Vorlagen-Editor legst du Vorgaben an, im Formular und im Schnelleintrag tippst du sie nur an.',
+      'Neu: Die Vorlage „Schmerztagebuch mit Medikamenten“ ist im Katalog.',
+      'Neu: Auswertung → Häufigkeiten zeigt ein Kreisdiagramm mit dem Anteil je Medikament.',
+      'Medikamente erscheinen in Suche, Filter, Medikamententagen, CSV, JSON und PDF-Bericht.',
+    ],
+  },
+  {
     version: '3.1.0-alpha.1',
     date: '2026-11-16',
     points: [
