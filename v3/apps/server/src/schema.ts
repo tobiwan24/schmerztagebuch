@@ -175,6 +175,20 @@ const MIGRATIONS: readonly string[] = [
   );
   CREATE INDEX blobs_diary ON blobs(diary_id);
   `,
+  // 10: Arzt-Link (Spec 07/02 `shares`, M18): nur Chiffretext; der Schluessel steht im URL-Fragment und erreicht den Server nie
+  `
+  CREATE TABLE shares (
+    id TEXT PRIMARY KEY,
+    created_by TEXT NOT NULL,
+    ciphertext TEXT NOT NULL,
+    expires_at INTEGER NOT NULL,
+    max_views INTEGER NOT NULL,
+    views INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    revoked_at INTEGER
+  );
+  CREATE INDEX shares_creator ON shares (created_by);
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

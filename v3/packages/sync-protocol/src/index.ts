@@ -102,4 +102,33 @@ export const BLOB_MAX_BYTES = 20 * 1024 * 1024;
 export const BLOB_CIPHERTEXT_MAX_CHARS = Math.ceil(((BLOB_MAX_BYTES + 33) * 4) / 3);
 export const blobIdSchema = z.string().regex(/^[A-Za-z0-9-]{1,128}$/);
 export const blobQuerySchema = z.strictObject({ diaryId: z.string().min(1).max(128) });
+// Arzt-Link (Spec 07, M18): nur Chiffretext; die ID erzeugt der Client (A-102), der Schluessel verlaesst das Geraet nie.
+/** Obergrenze fuer den Chiffretext eines Berichts (Zeichen, base64url), entspricht "<= 10 MB". */
+export const SHARE_CIPHERTEXT_MAX_CHARS = 10 * 1024 * 1024;
+export const SHARE_EXPIRY_DAYS_MAX = 30;
+export const SHARE_EXPIRY_DAYS_DEFAULT = 14;
+export const SHARE_MAX_VIEWS_MAX = 20;
+export const SHARE_MAX_VIEWS_DEFAULT = 5;
+export const shareIdSchema = z.string().regex(/^[A-Za-z0-9_-]{22}$/);
+export const createShareRequestSchema = z.strictObject({
+  id: shareIdSchema,
+  ciphertext: z.string().regex(/^[A-Za-z0-9_-]+$/).min(1).max(SHARE_CIPHERTEXT_MAX_CHARS),
+  expiresInDays: z.number().int().min(1).max(SHARE_EXPIRY_DAYS_MAX).default(SHARE_EXPIRY_DAYS_DEFAULT),
+  maxViews: z.number().int().min(1).max(SHARE_MAX_VIEWS_MAX).default(SHARE_MAX_VIEWS_DEFAULT),
+});
+export type CreateShareRequest = z.input<typeof createShareRequestSchema>;
+export const shareStatusSchema = z.enum(['active', 'expired', 'exhausted', 'revoked']);
+export type ShareStatus = z.infer<typeof shareStatusSchema>;
+export const shareInfoSchema = z.strictObject({
+  id: shareIdSchema,
+  createdAt: z.number().int(),
+  expiresAt: z.number().int(),
+  maxViews: z.number().int(),
+  views: z.number().int(),
+  status: shareStatusSchema,
+});
+export type ShareInfo = z.infer<typeof shareInfoSchema>;
+export const sharesListResponseSchema = z.strictObject({ shares: z.array(shareInfoSchema) });
+export const shareFetchResponseSchema = z.strictObject({ ciphertext: z.string(), expiresAt: z.number().int(), viewsLeft: z.number().int() });
+export type ShareFetchResponse = z.infer<typeof shareFetchResponseSchema>;
 export { planVersionRenumber, type RenumberInput, type RenumberPlan } from './renumber.js';
