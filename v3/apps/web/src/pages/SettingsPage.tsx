@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
 import { CloudRegister } from '@/components/CloudSetup';
 import { BackupCodeStep } from '@/components/BackupCodeStep';
+import { DevicesSection } from '@/components/DevicesSection';
 import { FactorsSection } from '@/components/FactorsSection';
 import { AuthErrorNotice } from '@/components/AuthErrorNotice';
 import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
@@ -54,6 +55,7 @@ export function SettingsPage() {
           <CardContent className="text-sm text-muted-foreground">{de.settings.cloudActive}</CardContent>
         </Card>
       ) : null}
+      {auth.status === 'unlocked' && auth.accountMode === 'cloud-primary' ? <DevicesSection /> : null}
       <Card>
         <CardHeader>
           <CardTitle>{de.settings.appearance}</CardTitle>

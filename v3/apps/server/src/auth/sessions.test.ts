@@ -86,4 +86,17 @@ describe('Sitzungen und Gerätesperre', () => {
     now += SESSION_TTL_MS;
     expect((await pull(s1)).statusCode).toBe(401);
   });
+
+  it('CRY-19: GET /devices listet nur eigene Geräte (verschlüsselter Name, gesperrt-Zeitpunkt), ohne Fremde und ohne Schlüssel', async () => {
+    const s1 = createSession(db, 'u1', 'd1', now).token;
+    await revoke(s1, 'd2');
+    const res = await app.inject({ method: 'GET', url: '/api/v1/devices', headers: cookie(s1) });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual([
+      { id: 'd1', nameCt: 'n1', createdAt: 0, revokedAt: null },
+      { id: 'd2', nameCt: 'n2', createdAt: 0, revokedAt: now },
+    ]);
+    expect(res.body).not.toContain('pk1');
+    expect((await app.inject({ method: 'GET', url: '/api/v1/devices' })).statusCode).toBe(401);
+  });
 });

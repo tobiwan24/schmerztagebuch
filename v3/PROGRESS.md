@@ -7,9 +7,9 @@
 - **Meilenstein:** M14 „Nacharbeiten v2-Parität" erledigt (28/28 IDs, Skript „OK"; Abschlussaufgabe M14.22 läuft mit M14b); aktuell der Teil-Meilenstein M14b „v2-Parität, Rest" (15/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M14c abschließen (Akzeptanz-Skript), dann restliches M14b ab M14.34 (CRY-19). Entscheidungen: A-036 bis A-073. **verify:docker (QA-08) am Ende von M14b/M14c einmal nachholen** (Docker Desktop stürzt beim compose-Build ab).
+- **Nächste Aufgabe:** restliches M14b ab M14.35 (CRY-20). M14c ist erledigt (Playwright-Worker wieder auf 2, Commit 96729bd). Entscheidungen: A-036 bis A-073. **verify:docker (QA-08) am Ende von M14b/M14c einmal nachholen** (Docker Desktop stürzt beim compose-Build ab).
 - **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29), M14.16 (BLK-30), M14.17 (BLK-31), M14.18 (BLK-35, BLK-36), M14.19 (UI-16, UI-19), M14.1 (BLK-40), M14.20 (UI-17), M14.21 (UI-18)
-- **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15), M14.31 (EXP-17), M14.32 (EXP-16), M14.33 (CRY-18)
+- **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15), M14.31 (EXP-17), M14.32 (EXP-16), M14.33 (CRY-18), M14.34 (CRY-19)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. **Achtung:** `npm run verify` überschreibt `reports/vitest.json` mit übersprungenem QA-08 → vor `npm run acceptance` gesamt `npm run verify:docker` (Docker Desktop muss laufen).
 - **Nacharbeiten (Formular, Vorlagen-Editor, Tagebuch-Einstellungen, Wetter-Anbindung, Umnummerierung n+2, Bild-Artefakt, Parität):** ersetzt durch M14. Body-Map (Pinsel, Größe, Kommentar, eigene Bilder) ist seit M8b erledigt.
@@ -56,7 +56,7 @@
 | M14.31 | Auto-Sicherung, Kern (Schlüssel, Format, Ablage, Auslöser) — M14b — erledigt | EXP-17 |
 | M14.32 | Hinweis „Backup wiederherstellen" bei leerer DB (nach M14.31) — M14b — erledigt | EXP-16 |
 | M14.33 | Sicherheit: Passwort ändern, Passkey hinzufügen/entfernen, Backup-Code erneuern (ggf. zwei Commits: local / Konto) — M14b — erledigt | CRY-18 |
-| M14.34 | Geräteliste, Abmelden, Sperren (Server-Endpunkt `GET/DELETE /api/v1/devices` falls nötig → DECISIONS A-022) (nach M14.33) — M14b | CRY-19 |
+| M14.34 | Geräteliste, Abmelden, Sperren (Server-Endpunkt `GET /api/v1/devices`, A-075) (nach M14.33) — M14b — erledigt | CRY-19 |
 | M14.35 | Sperre: Dauer, Widerruf, Inaktivität — M14b | CRY-20 |
 | M14.36 | Konto: „Jetzt synchronisieren", Wechsel zurück auf local-only — M14b | UI-20 |
 | M14.37 | Gefahr-Zone (nach M14.31) — M14b | UI-21 |
@@ -89,8 +89,8 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M12 | erledigt | 9/9 IDs |
 | M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
 | M14 | erledigt | 28/28 IDs (Skript OK nach vollem E2E: 166 grün) — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
-| M14c | aktuell (Vorrang) | 6/6 IDs — Gate-Feedback 2026-11-16 |
-| M14b | zurückgestellt | 15/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
+| M14c | erledigt | 6/6 IDs (Skript OK nach vollem E2E, 213 grün) — Gate-Feedback 2026-11-16 |
+| M14b | aktuell | 16/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
 
@@ -289,3 +289,4 @@ Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19,
 | 2026-11-16 | M14c.3 | UI-25 | „Neuer Eintrag"-Knopf aus `HistoryPage` entfernt (Start behält ihn); E2E in `history-list.spec.ts` (leer und mit Einträgen), `entry.spec.ts` (BLK-09) geht für „Neuer Eintrag" jetzt über Start. |
 | 2026-11-16 | M14c.4 | BLK-47 | Detailansicht: neue `BodyMapView` (BodyMapField.tsx) zeigt Bild (Standard oder eigenes) + Markierungen schreibgeschützt über die exportierte `MarkShape` des Felds (identisches SVG wie im Editor, im E2E verglichen), darunter Liste mit Nummer/Art/Intensität/Kommentar. A-074 (nur bei vorhandenem Wert; leere Markierungsliste → Bild ohne Marker). |
 | 2026-11-16 | M14c.5 | EXP-18 | Verlauf: Knopf „Exportieren“ (Link mit FilterSpec als Router-State) → Export-Seite mit vorausgewählter „Auswahl aus dem Verlauf“; „Mehr → Export“ unverändert. E2E in history-filter.spec (JSON enthält 2 von 3 Einträgen). |
+| 2026-11-16 | M14.34 | CRY-19 | Geräteliste in Einstellungen (nur Konto): Server `GET /api/v1/devices`, `auth/devices.ts` (Name mit UMK lesen, „dieses Gerät" über `/auth/me`, `discardLocalKeys`), `DevicesSection` (Sperren mit Rückfrage, Abmelden); `AccountApi` um me/listDevices/revokeDevice/logout erweitert. Tests: Server (sessions.test), Integration (cloud-account.test), E2E devices.spec. A-075. M14c nach vollem E2E (213 grün, Worker 2) als erledigt abgehakt. Erkenntnis: `test:e2e` per Redirect nach /tmp landet unter Windows in `C:	mp`, Datei vor Abschluss ist veraltet. |

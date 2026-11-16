@@ -11,6 +11,8 @@ import { createSoftAuthenticator } from '../../apps/server/src/auth/soft-authent
 import { StbDb } from '../../apps/web/src/data/db.js';
 import { AccountApiError, type AccountApi, type CredentialJson } from '../../apps/web/src/auth/account-api.js';
 import { createCloudDiary, loginOnNewDevice, openDiaryKeys, prepareCloudBackupCodeRenewal, prepareCloudRecovery, prepareCloudRegistration, startCloudRecovery } from '../../apps/web/src/auth/cloud-account.js';
+import { discardLocalKeys, loadDevices } from '../../apps/web/src/auth/devices.js';
+import { createCryptoSession } from '../../apps/web/src/data/crypto-session.js';
 import { unlockLocal } from '../../apps/web/src/auth/local-account.js';
 
 const ORIGIN = 'http://localhost:4173';
@@ -32,7 +34,7 @@ async function server() {
 /** AccountApi über fastify.inject mit eigenem Cookie-Speicher (ein Gerät = ein Browser). */
 function injectApi(app: FastifyInstance): AccountApi & { cookie: () => string } {
   let cookie = '';
-  async function call<T>(method: 'GET' | 'POST' | 'PUT', url: string, payload?: unknown): Promise<T> {
+  async function call<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, payload?: unknown): Promise<T> {
     const res = await app.inject({ method, url, headers: cookie ? { cookie } : {}, ...(payload === undefined ? {} : { payload: payload as object }) });
     const set = res.headers['set-cookie'];
     if (set) cookie = String(set).split(';')[0]!;
@@ -50,6 +52,10 @@ function injectApi(app: FastifyInstance): AccountApi & { cookie: () => string } 
     renewBackupCode: (body) => call('PUT', '/api/v1/auth/backup-code', body),
     createDiary: (body) => call('POST', '/api/v1/diaries', body),
     listDiaries: () => call('GET', '/api/v1/diaries'),
+    me: () => call('GET', '/api/v1/auth/me'),
+    listDevices: () => call('GET', '/api/v1/devices'),
+    revokeDevice: (id) => call('DELETE', `/api/v1/devices/${encodeURIComponent(id)}`),
+    logout: () => call('POST', '/api/v1/auth/logout', {}),
   };
 }
 
@@ -180,5 +186,46 @@ describe('Konto „Mit Konto"', () => {
     await expect(unlockLocal(dbA, { kind: 'backup', code: reg.backupCode })).rejects.toMatchObject({ code: 'unwrap-failed' });
     expect(await raw(await unlockLocal(dbA, { kind: 'backup', code: renewal.backupCode }))).toEqual(await raw(reg.umk));
     expect(await raw(await unlockLocal(dbA, { kind: 'passkey', prf }))).toEqual(await raw(reg.umk));
+  });
+
+  it('CRY-19: Geräteliste mit „dieses Gerät“; anderes Gerät sperren beendet dessen Sitzung; Abmelden verwirft Schlüssel und Wraps, Daten bleiben', async () => {
+    const { app } = await server();
+    const passkey = createSoftAuthenticator();
+    const prf = crypto.getRandomValues(new Uint8Array(32));
+    const apiA = injectApi(app);
+    const dbA = await localDb();
+    const { challengeId, options } = await apiA.registerOptions('carla');
+    const credential = passkey.register({ challenge: options.challenge, rpId: 'localhost', origin: ORIGIN, userHandle: options.user.id }) as CredentialJson;
+    const pending = await prepareCloudRegistration(dbA, apiA, { challengeId, username: 'carla', credential, prf, now });
+    await pending.commit();
+    await createCloudDiary(dbA, apiA, pending.account, 'diary-a');
+
+    const apiB = injectApi(app);
+    const dbB = await localDb();
+    const login = await apiB.loginOptions();
+    const assertion = passkey.authenticate({ challenge: login.options.challenge, rpId: 'localhost', origin: ORIGIN }) as CredentialJson;
+    await loginOnNewDevice(dbB, apiB, { challengeId: login.challengeId, credential: assertion, prf, now });
+
+    const onA = await loadDevices(apiA, pending.umk);
+    expect(onA).toHaveLength(2);
+    expect(onA.filter((d) => d.current)).toHaveLength(1);
+    const own = onA.find((d) => d.current)!;
+    const other = onA.find((d) => !d.current)!;
+    expect(own.name).toBeTruthy(); // Gerät A hat seinen Namen mit der UMK verschlüsselt
+    expect(onA.every((d) => d.revokedAt === null)).toBe(true);
+
+    await apiA.revokeDevice(other.id);
+    expect((await loadDevices(apiA, pending.umk)).find((d) => d.id === other.id)!.revokedAt).not.toBeNull();
+    await expect(apiB.listDiaries()).rejects.toMatchObject({ status: 401 }); // B ist gesperrt
+
+    const session = createCryptoSession(dbA, { now });
+    session.unlock(pending.umk);
+    const records = await dbA.records.count();
+    await discardLocalKeys(dbA, apiA, session);
+    expect(await dbA.keys.get('account')).toBeUndefined();
+    expect(await dbA.keys.get('dk:diary-a')).toBeUndefined();
+    expect(session.isUnlocked()).toBe(false);
+    expect(await dbA.records.count()).toBe(records); // Daten bleiben
+    await expect(apiA.me()).rejects.toMatchObject({ status: 401 }); // Serversitzung beendet
   });
 });

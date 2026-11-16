@@ -62,3 +62,18 @@ export function revokeDevice(db: Db, userId: string, deviceId: string, now: numb
     return 'ok' as const;
   })();
 }
+
+export interface DeviceInfo {
+  id: string;
+  nameCt: string;
+  createdAt: number;
+  revokedAt: number | null;
+}
+
+/** Eigene Geräte (Spec 03, CRY-19): nur Name (verschlüsselt) und Zeitpunkte, nie der Geräteschlüssel. */
+export function listDevices(db: Db, userId: string): DeviceInfo[] {
+  const rows = db.prepare('SELECT id, name_ct, created_at, revoked_at FROM devices WHERE user_id = ? ORDER BY created_at, id').all(userId) as {
+    id: string; name_ct: string; created_at: number; revoked_at: number | null;
+  }[];
+  return rows.map((r) => ({ id: r.id, nameCt: r.name_ct, createdAt: r.created_at, revokedAt: r.revoked_at }));
+}

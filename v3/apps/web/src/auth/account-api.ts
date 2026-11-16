@@ -34,6 +34,21 @@ export interface AccountApi {
   renewBackupCode(body: { umkWrapBackup: string; backupAuth: string }): Promise<void>;
   createDiary(body: { diaryId: string; wrappedDk: string }): Promise<void>;
   listDiaries(): Promise<DiaryMembership[]>;
+  /** Angemeldetes Gerät (Sitzung) — für „dieses Gerät“ in der Geräteliste (CRY-19). */
+  me(): Promise<{ userId: string; deviceId: string }>;
+  listDevices(): Promise<DeviceRecord[]>;
+  /** Anderes eigenes Gerät sperren (`revoked_at`, Sitzungen enden; CRY-14). */
+  revokeDevice(id: string): Promise<void>;
+  /** Sitzung auf dem Server beenden (Cookie wird gelöscht). */
+  logout(): Promise<void>;
+}
+
+export interface DeviceRecord {
+  id: string;
+  /** `iv.ciphertext` (base64url), mit der UMK verschlüsselt. */
+  nameCt: string;
+  createdAt: number;
+  revokedAt: number | null;
 }
 
 /** Fehler der Konto-API mit Server-Code (`challenge-expired`, `username-taken`, …) oder `server-unreachable`. */
@@ -74,5 +89,9 @@ export function createFetchAccountApi(baseUrl = '', fetchFn: typeof fetch = glob
     renewBackupCode: (body) => call('PUT', '/api/v1/auth/backup-code', body),
     createDiary: (body) => call('POST', '/api/v1/diaries', body),
     listDiaries: () => call('GET', '/api/v1/diaries'),
+    me: () => call('GET', '/api/v1/auth/me'),
+    listDevices: () => call('GET', '/api/v1/devices'),
+    revokeDevice: (id) => call('DELETE', `/api/v1/devices/${encodeURIComponent(id)}`),
+    logout: () => call('POST', '/api/v1/auth/logout', {}),
   };
 }

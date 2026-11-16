@@ -3,11 +3,17 @@ import { z } from 'zod';
 import type { Db } from '../db.js';
 import type { AuthProvider } from './types.js';
 import { requirePrincipal } from './require.js';
-import { revokeDevice } from './sessions.js';
+import { listDevices, revokeDevice } from './sessions.js';
 
 const params = z.object({ id: z.string().min(1).max(128) });
 
 export function registerDeviceRoutes(app: FastifyInstance, { db, auth, now }: { db: Db; auth: AuthProvider; now: () => number }): void {
+  app.get('/api/v1/devices', async (req, reply) => {
+    const p = await requirePrincipal(auth, req, reply);
+    if (!p) return reply;
+    return listDevices(db, p.userId);
+  });
+
   app.delete('/api/v1/devices/:id', async (req, reply) => {
     const p = await requirePrincipal(auth, req, reply);
     if (!p) return reply;

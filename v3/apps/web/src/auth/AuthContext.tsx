@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { UmkFactor } from '@stb/crypto';
 import { StbDb } from '@/data/db';
 import { createCryptoSession, type CryptoSession } from '@/data/crypto-session';
+import { discardLocalKeys, loadDevices, type DeviceView } from './devices';
 import { hasAccount, loadAccount, unlockLocal, type PendingAccount, type PendingBackupCode } from './local-account';
 import { preparePasskeyRequest, prfOutput, type CredentialsLike } from './passkey';
 import { createFetchAccountApi, type AccountApi } from './account-api';
@@ -62,6 +63,12 @@ export interface CloudAuth {
   prepareBackupCodeRenewal(): Promise<PendingBackupCode>;
   /** Tagebuch auf dem Server anlegen (DK für die eigene Identity) und in der Sitzung bereitstellen. */
   createDiary(diaryId: string): Promise<void>;
+  /** Eigene Geräte mit „dieses Gerät“ (CRY-19). */
+  devices(): Promise<DeviceView[]>;
+  /** Anderes eigenes Gerät sperren (CRY-19, CRY-14). */
+  revokeDevice(id: string): Promise<void>;
+  /** Auf diesem Gerät abmelden: Sitzung beenden, Schlüssel und Wraps verwerfen; Daten bleiben (CRY-19). */
+  signOut(): Promise<void>;
 }
 
 const AuthContext = createContext<AuthApi | null>(null);
@@ -186,6 +193,13 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
         });
       },
       prepareBackupCodeRenewal: () => prepareCloudBackupCodeRenewal(db, server, session.umk()),
+      devices: () => loadDevices(server, session.umk()),
+      revokeDevice: (id) => server.revokeDevice(id),
+      async signOut() {
+        await discardLocalKeys(db, server, session);
+        setAccountVersion((v) => v + 1);
+        setStatus('no-account');
+      },
       async createDiary(diaryId) {
         const account = await loadAccount(db);
         if (!isCloudAccount(account)) return;
