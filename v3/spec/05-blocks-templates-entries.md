@@ -51,10 +51,11 @@ Route `/more/templates/new` und `/more/templates/:id` (nur `owner` bzw. local-on
 
 ## Schnelleintrag
 
-- Pro Tagebuch konfigurierbar: Vorlage + Auswahl der Blöcke für den Schnelleintrag (Standard: alle `outcome`-Blöcke, sonst der erste Slider).
-- Erreichbar mit **einem Tipp** von der Startseite; Speichern mit höchstens **drei Tipps** insgesamt.
+- **Im Vorlagen-Editor** festgelegt: je Block ein Schalter „Im Schnelleintrag" (`Template.quickBlockIds`, nicht versioniert wie Name/Icon; Reihenfolge folgt der Vorlage). Ohne Auswahl gilt die Standardregel (alle `outcome`-Blöcke, sonst der erste Slider). Die frühere Auswahl in den Tagebuch-Einstellungen entfällt; bestehende Einstellungen (`quickEntryTemplateId`/`quickEntryBlockIds`) werden beim ersten Start in die Vorlage übernommen, sofern sie dort noch keine Auswahl hat (A-070).
+- **Auswahl der Vorlage** im Schnelleintrag: alle aktiven Vorlagen des Tagebuchs (jede hat Schnelleintrag-Felder, notfalls per Standardregel) als Auswahl oberhalb der Felder; die zuletzt genutzte ist vorausgewählt (sonst die erste in Vorlagen-Reihenfolge).
+- Erreichbar mit **einem Tipp** von der Startseite; Speichern mit höchstens **drei Tipps** insgesamt (Vorauswahl der Vorlage = kein Tipp).
 - Weitere Felder können später im Eintrag ergänzt werden (`meta.source = 'quick'`).
-- Einstellung in Mehr → Tagebücher → Einstellungen (Vorlage, Blöcke per Häkchen; leer = Standardregel). Mehrere beschreibbare Tagebücher: Start zeigt je Tagebuch einen Knopf (`/quick?diary=<id>`); `/quick` ohne Parameter zeigt dann eine Auswahl. Wetter wie im Formular (fester Ort / `gpsDefault`).
+- Mehrere beschreibbare Tagebücher: Start zeigt je Tagebuch einen Knopf (`/quick?diary=<id>`); `/quick` ohne Parameter zeigt dann eine Auswahl. Wetter wie im Formular (fester Ort / `gpsDefault`).
 
 ## Wetter als Metadaten
 
@@ -115,7 +116,7 @@ Route `/more/templates/new` und `/more/templates/:id` (nur `owner` bzw. local-on
 | BLK-34 | Nachtrag: beim Entsperren und beim Ereignis `online` werden Einträge mit `weatherPending` aller Tagebücher nacheinander nachgetragen (ein Lauf zur Zeit), danach ohne `weatherPending` und mit neuem HLC; fehlgeschlagene bleiben markiert. | integration |
 | BLK-35 | Eintrag-Detail „Löschen": Bestätigungsdialog; Bestätigen entfernt den Eintrag aus Detail, Start und Verlauf (Tombstone mit neuem HLC, zugehörige Anhang-Metadaten ebenfalls gelöscht); Abbrechen ändert nichts. | e2e |
 | BLK-36 | Eintrag-Detail „Duplizieren": öffnet das Formular vorbefüllt mit Vorlage, Werten (abgebildet auf die aktuelle Version, ohne archivierte Felder und ohne Anhänge) und Tags, Zeitpunkt = jetzt; Speichern erzeugt einen neuen Eintrag mit neuer ID, das Original bleibt unverändert. | e2e |
-| BLK-37 | Schnelleintrag pro Tagebuch: in den Tagebuch-Einstellungen gewählte Vorlage + Blöcke erscheinen in `/quick?diary=<id>`; bei mehreren beschreibbaren Tagebüchern zeigt der Start je Tagebuch einen Schnelleintrag-Knopf (Speichern weiter in ≤ 3 Tipps), `/quick` ohne Parameter zeigt dann eine Auswahl; ohne Einstellung gilt die Standardregel. | e2e |
+| BLK-37 | Schnelleintrag pro Tagebuch (Auswahl ab M14c im Vorlagen-Editor, BLK-45; bis dahin in den Tagebuch-Einstellungen): gewählte Vorlage + Blöcke erscheinen in `/quick?diary=<id>`; bei mehreren beschreibbaren Tagebüchern zeigt der Start je Tagebuch einen Schnelleintrag-Knopf (Speichern weiter in ≤ 3 Tipps), `/quick` ohne Parameter zeigt dann eine Auswahl; ohne Einstellung gilt die Standardregel. | e2e |
 | BLK-38 | Ortssuche: Geocoding-Request erst ab 2 Zeichen (`count=5`, `language=de`), Treffer als „Ort, Region, Land"; gewählter Ort wird auf 1 Dezimalstelle gerundet gespeichert; „Aktuellen Standort übernehmen" rundet ebenso; Fehler/offline → Hinweis, nichts gespeichert. | unit |
 | BLK-39 | Wetter-Ort setzen im Onboarding (optionaler, überspringbarer Schritt) und in den Tagebuch-Einstellungen (Ortssuche mit gemockter Geocoding-API oder Standort) → `settings.weather.location` gesetzt, Wetter an; Ort entfernen → Wetter aus und Hinweis „Ohne Ort kein Wetter". | e2e |
 | BLK-40 | Standardbilder „Körper Vorderseite/Rückseite" haben in den äußeren 4 Pixelspalten links keine sichtbaren Pixel (Alpha = 0) — Regression für das Artefakt bei y≈470. | unit |
@@ -123,3 +124,6 @@ Route `/more/templates/new` und `/more/templates/:id` (nur `owner` bzw. local-on
 | BLK-42 | Eintragsformular (neu, mehrere Vorlagen): Wischen nach links/rechts wechselt die Vorlage wie die Auswahlknöpfe; mit Eingaben nur nach Rückfrage (BLK-09-Regel). | e2e |
 | BLK-43 | `BlockDef.hideLabel` (optional) wird von Schema, Editor (je Block und „alle Labels ein/aus") und JSON-Export unterstützt; Umschalten erzeugt eine neue Version (Spec 02: Label-Darstellung ist Struktur). | unit |
 | BLK-44 | Start zeigt Vorlagen-Kacheln (Icon, Farbe, Name) aller aktiven Vorlagen beschreibbarer Tagebücher in Vorlagen-Reihenfolge; ein Tipp öffnet `/entry/new?template=<id>` mit dieser Vorlage; im Konto-Modus Begrüßung mit Benutzernamen. | e2e |
+| BLK-45 | Schnelleintrag im Vorlagen-Editor: je Block Schalter „Im Schnelleintrag" (`quickBlockIds`, keine neue Vorlagenversion); `/quick` zeigt genau diese Blöcke in Vorlagen-Reihenfolge, ohne Auswahl die Standardregel; frühere Tagebuch-Einstellungen werden migriert und sind in den Tagebuch-Einstellungen nicht mehr einstellbar. | e2e |
+| BLK-46 | Schnelleintrag mit Vorlagenwahl: `/quick` bietet alle aktiven Vorlagen des Tagebuchs zur Auswahl, die zuletzt genutzte ist vorausgewählt; Wechsel tauscht die Felder (mit Eingaben nur nach Rückfrage, BLK-09-Regel); Speichern bleibt in ≤ 3 Tipps. | e2e |
+| BLK-47 | Eintrags-Detailansicht (`/entry/:id`, aus dem Verlauf): Körperkarten-Felder zeigen das Bild mit Markierungen (Punkte/Pinsel, Nummern, Kommentare) schreibgeschützt, mit Standard- und eigenem Bild; Feld ohne Markierung zeigt das Bild ohne Marker. | e2e |

@@ -7,7 +7,7 @@
 - **Meilenstein:** M14 „Nacharbeiten v2-Parität" erledigt (28/28 IDs, Skript „OK"; Abschlussaufgabe M14.22 läuft mit M14b); aktuell der Teil-Meilenstein M14b „v2-Parität, Rest" (15/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M14.34 Geräteliste, Abmelden, Sperren (CRY-19). Entscheidungen: A-036 bis A-068.
+- **Nächste Aufgabe:** M14c.1 PDF-Download-Bug (EXP-19), danach M14c.2–M14c.5 (siehe Gate-Feedback), dann erst M14.34 (CRY-19). Entscheidungen: A-036 bis A-073. **verify:docker (QA-08) am Ende von M14b/M14c einmal nachholen** (Docker Desktop stürzt beim compose-Build ab).
 - **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29), M14.16 (BLK-30), M14.17 (BLK-31), M14.18 (BLK-35, BLK-36), M14.19 (UI-16, UI-19), M14.1 (BLK-40), M14.20 (UI-17), M14.21 (UI-18)
 - **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15), M14.31 (EXP-17), M14.32 (EXP-16), M14.33 (CRY-18)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
@@ -89,7 +89,8 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M12 | erledigt | 9/9 IDs |
 | M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
 | M14 | erledigt | 28/28 IDs (Skript OK nach vollem E2E: 166 grün) — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
-| M14b | aktuell | 15/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
+| M14c | aktuell (Vorrang) | 0/6 IDs — Gate-Feedback 2026-11-16 |
+| M14b | zurückgestellt | 15/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
 
@@ -120,6 +121,18 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 - [ ] v2-Server nach 30 Tagen abgeschaltet
 
 ## Gate-Feedback (vom User, vor dem nächsten Meilenstein umzusetzen)
+
+- 2026-11-16 (Durchklicken auf dem Dev-Server), wörtlich: „nimm als todo mit auf, dass der schnelleintrag überarbeitet werden muss. er sollte im editor anpassbar sein. außerdem fehlt die auswahl zwischen den vorlagen beim schnelleintrag. wieso ist im tab verlauf angedacht, dass man einen neuen eintrag anlegen kann? wieso kann man unter verlauf bei einem eintrag mit schmerzkarte das bild nicht anschauen? wieso gibt es im Tab verlauf den export nicht? dort macht er für Einträge Sinn, im speziellen wenn man filter angewendet hat. prüfe den pdf download, es kommt kein funktionsfähiges pdf heraus."
+  → Teil-Meilenstein **M14c** (Vorrang vor dem restlichen M14b), Entscheidungen A-069–A-073:
+
+| # | Inhalt | IDs |
+|---|---|---|
+| M14c.0 | Doku (Specs 05/07/10, MILESTONES, DECISIONS) — erledigt | — |
+| M14c.1 | **PDF-Download defekt** (Bug, höchste Priorität): im echten Browser reproduzieren, Ursache beheben, Test öffnet die heruntergeladene Datei mit pdfjs | EXP-19 |
+| M14c.2 | Schnelleintrag überarbeiten: Editor-Schalter je Block, Vorlagenwahl, Migration der Tagebuch-Einstellung | BLK-45 BLK-46 |
+| M14c.3 | Kein „Neuer Eintrag" im Verlauf | UI-25 |
+| M14c.4 | Body-Map-Bild in der Eintrags-Detailansicht | BLK-47 |
+| M14c.5 | Export im Verlauf mit angewendeten Filtern | EXP-18 |
 
 - 2026-11-12 (nach M4-Stopp): Docker Desktop gestartet. A-010: v2-Datum-Block diente zum **Nachtragen** und für
   **Zeiträume** → umgesetzt als Zeitangabe des Eintrags (`occurredAt` + optionales `period`), Specs 02/05/11 + BLK-19 (M8).
@@ -269,3 +282,4 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | 2026-11-16 | M14.33a | (CRY-18) | Zugang verwalten, local-only: `local-account.ts` (`setPassword`, `addPasskey`, `removePasskey`, `prepareBackupCodeRenewal`, `factorInfo`, `FactorManagementError`), `FactorsSection` in Einstellungen → Sicherheit (Rückfrage mit aktuellem Passwort, Passkey-Anlage im eigenen Klick, Pflichtbestätigung des neuen Backup-Codes), Ablage der Auto-Sicherung in `auto-backup-store.ts` ausgelagert (leicht) mit `refreshAutoBackupWraps` (ersetzter Faktor öffnet die Sicherung nicht mehr). Tests: Unit (Faktoren, Sicherung), E2E `security.spec.ts` (Passwort, Backup-Code, Passkey Chromium). CRY-18 erst mit M14.33b (Konto) vollständig. A-068. Erkenntnis: In WebKit schlug einmal eine Specdatei mit „browserContext.newPage: Target page, context or browser has been closed“ in Folge-Tests fehl (WebKit-Absturz, nicht reproduzierbar, Wiederholung grün) — gleiche Klasse wie die Lastflakes. |
 | 2026-11-16 | M14.33b | CRY-18 | Konto-Teil: Server `PUT /api/v1/auth/backup-code` (eingeloggt, ersetzt Backup-Wrap + Verifier atomar, Hash des Tokens), Client `AccountApi.renewBackupCode`, `prepareCloudBackupCodeRenewal` (Server zuerst, dann lokal), `AuthApi.cloud.prepareBackupCodeRenewal`; `FactorsSection` zeigt im Konto nur „Backup-Code erneuern“. Tests: Server-Integration, Web+Server-Integration (alter Code überall ungültig), E2E (Zweitgerät lehnt alten Code ab, neuer geht). Tests der Aufgabe M14.33 jetzt unter ID CRY-18. A-068 ergänzt (Passwort/Passkey-Verwaltung nur local-only; Passkey entfernen im Konto Backlog). Server berührt → `verify:docker` NACHHOLEN (QA-08): Docker-Image-Build des Servers gelingt, der Web-Build lässt Docker Desktop abstürzen (buildkit EOF / WSL-Fehler, Host-Speicher knapp: ~1,5 GB frei neben 7,7-GB-VM) — Umgebungsproblem, kein Testfehler. Erkenntnis: `verify` scheiterte zweimal an Worker-OOM (Speicherdruck, 3–4 GB frei), der dritte Lauf war grün. |
 Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19, `navigation.spec` UI-05 Fehlerzustand) unter Volllast; einzeln erneut gelaufen: grün.
+| 2026-11-16 | M14c.0 | — | Doku Gate-Feedback: neue IDs EXP-19 (PDF-Datei mit pdfjs), BLK-45/46 (Schnelleintrag Editor/Vorlagenwahl), UI-25 (kein Neuer Eintrag im Verlauf), BLK-47 (Body-Map-Detail), EXP-18 (Export im Verlauf); Spec 05 „Schnelleintrag", Spec 10 Navigation, MILESTONES M14c, A-069–A-073. |
