@@ -4,18 +4,26 @@ Material für die Freigabe UI-13 (Spec 10 „Human-Gates", Spec 11 „Ablösung"
 **Alle Schritte führt der User aus** — der Loop stellt nichts um, pusht nichts und fasst das Deployment nicht an.
 Abhaken in [PROGRESS.md](PROGRESS.md) → „G4 — Ablösung" und „Ablösungs-Checkliste".
 
-## Stand vor dem Gate (2026-11-15)
+## Stand vor dem Gate (2026-11-16)
 
-- `npm run verify` grün, E2E 106 bestanden / 0 fehlgeschlagen.
-- `npm run acceptance`: 154 von 155 automatisierten IDs erfüllt. Offen:
+- M14 (Nacharbeiten v2-Parität), M14b (Rest der Parität) und M14c (Gate-Feedback) sind erledigt.
+- `npm run verify` grün; voller E2E-Lauf (Chromium + WebKit) 232 bestanden / 0 fehlgeschlagen (25 übersprungen: Passkey-Tests in WebKit, Lighthouse).
+- `npm run acceptance`: 210 automatisierte IDs erfüllt, 0 fehlgeschlagen. Offen:
   - **QA-08** (`docker compose up` startet Web + Server, Health antwortet) — Test existiert, wird ohne Docker übersprungen.
-    Vor Schritt 4 einmal mit laufendem Docker Desktop: `npm run verify:docker`.
+    Vor Schritt 4 einmal mit laufendem Docker Desktop: `npm run verify:docker` (Server wurde in M14b berührt: CRY-18/19).
 - Manuell offen: CRY-17, MIG-16, VOI-11, SHR-12, UI-13.
-- Stellvertretend durch den Loop geprüft (ADR-012): G3 (UI-12, ANA-16, EXP-13) mit synthetischen Daten.
-- Bekannte Lücken (Vorlagen-Editor, Tags, Textarea-Anhänge, Wetter-/GPS-Schalter, Tagebuch-Einstellungen u. a.)
-  werden in M14 geschlossen (siehe PROGRESS „Nächste Aufgaben"). Der Teil-Meilenstein M14b schließt die übrigen v2-Paritätslücken
-  (Formular-Parität, Verlauf-Filter/Sortierung, PDF-Layouts, Auto-Sicherung, Sicherheit/Geräte, Updates, Gefahr-Zone,
-  Tagebuch-Umschalter). Dieser Abschnitt wird am Ende von M14b neu geschrieben.
+- Stellvertretend durch den Loop geprüft (ADR-012): G3 (UI-12, ANA-16, EXP-13) und der M14-Rundgang im iPhone-Viewport
+  (390×844, Chromium + WebKit gegen die Produktions-Vorschau, `e2e/m14-walkthrough.spec.ts`; Befunde in PROGRESS „M14-1…")
+  mit synthetischen Daten.
+
+## Bekannte Lücken
+
+- Keine funktionalen Lücken gegenüber v2 mehr bekannt (Vorlagen-Editor, Tags, Textarea-Anhänge, Wetter/GPS, Tagebuch-Einstellungen,
+  Verlauf-Filter, PDF-Layouts, Auto-Sicherung, Sicherheit/Geräte/Sperre, Updates, Gefahr-Zone sind umgesetzt).
+- **PDF-Fehler beim User:** nicht reproduziert. Heruntergeladene PDFs (alle drei Layouts, mit/ohne Passwort) öffnen in
+  pdfjs; behoben wurden zwei mögliche Ursachen (nicht ladbares Bild brach den Export ab, Blob-URL zu früh freigegeben).
+  **Bei der Abnahme mit den echten Daten prüfen** (Mehr → Export und Verlauf → Exportieren, alle Layouts).
+- Nicht automatisierbar: Passkey/Face ID auf dem iPhone, Kurzbefehl, Einladung an zweites Gerät, Migration mit echten Daten.
 
 ## Checkliste (Spec 11)
 

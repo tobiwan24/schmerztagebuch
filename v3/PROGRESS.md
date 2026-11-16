@@ -4,10 +4,10 @@
 
 ## Aktuell
 
-- **Meilenstein:** M14 „Nacharbeiten v2-Parität" erledigt (28/28 IDs, Skript „OK"; Abschlussaufgabe M14.22 läuft mit M14b); aktuell der Teil-Meilenstein M14b „v2-Parität, Rest" (22/22 IDs erfüllt, Abschlussaufgabe M14.22 offen). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
+- **Meilenstein:** M14, M14b und M14c erledigt (Gesamt-Akzeptanz 210 erfüllt, offen nur QA-08 ohne Docker und die manuellen IDs). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md) (aktualisiert 2026-11-16). Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** nur noch **M14.22** (Abschluss M14 + M14b: `verify:docker`, Browserprüfung ADR-012, `GATE-G4.md` neu, Gesamt-Akzeptanz). Alle IDs von M14b sind erfüllt (22/22). M14c ist erledigt (Playwright-Worker wieder auf 2, Commit 96729bd). Entscheidungen: A-036 bis A-073. **verify:docker (QA-08) am Ende von M14b/M14c einmal nachholen** (Docker Desktop stürzt beim compose-Build ab).
+- **Nächste Aufgabe:** v3.x-Planung (M15+), Koordinator. Davor/daneben: `npm run verify:docker` (QA-08) einmal mit laufendem Docker nachholen; Abnahme PDF mit echten Daten (GATE-G4). Entscheidungen: A-036 bis A-077.
 - **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29), M14.16 (BLK-30), M14.17 (BLK-31), M14.18 (BLK-35, BLK-36), M14.19 (UI-16, UI-19), M14.1 (BLK-40), M14.20 (UI-17), M14.21 (UI-18)
 - **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15), M14.31 (EXP-17), M14.32 (EXP-16), M14.33 (CRY-18), M14.34 (CRY-19), M14.35 (CRY-20), M14.36 (UI-20), M14.37 (UI-21), M14.38 (UI-22), M14.39 (UI-23), M14.15d (BLK-44)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
@@ -62,7 +62,7 @@
 | M14.37 | Gefahr-Zone (nach M14.31) — M14b — erledigt | UI-21 |
 | M14.38 | Update-Einstellung und „Nach Updates suchen" (nach M14.20) — M14b — erledigt | UI-22 |
 | M14.39 | Start-Banner „Mit Konto synchronisieren" — M14b — erledigt | UI-23 |
-| M14.22 | Abschluss M14 + M14b: `verify:docker` (Server berührt), `test:e2e`, Gesamt-Akzeptanz, Browserprüfung (ADR-012), `GATE-G4.md` neu, PROGRESS | — |
+| M14.22 | Abschluss M14 + M14b — erledigt (`verify:docker` separat durch den Koordinator) | — |
 
 Hinweise: M14.7 direkt nach dem Editor; M14.8 ist Voraussetzung für Schnelleintrag, Ort und Wetter; M14.16 vor M14.17/M14.18. M14b-Aufgaben sind mit „— M14b" gekennzeichnet; Reihenfolge der Tabelle gilt, M14.22 (Abschluss) zuletzt. Wird der Server berührt (CRY-18/19), am Ende `verify:docker` (QA-08).
 Risiken: CSP gleichzeitig in `csp.ts`, `nginx.conf` und Test (QA-04); `diarySchema` erweitern → Export-Schema neu erzeugen (`scripts/gen-export-schema.mjs`);
@@ -90,7 +90,7 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
 | M14 | erledigt | 28/28 IDs (Skript OK nach vollem E2E: 166 grün) — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
 | M14c | erledigt | 6/6 IDs (Skript OK nach vollem E2E, 213 grün) — Gate-Feedback 2026-11-16 |
-| M14b | aktuell | 22/22 IDs (Skript OK nach vollem E2E: 229 grün; Abschluss M14.22 offen) — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
+| M14b | erledigt | 22/22 IDs (Skript OK nach vollem E2E: 232 grün; Abschluss M14.22 erledigt) — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
 
@@ -298,3 +298,4 @@ Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19,
 | 2026-11-16 | M14.39 | UI-23 | Start-Banner „Mit Konto synchronisieren“ (`CloudSyncBanner`): nur local-only mit ≥ 1 Eintrag, Link zu den Einstellungen, „Ausblenden“ merkt sich das (`keys` `cloud-banner:dismissed`); im Konto-Modus nie. |
 | 2026-11-16 | M14.15d | BLK-44 | Start: `TemplateTiles` (Begrüßung „Hallo, <Name>“ im Konto-Modus; Kacheln mit Icon/Farbe/Name aller aktiven Vorlagen beschreibbarer Tagebücher in Vorlagen-Reihenfolge); Tipp öffnet `/entry/new?template=<id>` (`EntryEditorPage` vorbelegt die Vorlage, nur wenn wählbar). |
 | 2026-11-16 | M14b (E2E) | QA-03 | Basislinie nach Neustart: voller `test:e2e` 217 grün / 22 übersprungen, keine Abstürze; nach UI-21/22/23 und BLK-44: 229 grün / 24 übersprungen. Erkenntnisse: Playwright-Aufruf mit Dateifilter läuft wegen der Projektabhängigkeit des Deploy-Tests effektiv die ganze Suite; `name: "Automatisch"` in Locatoren ist Teilstring-Treffer (UI-06) → Update-Label heißt „Selbstständig“. |
+| 2026-11-16 | M14.22 | — | Abschluss M14/M14b/M14c: voller `test:e2e` 232 grün (mit Rundgang-Spec) / 25 übersprungen; `acceptance` gesamt: 210 erfüllt, 0 fehlgeschlagen, fehlend nur QA-08 (ohne Docker), manuell 6/10 (Skript nennt CRY-17, VOI-11, SHR-12, UI-13; MIG-16 steht in PROGRESS offen). Browserprüfung ADR-012 im iPhone-Viewport 390×844 (Chromium + WebKit, Produktions-Vorschau), `e2e/m14-walkthrough.spec.ts`: Vorlagen-Editor anlegen/ändern, Eintrag mit Tags/PDF-Anhang/Körperkarte, Detail mit Körperkarte, Duplizieren/Löschen, Verlauf-Filter + Export daraus (Tabelle/Karten/Dashboard, Datei mit pdfjs geöffnet), Schnelleintrag mit Vorlagenwahl, Tagebuch-Einstellungen/Ort, Einstellungen (Sicherheit, Sperre, Updates, Konfliktprotokoll, Gefahr-Zone), Konto-Modus (Geräte, Sync, Backup-Code; Chromium). **Befunde:** M14-1 kein horizontaler Überlauf auf allen 14 besuchten Seiten (je `scrollWidth ≤ innerWidth`); M14-2 alle drei PDF-Layouts aus dem Verlauf-Filter öffnen in pdfjs mit Text; M14-3 keine App-Fehler gefunden (einziger Rot-Lauf war Fehlannahme im Test: Schnelleintrag landet auf Start, nicht im Detail). Prüfung ist DOM-/Datei-basiert, keine Sichtprüfung von Screenshots. GATE-G4.md aktualisiert. Erkenntnis: ein Teil-Lauf von Playwright überschreibt `reports/playwright.json` — `acceptance` danach nur nach vollem Lauf aussagekräftig. |
