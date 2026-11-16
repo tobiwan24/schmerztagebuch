@@ -4,12 +4,12 @@
 
 ## Aktuell
 
-- **Meilenstein:** M14 „Nacharbeiten v2-Parität" erledigt (28/28 IDs, Skript „OK"; Abschlussaufgabe M14.22 läuft mit M14b); aktuell der Teil-Meilenstein M14b „v2-Parität, Rest" (6/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
+- **Meilenstein:** M14 „Nacharbeiten v2-Parität" erledigt (28/28 IDs, Skript „OK"; Abschlussaufgabe M14.22 läuft mit M14b); aktuell der Teil-Meilenstein M14b „v2-Parität, Rest" (13/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M14.31 Auto-Sicherung, Kern (EXP-17), danach M14.32 (EXP-16). Entscheidungen: A-036 bis A-065. M14.1 und M14.19–M14.21 sind erledigt. M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-062.
+- **Nächste Aufgabe:** M14.32 Hinweis „Backup wiederherstellen“ bei leerer DB (EXP-16), danach M14.33 (CRY-18). Entscheidungen: A-036 bis A-067.
 - **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29), M14.16 (BLK-30), M14.17 (BLK-31), M14.18 (BLK-35, BLK-36), M14.19 (UI-16, UI-19), M14.1 (BLK-40), M14.20 (UI-17), M14.21 (UI-18)
-- **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15)
+- **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15), M14.31 (EXP-17)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. **Achtung:** `npm run verify` überschreibt `reports/vitest.json` mit übersprungenem QA-08 → vor `npm run acceptance` gesamt `npm run verify:docker` (Docker Desktop muss laufen).
 - **Nacharbeiten (Formular, Vorlagen-Editor, Tagebuch-Einstellungen, Wetter-Anbindung, Umnummerierung n+2, Bild-Artefakt, Parität):** ersetzt durch M14. Body-Map (Pinsel, Größe, Kommentar, eigene Bilder) ist seit M8b erledigt.
@@ -53,7 +53,7 @@
 | M14.28 | Diagramm als Eintrag (nach M14.16, M14.17) — M14b — erledigt | ANA-21 |
 | M14.29 | PDF-Layout Karten — M14b — erledigt | EXP-14 |
 | M14.30 | PDF-Layout Dashboard + Auswahl der Multiselects (nach M14.29) — M14b — erledigt | EXP-15 |
-| M14.31 | Auto-Sicherung, Kern (Schlüssel, Format, Ablage, Auslöser) — M14b | EXP-17 |
+| M14.31 | Auto-Sicherung, Kern (Schlüssel, Format, Ablage, Auslöser) — M14b — erledigt | EXP-17 |
 | M14.32 | Hinweis „Backup wiederherstellen" bei leerer DB (nach M14.31) — M14b | EXP-16 |
 | M14.33 | Sicherheit: Passwort ändern, Passkey hinzufügen/entfernen, Backup-Code erneuern (ggf. zwei Commits: local / Konto) — M14b | CRY-18 |
 | M14.34 | Geräteliste, Abmelden, Sperren (Server-Endpunkt `GET/DELETE /api/v1/devices` falls nötig → DECISIONS A-022) (nach M14.33) — M14b | CRY-19 |
@@ -89,7 +89,7 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M12 | erledigt | 9/9 IDs |
 | M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
 | M14 | erledigt | 28/28 IDs (Skript OK nach vollem E2E: 166 grün) — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
-| M14b | aktuell | 6/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
+| M14b | aktuell | 13/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
 
@@ -264,4 +264,5 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | 2026-11-16 | M14.29 | EXP-14 | `packages/export`: gemeinsame PDF-Bausteine in `pdf-common.ts` (Optionen, Größen, `createPdfDoc`, Fußzeile, `fitImage`), neues `pdf-cards.ts` (A4 hoch, je Eintrag Karte: Zeit, Vorlage, alle Werte, Schlagwörter, Körperkarte in gewählter Größe), `Report.cards` aus `buildReport`, `PdfOptions.layout` (`table` Standard | `cards`). Export-Seite: Auswahl „PDF-Layout“. Integration `pdf.test.ts` (Seitengröße, Text, Bildgröße, Passwort via pdfjs), E2E-Download in `export.spec.ts`. Karten haben keine Deckblatt-Zusammenfassung (nur Kopfzeile). |
 | 2026-11-16 | M14.30 | EXP-15 | `pdf-dashboard.ts` (Seite 1: Diagramm, Kennzahlen, Arztbesuche, Häufigkeiten gewählter Multiselects; danach Karten via `drawCards`), `Report.multiselects` (`optionDays`), `Report.chart` (Tageswerte des ersten outcome-Blocks), `PdfOptions.renderChart` + `multiselectBlockIds`; Web: `lib/pdf-chart.ts` (Canvas-Linie), Export-Seite mit Layout „Dashboard“ und Checkliste der Multiselects (A-065). Integration (pdfjs) + E2E-Download in `export.spec.ts`. Initiales JS unverändert 234,1 KB gzip. |
 | 2026-11-16 | E2E-Stabilität | QA-03 | `e2e/playwright.config.ts`: Test-Timeout 30 → 60 s, Erwartungs-Timeout 5 → 15 s (Obergrenzen; gewartet wird weiter gezielt auf sichtbare Elemente/`data-route`, keine Retries). Erkenntnisse: (1) Jeder Test startet in frischem Kontext ohne Cache und macht beim Onboarding 2× PBKDF2 (600k) — WebKit unter Windows mit 2 Workern schwankt dabei um ein Vielfaches; die Playwright-Vorgaben (30 s/5 s) rissen vereinzelt (zuletzt install UI-19, navigation UI-05, tags BLK-29). Ein Fehlerbild ließ sich nicht erzwingen (Ausgangslauf grün, 6,2 min), die Anhebung ist daher begründete Vorsorge, kein bewiesener Fix. (2) Mehr als 2 Worker sind keine Lösung: mit `--workers=5` stürzen WebKit-Prozesse mit „Zone Allocation failed — out of memory" ab. (3) Abgebrochene Läufe (kill) können einen unbeendbaren `WebKitNetworkProcess`-Zombie hinterlassen, der `reports/playwright-artifacts/.playwright-artifacts-N/traces` sperrt; Playwright hängt dann beim „clear output" bis zum Global-Timeout (Symptom: Läufe enden nach genau 15 min mit 59/86 grünen Tests und „did not run"). Abhilfe: `--output=reports/pw-art2` (anderes Ausgabeverzeichnis) oder Neustart; Läufe nie hart beenden. Zwei volle Läufe hintereinander: 178 grün (6,3 und 6,2 min), 0 Fehler. |
+| 2026-11-16 | M14.31 | EXP-17 | Auto-Sicherung: `data/auto-backup.ts` (eigene IndexedDB `stb-v3-autobackup`, Datensatz `latest`: Datei im Format .stbbackup mit zufälligem Sicherungsschlüssel, dieser mit der UMK verpackt, Kopie der UMK-Faktor-Wraps; `runAutoBackup` höchstens 1×/24 h, `force` vor Updates, nie mit leerem Bestand; `readAutoBackup` mit Passwort oder Backup-Code), `useAutoBackup`/`AutoBackup` (30 s entprellt nach lokalen Schreibvorgängen), Update-Banner „Neustart“ sichert vorher. Neue Domain `autoBackupKey`. A-066. Integrationstest: nach Löschen von stb-v3 mit beiden Faktoren wiederherstellbar, falscher Faktor → unwrap-failed, Speicher ohne Klartext-Marker. Erkenntnis: Python-`open()` ohne `encoding='utf-8'` zerstört unter Windows Umlaute (cp1252) — immer encoding angeben. |
 Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19, `navigation.spec` UI-05 Fehlerzustand) unter Volllast; einzeln erneut gelaufen: grün.

@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/auth/AuthContext';
 import { router } from '@/router';
 import { applyUpdate, onUpdateAvailable } from '@/sw-client';
+import { useAutoBackup } from '@/data/useAutoBackup';
 import { de } from '@/i18n/de';
 
 export function UpdateBanner() {
   const { accountMode } = useAuth();
+  const autoBackup = useAutoBackup();
   const [available, setAvailable] = useState(false);
   useEffect(() => onUpdateAvailable(setAvailable), []);
   if (!available) return null;
@@ -22,7 +24,7 @@ export function UpdateBanner() {
             {de.update.backupFirst}
           </Button>
         )}
-        <Button size="sm" onClick={applyUpdate}>
+        <Button size="sm" onClick={() => void autoBackup.run(true).then(applyUpdate)}>
           <RefreshCw aria-hidden />
           {de.update.restart}
         </Button>

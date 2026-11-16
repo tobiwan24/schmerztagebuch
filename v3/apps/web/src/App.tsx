@@ -6,6 +6,7 @@ import { AnalysisProvider } from './data/AnalysisContext';
 import { router } from './router';
 import { UpdateBanner } from './components/UpdateBanner';
 import { WeatherBackfill } from './components/WeatherBackfill';
+import { AutoBackup } from './components/AutoBackup';
 
 export function App() {
   return (
@@ -15,6 +16,7 @@ export function App() {
           <AnalysisProvider>
             <UpdateBanner />
             <WeatherBackfill />
+            <AutoBackup />
             <RouterProvider router={router} />
           </AnalysisProvider>
         </SyncProvider>

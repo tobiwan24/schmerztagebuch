@@ -11,4 +11,5 @@ export const DOMAINS = {
   identitySeal: 'stb/v3/identity-seal',
   backupAuth: 'stb/v3/backup-auth',
   backupFile: 'stb/v3/backup-file',
+  autoBackupKey: 'stb/v3/auto-backup-key',
 } as const;
