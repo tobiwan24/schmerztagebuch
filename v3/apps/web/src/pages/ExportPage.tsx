@@ -60,13 +60,17 @@ function ExportCard() {
   const saved = useQuery(async () => (await Promise.all((await diary.listDiaries()).map((d) => diary.listSavedFilters(d.id)))).flat(), [diary]);
   const diaryIds = useQuery(async () => (await diary.listDiaries()).map((d) => d.id), [diary]);
   const [busy, setBusy] = useState(false);
+  const [runError, setRunError] = useState<string | null>(null);
 
   async function run() {
     setBusy(true);
+    setRunError(null);
     try {
       const spec = effectiveFilter(filter?.filter, period, { month, from: rangeFrom, to: rangeTo }, diaryIds.status === 'ok' ? diaryIds.data : []);
       const f = await exportFile(format, { profile, imageSize, layout, multiselectBlockIds: msList.filter((m) => !skipped.has(m.id)).map((m) => m.id), ...(pdfPassword ? { password: pdfPassword } : {}), ...(spec ? { filter: spec } : {}) });
       downloadText(f.name, f.text, f.mime);
+    } catch {
+      setRunError(t.downloadFailed);
     } finally {
       setBusy(false);
     }
@@ -170,6 +174,7 @@ function ExportCard() {
           <Download aria-hidden />
           {t.download}
         </Button>
+        {runError ? <p role="alert" className="text-sm text-destructive">{runError}</p> : null}
       </CardContent>
     </Card>
   );

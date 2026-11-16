@@ -2,7 +2,7 @@
 // Vorlage, allen Werten (Label links, Wert rechts) und dem Body-Map-Bild in der gewählten Größe.
 import type { Report } from './pdf-model.js';
 import type { jsPDF } from 'jspdf';
-import { MARGIN, addPageFooters, createPdfDoc, fitImage, fmtDay, pdfText, type PdfOptions } from './pdf-common.js';
+import { MARGIN, addPageFooters, safeImage, createPdfDoc, fitImage, fmtDay, pdfText, type PdfOptions } from './pdf-common.js';
 
 const LABEL_W = 50;
 const FOOTER = 14;
@@ -67,7 +67,7 @@ export async function drawCards(doc: jsPDF, report: Report, opts: PdfOptions, st
       if (lines.length) doc.text(lines, MARGIN + LABEL_W, y);
       y += Math.max(1, lines.length) * LINE + 1.5;
       if (f.bodymap && opts.imageSize !== 'none') {
-        const img = await opts.renderBodymap(f.bodymap);
+        const img = await safeImage(() => opts.renderBodymap(f.bodymap!));
         if (img) {
           // Zielgröße laut Auswahl, begrenzt auf die Seite; passt sie nicht mehr unter die Zeile, beginnt eine neue Seite
           const fit = fitImage(img, opts.imageSize, contentW, H - FOOTER - 2 * MARGIN);

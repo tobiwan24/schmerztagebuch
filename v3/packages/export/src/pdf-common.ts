@@ -34,6 +34,15 @@ export interface PdfOptions {
 
 export const MARGIN = 15;
 
+/** Bild für das PDF rendern; scheitert das Laden/Zeichnen (z. B. beschädigtes eigenes Körperkarten-Bild), entfällt nur dieses Bild — das PDF entsteht trotzdem (EXP-19). */
+export async function safeImage(render: () => Promise<RenderedImage | null>): Promise<RenderedImage | null> {
+  try {
+    return await render();
+  } catch {
+    return null;
+  }
+}
+
 /** Standardschriften kennen nur WinAnsi: typografische Zeichen ersetzen, Unbekanntes als „?". */
 export function pdfText(s: string): string {
   const map: Record<string, string> = { '–': '-', '—': '-', '≥': '>=', '≤': '<=', '…': '...', '„': '"', '“': '"', '”': '"', '‚': "'", '‘': "'", '’': "'", '→': '->', '◆': '*', '•': '-' };

@@ -110,3 +110,19 @@ describe('Export: Randfälle', () => {
     expect(d.diary.settings.quickEntryBlockIds![0]).not.toBe(src.diaries[0]!.settings.quickEntryBlockIds![0]);
   });
 });
+
+describe('PDF: Bild nicht ladbar', () => {
+  it('EXP-19: ein nicht ladbares Körperkarten- oder Diagrammbild bricht den Export nicht ab — alle Layouts liefern ein gültiges PDF, das Bild entfällt', async () => {
+    const r = buildReport(exportFixture(), { now: FIXTURE_EXPORT_NOW });
+    expect(r.bodymaps.length).toBeGreaterThan(0);
+    for (const layout of ['table', 'cards', 'dashboard'] as const) {
+      const bytes = await renderReportPdf(r, {
+        layout, imageSize: 'a5', multiselectBlockIds: [],
+        renderBodymap: async () => { throw new Error('Body-Map-Bild konnte nicht geladen werden'); },
+        renderChart: async () => { throw new Error('Diagramm nicht renderbar'); },
+      });
+      expect(new TextDecoder().decode(bytes.subarray(0, 5))).toBe('%PDF-');
+      expect(new TextDecoder().decode(bytes.subarray(-8))).toContain('%%EOF');
+    }
+  });
+});

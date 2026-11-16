@@ -658,6 +658,7 @@ export const de = {
   exportPage: {
     exportTitle: 'Exportieren',
     exportHint: 'Für den Arzttermin, Excel oder andere Werkzeuge. Die Datei entsteht auf diesem Gerät.',
+    downloadFailed: 'Die Datei konnte nicht erstellt werden. Bitte versuche es erneut.',
     format: 'Format',
     formats: { pdf: 'PDF', json: 'JSON', 'csv-long': 'CSV lang', 'csv-wide': 'CSV breit' },
     layout: 'PDF-Layout',

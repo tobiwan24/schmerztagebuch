@@ -80,5 +80,6 @@ export function downloadText(name: string, text: string | Uint8Array, mime: stri
   document.body.appendChild(a);
   a.click();
   a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  // Mobile Browser (iOS Safari) lesen die Blob-URL erst nach dem Antippen/Öffnen — zu frühes Freigeben liefert eine leere Datei.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

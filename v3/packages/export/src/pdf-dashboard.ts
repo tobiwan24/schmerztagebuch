@@ -2,7 +2,7 @@
 // Kennzahlen der `outcome`-Blöcke, Arztbesuchen und den Häufigkeiten der gewählten Multiselect-Blöcke; danach die Karten.
 import type { Report } from './pdf-model.js';
 import { drawCards } from './pdf-cards.js';
-import { MARGIN, addPageFooters, createPdfDoc, fmtDay, fmtNum, pdfText, type PdfOptions } from './pdf-common.js';
+import { MARGIN, addPageFooters, safeImage, createPdfDoc, fmtDay, fmtNum, pdfText, type PdfOptions } from './pdf-common.js';
 
 const FOOTER = 14;
 const MAX_BARS = 8;
@@ -47,7 +47,7 @@ export async function renderDashboardPdf(report: Report, opts: PdfOptions): Prom
   y += 6;
 
   // Diagramm des Zeitraums
-  const img = report.chart && opts.renderChart ? await opts.renderChart(report.chart) : null;
+  const img = report.chart && opts.renderChart ? await safeImage(() => opts.renderChart!(report.chart!)) : null;
   if (img) {
     const h = Math.min(contentW * (img.height / img.width), 90);
     doc.addImage(img.dataUrl, img.dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG', MARGIN, y, h * (img.width / img.height), h);

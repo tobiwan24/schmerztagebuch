@@ -7,7 +7,7 @@
 - **Meilenstein:** M14 „Nacharbeiten v2-Parität" erledigt (28/28 IDs, Skript „OK"; Abschlussaufgabe M14.22 läuft mit M14b); aktuell der Teil-Meilenstein M14b „v2-Parität, Rest" (15/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M14c.1 PDF-Download-Bug (EXP-19), danach M14c.2–M14c.5 (siehe Gate-Feedback), dann erst M14.34 (CRY-19). Entscheidungen: A-036 bis A-073. **verify:docker (QA-08) am Ende von M14b/M14c einmal nachholen** (Docker Desktop stürzt beim compose-Build ab).
+- **Nächste Aufgabe:** M14c.2 Schnelleintrag überarbeiten (BLK-45, BLK-46), danach M14c.3–M14c.5 (siehe Gate-Feedback), dann erst M14.34 (CRY-19). Entscheidungen: A-036 bis A-073. **verify:docker (QA-08) am Ende von M14b/M14c einmal nachholen** (Docker Desktop stürzt beim compose-Build ab).
 - **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29), M14.16 (BLK-30), M14.17 (BLK-31), M14.18 (BLK-35, BLK-36), M14.19 (UI-16, UI-19), M14.1 (BLK-40), M14.20 (UI-17), M14.21 (UI-18)
 - **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15), M14.31 (EXP-17), M14.32 (EXP-16), M14.33 (CRY-18)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
@@ -89,7 +89,7 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M12 | erledigt | 9/9 IDs |
 | M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
 | M14 | erledigt | 28/28 IDs (Skript OK nach vollem E2E: 166 grün) — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
-| M14c | aktuell (Vorrang) | 0/6 IDs — Gate-Feedback 2026-11-16 |
+| M14c | aktuell (Vorrang) | 1/6 IDs — Gate-Feedback 2026-11-16 |
 | M14b | zurückgestellt | 15/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
@@ -128,7 +128,7 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | # | Inhalt | IDs |
 |---|---|---|
 | M14c.0 | Doku (Specs 05/07/10, MILESTONES, DECISIONS) — erledigt | — |
-| M14c.1 | **PDF-Download defekt** (Bug, höchste Priorität): im echten Browser reproduzieren, Ursache beheben, Test öffnet die heruntergeladene Datei mit pdfjs | EXP-19 |
+| M14c.1 | erledigt: **PDF-Download defekt** (Bug, höchste Priorität): im echten Browser reproduzieren, Ursache beheben, Test öffnet die heruntergeladene Datei mit pdfjs | EXP-19 |
 | M14c.2 | Schnelleintrag überarbeiten: Editor-Schalter je Block, Vorlagenwahl, Migration der Tagebuch-Einstellung | BLK-45 BLK-46 |
 | M14c.3 | Kein „Neuer Eintrag" im Verlauf | UI-25 |
 | M14c.4 | Body-Map-Bild in der Eintrags-Detailansicht | BLK-47 |
@@ -283,3 +283,4 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | 2026-11-16 | M14.33b | CRY-18 | Konto-Teil: Server `PUT /api/v1/auth/backup-code` (eingeloggt, ersetzt Backup-Wrap + Verifier atomar, Hash des Tokens), Client `AccountApi.renewBackupCode`, `prepareCloudBackupCodeRenewal` (Server zuerst, dann lokal), `AuthApi.cloud.prepareBackupCodeRenewal`; `FactorsSection` zeigt im Konto nur „Backup-Code erneuern“. Tests: Server-Integration, Web+Server-Integration (alter Code überall ungültig), E2E (Zweitgerät lehnt alten Code ab, neuer geht). Tests der Aufgabe M14.33 jetzt unter ID CRY-18. A-068 ergänzt (Passwort/Passkey-Verwaltung nur local-only; Passkey entfernen im Konto Backlog). Server berührt → `verify:docker` NACHHOLEN (QA-08): Docker-Image-Build des Servers gelingt, der Web-Build lässt Docker Desktop abstürzen (buildkit EOF / WSL-Fehler, Host-Speicher knapp: ~1,5 GB frei neben 7,7-GB-VM) — Umgebungsproblem, kein Testfehler. Erkenntnis: `verify` scheiterte zweimal an Worker-OOM (Speicherdruck, 3–4 GB frei), der dritte Lauf war grün. |
 Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19, `navigation.spec` UI-05 Fehlerzustand) unter Volllast; einzeln erneut gelaufen: grün.
 | 2026-11-16 | M14c.0 | — | Doku Gate-Feedback: neue IDs EXP-19 (PDF-Datei mit pdfjs), BLK-45/46 (Schnelleintrag Editor/Vorlagenwahl), UI-25 (kein Neuer Eintrag im Verlauf), BLK-47 (Body-Map-Detail), EXP-18 (Export im Verlauf); Spec 05 „Schnelleintrag", Spec 10 Navigation, MILESTONES M14c, A-069–A-073. |
+| 2026-11-16 | M14c.1 | EXP-19 | PDF-Download: E2E `export-pdf-file.spec.ts` lädt die Datei herunter und öffnet sie mit pdfjs (3 Layouts × mit/ohne Passwort, Chromium + WebKit, Preview + Dev-Server). **Erkenntnis:** Der Standardweg (Standardbild, Chromium/WebKit) lieferte schon vor dem Fix gültige PDFs — der Test war auf altem Stand NICHT rot. Echte Defekte gefunden und behoben: (1) Ein nicht ladbares Körperkarten- oder Diagrammbild (z. B. beschädigtes/nicht dekodierbares eigenes Bild) ließ `renderBodymap` werfen und brach den ganzen Export ohne Meldung ab → kein Download; jetzt `safeImage` (nur das Bild entfällt; Unit-Test rot→grün) und sichtbarer Fehler `downloadFailed` auf der Export-Seite. (2) Blob-URL wurde nach 1 s freigegeben (mobile Browser lesen sie erst später) → 60 s. Ursache beim User nicht eindeutig reproduziert (vermutlich (1) oder (2) bzw. Daten/Browser-spezifisch) — beim nächsten Durchklicken mit den echten Daten prüfen. |
