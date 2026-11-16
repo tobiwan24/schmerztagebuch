@@ -60,6 +60,36 @@ async function contrastOf(page: Page, name: string): Promise<number> {
   });
 }
 
+/** Nur im Test: zweite Vorlage als Kopie der ersten. */
+async function addSecondTemplate(page: Page): Promise<void> {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const id = '0190a1b2-0000-7000-8000-0000000000aa';
+        const open = indexedDB.open('stb-v3');
+        open.onsuccess = () => {
+          const tx = open.result.transaction('records', 'readwrite');
+          const store = tx.objectStore('records');
+          const all = store.getAll();
+          all.onsuccess = () => {
+            for (const r of all.result as { id: string; kind: string; payload: string }[]) {
+              if (r.kind === 'template') {
+                const t = JSON.parse(r.payload) as Record<string, unknown>;
+                store.put({ ...r, id, payload: JSON.stringify({ ...t, id, name: 'Zweite Vorlage', order: 'z' }) });
+              }
+              if (r.kind === 'templateVersion') {
+                const v = JSON.parse(r.payload) as Record<string, unknown>;
+                store.put({ ...r, id: `${id}.v1`, payload: JSON.stringify({ ...v, templateId: id }) });
+              }
+            }
+          };
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        };
+      }),
+  );
+}
+
 test.describe('Eintragsformular: Parität', () => {
   test.describe.configure({ timeout: 90_000 });
 
@@ -96,5 +126,53 @@ test.describe('Eintragsformular: Parität', () => {
     await expect.poll(() => contrastOf(page, 'Stress')).toBeGreaterThanOrEqual(4.5);
     await expect(stress.locator('svg')).toHaveCount(1);
     await expect(wetter.locator('svg')).toHaveCount(0);
+  });
+
+  test('BLK-42: Wischen wechselt die Vorlage; mit Eingaben nur nach Rückfrage; Eingabefelder sind ausgenommen', async ({ page }) => {
+    await onboardWithPassword(page);
+    await addSecondTemplate(page);
+    await go(page, '/entry/new');
+    const first = page.getByRole('button', { name: 'Allgemeines Schmerz-Tagebuch' });
+    const second = page.getByRole('button', { name: 'Zweite Vorlage' });
+    await expect(first).toHaveAttribute('aria-pressed', 'true');
+
+    const swipe = (dx: number, selector = 'form') =>
+      page.evaluate(
+        ([d, sel]) => {
+          const el = document.querySelector(sel as string)!;
+          const x = 200;
+          const y = 300;
+          el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', clientX: x, clientY: y }));
+          el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch', clientX: x + (d as number), clientY: y + 4 }));
+        },
+        [dx, selector] as const,
+      );
+
+    await swipe(-20); // zu kurz
+    await expect(first).toHaveAttribute('aria-pressed', 'true');
+    await swipe(-120); // nach links: nächste Vorlage
+    await expect(second).toHaveAttribute('aria-pressed', 'true');
+    await swipe(-120); // keine weitere Vorlage
+    await expect(second).toHaveAttribute('aria-pressed', 'true');
+    await swipe(120); // nach rechts: zurück
+    await expect(first).toHaveAttribute('aria-pressed', 'true');
+
+    // Eingabefeld: kein Wechsel
+    await swipe(-120, 'textarea');
+    await expect(first).toHaveAttribute('aria-pressed', 'true');
+
+    // mit Eingaben: Rückfrage; „Weiter bearbeiten" behält Vorlage und Text
+    await page.getByLabel('Notizen').fill('bleibt');
+    await swipe(-120);
+    await expect(page.getByRole('dialog')).toContainText('Vorlage wechseln?');
+    await page.getByRole('button', { name: 'Weiter bearbeiten' }).click();
+    await expect(first).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByLabel('Notizen')).toHaveValue('bleibt');
+
+    // bestätigt: Wechsel, Eingaben verworfen, danach keine Verwerfen-Warnung beim Verlassen
+    await swipe(-120);
+    await page.getByRole('button', { name: 'Vorlage wechseln' }).click();
+    await expect(second).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByLabel('Notizen')).toHaveValue('');
   });
 });

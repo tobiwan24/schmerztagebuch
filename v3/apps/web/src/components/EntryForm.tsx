@@ -1,6 +1,6 @@
 // Eintragsformular (Spec 05 „Einträge", Wireframe eintrag.html): Vorlage, Zeitangabe Zeitpunkt/Zeitraum, Blöcke,
 // Pflichtfelder (BLK-07), Warnung bei ungespeicherten Änderungen nur nach echter Änderung (BLK-09), Speichern unten fixiert.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { useBlocker, useNavigate } from 'react-router';
 import {
   initialValues,
@@ -38,6 +38,8 @@ import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 
+const SWIPE_PX = 60;
+
 interface Loaded {
   template: Template;
   version: TemplateVersion;
@@ -52,12 +54,15 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
   const [showErrors, setShowErrors] = useState(false);
   const [saving, setSaving] = useState(false);
   const leaving = useRef(false);
+  const swipe = useRef<{ x: number; y: number } | null>(null);
+  /** Vorlagenwechsel mit Eingaben erst nach Rückfrage (BLK-42, BLK-09-Regel). */
+  const [pendingTemplate, setPendingTemplate] = useState<string | null>(null);
   /** Bearbeiten: Eintrag bleibt auf älterer Version, weil beim Heben ein Wert verloren ginge (BLK-27). */
   const [keptOldVersion, setKeptOldVersion] = useState(false);
 
   // Vorlage laden. Neu: aktuelle Version. Bearbeiten: aktuelle Version, wenn kein Wert verloren geht, sonst die Version
   // des Eintrags (Spec 02, A-038).
-  async function selectTemplate(templateId: string) {
+  async function selectTemplate(templateId: string, discard = false) {
     const template = templates.find((t) => t.id === templateId);
     if (!template) return;
     let version: TemplateVersion | undefined;
@@ -75,7 +80,7 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
       : { templateId, values: initialValues(version), time: current?.time ?? nowTimeInput(data.now()), tags: current?.tags ?? [] };
     setLoaded({ template, version });
     // Vorlagenwechsel ohne Eingabe ist keine Änderung (BLK-09): Ausgangszustand wandert mit.
-    setInitial((prev) => (prev && current && isDirty(prev, current) ? prev : next));
+    setInitial((prev) => (!discard && prev && current && isDirty(prev, current) ? prev : next));
     setCurrent(next);
     setShowErrors(false);
   }
@@ -104,10 +109,29 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
 
+  const requestTemplate = (id: string) => {
+    if (id === loaded?.template.id) return;
+    if (dirty) setPendingTemplate(id);
+    else void selectTemplate(id);
+  };
+
   if (!loaded || !current) return <p className="text-muted-foreground">{de.app.loading}</p>;
   const { template, version } = loaded;
   const missing = new Set(showErrors ? missingRequired(version, current.values) : []);
   const timeError = showErrors ? validateTime(current.time) : null;
+
+  // Wischen (A-058): nur Touch/Stift, ≥ 60 px, überwiegend waagerecht; Eingabefelder, Slider und Body-Map sind ausgenommen.
+  const swipeIgnored = (t: EventTarget) => t instanceof Element && !!t.closest('input, textarea, select, .touch-none');
+  function onSwipeEnd(e: PointerEvent<HTMLFormElement>) {
+    const s = swipe.current;
+    swipe.current = null;
+    if (!s || entry || templates.length < 2) return;
+    const dx = e.clientX - s.x;
+    if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) <= Math.abs(e.clientY - s.y) * 2) return;
+    const i = templates.findIndex((t) => t.id === template.id);
+    const next = templates[dx < 0 ? i + 1 : i - 1];
+    if (next) requestTemplate(next.id);
+  }
 
   const setValues = (values: FormValues) => setCurrent({ ...current, values });
 
@@ -163,13 +187,18 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
   }
 
   return (
-    <form className="flex flex-col gap-6" noValidate onSubmit={(e) => (e.preventDefault(), void save())}>
+    <form
+      className="flex touch-pan-y flex-col gap-6" noValidate
+      onPointerDown={(e) => (swipe.current = e.pointerType === 'mouse' || swipeIgnored(e.target) ? null : { x: e.clientX, y: e.clientY })}
+      onPointerUp={onSwipeEnd}
+      onPointerCancel={() => (swipe.current = null)}
+      onSubmit={(e) => (e.preventDefault(), void save())}>
       {!entry && templates.length > 1 ? (
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 text-sm font-medium">{de.entry.template}</legend>
           <div className="flex flex-wrap gap-2">
             {templates.map((t) => (
-              <Button key={t.id} type="button" size="sm" variant={t.id === template.id ? 'default' : 'outline'} aria-pressed={t.id === template.id} onClick={() => void selectTemplate(t.id)}>
+              <Button key={t.id} type="button" size="sm" variant={t.id === template.id ? 'default' : 'outline'} aria-pressed={t.id === template.id} onClick={() => requestTemplate(t.id)}>
                 <TemplateIcon icon={t.icon} color={t.color} className={t.id === template.id ? 'text-primary-foreground' : undefined} />
                 {t.name}
               </Button>
@@ -213,6 +242,27 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
           {saving ? de.entry.saving : de.entry.save}
         </Button>
       </div>
+
+      <Dialog open={pendingTemplate !== null} onClose={() => setPendingTemplate(null)} aria-labelledby="switch-title">
+        <DialogTitle id="switch-title">{de.entry.switchTitle}</DialogTitle>
+        <DialogDescription>{de.entry.switchHint}</DialogDescription>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => setPendingTemplate(null)}>
+            {de.entry.keepEditing}
+          </Button>
+          <Button
+            type="button" variant="destructive"
+            onClick={() => {
+              const id = pendingTemplate;
+              setPendingTemplate(null);
+              // Eingaben verwerfen: Ausgangszustand zurücksetzen, damit selectTemplate ihn neu setzt.
+              if (id) void selectTemplate(id, true);
+            }}
+          >
+            {de.entry.switchConfirm}
+          </Button>
+        </DialogFooter>
+      </Dialog>
 
       <Dialog open={blocker.state === 'blocked'} onClose={() => blocker.reset?.()} aria-labelledby="discard-title">
         <DialogTitle id="discard-title">{de.entry.discardTitle}</DialogTitle>
