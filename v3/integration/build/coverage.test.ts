@@ -14,6 +14,7 @@ describe('Abdeckung', () => {
       'packages/sync-protocol/src/**': { lines: 90, branches: 90 },
       'packages/analysis/src/**': { lines: 85, branches: 85 },
       'packages/export/src/**': { lines: 85, branches: 85 },
+      'packages/llm/src/**': { lines: 85, branches: 85 },
     });
     const coverage = (config as { test?: { coverage?: { thresholds?: unknown; provider?: string } } }).test?.coverage;
     expect(coverage?.provider).toBe('v8');

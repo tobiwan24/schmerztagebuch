@@ -49,4 +49,20 @@ describe('ESLint-Abhängigkeitsregeln', () => {
     expect(await rulesFor('math-random.ts', 'packages/sync-protocol/src/fixture.ts')).toContain('no-restricted-properties');
     expect(await rulesFor('date-now.ts', 'apps/server/src/fixture.ts')).toEqual([]);
   });
+
+  it('ARC-07: llm darf nur core importieren; das Anthropic-SDK nur in packages/llm und im Server', async () => {
+    expect(await rulesFor('crypto-imports-analysis.ts', 'packages/llm/src/fixture.ts')).toContain('no-restricted-imports');
+    expect(await rulesFor('clean.ts', 'packages/llm/src/fixture.ts')).toEqual([]);
+    expect(await rulesFor('imports-anthropic.ts', 'packages/llm/src/fixture.ts')).toEqual([]);
+    expect(await rulesFor('imports-anthropic.ts', 'packages/core/src/fixture.ts')).toContain('no-restricted-imports');
+    expect(await rulesFor('imports-anthropic.ts', 'apps/server/src/fixture.ts')).toEqual([]);
+    expect(await rulesFor('imports-anthropic.ts', 'apps/web/src/fixture.ts')).toContain('no-restricted-imports');
+    expect(await rulesFor('imports-anthropic.ts', 'apps/web/src/components/Fixture.tsx')).toContain('no-restricted-imports');
+  });
+
+  it('ARC-07: @stb/llm ist in der Web-App verboten, im Server erlaubt', async () => {
+    expect(await rulesFor('imports-llm.ts', 'apps/web/src/fixture.ts')).toContain('no-restricted-imports');
+    expect(await rulesFor('imports-llm.ts', 'apps/web/src/components/Fixture.tsx')).toContain('no-restricted-imports');
+    expect(await rulesFor('imports-llm.ts', 'apps/server/src/fixture.ts')).toEqual([]);
+  });
 });

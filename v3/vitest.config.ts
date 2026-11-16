@@ -10,6 +10,7 @@ export const COVERAGE_THRESHOLDS = {
   'packages/sync-protocol/src/**': { lines: 90, branches: 90 },
   'packages/analysis/src/**': { lines: 85, branches: 85 },
   'packages/export/src/**': { lines: 85, branches: 85 },
+  'packages/llm/src/**': { lines: 85, branches: 85 },
 };
 
 export default defineConfig({
@@ -21,6 +22,7 @@ export default defineConfig({
       '@stb/sync-protocol': src('sync-protocol'),
       '@stb/analysis': src('analysis'),
       '@stb/export': src('export'),
+      '@stb/llm': src('llm'),
       '@': fileURLToPath(new URL('./apps/web/src', import.meta.url)),
     },
   },

@@ -9,7 +9,7 @@ const internal = (pkg) => ({ group: [`@stb/${pkg}`, `@stb/${pkg}/*`], message: `
 const runtimeBans = UI_AND_RUNTIME.map(pkgImport);
 const APPS = ['web', 'server'];
 const appBans = APPS.map((a) => ({ group: [`@stb/${a}`, `@stb/${a}/*`, `**/apps/${a}/**`], message: 'apps/* importieren nie einander (Spec 01).' }));
-const PACKAGES = ['core', 'crypto', 'sync-protocol', 'analysis', 'export'];
+const PACKAGES = ['core', 'crypto', 'sync-protocol', 'analysis', 'export', 'llm'];
 
 /** Erlaubte interne Abhängigkeiten je Paket (Spec 01). */
 const ALLOWED = {
@@ -18,7 +18,12 @@ const ALLOWED = {
   'sync-protocol': ['core'],
   analysis: ['core'],
   export: ['core', 'analysis'],
+  llm: ['core'],
 };
+
+/** ARC-07: Das Anthropic-SDK nur in packages/llm und im Server; die Web-App kennt weder SDK noch @stb/llm. */
+const sdkBan = pkgImport('@anthropic-ai/sdk');
+const webLlmBans = [sdkBan, internal('llm')];
 
 const packageBlocks = PACKAGES.map((pkg) => ({
   files: [`packages/${pkg}/**/*.{ts,tsx,js,mjs}`],
@@ -26,6 +31,7 @@ const packageBlocks = PACKAGES.map((pkg) => ({
     'no-restricted-imports': ['error', {
       patterns: [
         ...runtimeBans,
+        ...(pkg === 'llm' ? [] : [sdkBan]),
         ...appBans,
         ...PACKAGES.filter((p) => p !== pkg && !ALLOWED[pkg].includes(p)).map(internal),
       ],
@@ -81,7 +87,7 @@ export default tseslint.config(
   ...APPS.map((app) => ({
     files: [`apps/${app}/**/*.{ts,tsx,js,mjs}`],
     rules: {
-      'no-restricted-imports': ['error', { patterns: appBans.filter((_, i) => APPS[i] !== app) }],
+      'no-restricted-imports': ['error', { patterns: [...appBans.filter((_, i) => APPS[i] !== app), ...(app === 'web' ? webLlmBans : [])] }],
     },
   })),
   {
@@ -97,6 +103,7 @@ export default tseslint.config(
           { group: ['dexie', 'dexie/*'], message: 'Komponenten greifen nur über data/repositories/* auf Daten zu (Spec 01).' },
           { group: ['**/data/db', '**/data/db.*', '**/data/db/**'], message: 'Komponenten greifen nur über data/repositories/* auf Daten zu (Spec 01).' },
           ...appBans.filter((_, i) => APPS[i] !== 'web'),
+          ...webLlmBans,
         ],
       }],
     },
