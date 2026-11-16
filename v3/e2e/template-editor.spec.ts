@@ -135,4 +135,28 @@ test.describe('Vorlagen-Editor', () => {
     await page.getByRole('button', { name: 'Blocktest' }).click();
     await expect(field('Stärke')).toBeVisible();
   });
+
+  // Editor-Teil von BLK-43 (je Block und alle); die Darstellung im Formular folgt mit M14.15b, daher ohne ID im Namen.
+  test('M14.4c Editor: Bezeichnung ausblenden je Feld und für alle bleibt gespeichert', async ({ page }) => {
+    await go(page, '/more/templates/new');
+    await page.getByLabel('Name', { exact: true }).fill('Ohne Labels');
+    for (const type of ['Checkbox', 'Text']) {
+      await page.getByRole('group', { name: 'Feld hinzufügen' }).getByRole('button', { name: type, exact: true }).click();
+    }
+    const card = (n: number) => page.getByRole('region', { name: new RegExp(`^Feld ${n}:`) });
+    await card(1).getByLabel('Bezeichnung', { exact: true }).fill('Eins');
+    await card(2).getByLabel('Bezeichnung', { exact: true }).fill('Zwei');
+    await card(1).getByLabel('Bezeichnung im Formular ausblenden').check();
+    await expect(card(2).getByLabel('Bezeichnung im Formular ausblenden')).not.toBeChecked();
+    await page.getByRole('button', { name: 'Alle Bezeichnungen ausblenden' }).click();
+    await expect(card(2).getByLabel('Bezeichnung im Formular ausblenden')).toBeChecked();
+    await page.getByRole('button', { name: 'Alle Bezeichnungen einblenden' }).click();
+    await expect(card(1).getByLabel('Bezeichnung im Formular ausblenden')).not.toBeChecked();
+    await card(2).getByLabel('Bezeichnung im Formular ausblenden').check();
+    await page.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await page.getByRole('link', { name: 'Ohne Labels bearbeiten' }).click();
+    await expect(card(1).getByLabel('Bezeichnung im Formular ausblenden')).not.toBeChecked();
+    await expect(card(2).getByLabel('Bezeichnung im Formular ausblenden')).toBeChecked();
+  });
 });

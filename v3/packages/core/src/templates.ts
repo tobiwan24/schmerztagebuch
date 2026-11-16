@@ -18,6 +18,8 @@ const blockDefBase = z.strictObject({
   required: z.boolean(),
   role: roleSchema.optional(),
   order: orderKeySchema,
+  /** Label im Formular ausblenden (zugänglicher Name bleibt); Struktur → neue Version (BLK-43). */
+  hideLabel: z.boolean().optional(),
 });
 
 // Cast erhält den konkreten Config-Typ je K; sonst löst TS `blockModules[type].config` zur Union aller Configs auf und

@@ -3,7 +3,7 @@ import { createIdGenerator } from './ids.js';
 import { createTemplate, blockDefSchema, templateVersionSchema, type BlockDef } from './templates.js';
 import { keyBetween } from './fractional-index.js';
 import { BLOCK_TYPES } from './blocks/index.js';
-import { newBlock, validateTemplateDraft, moveBlock, removeBlock, duplicateTemplate } from './template-editor.js';
+import { setHideLabel, newBlock, validateTemplateDraft, moveBlock, removeBlock, duplicateTemplate } from './template-editor.js';
 
 let t = 1_700_000_000_000;
 const clock = { now: () => (t += 1000) };
@@ -14,6 +14,19 @@ const optionIds = (blocks: readonly BlockDef[]): string[] =>
   blocks.flatMap((b) => [b.id, ...(b.type === 'multiselect' ? b.config.options.map((o) => o.id) : [])]);
 
 describe('Editor-Domäne', () => {
+  it('BLK-43: setHideLabel schaltet einen Block oder alle um; „aus“ entfernt das Feld', () => {
+    const a = labelled(newBlock('slider', ids));
+    const b = labelled(newBlock('text', ids, a.order));
+    const one = setHideLabel([a, b], true, a.id);
+    expect(one.map((x) => x.hideLabel)).toEqual([true, undefined]);
+    const all = setHideLabel([a, b], true);
+    expect(all.every((x) => x.hideLabel === true)).toBe(true);
+    const off = setHideLabel(all, false);
+    expect(off.every((x) => !('hideLabel' in x))).toBe(true);
+    expect(off).toEqual([a, b]);
+    expect(all.every((x) => blockDefSchema.safeParse(x).success)).toBe(true);
+  });
+
   it('BLK-22: newBlock liefert für alle 7 Typen einen gültigen Block mit Standard-config', () => {
     expect(BLOCK_TYPES).toHaveLength(7);
     let last: string | null = null;

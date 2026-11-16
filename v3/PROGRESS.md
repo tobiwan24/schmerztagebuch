@@ -4,12 +4,12 @@
 
 ## Aktuell
 
-- **Meilenstein:** M14 „Nacharbeiten v2-Parität" aktuell (3/28 IDs, M14.0 Doku erledigt); danach/parallel der Teil-Meilenstein M14b „v2-Parität, Rest" (0/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
+- **Meilenstein:** M14 „Nacharbeiten v2-Parität" aktuell (3/28 IDs, M14.0 Doku erledigt); danach/parallel der Teil-Meilenstein M14b „v2-Parität, Rest" (1/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M14.4c (`hideLabel` in Schema, Editor je Block / alle, Export-Schema; BLK-43). Reihenfolge laut Tabelle; M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-058.
+- **Nächste Aufgabe:** M14.4d (Migration `hideLabelInDiary` → `hideLabel`; MIG-17). Reihenfolge laut Tabelle; M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-058.
 - **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24)
-- **Erledigt in M14b:** (Doku M14b.0)
+- **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. **Achtung:** `npm run verify` überschreibt `reports/vitest.json` mit übersprungenem QA-08 → vor `npm run acceptance` gesamt `npm run verify:docker` (Docker Desktop muss laufen).
 - **Nacharbeiten (Formular, Vorlagen-Editor, Tagebuch-Einstellungen, Wetter-Anbindung, Umnummerierung n+2, Bild-Artefakt, Parität):** ersetzt durch M14. Body-Map (Pinsel, Größe, Kommentar, eigene Bilder) ist seit M8b erledigt.
@@ -24,7 +24,7 @@
 | M14.15d | Vorlagen-Kacheln und Begrüßung auf Start — M14b | BLK-44 |
 | M14.4a | Blöcke: Palette, Label/Pflicht/Rolle, Konfiguration slider/checkbox/text/textarea/date (Grundlage) — erledigt | (BLK-24) |
 | M14.4b | Multiselect-Optionen, Body-Map-Standardbild — erledigt | BLK-24 |
-| M14.4c | `hideLabel` in Schema, Editor (je Block / alle) und Export-Schema — M14b | BLK-43 |
+| M14.4c | `hideLabel` in Schema, Editor (je Block / alle) und Export-Schema — M14b — erledigt | BLK-43 |
 | M14.4d | Migration `hideLabelInDiary` — M14b | MIG-17 |
 | M14.15b | Formular-Parität: infoText, Optionsfarben, `hideLabel`-Darstellung — M14b | BLK-41 |
 | M14.5 | Blöcke umsortieren (Pointer + Tastatur), entfernen, Warnung bei Ungespeichertem | BLK-25 |
@@ -89,7 +89,7 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M12 | erledigt | 9/9 IDs |
 | M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
 | M14 | aktuell | 3/28 IDs erledigt — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
-| M14b | offen | 0/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
+| M14b | aktuell | 1/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
 
@@ -229,3 +229,4 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | 2026-11-16 | M14.3 | BLK-23 | Editor-Seite `pages/TemplateEditorPage.tsx` (lazy, Routen `/more/templates/new` und `/:id`): Name (Pflicht), Icon (16 Lucide-Symbole), Farbe (8 Tokens), Speichern (neu: `createTemplate` ohne Blöcke; bestehend: `saveTemplateMeta`, keine neue Version), Duplizieren (`duplicateTemplate`, Kopie direkt dahinter, Editor der Kopie öffnet). `components/TemplateIcon.tsx` (Anzeige in Vorlagenliste und Eintragsformular, Fallback für unbekannte v2-Namen) und `TemplateStylePicker.tsx`; Liste: Bearbeiten-Link und Knopf Neue leere Vorlage. Initiales JS 236,7 KB gzip (Budget 250, Lucide-Icons in `TemplateIcon`). Rollenprüfung (nur owner, A-002) fehlt noch, wie auch in der Vorlagenliste — mit M14.8/Rollen nachziehen. Voller E2E-Lauf: 108 grün. |
 | 2026-11-16 | M14.4a | (BLK-24 Grundlage) | `components/template-editor/BlockEditor.tsx` + `BlockConfigFields.tsx`, `ui/select.tsx` (shadcn Native Select): Palette (slider, checkbox, text, textarea, date), Bezeichnung, Beschreibung, Pflicht, Rolle, typabhängige Konfiguration (Slider min/max/step/Einheit/Beschriftungen/Info, Checkbox-Notiz, Text-Maximallänge/Platzhalter, Textarea Ereignisse/Anhänge, Datum-Modus). Speichern: `validateTemplateDraft` (Hinweis je Block), dann `updateTemplate` — Version n+1 nur bei Blockänderung. Bestehende Multiselect/Body-Map-Blöcke bleiben erhalten (Konfiguration folgt in 4b). E2E-Test bewusst ohne ID im Namen (sonst würde BLK-24 vorzeitig grün). Zahlenfelder mit eigenem Textzustand (Zwischenstände beim Tippen). |
 | 2026-11-16 | M14.4b | BLK-24 | `components/template-editor/OptionsEditor.tsx`: Optionen hinzufügen/umbenennen/entfernen, Farbpalette (OPTION_COLORS als shadcn-Button-Kreise), Reihenfolge per Ziehen und Pfeiltasten am Griff (Muster der Vorlagenliste); `BlockConfigFields`: Auswahl einfach/mehrfach, Body-Map-Standardbild (Select der sechs Presets, Namen aus `de.bodymap.presets`, ohne Bild-Import). Palette hat jetzt alle 7 Typen. E2E `BLK-24` (Chromium + WebKit): alle sieben Typen, doppelte Optionsnamen blockieren, Farbe, Tastatur-Umsortieren, neuer Eintrag zeigt Einfachauswahl und Standardbild. Erkenntnis: Body-Map-Feld enthält das Label „Intensität“ — Test-Label des Sliders daher „Schmerzgrad“. Initiales JS 237,6 KB gzip. |
+| 2026-11-16 | M14.4c | BLK-43 | `BlockDef.hideLabel` (optional boolean) in `core/templates.ts`; `setHideLabel(blocks, hide, id?)` in `template-editor.ts` („aus“ entfernt das Feld, kein `false` im Datensatz); Editor: Checkbox je Feld und Knopf „Alle Bezeichnungen aus-/einblenden“; Umschalten ändert die kanonische Blockliste → neue Version (Test). JSON-Schema des Exports neu generiert (`npx tsc -b packages/export && node scripts/gen-export-schema.mjs` — ohne vorheriges tsc bleibt das Schema veraltet). Darstellung im Formular folgt mit M14.15b; E2E-Test des Editors bewusst ohne ID im Namen. |

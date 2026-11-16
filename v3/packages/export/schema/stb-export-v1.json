@@ -1234,6 +1234,9 @@
                                 "order": {
                                   "type": "string"
                                 },
+                                "hideLabel": {
+                                  "type": "boolean"
+                                },
                                 "type": {
                                   "type": "string",
                                   "const": "slider"
@@ -1315,6 +1318,9 @@
                                 "order": {
                                   "type": "string"
                                 },
+                                "hideLabel": {
+                                  "type": "boolean"
+                                },
                                 "type": {
                                   "type": "string",
                                   "const": "checkbox"
@@ -1374,6 +1380,9 @@
                                 },
                                 "order": {
                                   "type": "string"
+                                },
+                                "hideLabel": {
+                                  "type": "boolean"
                                 },
                                 "type": {
                                   "type": "string",
@@ -1461,6 +1470,9 @@
                                 "order": {
                                   "type": "string"
                                 },
+                                "hideLabel": {
+                                  "type": "boolean"
+                                },
                                 "type": {
                                   "type": "string",
                                   "const": "text"
@@ -1522,6 +1534,9 @@
                                 },
                                 "order": {
                                   "type": "string"
+                                },
+                                "hideLabel": {
+                                  "type": "boolean"
                                 },
                                 "type": {
                                   "type": "string",
@@ -1586,6 +1601,9 @@
                                 },
                                 "order": {
                                   "type": "string"
+                                },
+                                "hideLabel": {
+                                  "type": "boolean"
                                 },
                                 "type": {
                                   "type": "string",
@@ -1652,6 +1670,9 @@
                                 },
                                 "order": {
                                   "type": "string"
+                                },
+                                "hideLabel": {
+                                  "type": "boolean"
                                 },
                                 "type": {
                                   "type": "string",

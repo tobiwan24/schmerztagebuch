@@ -194,6 +194,9 @@ export const de = {
       blockLabel: 'Bezeichnung',
       blockDescription: 'Beschreibung (optional)',
       required: 'Pflichtfeld',
+      hideLabel: 'Bezeichnung im Formular ausblenden',
+      hideAllLabels: 'Alle Bezeichnungen ausblenden',
+      showAllLabels: 'Alle Bezeichnungen einblenden',
       role: 'Rolle',
       noRole: 'Keine Rolle',
       roles: {

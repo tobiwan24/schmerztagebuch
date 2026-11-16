@@ -6,6 +6,7 @@ import {
   updateTemplate,
   entrySchemaFor,
   templateVersionSchema,
+  blockDefSchema,
   TemplateError,
   type BlockDef,
   type TemplateState,
@@ -68,6 +69,19 @@ describe('Vorlagen und Versionen', () => {
     expect(updateTemplate(s, { blocks: [{ ...a, config: { min: 0, max: 5, step: 1 } }, b] }, clock).newVersion).toBe(true);
     expect(updateTemplate(s, { blocks: [{ ...a, role: 'symptom' }, b] }, clock).newVersion).toBe(true);
     expect(updateTemplate(s, { blocks: [{ ...a, order: keyBetween(b.order, null) }, b] }, clock).newVersion).toBe(true);
+  });
+
+  it('BLK-43: hideLabel ist optional im Schema; Umschalten erzeugt eine neue Version (Label-Darstellung ist Struktur)', () => {
+    const s = base();
+    const [a, b] = s.version.blocks as [BlockDef, BlockDef];
+    expect(blockDefSchema.safeParse({ ...a, hideLabel: true }).success).toBe(true);
+    expect(blockDefSchema.safeParse({ ...a, hideLabel: 'ja' }).success).toBe(false);
+    const hidden = updateTemplate(s, { blocks: [{ ...a, hideLabel: true }, b] }, clock);
+    expect(hidden.newVersion).toBe(true);
+    expect(hidden.state.version.blocks[0]).toMatchObject({ hideLabel: true });
+    const back = updateTemplate(hidden.state, { blocks: [a, b] }, clock);
+    expect(back.newVersion).toBe(true);
+    expect(back.state.version.blocks[0]).not.toHaveProperty('hideLabel');
   });
 
   it('DM-06: Name/Icon/Farbe/Order ändern erzeugt keine neue Version', () => {

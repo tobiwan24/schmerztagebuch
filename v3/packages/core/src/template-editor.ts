@@ -91,6 +91,16 @@ export function moveBlock(blocks: readonly BlockDef[], id: string, toIndex: numb
   return [...rest.slice(0, i), { ...block, order }, ...rest.slice(i)];
 }
 
+/** Schaltet `hideLabel` für einen Block (`id`) oder für alle um; „aus“ entfernt das Feld (kein `false` im Datensatz). */
+export function setHideLabel(blocks: readonly BlockDef[], hide: boolean, id?: string): BlockDef[] {
+  return blocks.map((b) => {
+    if (id !== undefined && b.id !== id) return b;
+    const { hideLabel: _drop, ...rest } = b;
+    void _drop;
+    return (hide ? { ...rest, hideLabel: true } : rest) as BlockDef;
+  });
+}
+
 export function removeBlock(blocks: readonly BlockDef[], id: string): BlockDef[] {
   return sorted(blocks).filter((b) => b.id !== id);
 }

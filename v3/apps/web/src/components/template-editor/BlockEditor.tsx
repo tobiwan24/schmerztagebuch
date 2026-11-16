@@ -1,7 +1,7 @@
 // Blockliste des Vorlagen-Editors (Spec 05 „Vorlagen-Editor"): Palette, Bezeichnung, Beschreibung, Pflicht, Rolle und
 // typabhängige Konfiguration. Typwechsel wird nicht angeboten (DM-07); Umsortieren/Entfernen folgen (M14.5).
 import { Plus } from 'lucide-react';
-import { ROLES, newBlock, type BlockDef, type BlockType, type Role } from '@stb/core';
+import { ROLES, newBlock, setHideLabel, type BlockDef, type BlockType, type Role } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -32,6 +32,11 @@ export function BlockEditor({
         {t.blocks}
       </h2>
       <p className="text-xs text-muted-foreground">{t.blocksHint}</p>
+      {blocks.length > 0 ? (
+        <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => onChange(setHideLabel(blocks, !blocks.every((b) => b.hideLabel === true)))}>
+          {blocks.every((b) => b.hideLabel === true) ? t.showAllLabels : t.hideAllLabels}
+        </Button>
+      ) : null}
       {blocks.length === 0 ? <p className="text-sm text-muted-foreground">{t.noBlocks}</p> : null}
       {blocks.map((b, i) => (
         <BlockCard key={b.id} def={b} index={i + 1} messages={issues.get(b.id) ?? []} newId={newId} onChange={replace} />
@@ -82,6 +87,12 @@ function BlockCard({
             onChange((e.target.value === '' ? rest : { ...rest, description: e.target.value }) as BlockDef);
           }}
         />
+      </div>
+      <div className="flex items-center gap-3">
+        <Checkbox id={id('hideLabel')} checked={def.hideLabel === true} onChange={(e) => onChange(setHideLabel([def], e.target.checked)[0]!)} />
+        <Label htmlFor={id('hideLabel')} className="font-normal">
+          {t.hideLabel}
+        </Label>
       </div>
       <div className="flex items-center gap-3">
         <Checkbox id={id('required')} checked={def.required} onChange={(e) => onChange({ ...def, required: e.target.checked })} />

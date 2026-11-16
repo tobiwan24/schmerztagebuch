@@ -25,6 +25,19 @@ describe('JSON v1', () => {
     expect(validate({ ...doc, diaries: [{ ...doc.diaries[0], entries: [{ id: 'x' }] }] })).toBe(false);
   });
 
+  it('BLK-43: hideLabel steht im veröffentlichten JSON Schema, übersteht Export und Import-Prüfung', () => {
+    const d = structuredClone(doc);
+    const v = d.diaries[0]!.templates[0]!.versions[0]!;
+    v.blocks[0] = { ...v.blocks[0]!, hideLabel: true };
+    const ajv = new Ajv2020({ strict: false, validateFormats: false, allErrors: true });
+    expect(ajv.compile(schemaFile)(JSON.parse(JSON.stringify(d)))).toBe(true);
+    const back = parseExport(JSON.stringify(d));
+    expect(back.diaries[0]!.templates[0]!.versions[0]!.blocks[0]).toMatchObject({ hideLabel: true });
+    const bad = structuredClone(d);
+    (bad.diaries[0]!.templates[0]!.versions[0]!.blocks[0] as Record<string, unknown>).hideLabel = 'ja';
+    expect(ajv.compile(schemaFile)(JSON.parse(JSON.stringify(bad)))).toBe(false);
+  });
+
   it('Export ist selbstbeschreibend und vollständig', () => {
     expect(doc).toMatchObject({ format: 'stb-export', formatVersion: 1, exportedAt: '2026-03-01T12:00:00.000Z', appVersion: '3.0.0-test' });
     const d = doc.diaries[0]!;
