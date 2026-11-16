@@ -11,6 +11,7 @@
 | `textarea` | `allowAttachments`, `allowEvents` | `{ text?, events?: [{ id, category: 'event' \| 'doctor', title, at? }], attachmentIds?: string[] }` | Text + Ereignisse |
 | `date` | `mode: 'date' \| 'datetime' \| 'duration' \| 'range'` | `{ at?: ISO } \| { start: ISO, end: ISO } \| { minutes: number }` | Zeit/Dauer |
 | `bodymap` | `defaultPresetId` (Standardbild oder eigenes Bild; wird beim Öffnen **vorausgewählt angezeigt**) | `{ presetId, points: [{ id, x: 0..1, y: 0..1, intensity?: number, kind?: 'point' \| 'brush', size?: 0..1, comment?: string, path?: [{ x, y }] }] }` | Regionen/Punkte |
+| `medication` | `presets: [{id, name, dose?, unit, color}]`, `units` (Standard mg, ml, Stk, Tropfen, Hub), `allowFree: boolean` | `{ items: [{ id, presetId?, name, dose?: number, unit?, at?: ISO, effect?: 0..10 }] }` (max. 20) | Ereignis je Medikament + Dosis numerisch |
 
 - Alle Block-Komponenten aus v2 (`src/components/blocks/*`, insbesondere BodyMap) werden **portiert**, nicht neu
   erfunden: Logik übernehmen, auf neue Wertformen und shadcn-Komponenten umstellen.
@@ -71,10 +72,17 @@ Route `/more/templates/new` und `/more/templates/:id` (nur `owner` bzw. local-on
 - Wetterfelder stehen in Suche, Filter, Dashboards und Analysen wie numerische Blöcke zur Verfügung (06).
 - Die Abfrage geht direkt vom Gerät an Open-Meteo (kein Umweg über den eigenen Server).
 
-## Backlog v3.x
+## Medikamenten-Block (v3.x, M16)
 
-- Medikamenten-Block mit Wirkstoff/Dosis/Wirkung (RDM-018) — bis dahin `multiselect` mit Rolle `medication`.
-- LLM-Rollenvorschlag im Vorlagen-Editor.
+Blocktyp `medication` (Tabelle oben), Standardrolle `medication`. Bestehende `multiselect`-Blöcke mit Rolle `medication` bleiben unverändert (keine Zwangsumwandlung). Wirkung 0–10 ist optional; keine Einnahme-Erinnerung je Medikament. Intake/Zwischenablage bilden `values` für einen Medikamenten-Block (Namen oder Objekte) auf `items` ab; Unbekanntes landet im Eingang. Auswertung: siehe 06, Export: siehe 07. Die Katalog-Vorlage „Schmerztagebuch mit Medikamenten“ nutzt den Block.
+
+## Training (v3.x, M17)
+
+Training baut auf Vorlagen und Einträgen auf, nicht auf eigenen Tabellen. `Template.purpose?: 'diary' | 'training'` (Standard `diary`) und `Template.functionPhases?: number[]` sind optional und unversioniert, wie `quickBlockIds`. Neuer Blocktyp `exercise`: Konfiguration `description?, steps?: string[] (≤ 20), targetSets?, targetReps?, targetDurationSec?, videoUrl? (nur https), levels?: [{id, label}]`; Wert `{ done, sets?, reps?, durationSec?, levelId?, painDuring?: 0..10 }`. Die aktuelle Funktionsphase ist der jüngste Wert eines Blocks mit Rolle `function` im Tagebuch; Vorlagen ohne Phasen erscheinen immer. Video nur als Link (kein Einbetten, CSP unverändert). Keine automatischen Vorschläge für Stufenwechsel (Nicht-Ziel Therapieempfehlung). Editor-Mitglieder dürfen Trainingseinträge schreiben, aber keine Vorlagen anlegen (A-002). Trainingsvorlagen erscheinen nicht in den Kacheln auf Start. UI: siehe 10; Erinnerung „Übungen“ neben der Tagebuch-Erinnerung.
+
+## LLM-Rollenvorschlag
+
+Der Vorlagen-Editor kann Rollen je Block vorschlagen (Freigabe pro Vorgang, Details in 08).
 
 ## Akzeptanztests
 
@@ -127,3 +135,9 @@ Route `/more/templates/new` und `/more/templates/:id` (nur `owner` bzw. local-on
 | BLK-45 | Schnelleintrag im Vorlagen-Editor: je Block Schalter „Im Schnelleintrag" (`quickBlockIds`, keine neue Vorlagenversion); `/quick` zeigt genau diese Blöcke in Vorlagen-Reihenfolge, ohne Auswahl die Standardregel; frühere Tagebuch-Einstellungen werden migriert und sind in den Tagebuch-Einstellungen nicht mehr einstellbar. | e2e |
 | BLK-46 | Schnelleintrag mit Vorlagenwahl: `/quick` bietet alle aktiven Vorlagen des Tagebuchs zur Auswahl, die zuletzt genutzte ist vorausgewählt; Wechsel tauscht die Felder (mit Eingaben nur nach Rückfrage, BLK-09-Regel); Speichern bleibt in ≤ 3 Tipps. | e2e |
 | BLK-47 | Eintrags-Detailansicht (`/entry/:id`, aus dem Verlauf): Körperkarten-Felder zeigen das Bild mit Markierungen (Punkte/Pinsel, Nummern, Kommentare) schreibgeschützt, mit Standard- und eigenem Bild; Feld ohne Markierung zeigt das Bild ohne Marker. | e2e |
+| BLK-48 | `core/blocks/medication.ts`: zod-Schema für config und value, `emptyValue`, `isEmpty`, `toDisplay`, `toAnalysis`, `toCsv`; ungültige Dosis bzw. mehr als 20 Positionen werden abgelehnt. | unit |
+| BLK-49 | Editor: Palette „Medikamente“, Vorgaben bearbeiten (Name, Dosis, Einheit, Farbe, Reihenfolge). Formular: „+ Medikament“ aus den Vorgaben oder frei, Dosis, Einheit, Uhrzeit, Wirkung, Entfernen. Detailansicht und Schnelleintrag zeigen die Positionen. | e2e |
+| BLK-50 | Katalog-Vorlage „Schmerztagebuch mit Medikamenten“ ist gültig. Intake/Zwischenablage: `values` für einen Medikamenten-Block (Namen oder Objekte) wird auf `items` abgebildet; Unbekanntes landet im Eingang. | unit |
+| BLK-51 | `core/blocks/exercise.ts`: Schemas und Funktionen wie bei jedem Blocktyp; `videoUrl` nur https; Analyse = Ereignis „erledigt“ + Sätze, Wiederholungen und Dauer numerisch. | unit |
+| BLK-52 | `core/training.ts`: `purpose`/`functionPhases` rückwärtskompatibel im Schema und im Export-Schema; `trainingTemplatesFor(templates, entries)` wählt nach der jüngsten `function`-Rolle (Fixture). | unit |
+| BLK-53 | Vorlagen-Editor „Rollen vorschlagen“: Vorschläge je Block, einzeln übernehmen oder verwerfen, Freigabedialog wie bei VOI-14. | e2e |

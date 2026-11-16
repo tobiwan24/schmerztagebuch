@@ -63,10 +63,11 @@ Owner                                Server                         Eingeladene 
 | `DELETE /api/v1/diaries/:id/members/:principalId` | entfernen / austreten |
 | `DELETE /api/v1/invitations/:id` | widerrufen |
 
-## Backlog v3.x
+## Erweiterungen v3.x (M22)
 
-- DK-Rotation beim Entfernen (neue `key_epoch`, Re-Verschlüsselung durch Owner-Client).
-- Feinere Rechte (z. B. Editor darf Vorlagen bearbeiten), Benachrichtigung bei neuen Einträgen anderer.
+- **DK-Rotation:** Beim Entfernen eines Mitglieds oder Sperren eines Geräts rotiert der Owner-Client den DK (`key_epoch` + 1, Details in 03), mit Fortschrittsanzeige; das verbleibende Mitglied synchronisiert weiter, das entfernte bekommt 403 und keine neuen Daten.
+- **Feinere Rechte:** Flag `canEditTemplates` je Mitgliedschaft (Owner erteilt einem Editor „Vorlagen bearbeiten“; der Server erlaubt dann den Push von `template`/`templateVersion`, A-013 je Flag).
+- **Hinweis auf neue Einträge:** „n neue Einträge von X“ seit dem letzten Besuch (lokal, kein Push); Tippen führt zum gefilterten Verlauf.
 
 ## Akzeptanztests
 
@@ -84,3 +85,7 @@ Owner                                Server                         Eingeladene 
 | SHR-10 | „Erfasst von" zeigt in geteilten Tagebüchern den richtigen Autor. | e2e |
 | SHR-11 | Austreten löscht die lokalen Daten des Tagebuchs auf dem Gerät des Mitglieds. | integration |
 | SHR-12 | Einladung per Messenger an ein echtes zweites iPhone angenommen, beide tragen ein, beide sehen alles. | manual |
+| SHR-13 | Mitglied entfernen → Rotation mit Fortschritt; das verbleibende Mitglied synchronisiert weiter; das entfernte bekommt 403 und keine neuen Daten. | e2e |
+| SHR-14 | Owner erteilt einem Editor „Vorlagen bearbeiten“ → Editor kann den Vorlagen-Editor nutzen, der Server erlaubt den Push von `template`/`templateVersion` (A-013 je Flag). | e2e |
+| SHR-15 | Start zeigt „3 neue Einträge von X“ seit dem letzten Besuch; Tippen führt zum gefilterten Verlauf. | e2e |
+| SHR-16 | Rotation mit zwei echten Geräten/Konten. | manual |

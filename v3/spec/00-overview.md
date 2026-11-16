@@ -28,7 +28,7 @@ strukturiert gespeichert, dass sie vielfältig exportiert, weiterverarbeitet und
 
 v3.0 ersetzt v2 unter derselben Adresse. Alles, was mit **v3.x** markiert ist, wird in v3.0 **nicht** gebaut —
 Datenmodell, Schlüsselhierarchie und Protokoll sind aber so angelegt, dass es ohne Umbau nachgerüstet werden kann.
-v3.x-Punkte stehen in den Specs jeweils im Abschnitt **„Backlog v3.x"** und haben **keine** Akzeptanz-IDs.
+v3.x-Punkte, die in einen Meilenstein M15+ übernommen sind, stehen im Spec-Text mit Akzeptanz-IDs (siehe [MILESTONES.md](../MILESTONES.md), „Meilensteine v3.x"). Im Abschnitt **„Backlog v3.x"** der Specs bleibt nur, was nicht eingeplant ist.
 
 | Bereich | Spezifikation | v3.0 | v3.x |
 |---|---|---|---|

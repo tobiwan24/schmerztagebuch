@@ -4,10 +4,10 @@
 
 ## Aktuell
 
-- **Meilenstein:** M14, M14b und M14c erledigt (Gesamt-Akzeptanz 210 erfüllt, offen nur QA-08 ohne Docker und die manuellen IDs). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md) (aktualisiert 2026-11-16). Umstellung macht nur der User.
+- **Meilenstein:** M14, M14b und M14c erledigt (Gesamt-Akzeptanz 211/211 automatisiert, QA-08 erfüllt: `verify:docker` 2026-11-16 grün; manuell 6/10). **v3.x (M15–M24) geplant**, Beginn mit M15.1. **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md) (aktualisiert 2026-11-16). Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** v3.x-Planung (M15+), Koordinator. Davor/daneben: `npm run verify:docker` (QA-08) einmal mit laufendem Docker nachholen; Abnahme PDF mit echten Daten (GATE-G4). Entscheidungen: A-036 bis A-077.
+- **Nächste Aufgabe:** M15.1 (UI-26, Changelog-Daten und `unseenReleases`), dann M15.2 (UI-27). Plan v3.x: Aufgabenliste „v3.x“ unten, Entscheidungen A-080 bis A-095. G4-Abnahme (PDF mit echten Daten) bleibt beim User.
 - **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29), M14.16 (BLK-30), M14.17 (BLK-31), M14.18 (BLK-35, BLK-36), M14.19 (UI-16, UI-19), M14.1 (BLK-40), M14.20 (UI-17), M14.21 (UI-18)
 - **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15), M14.31 (EXP-17), M14.32 (EXP-16), M14.33 (CRY-18), M14.34 (CRY-19), M14.35 (CRY-20), M14.36 (UI-20), M14.37 (UI-21), M14.38 (UI-22), M14.39 (UI-23), M14.15d (BLK-44)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
@@ -68,6 +68,77 @@ Hinweise: M14.7 direkt nach dem Editor; M14.8 ist Voraussetzung für Schnelleint
 Risiken: CSP gleichzeitig in `csp.ts`, `nginx.conf` und Test (QA-04); `diarySchema` erweitern → Export-Schema neu erzeugen (`scripts/gen-export-schema.mjs`);
 E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `e2e/helpers.ts` `finishDiarySetup`; Editor und Einstellungen per `lazy` (Bundle-Budget QA-02).
 
+### Aufgaben v3.x (M15–M24, je ein Commit, 1–3 IDs; Spec-Texte und IDs sind seit M15.0 in den Specs)
+
+Abkürzungen: W = `apps/web/src`, S = `apps/server/src`, P = `packages`. Reihenfolge verbindlich; Abschlussaufgaben: `verify`, `test:e2e`, `acceptance`, `check-bundle` (ab > 245 KB gzip auslagern), `APP_VERSION` + `changelog.ts` (A-081); bei Server-Berührung (M18, M19, M22, M24) meldet der Koordinator `verify:docker`.
+
+| # | Inhalt | IDs |
+|---|---|---|
+| M15.0 | Doku: Specs 00/01/10 und alle v3.x-Spec-Texte, MILESTONES, DECISIONS A-080–A-095 — erledigt | — |
+| M15.1 | `W/data/changelog.ts`, `W/data/whats-new.ts` (`unseenReleases`), Eintrag für `W/version.ts` | UI-26 |
+| M15.2 | `WhatsNewDialog` (lazy), Einstellungen → Über, Onboarding setzt lastSeen; `e2e/helpers.ts` schaltet den Dialog per `addInitScript` ab | UI-27 |
+| M15.3 | `W/tour/tour.ts`, `steps.ts`, `i18n/de.ts` | UI-28 |
+| M15.4 | `TourProvider`, `TourCard` (lazy), `data-tour`-Anker, `e2e/helpers.ts` schaltet die Tour ab, `e2e/tour.spec.ts` | UI-29 |
+| M15.5 | Abschluss M15 | — |
+| M16.1 | `P/core/src/blocks/medication.ts`, `blocks/index.ts`, `blocks/analysis.ts` | BLK-48 |
+| M16.2 | Katalog-Vorlage, Intake-Abbildung (`P/core/src/catalog.ts`, `intake.ts`) | BLK-50 |
+| M16.3 | `P/analysis` (Working-Set, Filter, Aggregate, Fixture) | ANA-22 |
+| M16.4 | `P/export` (CSV, JSON, PDF), `scripts/gen-export-schema.mjs` | EXP-20 |
+| M16.5 | Editor (Palette, Konfiguration), `MedicationField`, Detailansicht | BLK-49 |
+| M16.6 | Kreisdiagramm „Medikamente“ in `AnalysisPage` | ANA-23 |
+| M16.7 | Abschluss M16 | — |
+| M17.1 | `P/core/src/blocks/exercise.ts` | BLK-51 |
+| M17.2 | `P/core/src/training.ts`, `templates.ts`, Export-Schema | BLK-52 |
+| M17.3 | `P/analysis/src/training.ts` | ANA-24 |
+| M17.4 | Editor: Trainingsvorlage, Phasen, Übungsblock | UI-31 |
+| M17.5 | `TrainingPage` (lazy, `/training`), `ExerciseField`, Kachel auf Start, Training aus den Kacheln ausfiltern | UI-30 |
+| M17.6 | Auswertung „Übungen“, Erinnerungen als Liste (alte Einstellung migrieren) | ANA-25 UI-32 |
+| M17.7 | Abschluss M17 | — |
+| M18.1 | `P/crypto/src/report-share.ts`, `domains.ts` | EXP-21 |
+| M18.2 | `S/shares/routes.ts`, Tabelle `shares` (Rebuild-Muster), `P/sync-protocol` | EXP-22 |
+| M18.3 | Erstellen: `W/sharing/report-link.ts`, Dialog im Export | EXP-23 (Erstellen) |
+| M18.4 | Ansicht `ReportViewerPage`, Route `/r/:id` außerhalb AppShell und Unlock-Guard | EXP-23 |
+| M18.5 | Liste aktiver Links, Widerrufen | EXP-24 |
+| M18.6 | Abschluss M18 inkl. `verify:docker` | — |
+| M19.1 | `P/llm/` (Interface, Fake), ESLint/check-deps, Bundle-Scan | ARC-07 |
+| M19.2 | Ollama-/Anthropic-Provider, Prompts (DECISIONS: `@anthropic-ai/sdk`) | VOI-12 |
+| M19.3 | `S/llm/routes.ts`, `S/config.ts`, Rate-Limit/Budget, `.env.example` | VOI-13 |
+| M19.4 | Einstellungen → KI, Einwilligungsdialog | VOI-16 |
+| M19.5 | „Aus Text ausfüllen“ in Formular und Schnelleintrag | VOI-14 |
+| M19.6 | Editor „Rollen vorschlagen“ | BLK-53 |
+| M19.7 | „Zusammenfassung für den Arzt“ | VOI-15 |
+| M19.8 | Abschluss M19 inkl. `verify:docker`; VOI-17 manuell | — |
+| M20.1 | `P/analysis/src/correlate.ts` | ANA-26 |
+| M20.2 | `P/analysis/src/lift.ts` | ANA-27 |
+| M20.3 | Tab „Zusammenhänge“ in `AnalysisPage` | ANA-28 |
+| M20.4 | `P/core/src/notification-rule.ts`, `P/analysis/src/rules.ts` | ANA-29 |
+| M20.5 | Einstellungen → Hinweise, Start-Banner, `sw-client` | ANA-30 |
+| M20.6 | Abschluss M20 | — |
+| M21.1 | `P/core/src/dashboard.ts`, Export-Schema | DM-15 |
+| M21.2 | Sync von `dashboard` | SYN-19 |
+| M21.3 | `DashboardsPage` (lazy) | ANA-32 |
+| M21.4 | PNG-Export, PDF-Layout „Dashboard“ | EXP-26 |
+| M21.5 | Abschluss M21 | — |
+| M22.1 | `P/crypto/src/rotation.ts`, Plan in core | CRY-21 |
+| M22.2 | Server `POST /diaries/:id/rotate`, Epochen-Prüfung beim Push | CRY-22 |
+| M22.3 | Rotation im UI (Mitglieder, Geräte) | SHR-13 |
+| M22.4 | Flag `canEditTemplates` (Server und Editor) | SHR-14 |
+| M22.5 | Hinweis „n neue Einträge von X“ | SHR-15 |
+| M22.6 | Abschluss M22 inkl. `verify:docker` | — |
+| M23.1 | Codec `aes` | DM-16 |
+| M23.2 | Migration plain→aes (Dexie-Version) | DM-17 |
+| M23.3 | Einstellung und E2E | DM-18 |
+| M23.4 | Persistierter Suchindex | ANA-33 |
+| M23.5 | Abschluss M23 | — |
+| M24.1 | Integrationsschlüssel, Zugangsstring | CRY-23 |
+| M24.2 | Server-Tokens und lesende Records-API, `devices.kind`-Migration | CRY-24 |
+| M24.3 | `P/client-sdk` | ARC-08 |
+| M24.4 | Einstellungen → Integrationen | EXP-27 |
+| M24.5 | `apps/mcp` (DECISIONS: `@modelcontextprotocol/sdk`) | EXP-28 |
+| M24.6 | Abschluss M24 inkl. `verify:docker` | — |
+
+Manuell und nicht blockierend (vom User): EXP-25, VOI-17, ANA-31, SHR-16, DM-19. Risiken: Neuigkeiten-Dialog und Tour dürfen E2E nicht blocken (`addInitScript` im selben Commit); Bundle 250 KB (neue Seiten per `lazy`); Export-Schema bei Blocktyp-/Schema-Änderung neu erzeugen; SQLite-Rebuild-Migrationen mit Test gegen alte DB; Krypto-Meilensteine fortsetzbar und mit Fault-Injection testen.
+
 ## Meilensteine
 
 
@@ -91,6 +162,16 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M14 | erledigt | 28/28 IDs (Skript OK nach vollem E2E: 166 grün) — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
 | M14c | erledigt | 6/6 IDs (Skript OK nach vollem E2E, 213 grün) — Gate-Feedback 2026-11-16 |
 | M14b | erledigt | 22/22 IDs (Skript OK nach vollem E2E: 232 grün; Abschluss M14.22 erledigt) — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
+| M15 | offen | 0/4 IDs — Neuigkeiten und Tutorial |
+| M16 | offen | 0/6 IDs — Medikamenten-Block |
+| M17 | offen | 0/7 IDs — Training View |
+| M18 | offen | 0/5 IDs (1 manuell) — Arzt-Link |
+| M19 | offen | 0/8 IDs (1 manuell) — LLM |
+| M20 | offen | 0/6 IDs (1 manuell) — Zusammenhänge, Hinweise |
+| M21 | offen | 0/4 IDs — Dashboard-Baukasten |
+| M22 | offen | 0/6 IDs (1 manuell) — Schlüsselrotation, Rechte |
+| M23 | offen | 0/5 IDs (1 manuell) — Lokale Verschlüsselung |
+| M24 | offen | 0/5 IDs — Integrationen, client-sdk, MCP |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
 
@@ -299,3 +380,4 @@ Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19,
 | 2026-11-16 | M14.15d | BLK-44 | Start: `TemplateTiles` (Begrüßung „Hallo, <Name>“ im Konto-Modus; Kacheln mit Icon/Farbe/Name aller aktiven Vorlagen beschreibbarer Tagebücher in Vorlagen-Reihenfolge); Tipp öffnet `/entry/new?template=<id>` (`EntryEditorPage` vorbelegt die Vorlage, nur wenn wählbar). |
 | 2026-11-16 | M14b (E2E) | QA-03 | Basislinie nach Neustart: voller `test:e2e` 217 grün / 22 übersprungen, keine Abstürze; nach UI-21/22/23 und BLK-44: 229 grün / 24 übersprungen. Erkenntnisse: Playwright-Aufruf mit Dateifilter läuft wegen der Projektabhängigkeit des Deploy-Tests effektiv die ganze Suite; `name: "Automatisch"` in Locatoren ist Teilstring-Treffer (UI-06) → Update-Label heißt „Selbstständig“. |
 | 2026-11-16 | M14.22 | — | Abschluss M14/M14b/M14c: voller `test:e2e` 232 grün (mit Rundgang-Spec) / 25 übersprungen; `acceptance` gesamt: 210 erfüllt, 0 fehlgeschlagen, fehlend nur QA-08 (ohne Docker), manuell 6/10 (Skript nennt CRY-17, VOI-11, SHR-12, UI-13; MIG-16 steht in PROGRESS offen). Browserprüfung ADR-012 im iPhone-Viewport 390×844 (Chromium + WebKit, Produktions-Vorschau), `e2e/m14-walkthrough.spec.ts`: Vorlagen-Editor anlegen/ändern, Eintrag mit Tags/PDF-Anhang/Körperkarte, Detail mit Körperkarte, Duplizieren/Löschen, Verlauf-Filter + Export daraus (Tabelle/Karten/Dashboard, Datei mit pdfjs geöffnet), Schnelleintrag mit Vorlagenwahl, Tagebuch-Einstellungen/Ort, Einstellungen (Sicherheit, Sperre, Updates, Konfliktprotokoll, Gefahr-Zone), Konto-Modus (Geräte, Sync, Backup-Code; Chromium). **Befunde:** M14-1 kein horizontaler Überlauf auf allen 14 besuchten Seiten (je `scrollWidth ≤ innerWidth`); M14-2 alle drei PDF-Layouts aus dem Verlauf-Filter öffnen in pdfjs mit Text; M14-3 keine App-Fehler gefunden (einziger Rot-Lauf war Fehlannahme im Test: Schnelleintrag landet auf Start, nicht im Detail). Prüfung ist DOM-/Datei-basiert, keine Sichtprüfung von Screenshots. GATE-G4.md aktualisiert. Erkenntnis: ein Teil-Lauf von Playwright überschreibt `reports/playwright.json` — `acceptance` danach nur nach vollem Lauf aussagekräftig. |
+| 2026-11-16 | M15.0 | — | Doku für v3.x: Spec 00 „Stufen“ (v3.x-Punkte mit IDs im Spec-Text), Spec 01 (Pakete mit Meilenstein, `LLM_PROVIDER`/`LLM_DAILY_TOKENS`), IDs und Texte M15–M24 in Spec 01–10 (neue Abschnitte „Erweiterungen v3.x“ statt Backlog; Backlog nur noch FHIR), MILESTONES „Meilensteine v3.x“ + manuelle Zeile, DECISIONS A-080–A-095, Aufgabenliste M15.1–M24.6. QA-08 erledigt (`verify:docker` 2026-11-16 grün, Gesamt 211/211). `--structure` ok: 277 IDs, 28 Meilensteine. |

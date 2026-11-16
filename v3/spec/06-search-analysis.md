@@ -82,12 +82,15 @@ Condition =
 | Volltextsuche | < 100 ms |
 | Periodenvergleich | < 300 ms |
 
-## Backlog v3.x
+## Erweiterungen v3.x
 
-- Korrelationen mit Zeitversatz, Auslöser-Analyse (Lift) — nur mit sichtbarer Fallzahl und Warnhinweisen.
-- Konfigurierbarer Dashboard-Baukasten (`Dashboard`-Entität, Widgets).
-- Persistierter Suchindex (relevant erst mit lokaler Verschlüsselung).
-- Schwellwert-Benachrichtigungen (RDM-006).
+- **Medikamente (M16):** Medikamententage und Häufigkeiten werten auch `medication`-Blöcke aus (je Name); Kreisdiagramm „Medikamente“ (Anteil je Medikament) unter Häufigkeiten.
+- **Training (M17):** `trainingStats` (Tage mit erledigten Übungen je Woche, Verlauf der Stufe je Übung); die Auswertung zeigt bei vorhandenen Trainingseinträgen „Übungen“.
+- **Zusammenhänge (M20):** Spearman auf Tageswerten, Zeitversatz 0–7 Tage, erst ab n ≥ 14 gemeinsamen Tagen; Lift für Auslöser (Ereignis an Tag d bzw. d−1 → Ergebnis ≥ Schwelle), erst ab 10 Fällen; immer mit Fallzahl und dem Hinweis „Zusammenhang ist keine Ursache“. Unterhalb der Mindestzahl erscheint keine Zahl; keine p-Werte, Stärke in Worten (schwach/mittel/stark).
+- **Hinweise / Schwellwerte (M20):** Record-kind `notificationRule` `{ id, diaryId, blockId, op: '>=' | '<=', value, consecutiveDays, cooldownHours (Standard 24) }`, nur beschreibende Texte („Schmerz ≥ 7 an 3 Tagen in Folge“), keine Empfehlungen. Ausgelöst nach dem Speichern und beim Öffnen; Banner auf Start + lokale Notification über den Service Worker, falls erlaubt. Kein Push-Server.
+- **Dashboard-Baukasten (M21):** `Dashboard { id, diaryId, name, order, widgets: [{ id, kind: 'timeseries' | 'heatmap' | 'medicationDays' | 'frequency' | 'bodymap' | 'correlation' | 'kpi', config, span: 1 | 2 }], hlc, updatedAt }`, Record-kind `dashboard`, Push nur durch den Owner, Konflikt: ganzer Datensatz per HLC. Die Standard-Ansichten bleiben unverändert.
+- **Persistierter Suchindex (M23):** lokaler, verschlüsselter Record (nicht synchronisiert), inkrementell aktualisiert.
+- **LLM-Zusammenfassung für den Arzt (M19):** siehe 08; sendet standardmäßig nur Kennzahlen aus dieser Spec.
 
 ## Akzeptanztests
 
@@ -114,3 +117,15 @@ Condition =
 | ANA-19 | `applyFilter`: neue Bedingungen `bodymap` (nicht leer), `attachment` (Art `image`/`pdf`, aus `attachmentMeta` im Working-Set) und Ereignis-Kategorie liefern für die Fixture die erwarteten Einträge; `sortEntries` für `newest`, `oldest`, `template_az`, `template_date` stabil. | unit |
 | ANA-20 | Verlauf: Sortierung wählbar (4 Optionen, bleibt nach Reload); Liste lädt seitenweise (50 Einträge, „Weitere laden"), Tagesgruppen bleiben korrekt über Seitengrenzen. | e2e |
 | ANA-21 | „Diagramm als Eintrag speichern": PNG des aktuellen Verlaufsdiagramms wird Bild-Anhang eines neuen Eintrags einer gewählten Vorlage mit Textarea (Anhänge erlaubt), Text = Beschriftung; ohne passende Vorlage Hinweis statt Knopf. | e2e |
+| ANA-22 | Arbeitsset, Filter (Bedingung Medikamentenname) und Suche erfassen `medication`; Medikamententage und Häufigkeiten zählen je Name. Fixture liefert die erwarteten Werte. | unit |
+| ANA-23 | Auswertung → Häufigkeiten zeigt ein Kreisdiagramm „Medikamente“ (Anteil je Medikament im Zeitraum, Touch-Tooltip). | e2e |
+| ANA-24 | `trainingStats`: Tage mit erledigten Übungen je Woche, Verlauf der Stufe je Übung (Fixture). | unit |
+| ANA-25 | Auswertung zeigt bei vorhandenen Trainingseinträgen „Übungen“: Wochenbalken und Stufenverlauf. | e2e |
+| ANA-26 | `correlate(a, b, lag)`: Fixture-Werte, n, Mindestzahl; < 300 ms bei 5.000 Einträgen. | unit |
+| ANA-27 | `triggerLift`: Vierfeldertafel, Lift und Mindestzahl (Fixture). | unit |
+| ANA-28 | Auswertung → „Zusammenhänge“: zwei Blöcke + Versatz → Koeffizient, Stärke in Worten, n, Warnhinweis; Liste der Auslöser mit Fallzahlen; unter der Mindestzahl nur der Hinweis. | e2e |
+| ANA-29 | `evaluateRules(entries, rules, lastFired, now)`: aufeinanderfolgende Tage (Tagebuch-Zeitzone), Cooldown, beschreibender Text. | unit |
+| ANA-30 | Einstellungen → Hinweise: Regel anlegen; ein Eintrag, der die Regel erfüllt, erzeugt ein Start-Banner (und `showNotification`, wenn erlaubt); innerhalb des Cooldowns nicht erneut. | e2e |
+| ANA-31 | Hinweis-Notification auf dem iPhone (installierte PWA, iOS ≥ 16.4). | manual |
+| ANA-32 | Auswertung → „Meine Dashboards“: anlegen, umbenennen, Widgets aus den Standard-Ansichten hinzufügen, verschieben (Zeiger + Tastatur), entfernen; bleibt nach Reload erhalten. | e2e |
+| ANA-33 | Persistierter Index: Kaltstart-Suche bei 5.000 Einträgen < 500 ms; Index nach Eintragsänderung aktuell. | unit |

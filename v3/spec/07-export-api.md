@@ -76,12 +76,23 @@ Jeder Export kann **vollständig** oder **gefiltert** (`FilterSpec`, 06) erstell
 - Auslöser: nach Änderungen höchstens 1×/Tag sowie vor dem Aktivieren eines Updates.
 - Hinweis „Backup wiederherstellen" (Datei oder Auto-Sicherung) bei leerer DB nach dem Onboarding, wegklickbar (EXP-16).
 
+## Erweiterungen v3.x
+
+### Arzt-Link (M18)
+
+Das Gerät erzeugt einen Zufallsschlüssel K (256 Bit) und verschlüsselt das Berichtspaket (gefilterte Einträge als JSON-v1-Teilmenge + PDF) mit AES-GCM, AAD `stb/v3/share|<id>`. Der Server speichert nur Chiffretext in `shares` (`expires_at` ≤ 30 Tage, Standard 14; `max_views` 1–20, Standard 5; ≤ 10 MB). Link: `/r/<id>#k=<base64url K>`; das Fragment erreicht den Server nie (Referrer-Policy no-referrer). Die Ansicht `/r/:id` braucht keine Anmeldung, ist nur lesend und lädt per `lazy` ohne Daten- oder Sync-Module. Nur im Konto-Modus und nur online verfügbar; ein Erklärdialog weist darauf hin, dass jeder mit dem Link den Bericht lesen kann. Kein QR-Code.
+
+### Integrationen, client-sdk, MCP (M24)
+
+Nur lesende API (Chiffretext + Wrap, Tokens siehe 03); `packages/client-sdk` entschlüsselt; `apps/mcp` (stdio, lokal beim Nutzer, kein gehosteter Server) bietet die Tools `list_diaries`, `search_entries`, `get_entry`, `stats`.
+
+### Medikamenten-Block im Export (M16)
+
+CSV: eine Zelle „Ibuprofen 400 mg 08:00; …“; JSON v1 (Export-Schema neu erzeugt) und PDF (Tabelle/Karten) enthalten die Positionen; Import-Roundtrip verlustfrei.
+
 ## Backlog v3.x
 
-- Lesende REST-API mit API-Tokens und `client-sdk` (Chiffretext + clientseitige Entschlüsselung).
-- MCP-Server (`apps/mcp`) auf Basis von `client-sdk`.
-- Arzt-Link: befristeter, verschlüsselter Bericht (`shares`), Schlüssel im URL-Fragment.
-- FHIR-Export.
+- FHIR-Export (Nicht-Ziel in v3, nicht eingeplant).
 
 ## Akzeptanztests
 
@@ -106,3 +117,13 @@ Jeder Export kann **vollständig** oder **gefiltert** (`FilterSpec`, 06) erstell
 | EXP-17 | Auto-Sicherung: nach Änderungen höchstens 1×/Tag und vor dem Aktivieren eines Updates eine verschlüsselte Backup-Datei (Format 07) im Gerätespeicher getrennt von `stb-v3`; nach Löschen von `stb-v3` mit Passwort/Backup-Code vollständig wiederherstellbar; Speicher enthält keine Klartext-Marker. | integration |
 | EXP-18 | Verlauf: Knopf „Exportieren" übernimmt die aktuell angewendeten Filter (FilterSpec, Tagebuch-Umschalter) in den Export-Dialog (PDF-Layouts, CSV, JSON); die Datei enthält nur die gefilterten Einträge; „Mehr → Export" bleibt. | e2e |
 | EXP-19 | PDF-Download: die **heruntergeladene Datei** (Playwright-Download, alle drei Layouts, mit und ohne Passwort) hat MIME `application/pdf`, beginnt mit `%PDF-`, endet mit `%%EOF`, lässt sich mit pdfjs öffnen (Seitenzahl ≥ 1, erwarteter Text auf Seite 1; mit Passwort nur mit diesem). Regression für „kein funktionsfähiges PDF" (User-Feedback 2026-11-16). | e2e |
+| EXP-20 | Medikamenten-Block im Export: CSV (eine Zelle „Ibuprofen 400 mg 08:00; …“), JSON v1 (Export-Schema neu erzeugt), PDF-Tabelle/Karten; Import-Roundtrip verlustfrei. | unit |
+| EXP-21 | `crypto/report-share.ts`: Roundtrip; falscher Schlüssel, falsche AAD oder manipulierter Chiffretext ergeben einen eindeutigen Fehler; der Schlüssel taucht nie im Request auf. | unit |
+| EXP-22 | Server: `POST /api/v1/shares` (angemeldet, ≤ 10 MB, Grenzen für Ablauf und Aufrufe), `GET /api/v1/shares/:id` ohne Anmeldung (zählt Aufrufe, 410 nach Ablauf, Erreichen von max_views oder Widerruf), `GET /api/v1/shares` und `DELETE` nur für den Ersteller, Aufräumen abgelaufener Links, Rate-Limit, kein Body-Logging. | integration |
+| EXP-23 | Export-Dialog „Arzt-Link erstellen“ (Filter vorbelegt wie EXP-18, Ablauf, max. Aufrufe, Erklärdialog) → Link kopieren oder teilen. Der Link in einem frischen Browser-Kontext zeigt den Bericht (Tabelle, Diagramme, PDF-Download). Abgelaufen oder falscher Schlüssel → verständliche Meldung. | e2e |
+| EXP-24 | Liste aktiver Links mit Aufrufen und Ablauf; Widerrufen → die Ansicht meldet „widerrufen“. In local-only Hinweis statt Funktion. | e2e |
+| EXP-25 | Arzt-Link auf fremdem Gerät (Arzt-PC/Handy) öffnen und Darstellung prüfen. | manual |
+| EXP-26 | Dashboard (ANA-32) als PNG exportierbar und als Grundlage für das PDF-Layout „Dashboard“. | e2e |
+| EXP-27 | Einstellungen → Integrationen: anlegen (einmalige Anzeige), Liste, widerrufen. | e2e |
+| EXP-28 | `apps/mcp`: Tools über einen In-Process-MCP-Client gegen die Fixture; nur lesend. | integration |
+| ARC-08 | `client-sdk` gegen den In-Process-Server: anmelden, Pull, Entschlüsseln, typisierte Einträge; Abhängigkeitsregeln (`client-sdk` → nur `core`, `crypto`, `sync-protocol`). | integration |

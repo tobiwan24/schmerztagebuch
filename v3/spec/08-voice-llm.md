@@ -53,10 +53,13 @@ eine Bestätigung. Ohne Einrichtung gibt es keinen Intake.
 - Offline-iPhone: der Kurzbefehl meldet den Fehler; es gibt keine Warteschlange im Kurzbefehl.
 - Rate-Limit pro Token (Standard 60/h).
 
-## Backlog v3.x
+## LLM (v3.x, M19)
 
-- LLM-Provider-Abstraktion (`packages/llm`): Ollama lokal (Standard) und Claude API, Freigabe pro Vorgang,
-  Anwendungsfälle: Freitext → Felder, Rollenvorschläge, Zusammenfassung für den Arzt. Hardware des Servers (GPU) klären.
+`packages/llm` (importiert nur `core`): `LlmProvider { id, thirdParty, complete({system, messages, jsonSchema, maxTokens}) }` mit `OllamaProvider` (HTTP `/api/chat`, `format` = JSON-Schema), `AnthropicProvider` (`@anthropic-ai/sdk`, Structured Outputs `output_config.format`), `FakeProvider` und Prompt-Bausteinen. Die Provider laufen **nur im Server** (`apps/server/src/llm`); Schlüssel nur per Env, nie im Client. `LLM_PROVIDER=off|ollama|anthropic` (Standard `off`).
+
+Wie beim Intake ist das eine **sichtbare Ausnahme vom E2E-Grundsatz** (A-086): Der Klartext liegt nur im RAM des Servers, wird nie gespeichert oder geloggt und an den Provider weitergereicht. Freigabe pro Vorgang: Der Dialog zeigt den genauen Text und den Empfänger (eigener Server/Ollama oder Drittanbieter Anthropic, USA). Globaler Opt-in in Einstellungen → KI, Standard aus. Antworten sind nie vertrauenswürdig: zod-Prüfung gegen die Block-Schemas, das Ergebnis ist immer nur ein Entwurf. Keine Diagnose- oder Therapieaussagen (System-Prompt + Hinweis in der UI). local-only und offline: nicht verfügbar.
+
+Endpunkte (angemeldet, Body ≤ 32 KB, Rate-Limit 30/h je Nutzer, Tagesbudget `LLM_DAILY_TOKENS`): `POST /api/v1/llm/{fill,roles,summary}`, `GET /api/v1/llm/status`. Anwendungsfälle: Freitext → Felder (Formular, Schnelleintrag), Rollenvorschläge im Vorlagen-Editor (05), „Zusammenfassung für den Arzt“ (nur Kennzahlen, Notizen nur per Häkchen; bearbeitbar; optional als PDF-Abschnitt). Welche Hardware (GPU) der Server für Ollama hat, klärt VOI-17.
 
 ## Akzeptanztests
 
@@ -73,3 +76,9 @@ eine Bestätigung. Ohne Einrichtung gibt es keinen Intake.
 | VOI-09 | Zwischenablage-Weg erzeugt einen Eintragsentwurf, der erst nach Bestätigung gespeichert wird (auch in local-only). | e2e |
 | VOI-10 | Rate-Limit greift nach 60 Requests pro Stunde und Token. | integration |
 | VOI-11 | Echter Kurzbefehl auf dem iPhone: „Hey Siri, Schmerz eintragen" → Eintrag erscheint nach dem nächsten Sync in der App. | manual |
+| VOI-12 | Provider: Ollama und Anthropic mit gemocktem fetch bzw. SDK (Request-Form, Modell aus der Konfiguration, Timeout, Fehlerabbildung, Refusal/`stop_reason`); Fake ist deterministisch; Prompt-Bausteine für Freitext→Felder (wiederverwendet den Prompt-Generator), Rollen und Zusammenfassung. | unit |
+| VOI-13 | Server `POST /api/v1/llm/{fill,roles,summary}`, `GET /api/v1/llm/status`: Anmeldung Pflicht; bei `off` 404/`llm_disabled`; Env per zod geprüft (Fehler, wenn der Schlüssel zum gewählten Provider fehlt); Rate-Limit 30/h je Nutzer und Tagesbudget in Tokens; keine DB-Schreibvorgänge; der Log-Stream enthält den Klartext-Marker nicht; Body ≤ 32 KB. | integration |
+| VOI-14 | Formular und Schnelleintrag: „Aus Text ausfüllen“ → Freigabedialog zeigt Text und Empfänger → Ergebnis füllt den Entwurf (geänderte Felder markiert), Speichern nur durch den Nutzer; ungültige Werte werden verworfen und gemeldet (FakeProvider per `page.route`). | e2e |
+| VOI-15 | Auswertung/Export „Zusammenfassung für den Arzt“: standardmäßig gehen nur Kennzahlen raus (Notizen nur per Häkchen). Der Text ist bearbeitbar, mit Hinweis „keine Diagnose“, und kann optional als Abschnitt in den PDF-Export. | e2e |
+| VOI-16 | Einstellungen → KI: Opt-in Standard aus; zeigt Provider, Modell und „Drittanbieter ja/nein“ aus `status`; alle KI-Knöpfe sind ausgeblendet bei `off`, Opt-in aus oder local-only und deaktiviert, solange offline. | e2e |
+| VOI-17 | Echte Provider: Ollama auf der Server-Hardware (Antwortzeit, Qualität auf Deutsch) und/oder Anthropic mit echtem Schlüssel, getestet am iPhone. | manual |

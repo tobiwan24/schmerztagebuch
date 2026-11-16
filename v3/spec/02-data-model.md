@@ -119,11 +119,10 @@ Record-`kind`s in v3.0: `diary`, `template`, `templateVersion`, `entry`, `savedF
 
 `kind` ist der einzige fachliche Hinweis im Klartext und für die Sync-Reihenfolge nötig (Vorlagen vor Einträgen).
 
-## Backlog v3.x
+## Erweiterungen v3.x
 
-- Lokale Verschlüsselung über Codec `aes` + Hintergrund-Migration (vorbereitet durch DM-09, DM-12).
-- `Dashboard`-Entität und Widgets (06).
-- `shares` (Arzt-Link), Integrationen als `devices.kind = 'integration'`.
+- **Lokale Verschlüsselung (M23):** Codec `aes` (DK des Tagebuchs, AAD wie in 03), Opt-in „Daten auf dem Gerät verschlüsseln“; Migration im Hintergrund plain→aes, fortsetzbar und idempotent (Outbox und `base` werden mitverschlüsselt); `occurredAt` wird im Index auf den Tag gekürzt. Ohne Entsperren keine Daten (App-Sperre). Der persistierte Suchindex steht in 06.
+- **`Dashboard`-Entität (M21):** siehe 06. **`shares`** (Arzt-Link, M18): siehe 07. **Integrationen** (`devices.kind = 'integration'`, M24): siehe 03.
 
 ## Akzeptanztests
 
@@ -143,3 +142,8 @@ Record-`kind`s in v3.0: `diary`, `template`, `templateVersion`, `entry`, `savedF
 | DM-12 | Ein Record mit `codec: 'plain'` und einer mit `codec: 'aes'` (Test-Codec) lassen sich in derselben DB nebeneinander lesen (Grundlage der späteren Migration). | integration |
 | DM-13 | Ein Push-Lauf sendet nur Chiffretext: der mitgeschnittene Request-Body enthält keine Klartext-Marker aus Testeinträgen. | integration |
 | DM-14 | `Diary` hat optionale `updatedAt`/`hlc`; Tagebücher ohne diese Felder bleiben gültig. `updateDiarySettings` setzt beide, rundet den festen Ort auf 1 Dezimalstelle und lehnt Schnelleintrag-Blöcke ab, die nicht zur gewählten Vorlage gehören; im Konflikt gewinnt der höhere HLC. | unit |
+| DM-15 | `core/dashboard.ts`: Schema, Widget-Konfiguration je Art, Reihenfolge per Fractional Index; das Export-Schema enthält Dashboards. | unit |
+| DM-16 | Codec `aes`: Roundtrip, falscher Schlüssel bzw. falsche AAD → Fehler, gemischte Bestände (plain und aes) lesbar. | unit |
+| DM-17 | Migration plain→aes (fake-indexeddb): idempotent, nach Abbruch fortsetzbar, Outbox und `base` mitverschlüsselt, Index auf den Tag gekürzt. | integration |
+| DM-18 | Schalter „Daten auf dem Gerät verschlüsseln“ an → danach enthält IndexedDB keinen Klartext-Marker mehr; die App arbeitet entsperrt normal; Auto-Sicherung und Export funktionieren. | e2e |
+| DM-19 | Leistung und Akku mit lokaler Verschlüsselung auf dem iPhone mit echtem Datenbestand. | manual |

@@ -41,7 +41,7 @@ v3/
   spec/  scripts/  reports/
 ```
 
-In v3.0 werden die mit *(v3.x)* markierten Pakete/Apps **nicht angelegt**.
+In v3.0 werden die mit *(v3.x)* markierten Pakete/Apps **nicht angelegt**; sie entstehen mit ihrem Meilenstein (llm: M19, client-sdk und mcp: M24).
 
 ## Abhängigkeitsregeln (per ESLint `import/no-restricted-paths` erzwungen)
 
@@ -69,7 +69,7 @@ In v3.0 werden die mit *(v3.x)* markierten Pakete/Apps **nicht angelegt**.
 ## Konfiguration
 
 - Server-Konfiguration ausschließlich über Umgebungsvariablen, validiert mit zod beim Start
-  (`RP_ID`, `ALLOWED_ORIGINS`, `DATABASE_PATH`, `BLOB_DIR`; erst v3.x: `OLLAMA_URL`, `OLLAMA_MODEL`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`).
+  (`RP_ID`, `ALLOWED_ORIGINS`, `DATABASE_PATH`, `BLOB_DIR`; erst v3.x (M19): `LLM_PROVIDER` (`off`|`ollama`|`anthropic`, Standard `off`), `LLM_DAILY_TOKENS`, `OLLAMA_URL`, `OLLAMA_MODEL`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`).
 - Keine Secrets im Repo; `.env.example` dokumentiert alle Variablen.
 
 ## Deployment und Ablösung von v2
@@ -92,3 +92,4 @@ In v3.0 werden die mit *(v3.x)* markierten Pakete/Apps **nicht angelegt**.
 | ARC-04 | Server startet nicht und meldet die fehlende Variable, wenn `RP_ID` fehlt; startet mit gültiger `.env.example`-Konfiguration. | integration |
 | ARC-05 | `check-acceptance.mjs` meldet eine Spec-ID ohne Test als fehlend und eine mit bestandenem Test als erfüllt (Selbsttest mit Fixture-Reports). | unit |
 | ARC-06 | TypeScript läuft mit `strict` und `noUncheckedIndexedAccess`; es gibt kein `any` in `packages/*` (Lint-Regel `no-explicit-any` = error). | unit |
+| ARC-07 | Abhängigkeitsregel `llm` → nur `core` (ESLint/check-deps); der Web-Build enthält weder `@anthropic-ai/sdk` noch `ANTHROPIC`/`OLLAMA` (Scan von `dist/assets`). | unit |

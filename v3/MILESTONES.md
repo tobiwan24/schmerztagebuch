@@ -26,6 +26,24 @@ Jede Spec-ID steht in **genau einem** Meilenstein (`npm run acceptance -- --stru
 | M14b | Teil-Meilenstein v2-Parität, Rest: Formular-Parität, Verlauf/Auswertung/PDF, Auto-Sicherung, Sicherheit/Geräte, Einstellungen, Tagebuch-Umschalter | BLK-41 BLK-42 BLK-43 BLK-44 ANA-17 ANA-18 ANA-19 ANA-20 ANA-21 EXP-14 EXP-15 EXP-16 EXP-17 CRY-18 CRY-19 CRY-20 UI-20 UI-21 UI-22 UI-23 UI-24 MIG-17 | — |
 | M14c | Gate-Feedback 2026-11-16 (Vorrang vor restlichem M14b): PDF-Download-Bug, Schnelleintrag überarbeiten, Verlauf ohne „Neuer Eintrag", Body-Map-Bild im Eintrag, Export im Verlauf | EXP-19 BLK-45 BLK-46 UI-25 BLK-47 EXP-18 | — |
 
+## Meilensteine v3.x
+
+Nach v3.0 (siehe A-080). Gleiche Regeln wie oben; die `manual`-IDs dieser Meilensteine blockieren nichts (keine Gates).
+Reihenfolge verbindlich, Plan und Aufgaben in [PROGRESS.md](PROGRESS.md).
+
+| M | Titel | Akzeptanz-IDs | Gate danach |
+|---|---|---|---|
+| M15 | v3.x: Neuigkeiten (RDM-011) und Tutorial | UI-26 UI-27 UI-28 UI-29 | — |
+| M16 | v3.x: Medikamenten-Block (RDM-018) | BLK-48 BLK-49 BLK-50 ANA-22 ANA-23 EXP-20 | — |
+| M17 | v3.x: Training View (RDM-005) | BLK-51 BLK-52 UI-30 UI-31 UI-32 ANA-24 ANA-25 | — |
+| M18 | v3.x: Arzt-Link (verschlüsselter, befristeter Bericht) | EXP-21 EXP-22 EXP-23 EXP-24 EXP-25 | — |
+| M19 | v3.x: LLM (Ollama/Claude, Freigabe pro Vorgang) | ARC-07 VOI-12 VOI-13 VOI-14 BLK-53 VOI-15 VOI-16 VOI-17 | — |
+| M20 | v3.x: Zusammenhänge, Auslöser, Schwellwert-Hinweise (RDM-006) | ANA-26 ANA-27 ANA-28 ANA-29 ANA-30 ANA-31 | — |
+| M21 | v3.x: Dashboard-Baukasten | DM-15 SYN-19 ANA-32 EXP-26 | — |
+| M22 | v3.x: Schlüsselrotation, feinere Rechte, Hinweis auf neue Einträge | CRY-21 CRY-22 SHR-13 SHR-14 SHR-15 SHR-16 | — |
+| M23 | v3.x: Lokale Verschlüsselung und persistierter Suchindex | DM-16 DM-17 DM-18 ANA-33 DM-19 | — |
+| M24 | v3.x: Integrationen, client-sdk, MCP | CRY-23 CRY-24 ARC-08 EXP-27 EXP-28 | — |
+
 ## Manuelle Kriterien (Abhaken in PROGRESS.md)
 
 | Gate | IDs |
@@ -34,6 +52,7 @@ Jede Spec-ID steht in **genau einem** Meilenstein (`npm run acceptance -- --stru
 | G2 | UI-11 CRY-17 |
 | G3 | UI-12 ANA-16 EXP-13 |
 | G4 | UI-13 MIG-16 VOI-11 SHR-12 |
+| v3.x (nicht blockierend) | EXP-25 VOI-17 ANA-31 SHR-16 DM-19 |
 
 ## Hinweise zur Reihenfolge
 

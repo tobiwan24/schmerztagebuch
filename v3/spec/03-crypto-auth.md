@@ -74,10 +74,10 @@ Jeder Code hat einen deutschen, handlungsorientierten Text. Fehler werden nie zu
 - *(v3.x)* Integrationen authentifizieren sich mit API-Token (Hash serverseitig) — Token gibt nur Zugriff auf Chiffretext.
 - Rate-Limits auf Auth- und Recovery-Endpunkten.
 
-## Backlog v3.x
+## Erweiterungen v3.x
 
-- DK-Rotation (`key_epoch` + 1) beim Sperren eines Geräts bzw. Entfernen eines Mitglieds, Re-Verschlüsselung im Hintergrund.
-- Integrationen (API-Token, eigener ECDH-Schlüssel, DK-Wrap).
+- **DK-Rotation (M22):** Beim Entfernen eines Mitglieds oder Sperren eines Geräts erzeugt der Owner-Client DK′ (`key_epoch` + 1), verpackt ihn für die verbleibenden Mitglieder und verschlüsselt alle Records im Hintergrund neu, fortsetzbar und idempotent. Lesen akzeptiert während der Rotation beide Epochen, Push nur noch mit der neuen. Das entfernte Mitglied bekommt keinen Wrap der neuen Epoche.
+- **Integrationen (M24):** Eine Integration ist ein Principal (`devices.kind = 'integration'`) mit eigenem ECDH-Schlüssel; der Owner verpackt den DK dafür. Token und Integrationsschlüssel werden einmal als ein String (mit Prüfsumme) angezeigt, der Server speichert nur den Token-Hash. Nur lesende API (Chiffretext, Spec 07).
 
 ## Akzeptanztests
 
@@ -103,3 +103,7 @@ Jeder Code hat einen deutschen, handlungsorientierten Text. Fehler werden nie zu
 | CRY-18 | Einstellungen → Sicherheit: Passwort ändern (local-only; mit aktuellem Faktor, alter Passwort-Wrap danach ungültig), Passkey hinzufügen/entfernen (mindestens ein Faktor außer Backup-Code bleibt), Backup-Code erneuern (neuer Code mit Pflichtbestätigung, alter ungültig; im Konto Wrap + Verifier auf dem Server ersetzt). | e2e |
 | CRY-19 | Einstellungen → Geräte (Konto): Liste der eigenen Geräte mit „dieses Gerät"; „Abmelden" beendet die Sitzung und verwirft lokale Schlüssel und Wraps (Daten bleiben bis zum Löschen); anderes Gerät sperren → `revoked_at` (Wirkung wie CRY-14). | e2e |
 | CRY-20 | Einstellungen → Sperre: Dauer „entsperrt bleiben" einstellbar (1–30 Tage) und widerrufbar; automatische Sperre nach Inaktivität (Aus/5/15/30/60 min, Standard 30) mit gefälschter Uhr geprüft. | integration |
+| CRY-21 | `planDkRotation`/Re-Encrypt-Batches: neue Epoche, Wraps nur für aktive Mitglieder; nach einem Abbruch fortsetzbar, idempotent. | unit |
+| CRY-22 | Server `POST /diaries/:id/rotate` (Owner, atomar); ein entferntes Mitglied bekommt keinen Wrap der neuen Epoche; Push mit alter Epoche nach Abschluss → 409. | integration |
+| CRY-23 | Schlüssel und DK-Wrap der Integration, Token-Hash, Format des Zugangsstrings mit Prüfsumme. | unit |
+| CRY-24 | Server: Tokens anlegen, auflisten, widerrufen (Owner); `GET /api/v1/integration/records?since=` liefert Chiffretext und Wrap; Push → 403; Rate-Limit; Schema-Migration `devices.kind` (CHECK erweitert). | integration |
