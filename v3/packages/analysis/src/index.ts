@@ -5,3 +5,4 @@ export * from './search.js';
 export * from './training.js';
 export * from './fixture.js';
 export * from './big-fixture.js';
+export * from './correlate.js';
