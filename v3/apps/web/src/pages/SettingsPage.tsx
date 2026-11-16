@@ -13,6 +13,7 @@ import { LockSettingsCard } from '@/components/LockSettingsCard';
 import { CloudAccountCard } from '@/components/CloudAccountCard';
 import { DevicesSection } from '@/components/DevicesSection';
 import { TourRestartCard } from '@/tour/TourRestartCard';
+import { LlmSettingsCard } from '@/components/LlmSettingsCard';
 import { UpdateSettingsCard } from '@/components/UpdateSettings';
 import { DangerZone } from '@/components/DangerZone';
 import { FactorsSection } from '@/components/FactorsSection';
@@ -81,6 +82,7 @@ export function SettingsPage() {
       <TourRestartCard />
       <ReminderCard />
       <ReminderCard kind="training" />
+      <LlmSettingsCard />
       <V2DataCard />
       <Button asChild variant="outline">
         <Link to="/more/settings/konflikte">{de.conflicts.open}</Link>
