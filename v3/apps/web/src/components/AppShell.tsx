@@ -8,6 +8,7 @@ import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
 import { SyncStatus } from '@/components/SyncStatus';
 import { DiarySwitcher } from '@/components/DiarySwitcher';
+import { WhatsNewGate } from '@/components/WhatsNewGate';
 import { DiaryScopeProvider } from '@/data/diary-scope';
 import { BarChart3, Home, List, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -53,6 +54,7 @@ export function AppShell() {
         </div>
       ) : null}
       <SyncStatus />
+      {status === 'unlocked' ? <WhatsNewGate /> : null}
       <main className="flex flex-1 flex-col gap-4 p-4 pb-24">
         {locked ? null : <DiarySwitcher />}
         {locked && !OPEN_WHEN_LOCKED.includes(location.pathname) ? (

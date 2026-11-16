@@ -1,5 +1,6 @@
 // Playwright (Spec 01/12): Chromium + WebKit, Mobile-Viewport, JSON-Report für check-acceptance.
 import { defineConfig, devices } from '@playwright/test';
+import { APP_VERSION } from '../apps/web/src/version';
 
 const PORT = 4173;
 
@@ -27,6 +28,12 @@ export default defineConfig({
     // Ohne Screencast-Bilder: Der Playwright-WebKit-Build für Windows stürzt sonst mit Skia „SkBitmap tryAllocPixels (368x796)“
     // ab (WebKit2.dll, Crash-Dialog + CrashReport.dmp); die Trace-Aktionen/DOM-Snapshots bleiben erhalten.
     trace: { mode: 'retain-on-failure', screenshots: false },
+    // Neuigkeiten-Dialog (UI-27) aus: Jeder Kontext – auch `browser.newContext()` – startet mit der aktuellen Version als gesehen,
+    // sonst blockiert der modale Dialog die Bedienung. `whats-new.spec.ts` überschreibt das für die Prüfung des Dialogs.
+    storageState: {
+      cookies: [],
+      origins: [{ origin: `http://localhost:${PORT}`, localStorage: [{ name: 'stb-v3-whatsnew', value: APP_VERSION }] }],
+    },
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 375, height: 812 }, isMobile: false } },

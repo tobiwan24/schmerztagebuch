@@ -1,6 +1,6 @@
 // Onboarding (Spec 10): Install-Hinweis → Modus → Faktor → Backup-Code (Pflicht) → erstes Tagebuch → Wetter-Ort (optional) → Vorlage.
 // Ein entsperrtes Konto ohne Tagebuch landet hier direkt beim Tagebuch-Schritt (z. B. App nach dem Backup-Code geschlossen).
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import { Cloud, Smartphone } from 'lucide-react';
 import { createDiary, instantiateCatalogTemplate, keyBetween } from '@stb/core';
@@ -21,6 +21,8 @@ import { requestPersistentStorage } from '@/lib/install';
 import { prepareLocalAccount, type PendingAccount } from '@/auth/local-account';
 import { useAuth } from '@/auth/AuthContext';
 import { de } from '@/i18n/de';
+import { readLastSeen, writeLastSeen } from '@/data/whats-new-state';
+import { APP_VERSION } from '@/version';
 import { SETUP_STEPS, enterSetup, type Step } from './onboarding-steps';
 
 
@@ -35,6 +37,10 @@ export function OnboardingPage() {
   const data = useData();
   const sync = useSync();
   const unlocked = auth.status === 'unlocked';
+  // Neuinstallation: die aktuellen Neuigkeiten gelten als gesehen (UI-27).
+  useEffect(() => {
+    if (readLastSeen() === null) writeLastSeen(APP_VERSION);
+  }, []);
   const diaries = useQuery(() => (unlocked ? data.diary.listDiaries() : Promise.resolve([])), [data.diary, unlocked]);
 
   if (auth.status === 'locked') return <Navigate to="/" replace />;

@@ -1,6 +1,8 @@
 // Einstellungen → Über → Diagnose (Spec 10, UI-09): Version, Sync-Status, Outbox, Speicher. Keine Eintragsinhalte.
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ReleaseList } from '@/components/ReleaseList';
+import { changelog } from '@/data/changelog';
 import { PageHeader } from '@/components/PageHeader';
 import { ErrorState } from '@/components/StateView';
 import { useDiagnostics } from '@/data/useDiagnostics';
@@ -50,6 +52,14 @@ export function DiagnosticsPage() {
           </CardContent>
         </Card>
       ) : null}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{de.whatsNew.heading}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {changelog.length === 0 ? <p className="text-sm text-muted-foreground">{de.whatsNew.empty}</p> : <ReleaseList releases={changelog} testId="whats-new-list" />}
+        </CardContent>
+      </Card>
       <Button variant="outline" onClick={d.retry}>
         {t.refresh}
       </Button>

@@ -585,6 +585,12 @@ export const de = {
     openEntry: 'Eintrag öffnen',
     unseen: 'Neu',
   },
+  whatsNew: {
+    title: (version: string) => `Neu in Version ${version}`,
+    close: 'Verstanden',
+    heading: 'Neuigkeiten',
+    empty: 'Noch keine Einträge.',
+  },
   diagnostics: {
     title: 'Diagnose',
     open: 'Über & Diagnose',
