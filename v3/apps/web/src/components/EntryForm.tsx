@@ -54,6 +54,8 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
   const [showErrors, setShowErrors] = useState(false);
   const [saving, setSaving] = useState(false);
   const leaving = useRef(false);
+  /** Eintrags-ID steht beim Öffnen fest, damit Anhänge schon vor dem Speichern auf den Eintrag verweisen können (BLK-30). */
+  const entryId = useRef(entry?.id ?? data.newId());
   const swipe = useRef<{ x: number; y: number } | null>(null);
   /** Vorlagenwechsel mit Eingaben erst nach Rückfrage (BLK-42, BLK-09-Regel). */
   const [pendingTemplate, setPendingTemplate] = useState<string | null>(null);
@@ -171,7 +173,7 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
         const initialMeta = settings && !useGps ? await initialWeatherMeta({ settings, useGps: false }, { currentPosition: () => Promise.reject(new Error('GPS aus')) }) : {};
         if (settings?.enabled && useGps) gpsFollowUp = settings;
         next = {
-          id: data.newId(), diaryId: loaded.template.diaryId, templateId: loaded.template.id, templateVersion: loaded.version.version,
+          id: entryId.current, diaryId: loaded.template.diaryId, templateId: loaded.template.id, templateVersion: loaded.version.version,
           ...time, recordedAt: s.at, updatedAt: s.at, authorId: s.authorId, values, tags: [...current.tags],
           meta: { source: 'app', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', ...initialMeta }, hlc: s.hlc,
         };

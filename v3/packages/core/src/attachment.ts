@@ -42,3 +42,14 @@ export function encodeDataUrl(mime: string, bytes: Uint8Array): string {
   for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return `data:${mime};base64,${btoa(bin)}`;
 }
+
+export type AttachmentCheck = { ok: true; kind: AttachmentMeta['kind'] } | { ok: false; reason: 'tooLarge' | 'type' };
+
+/** Erlaubt sind Bilder (ohne SVG, wegen eingebettetem Skript) und PDF bis `ATTACHMENT_MAX_BYTES` (BLK-30). */
+export function checkAttachmentFile(file: { mime: string; sizeBytes: number }): AttachmentCheck {
+  const mime = file.mime.toLowerCase();
+  const kind = mime === 'application/pdf' ? 'pdf' : /^image\/[a-z0-9.+-]+$/.test(mime) && mime !== 'image/svg+xml' ? 'image' : undefined;
+  if (!kind) return { ok: false, reason: 'type' };
+  if (file.sizeBytes > ATTACHMENT_MAX_BYTES) return { ok: false, reason: 'tooLarge' };
+  return { ok: true, kind };
+}

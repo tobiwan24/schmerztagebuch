@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { AttachmentMeta } from '@stb/core';
+import { ATTACHMENT_MAX_BYTES, type AttachmentMeta } from '@stb/core';
 import { createDevice, fixture, startServer } from './harness.js';
 
 const MARKER = 'STB-PLAINTEXT-MARKER-ANHANG';
@@ -74,5 +74,50 @@ describe('Anhänge im Sync', () => {
     await a.engine.sync();
     expect(await a.db.blob_outbox.count()).toBe(0);
     expect(server.db.prepare('SELECT COUNT(*) AS n FROM blobs').get()).toEqual({ n: 1 });
+  });
+
+  it('BLK-30: Speichern schreibt Inhalt und Metadaten, Entfernen löscht Metadaten (Tombstone, synchronisiert) und lokalen Inhalt', async () => {
+    const a = await device();
+    const b = await device();
+    const bytes = new TextEncoder().encode('%PDF-1.4 Befund');
+    const m = meta('Befund.pdf', bytes);
+    await a.attachments.commit({ add: [{ meta: m, bytes }], removeIds: [] });
+    expect(await a.attachments.listForEntry(m.diaryId, m.entryId)).toEqual([m]);
+    expect(await a.attachments.data(m.id)).toBeDefined();
+    await a.engine.sync();
+    await b.engine.sync();
+    expect(await b.attachments.get(m.id)).toEqual(m);
+
+    await a.attachments.commit({ add: [], removeIds: [m.id] });
+    expect(await a.attachments.get(m.id)).toBeUndefined();
+    expect(await a.attachments.data(m.id)).toBeUndefined();
+    expect(await a.db.blob_outbox.count()).toBe(0);
+    await a.engine.sync();
+    await b.engine.sync();
+    expect(await b.attachments.get(m.id)).toBeUndefined();
+  });
+
+  it('BLK-30: zu große oder unzulässige Dateien werden abgelehnt, ohne dass etwas geschrieben wird', async () => {
+    const a = await device();
+    const ok = new TextEncoder().encode('Foto');
+    const good = { ...meta('Foto.jpg', ok), kind: 'image' as const, mime: 'image/jpeg' };
+    const bad = { ...meta('Notiz.txt', ok), mime: 'text/plain' };
+    await expect(a.attachments.commit({ add: [{ meta: good, bytes: ok }, { meta: bad, bytes: ok }], removeIds: [] })).rejects.toThrow(/Anhang/);
+    const huge = { ...meta('Groß.pdf', ok), sizeBytes: ATTACHMENT_MAX_BYTES + 1 };
+    await expect(a.attachments.commit({ add: [{ meta: huge, bytes: ok }], removeIds: [] })).rejects.toThrow(/Anhang/);
+    // Größe der Bytes zählt, nicht die behauptete Größe
+    const lying = { ...meta('Lüge.pdf', ok), sizeBytes: 1 };
+    await expect(a.attachments.commit({ add: [{ meta: lying, bytes: new Uint8Array(ATTACHMENT_MAX_BYTES + 1) }], removeIds: [] })).rejects.toThrow(/Anhang/);
+    expect(await a.db.records.count()).toBe(0);
+    expect(await a.db.blobs.count()).toBe(0);
+    expect(await a.db.blob_outbox.count()).toBe(0);
+  });
+
+  it('BLK-30: wird das Formular verworfen (nichts übergeben), bleiben records, blobs und blob_outbox leer', async () => {
+    const a = await device();
+    await a.attachments.commit({ add: [], removeIds: [] });
+    expect(await a.db.records.count()).toBe(0);
+    expect(await a.db.blobs.count()).toBe(0);
+    expect(await a.db.blob_outbox.count()).toBe(0);
   });
 });

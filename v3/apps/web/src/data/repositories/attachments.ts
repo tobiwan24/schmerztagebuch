@@ -1,7 +1,7 @@
 // Anhänge (Spec 02 `Attachment`, A-032): Metadaten als Record `attachmentMeta` über das Record-Repository (Outbox/Sync
 // wie Einträge), Inhalt im lokalen `blobs`-Store. Jeder neue Inhalt kommt in die Upload-Warteschlange `blob_outbox`;
 // die Sync-Engine lädt ihn für Cloud-Tagebücher verschlüsselt hoch (lokal-only bleibt er liegen, bis umgestellt wird).
-import { attachmentMetaSchema, type AttachmentMeta } from '@stb/core';
+import { ATTACHMENT_MAX_BYTES, attachmentMetaSchema, checkAttachmentFile, type AttachmentMeta } from '@stb/core';
 import type { StbDb } from '../db.js';
 import type { RecordRepository } from './records.js';
 
@@ -12,7 +12,17 @@ export interface AttachmentInput {
   bytes: Uint8Array<ArrayBuffer>;
 }
 
+export interface AttachmentChanges {
+  add: readonly AttachmentInput[];
+  removeIds: readonly string[];
+}
+
 export interface AttachmentRepository {
+  /** Anhänge eines Formulars speichern (BLK-30): erst alles prüfen (nichts wird geschrieben, wenn eine Datei unzulässig ist),
+   *  dann Inhalte → Metadaten, zuletzt entfernte Anhänge löschen. Der Aufrufer speichert danach den Eintrag. */
+  commit(changes: AttachmentChanges): Promise<void>;
+  /** Anhang löschen: Metadaten als Tombstone (synchronisiert), lokaler Inhalt und offener Upload entfallen. */
+  remove(id: string): Promise<void>;
   /** Inhalte zuerst, dann Metadaten (eine Transaktion je Schritt) — ein Abbruch hinterlässt höchstens einen verwaisten Blob. */
   saveMany(items: readonly AttachmentInput[]): Promise<void>;
   /** Nur Inhalte + Upload-Warteschlange (Metadaten schreibt der Aufrufer, z. B. ein Import-Plan). */
@@ -37,10 +47,31 @@ export function createAttachmentRepository(db: StbDb, records: RecordRepository,
       }
     });
   }
+  function check(items: readonly AttachmentInput[]): void {
+    for (const { meta, bytes } of items) {
+      const verdict = checkAttachmentFile({ mime: meta.mime, sizeBytes: Math.max(meta.sizeBytes, bytes.length) });
+      if (!verdict.ok) throw new Error(`Anhang „${meta.name}“ abgelehnt: ${verdict.reason === 'tooLarge' ? `größer als ${ATTACHMENT_MAX_BYTES} Byte` : 'Typ nicht erlaubt'}`);
+      if (verdict.kind !== meta.kind) throw new Error(`Anhang „${meta.name}“ abgelehnt: Art passt nicht zum Typ`);
+    }
+  }
+  async function remove(id: string): Promise<void> {
+    await records.remove(id);
+    await db.transaction('rw', db.blobs, db.blob_outbox, async () => {
+      await db.blobs.delete(id);
+      await db.blob_outbox.delete(id);
+    });
+  }
   return {
+    remove,
+    async commit({ add, removeIds }) {
+      check(add);
+      if (add.length) await this.saveMany(add);
+      for (const id of removeIds) await remove(id);
+    },
     saveBlobs,
     async saveMany(items) {
       if (!items.length) return;
+      check(items);
       await saveBlobs(items);
       await records.putMany(items.map(({ meta }) => ({ id: meta.id, diaryId: meta.diaryId, kind: ATTACHMENT_KIND, payload: attachmentMetaSchema.parse(meta) })));
     },
