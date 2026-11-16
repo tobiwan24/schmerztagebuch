@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Download, FileUp, ShieldCheck } from 'lucide-react';
 import type { BackupSecret } from '@stb/crypto';
-import { parseExport, type CsvProfile, type ExportV1, type PdfImageSize } from '@stb/export';
+import { parseExport, type CsvProfile, type ExportV1, type PdfImageSize, type PdfLayout } from '@stb/export';
 import type { FilterSpec, SavedFilter } from '@stb/analysis';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,6 +40,7 @@ function ExportCard() {
   const [profile, setProfile] = useState<CsvProfile>('standard');
   const [filter, setFilter] = useState<SavedFilter | null>(null);
   const [imageSize, setImageSize] = useState<PdfImageSize>('a5');
+  const [layout, setLayout] = useState<PdfLayout>('table');
   const [pdfPassword, setPdfPassword] = useState('');
   const [period, setPeriod] = useState<Period>('all');
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
@@ -53,7 +54,7 @@ function ExportCard() {
     setBusy(true);
     try {
       const spec = effectiveFilter(filter?.filter, period, { month, from: rangeFrom, to: rangeTo }, diaryIds.status === 'ok' ? diaryIds.data : []);
-      const f = await exportFile(format, { profile, imageSize, ...(pdfPassword ? { password: pdfPassword } : {}), ...(spec ? { filter: spec } : {}) });
+      const f = await exportFile(format, { profile, imageSize, layout, ...(pdfPassword ? { password: pdfPassword } : {}), ...(spec ? { filter: spec } : {}) });
       downloadText(f.name, f.text, f.mime);
     } finally {
       setBusy(false);
@@ -76,6 +77,13 @@ function ExportCard() {
         </ToggleGroup>
         {format === 'pdf' ? (
           <>
+            <ToggleGroup aria-label={t.layout}>
+              {(['table', 'cards'] as PdfLayout[]).map((l) => (
+                <ToggleGroupItem key={l} pressed={layout === l} onClick={() => setLayout(l)}>
+                  {t.layouts[l]}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
             <ToggleGroup aria-label={t.imageSize}>
               {(['a4', 'a5', 'a6', 'none'] as PdfImageSize[]).map((s) => (
                 <ToggleGroupItem key={s} pressed={imageSize === s} onClick={() => setImageSize(s)}>

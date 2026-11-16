@@ -71,3 +71,46 @@ describe('PDF', () => {
     expect(Buffer.from(bytes).toString('latin1')).not.toContain('Testtagebuch');
   }, 60_000);
 });
+
+describe('PDF-Layout Karten', () => {
+  const MMPT = 72 / 25.4;
+  async function pageSizes(bytes: Uint8Array, password?: string) {
+    const doc = await open(bytes, password);
+    const out: { w: number; h: number }[] = [];
+    for (let p = 1; p <= doc.numPages; p++) {
+      const v = (await doc.getPage(p)).getViewport({ scale: 1 });
+      out.push({ w: v.width / MMPT, h: v.height / MMPT });
+    }
+    return out;
+  }
+
+  it('EXP-14: Karten auf A4 hoch, je Eintrag eine Karte mit Zeit, Vorlage, allen Werten und Body-Map-Bild in gewählter Größe; Passwortschutz wirkt', async () => {
+    const bytes = await renderReportPdf(report, { layout: 'cards', imageSize: 'a6', renderBodymap: async () => IMG });
+    for (const s of await pageSizes(bytes)) {
+      expect(s.w).toBeCloseTo(210, 0);
+      expect(s.h).toBeCloseTo(297, 0);
+    }
+    const r = await inspect(bytes);
+    expect(r.text).toContain('03.02.2026 08:30'); // Zeit (Europe/Berlin)
+    expect(r.text).toContain('04.02.2026 - 06.02.2026'); // Zeitraum
+    expect(r.text).toContain('Migräne-Tracking');
+    expect(r.text).toContain('Allgemeines Schmerz-Tagebuch');
+    expect(r.text).toContain('Schmerzstärke');
+    expect(r.text).toContain('Übelkeit, Lichtempfindlichkeit'); // Mehrfachauswahl
+    expect(r.text).toContain('Notizen');
+    expect(r.text).toContain('Neurologie'); // Ereignis des Notizfelds
+    expect(r.text).toContain('Schlagwörter: arbeit');
+    // ein Bild (eine Körperkarte), Größe A6 (105 x 148 mm, Seitenverhältnis bleibt)
+    expect(r.images).toHaveLength(1);
+    const fit = Math.min(105 / IMG.width, 148 / IMG.height);
+    expect(r.images[0]!.w / MM).toBeCloseTo(IMG.width * fit, 0);
+    expect(r.images[0]!.h / MM).toBeCloseTo(IMG.height * fit, 0);
+
+    expect((await inspect(await renderReportPdf(report, { layout: 'cards', imageSize: 'none', renderBodymap: async () => IMG }))).images).toHaveLength(0);
+
+    const locked = await renderReportPdf(report, { layout: 'cards', imageSize: 'none', password: 'Arzt-2026', renderBodymap: async () => null });
+    await expect(open(locked)).rejects.toMatchObject({ name: 'PasswordException' });
+    expect((await inspect(locked, 'Arzt-2026')).text).toContain('Migräne-Tracking');
+    expect(Buffer.from(locked).toString('latin1')).not.toContain('Testtagebuch');
+  }, 60_000);
+});

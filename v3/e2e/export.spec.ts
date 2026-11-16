@@ -51,6 +51,15 @@ test.describe('Export & Backup', () => {
     expect(body.split('\r\n')[0]).toContain(';');
   });
 
+  test('Kartenlayout: PDF mit Layout Karten wird erzeugt', async ({ page }) => {
+    await onboardWithPassword(page);
+    await addEntry(page, 'STB-E2E-MARKER Karten');
+    await go(page, '/more/export');
+    await page.getByRole('group', { name: 'PDF-Layout' }).getByRole('button', { name: 'Karten' }).click();
+    const [pdf] = await Promise.all([page.waitForEvent('download', { timeout: 30_000 }), page.getByRole('button', { name: 'Herunterladen', exact: true }).click()]);
+    expect(Buffer.from(await text(pdf), 'utf8').subarray(0, 5).toString('latin1')).toBe('%PDF-');
+  });
+
   test('Export eines Monats: nur Einträge des gewählten Monats', async ({ page }) => {
     await onboardWithPassword(page);
     await addEntry(page, 'STB-E2E-MARKER Monat');

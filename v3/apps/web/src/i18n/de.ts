@@ -660,6 +660,8 @@ export const de = {
     exportHint: 'Für den Arzttermin, Excel oder andere Werkzeuge. Die Datei entsteht auf diesem Gerät.',
     format: 'Format',
     formats: { pdf: 'PDF', json: 'JSON', 'csv-long': 'CSV lang', 'csv-wide': 'CSV breit' },
+    layout: 'PDF-Layout',
+    layouts: { table: 'Tabelle', cards: 'Karten' },
     imageSize: 'Körperkarten im PDF',
     imageSizes: { a4: 'A4', a5: 'A5', a6: 'A6', none: 'ohne' },
     pdfPassword: 'PDF-Passwort (optional)',

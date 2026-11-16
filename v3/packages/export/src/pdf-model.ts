@@ -29,6 +29,22 @@ export interface ReportBodymap {
   value: BodymapValue;
 }
 
+export interface ReportCardField {
+  label: string;
+  /** Anzeigetext (Optionen als Liste, Notizen mit Ereignissen); Body-Map: Kurztext der Markierungen. */
+  text: string;
+  archived: boolean;
+  bodymap?: BodymapValue;
+}
+
+/** Eine Karte je Eintrag (Layout „Karten"): Zeit, Vorlage, Schlagwörter und alle Werte. */
+export interface ReportCard {
+  when: string;
+  template: string;
+  tags: string[];
+  fields: ReportCardField[];
+}
+
 export interface Report {
   title: string;
   diaryNames: string[];
@@ -42,6 +58,7 @@ export interface Report {
   doctorVisits: { day: string; title: string }[];
   tables: ReportTable[];
   bodymaps: ReportBodymap[];
+  cards: ReportCard[];
   createdAt: string;
 }
 
@@ -110,6 +127,18 @@ export function buildReport(src: ExportSource, opts: { now: number; filter?: Fil
     }
   }
 
+  const cards: ReportCard[] = entries.map((e) => {
+    const r = raw.get(e.id);
+    const fields: ReportCardField[] = [];
+    for (const f of e.fields) {
+      const text = f.value.kind === 'options' ? f.optionLabels.join(', ') : f.display;
+      const v = f.value.kind === 'points' ? (r?.values[f.blockId] as BodymapValue | undefined) : undefined;
+      if (!text.trim() && !v?.points.length) continue;
+      fields.push({ label: f.label, text, archived: f.archived, ...(v?.points.length ? { bodymap: v } : {}) });
+    }
+    return { when: when(e, r, tz.get(e.diaryId) ?? 'UTC'), template: e.templateName, tags: e.tags, fields };
+  });
+
   return {
     title: opts.title ?? 'Schmerztagebuch – Bericht',
     diaryNames: src.diaries.filter((d) => entries.some((e) => e.diaryId === d.id)).map((d) => d.name),
@@ -123,6 +152,7 @@ export function buildReport(src: ExportSource, opts: { now: number; filter?: Fil
     doctorVisits: eventMarks(entries).filter((m) => m.category === 'doctor').map((m) => ({ day: m.day, title: m.title })),
     tables,
     bodymaps,
+    cards,
     createdAt: new Date(opts.now).toISOString(),
   };
 }

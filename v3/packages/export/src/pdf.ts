@@ -1,47 +1,17 @@
 // PDF-Rendering (Spec 07 „PDF"), portiert aus v2 `src/utils/pdfExport.ts` (Tabellenlayout A4 quer, Body-Map-Bilder mit
 // Größe a4 | a5 | a6 | none, Passwortschutz über jsPDF `encryption`). Neu: Deckblatt-Zusammenfassung für den Arzttermin.
 // Die Body-Map-Bilder (Bild + Markierungen) rendert der Aufrufer (Browser: Canvas) — hier keine DOM-Abhängigkeit.
-import { jsPDF } from 'jspdf';
-import type { BodymapValue } from '@stb/core';
+import type { jsPDF } from 'jspdf';
 import type { Report } from './pdf-model.js';
+import { MARGIN, PDF_IMAGE_SIZE_MM, addPageFooters, createPdfDoc, fmtDay, fmtNum, pdfText, type PdfOptions } from './pdf-common.js';
+import { renderCardsPdf } from './pdf-cards.js';
 
-export type PdfImageSize = 'a4' | 'a5' | 'a6' | 'none';
-/** Bildgrößen wie v2 (`IMAGE_SIZE_MM`). */
-export const PDF_IMAGE_SIZE_MM: Record<Exclude<PdfImageSize, 'none'>, { w: number; h: number }> = {
-  a6: { w: 105, h: 148 },
-  a5: { w: 148, h: 210 },
-  a4: { w: 210, h: 297 },
-};
+export * from './pdf-common.js';
 
-export interface RenderedImage {
-  /** PNG- oder JPEG-Data-URL. */
-  dataUrl: string;
-  width: number;
-  height: number;
-}
-
-export interface PdfOptions {
-  imageSize: PdfImageSize;
-  password?: string;
-  renderBodymap: (value: BodymapValue) => Promise<RenderedImage | null>;
-}
-
-const MARGIN = 15;
-
-/** Standardschriften kennen nur WinAnsi: typografische Zeichen ersetzen, Unbekanntes als „?". */
-export function pdfText(s: string): string {
-  const map: Record<string, string> = { '–': '-', '—': '-', '≥': '>=', '≤': '<=', '…': '...', '„': '"', '“': '"', '”': '"', '‚': "'", '‘': "'", '’': "'", '→': '->', '◆': '*', '•': '-' };
-  return [...s].map((c) => map[c] ?? (c.charCodeAt(0) <= 0xff ? c : '?')).join('');
-}
-
-const fmtNum = (n: number | null) => (n === null ? '-' : n.toLocaleString('de-DE', { maximumFractionDigits: 1 }));
-const fmtDay = (d: string) => `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}`;
-
+/** Tabellenlayout (A4 quer, Standard) oder Kartenlayout (A4 hoch), je nach `opts.layout`. */
 export async function renderReportPdf(report: Report, opts: PdfOptions): Promise<Uint8Array> {
-  const doc = new jsPDF({
-    orientation: 'landscape', unit: 'mm', format: 'a4', compress: true,
-    ...(opts.password ? { encryption: { userPassword: opts.password, ownerPassword: `${opts.password}#owner`, userPermissions: ['print', 'copy'] } } : {}),
-  });
+  if (opts.layout === 'cards') return renderCardsPdf(report, opts);
+  const doc = createPdfDoc('landscape', opts.password);
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
   const contentW = W - 2 * MARGIN;
@@ -163,15 +133,6 @@ export async function renderReportPdf(report: Report, opts: PdfOptions): Promise
     }
   }
 
-  // Fußzeile mit Seitenzahlen
-  const pages = doc.getNumberOfPages();
-  for (let i = 1; i <= pages; i++) {
-    doc.setPage(i);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(120);
-    text(`Seite ${i} von ${pages} · erstellt ${fmtDay(report.createdAt.slice(0, 10))}`, W - MARGIN, H - 7, { align: 'right' });
-    doc.setTextColor(0);
-  }
+  addPageFooters(doc, report);
   return new Uint8Array(doc.output('arraybuffer'));
 }
