@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { LocationPicker } from '@/components/LocationPicker';
 import { PageHeader } from '@/components/PageHeader';
 import { ErrorState } from '@/components/StateView';
 import { useData } from '@/data/DataContext';
@@ -54,6 +55,7 @@ function SettingsForm({ diary, templates, readOnly }: { diary: Diary; templates:
   const [name, setName] = useState(diary.name);
   const [timezone, setTimezone] = useState(diary.settings.timezone);
   const [enabled, setEnabled] = useState(diary.settings.weather.enabled);
+  const [location, setLocation] = useState(diary.settings.weather.location);
   const [gpsDefault, setGpsDefault] = useState(diary.settings.weather.gpsDefault);
   const [quickTemplate, setQuickTemplate] = useState(templates.some((x) => x.template.id === diary.settings.quickEntryTemplateId) ? (diary.settings.quickEntryTemplateId ?? '') : '');
   const [quickBlocks, setQuickBlocks] = useState<string[]>(diary.settings.quickEntryBlockIds ?? []);
@@ -71,7 +73,7 @@ function SettingsForm({ diary, templates, readOnly }: { diary: Diary; templates:
     try {
       const s = await data.stamper.stamp();
       const current = (await data.diary.getDiary(diary.id)) ?? diary;
-      const patch = { name, timezone, weather: { enabled, gpsDefault }, quickEntryTemplateId: quickTemplate || null, quickEntryBlockIds: quickTemplate && quickBlocks.length ? quickBlocks : null };
+      const patch = { name, timezone, weather: { enabled, gpsDefault, location: location ?? null }, quickEntryTemplateId: quickTemplate || null, quickEntryBlockIds: quickTemplate && quickBlocks.length ? quickBlocks : null };
       const known = templates.map((x) => ({ id: x.template.id, blockIds: x.version.blocks.map((b) => b.id) }));
       await data.diary.saveDiary(updateDiarySettings(current, patch, { hlc: s.hlc, updatedAt: s.at }, { templates: known }));
       setSaved(true);
@@ -106,7 +108,13 @@ function SettingsForm({ diary, templates, readOnly }: { diary: Diary; templates:
           <Checkbox checked={gpsDefault} disabled={readOnly} onChange={(e) => (setGpsDefault(e.target.checked), setSaved(false))} />
           {t.gpsDefault}
         </Label>
-        {enabled && !diary.settings.weather.location && !gpsDefault ? <p className="text-sm text-muted-foreground">{t.weatherNoLocation}</p> : null}
+        <LocationPicker
+          idPrefix="diary-location"
+          value={location}
+          disabled={readOnly}
+          onChange={(l) => (setLocation(l ?? undefined), setEnabled(l !== null), setSaved(false))}
+        />
+        {!location ? <p className="text-sm text-muted-foreground">{t.weatherNoLocation}</p> : null}
       </fieldset>
       <fieldset className="flex flex-col gap-3">
         <legend className="mb-1 text-sm font-medium">{t.quickTitle}</legend>

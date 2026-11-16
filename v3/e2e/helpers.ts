@@ -19,10 +19,11 @@ export async function onboardWithPassword(page: Page, password = PASSWORD): Prom
   return code;
 }
 
-/** Onboarding-Schritte „Erstes Tagebuch" und „Vorlage" (Standard: Mein Tagebuch, Mensch, erste Katalogvorlage). */
+/** Onboarding-Schritte „Erstes Tagebuch", „Ort für das Wetter" (übersprungen) und „Vorlage" (Standard: Mein Tagebuch, Mensch, erste Katalogvorlage). */
 export async function finishDiarySetup(page: Page, template = 'Allgemeines Schmerz-Tagebuch'): Promise<void> {
   await expect(page.getByLabel('Name')).toHaveValue('Mein Tagebuch', { timeout: 30_000 });
   await page.getByRole('button', { name: 'Weiter' }).click();
+  await page.getByRole('button', { name: 'Später' }).click();
   await page.getByRole('radio', { name: new RegExp(template) }).click();
   await page.getByRole('button', { name: 'Fertig' }).click();
   await expect(page.getByRole('heading', { name: 'Start' })).toBeVisible({ timeout: 30_000 });

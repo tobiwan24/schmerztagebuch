@@ -4,14 +4,18 @@ import { useState, type FormEvent } from 'react';
 import { Check } from 'lucide-react';
 import { TEMPLATE_CATALOG, type DiarySubject } from '@stb/core';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { LocationPicker } from '@/components/LocationPicker';
+import type { WeatherLocation } from '@/weather/geocoding';
 import { de } from '@/i18n/de';
 
 export interface DiaryChoice {
   name: string;
   subject: DiarySubject;
+  /** Optionaler fester Wetter-Ort (Onboarding-Schritt). */
+  location?: WeatherLocation;
 }
 
 const SUBJECTS: readonly DiarySubject[] = ['human', 'animal', 'other'];
@@ -51,6 +55,25 @@ export function DiaryStep({ onNext, initialName = de.onboarding.diaryDefaultName
           </fieldset>
           <Button type="submit">{de.onboarding.next}</Button>
         </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Optionaler Schritt „Ort für das Wetter" (Spec 10, BLK-39): ohne Ort bleibt das Wetter aus. */
+export function LocationStep({ onDone }: { onDone: (location: WeatherLocation | undefined) => void }) {
+  const [location, setLocation] = useState<WeatherLocation | undefined>();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{de.onboarding.locationTitle}</CardTitle>
+        <CardDescription>{de.onboarding.locationHint}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <LocationPicker idPrefix="onboarding-location" value={location} onChange={(l) => setLocation(l ?? undefined)} />
+        <Button type="button" variant={location ? 'default' : 'outline'} onClick={() => onDone(location)}>
+          {location ? de.onboarding.next : de.onboarding.locationLater}
+        </Button>
       </CardContent>
     </Card>
   );

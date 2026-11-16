@@ -71,7 +71,7 @@ export function locationFromPlace(hit: PlaceHit): WeatherLocation {
 }
 
 /** „Aktuellen Standort übernehmen" (Open-Meteo hat keine Rückwärtssuche, A-043) → gerundeter Ort. */
-export function locationFromPosition(p: LatLon): WeatherLocation {
+export function locationFromPosition(p: LatLon, name = 'Aktueller Standort'): WeatherLocation {
   const r = roundLocation(p);
-  return { ...r, label: `Aktueller Standort (≈ ${r.lat}, ${r.lon})` };
+  return { ...r, label: `${name} (≈ ${r.lat}, ${r.lon})` };
 }

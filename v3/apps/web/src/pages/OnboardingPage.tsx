@@ -1,4 +1,4 @@
-// Onboarding (Spec 10): Install-Hinweis → Modus → Faktor → Backup-Code (Pflicht) → erstes Tagebuch → Vorlage.
+// Onboarding (Spec 10): Install-Hinweis → Modus → Faktor → Backup-Code (Pflicht) → erstes Tagebuch → Wetter-Ort (optional) → Vorlage.
 // Ein entsperrtes Konto ohne Tagebuch landet hier direkt beim Tagebuch-Schritt (z. B. App nach dem Backup-Code geschlossen).
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
@@ -9,7 +9,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { PageHeader } from '@/components/PageHeader';
 import { BackupCodeStep } from '@/components/BackupCodeStep';
 import { FactorSetup, type NewFactor } from '@/components/FactorSetup';
-import { DiaryStep, TemplateStep, type DiaryChoice } from '@/components/DiarySetup';
+import { DiaryStep, LocationStep, TemplateStep, type DiaryChoice } from '@/components/DiarySetup';
 import { CloudLogin, CloudRecovery, CloudRegister, RecoveryLink } from '@/components/CloudSetup';
 import { AuthErrorNotice } from '@/components/AuthErrorNotice';
 import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
@@ -20,8 +20,8 @@ import { prepareLocalAccount, type PendingAccount } from '@/auth/local-account';
 import { useAuth } from '@/auth/AuthContext';
 import { de } from '@/i18n/de';
 
-type Step = 'install' | 'mode' | 'factor' | 'cloud' | 'cloud-login' | 'cloud-recovery' | 'backup' | 'diary' | 'template';
-const SETUP_STEPS: readonly Step[] = ['diary', 'template'];
+type Step = 'install' | 'mode' | 'factor' | 'cloud' | 'cloud-login' | 'cloud-recovery' | 'backup' | 'diary' | 'location' | 'template';
+const SETUP_STEPS: readonly Step[] = ['diary', 'location', 'template'];
 
 export function OnboardingPage() {
   const auth = useAuth();
@@ -134,7 +134,8 @@ export function OnboardingPage() {
       ) : null}
       {current === 'cloud-recovery' ? <CloudRecovery onPending={(p) => (setPending(p), setStep('backup'))} /> : null}
       {current === 'backup' && pending ? <BackupCodeStep code={pending.backupCode} busy={busy} onConfirmed={() => void onConfirmed()} /> : null}
-      {current === 'diary' ? <DiaryStep onNext={(c) => (setDiaryChoice(c), setStep('template'))} /> : null}
+      {current === 'diary' ? <DiaryStep onNext={(c) => (setDiaryChoice(c), setStep('location'))} /> : null}
+      {current === 'location' ? <LocationStep onDone={(location) => (setDiaryChoice((c) => (c ? { ...c, ...(location ? { location } : {}) } : c)), setStep('template'))} /> : null}
       {current === 'template' ? <TemplateStep busy={busy} onDone={(id) => void onTemplate(id)} /> : null}
       {setupError ? <AuthErrorNotice code={setupError} /> : null}
     </main>

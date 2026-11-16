@@ -12,6 +12,11 @@ describe('Tagebuch', () => {
     expect(d.settings).toEqual({ weather: { enabled: false, gpsDefault: false }, timezone: 'Europe/Berlin' });
   });
 
+  it('legt ein Tagebuch mit festem Ort an: gerundet gespeichert, Wetter an', () => {
+    const d = createDiary({ id: uuidV7FromSeed(3, new Uint8Array(10).fill(3)), name: 'x', subject: 'human', timezone: 'UTC', location: { lat: 52.52437, lon: 13.41053, label: 'Berlin' } }, clock);
+    expect(d.settings.weather).toEqual({ enabled: true, gpsDefault: false, location: { lat: 52.5, lon: 13.4, label: 'Berlin' } });
+  });
+
   it('lehnt leeren Namen, unbekannte Art und fremde Felder ab', () => {
     const base = createDiary({ id: uuidV7FromSeed(2, new Uint8Array(10).fill(2)), name: 'x', subject: 'animal', timezone: 'UTC' }, clock);
     expect(diarySchema.safeParse({ ...base, name: '  ' }).success).toBe(false);

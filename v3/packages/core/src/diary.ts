@@ -32,14 +32,19 @@ export const diarySchema = z.strictObject({
 export type Diary = z.infer<typeof diarySchema>;
 export type DiarySubject = Diary['subject'];
 
-/** Neues Tagebuch mit Standard-Einstellungen: Wetter aus, bis ein fester Ort gesetzt ist (Spec 05), GPS aus. */
-export function createDiary(input: { id: string; name: string; subject: DiarySubject; timezone: string }, clock: Clock): Diary {
+/** Neues Tagebuch mit Standard-Einstellungen: Wetter aus, bis ein fester Ort gesetzt ist (Spec 05), GPS aus. Mit `location`: Ort gerundet, Wetter an. */
+export function createDiary(input: { id: string; name: string; subject: DiarySubject; timezone: string; location?: { lat: number; lon: number; label: string } }, clock: Clock): Diary {
   return diarySchema.parse({
     id: input.id,
     name: input.name,
     subject: input.subject,
     createdAt: new Date(clock.now()).toISOString(),
-    settings: { weather: { enabled: false, gpsDefault: false }, timezone: input.timezone },
+    settings: {
+      weather: input.location
+        ? { enabled: true, gpsDefault: false, location: { lat: roundCoordinate(input.location.lat), lon: roundCoordinate(input.location.lon), label: input.location.label } }
+        : { enabled: false, gpsDefault: false },
+      timezone: input.timezone,
+    },
   });
 }
 

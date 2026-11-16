@@ -19,6 +19,7 @@ test.describe('Onboarding: erstes Tagebuch und Vorlage', () => {
     await page.getByLabel('Name').fill('Bello');
     await page.getByRole('button', { name: 'Tier' }).click();
     await page.getByRole('button', { name: 'Weiter' }).click();
+    await page.getByRole('button', { name: 'Später' }).click();
     await page.getByRole('radio', { name: /Migräne-Tracking/ }).click();
     await page.getByRole('button', { name: 'Fertig' }).click();
     await expect(page.getByRole('heading', { name: 'Start' })).toBeVisible({ timeout: 30_000 });
