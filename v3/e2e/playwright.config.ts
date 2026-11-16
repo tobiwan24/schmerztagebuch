@@ -24,7 +24,9 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`,
     viewport: { width: 375, height: 812 },
     locale: 'de-DE',
-    trace: 'retain-on-failure',
+    // Ohne Screencast-Bilder: Der Playwright-WebKit-Build für Windows stürzt sonst mit Skia „SkBitmap tryAllocPixels (368x796)“
+    // ab (WebKit2.dll, Crash-Dialog + CrashReport.dmp); die Trace-Aktionen/DOM-Snapshots bleiben erhalten.
+    trace: { mode: 'retain-on-failure', screenshots: false },
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 375, height: 812 }, isMobile: false } },

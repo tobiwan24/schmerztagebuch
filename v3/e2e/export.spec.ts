@@ -20,6 +20,13 @@ async function addEntry(page: Page, note: string) {
   await expect(page.getByTestId('entry-time')).toBeVisible();
 }
 
+/** Die Inaktivitäts-Sperre (CRY-20) würde beim Vorspulen der Uhr greifen — hier geht es um die Erinnerung, nicht um die Sperre. */
+async function idleLockOff(page: Page) {
+  await go(page, '/more/settings');
+  await page.getByRole('button', { name: 'Aus', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Aus', exact: true })).toHaveAttribute('aria-pressed', 'true');
+}
+
 test.describe('Export & Backup', () => {
   // Mehrere Geräte bzw. mehrfaches PBKDF2 (600k): unter Volllast mehr Zeit als die Standard-30 s.
   test.describe.configure({ timeout: 90_000 });
@@ -132,6 +139,7 @@ test.describe('Export & Backup', () => {
     await page.clock.install({ time: new Date() });
     const code = await onboardWithPassword(page);
     await expect(page.getByTestId('backup-reminder')).toHaveCount(0);
+    await idleLockOff(page);
     await page.clock.fastForward(8 * DAY);
     await go(page, '/history');
     await go(page, '/');
@@ -150,6 +158,7 @@ test.describe('Export & Backup', () => {
       await c.clock.install({ time: new Date() });
       await addVirtualAuthenticator(c);
       await onboardWithCloud(c, uniqueUser('exp12'));
+      await idleLockOff(c);
       await c.clock.fastForward(30 * DAY);
       await go(c, '/history');
       await go(c, '/');
