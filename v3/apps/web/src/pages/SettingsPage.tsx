@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { V2DataCard } from '@/components/V2DataCard';
 import { ReminderCard } from '@/components/ReminderCard';
@@ -73,6 +73,7 @@ export function SettingsPage() {
           ))}
         </CardContent>
       </Card>
+      <PersistCard />
       <ReminderCard />
       <V2DataCard />
       <Button asChild variant="outline">
@@ -128,3 +129,28 @@ function UpgradeToCloud() {
   );
 }
 
+/** Status „Dauerhafter Speicher" (UI-16). */
+function PersistCard() {
+  const [state, setState] = useState<boolean | null | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    void (async () => {
+      const persisted = await navigator.storage?.persisted?.().catch(() => null);
+      if (live) setState(persisted ?? null);
+    })();
+    return () => {
+      live = false;
+    };
+  }, []);
+  const t = de.install;
+  return (
+    <Card data-testid="persist-card">
+      <CardHeader>
+        <CardTitle>{t.persistTitle}</CardTitle>
+      </CardHeader>
+      <CardContent className="text-sm text-muted-foreground">
+        {state === undefined ? de.app.loading : state === null ? t.persistUnknown : state ? t.persistGranted : t.persistDenied}
+      </CardContent>
+    </Card>
+  );
+}

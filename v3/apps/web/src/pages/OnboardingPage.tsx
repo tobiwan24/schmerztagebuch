@@ -16,6 +16,7 @@ import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
 import { useSync } from '@/data/SyncContext';
+import { requestPersistentStorage } from '@/lib/install';
 import { prepareLocalAccount, type PendingAccount } from '@/auth/local-account';
 import { useAuth } from '@/auth/AuthContext';
 import { de } from '@/i18n/de';
@@ -74,6 +75,8 @@ export function OnboardingPage() {
       // Konto „Mit Konto": erst auf dem Server anlegen (DK-Wrap), dann lokal — sonst gäbe es ein nicht synchronisierbares Tagebuch.
       await auth.cloud.createDiary(diary.id);
       await data.diary.createDiary(diary, template);
+      // Abschluss des Onboardings: dauerhaften Speicher anfordern (UI-16); das Ergebnis zeigen die Einstellungen.
+      await requestPersistentStorage();
       void navigate('/', { replace: true });
     } catch (e) {
       setSetupError(toAuthErrorCode(e));
