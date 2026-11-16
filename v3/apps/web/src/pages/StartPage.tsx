@@ -9,6 +9,7 @@ import { InstallBanner } from '@/components/InstallBanner';
 import { ConflictBanner } from '@/components/ConflictBanner';
 import { RestoreBackupBanner } from '@/components/RestoreBackupBanner';
 import { CloudSyncBanner } from '@/components/CloudSyncBanner';
+import { TemplateTiles } from '@/components/TemplateTiles';
 import { InboxCard } from '@/components/InboxCard';
 import { useWritableDiaries } from '@/data/useSharing';
 import { de } from '@/i18n/de';
@@ -35,6 +36,7 @@ export function StartPage() {
           </Link>
         </Button>
       ))}
+      <TemplateTiles />
       <EntryListState emptyTitle={de.start.emptyTitle} emptyHint={de.start.emptyHint} />
       <Button asChild variant="outline">
         <Link to="/entry/new">

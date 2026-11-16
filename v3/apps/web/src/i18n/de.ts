@@ -21,6 +21,8 @@ export const de = {
     quickEntry: 'Schnell eintragen',
     quickEntryFor: (diary: string) => `Schnell eintragen · ${diary}`,
     newEntry: 'Neuer Eintrag',
+    tilesLabel: 'Vorlagen',
+    greeting: (name: string) => `Hallo, ${name}`,
     emptyTitle: 'Noch keine Einträge',
     emptyHint: 'Tippe auf „Schnell eintragen“ oder „Neuer Eintrag“, um deinen ersten Eintrag zu erfassen.',
   },

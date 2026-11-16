@@ -23,7 +23,9 @@ export function EntryEditorPage() {
   const { id } = useParams();
   const { diary } = useData();
   const { diaryId } = useDiaryScope(false);
-  const from = useSearchParams()[0].get('from');
+  const [params] = useSearchParams();
+  const from = params.get('from');
+  const wantedTemplate = params.get('template');
   const query = useQuery(async () => {
     // Vorauswahl: Vorlagen des gewählten Tagebuchs zuerst (UI-24)
     const all = (await diary.listAllTemplates()).filter((t) => !t.archived);
@@ -38,8 +40,10 @@ export function EntryEditorPage() {
         prefill = { templateId, values, tags };
       }
     }
+    // Vorlage aus der Kachel auf Start (BLK-44), nur wenn sie wählbar ist
+    if (!prefill && !id && wantedTemplate && templates.some((t) => t.id === wantedTemplate)) prefill = { templateId: wantedTemplate, values: {}, tags: [] };
     return { templates, entry: id ? await diary.getEntry(id) : undefined, prefill };
-  }, [diary, id, diaryId, from]);
+  }, [diary, id, diaryId, from, wantedTemplate]);
   return (
     <>
       <PageHeader title={id ? de.entry.editTitle : de.entry.newTitle} back />
@@ -55,7 +59,7 @@ export function EntryEditorPage() {
         </>
       ) : null}
       {query.status === 'ok' && (id ? query.data.entry : query.data.templates.length > 0) ? (
-        <EntryForm key={from ?? id ?? 'new'} templates={query.data.templates} entry={query.data.entry} prefill={query.data.prefill} />
+        <EntryForm key={from ?? id ?? wantedTemplate ?? 'new'} templates={query.data.templates} entry={query.data.entry} prefill={query.data.prefill} />
       ) : null}
     </>
   );

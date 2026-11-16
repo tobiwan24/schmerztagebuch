@@ -4,12 +4,12 @@
 
 ## Aktuell
 
-- **Meilenstein:** M14 „Nacharbeiten v2-Parität" erledigt (28/28 IDs, Skript „OK"; Abschlussaufgabe M14.22 läuft mit M14b); aktuell der Teil-Meilenstein M14b „v2-Parität, Rest" (15/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
+- **Meilenstein:** M14 „Nacharbeiten v2-Parität" erledigt (28/28 IDs, Skript „OK"; Abschlussaufgabe M14.22 läuft mit M14b); aktuell der Teil-Meilenstein M14b „v2-Parität, Rest" (22/22 IDs erfüllt, Abschlussaufgabe M14.22 offen). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** restliches M14b ab M14.37 (UI-21). M14c ist erledigt (Playwright-Worker wieder auf 2, Commit 96729bd). Entscheidungen: A-036 bis A-073. **verify:docker (QA-08) am Ende von M14b/M14c einmal nachholen** (Docker Desktop stürzt beim compose-Build ab).
+-  nur noch **M14.22** (Abschluss M14 + M14b: `verify:docker`, Browserprüfung ADR-012, `GATE-G4.md` neu, Gesamt-Akzeptanz). Alle IDs von M14b sind erfüllt (22/22). M14c ist erledigt (Playwright-Worker wieder auf 2, Commit 96729bd). Entscheidungen: A-036 bis A-073. **verify:docker (QA-08) am Ende von M14b/M14c einmal nachholen** (Docker Desktop stürzt beim compose-Build ab).
 - **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29), M14.16 (BLK-30), M14.17 (BLK-31), M14.18 (BLK-35, BLK-36), M14.19 (UI-16, UI-19), M14.1 (BLK-40), M14.20 (UI-17), M14.21 (UI-18)
-- **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15), M14.31 (EXP-17), M14.32 (EXP-16), M14.33 (CRY-18), M14.34 (CRY-19), M14.35 (CRY-20), M14.36 (UI-20), M14.37 (UI-21)
+- **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15), M14.31 (EXP-17), M14.32 (EXP-16), M14.33 (CRY-18), M14.34 (CRY-19), M14.35 (CRY-20), M14.36 (UI-20), M14.37 (UI-21), M14.38 (UI-22), M14.39 (UI-23), M14.15d (BLK-44)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. **Achtung:** `npm run verify` überschreibt `reports/vitest.json` mit übersprungenem QA-08 → vor `npm run acceptance` gesamt `npm run verify:docker` (Docker Desktop muss laufen).
 - **Nacharbeiten (Formular, Vorlagen-Editor, Tagebuch-Einstellungen, Wetter-Anbindung, Umnummerierung n+2, Bild-Artefakt, Parität):** ersetzt durch M14. Body-Map (Pinsel, Größe, Kommentar, eigene Bilder) ist seit M8b erledigt.
@@ -21,7 +21,7 @@
 | M14.1 | Bild-Artefakt „Körper Rückseite" (Alpha x 0–1, y 469–476), Regressionstest, `fast-png` (DECISIONS) — erledigt | BLK-40 |
 | M14.2 | Editor-Domäne in core (`template-editor.ts`) — erledigt | BLK-22 |
 | M14.3 | Editor-Seite: Route, leere Vorlage, Name/Icon/Farbe, Duplizieren — erledigt | BLK-23 |
-| M14.15d | Vorlagen-Kacheln und Begrüßung auf Start — M14b | BLK-44 |
+| M14.15d | Vorlagen-Kacheln und Begrüßung auf Start — M14b — erledigt | BLK-44 |
 | M14.4a | Blöcke: Palette, Label/Pflicht/Rolle, Konfiguration slider/checkbox/text/textarea/date (Grundlage) — erledigt | (BLK-24) |
 | M14.4b | Multiselect-Optionen, Body-Map-Standardbild — erledigt | BLK-24 |
 | M14.4c | `hideLabel` in Schema, Editor (je Block / alle) und Export-Schema — M14b — erledigt | BLK-43 |
@@ -90,7 +90,7 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
 | M14 | erledigt | 28/28 IDs (Skript OK nach vollem E2E: 166 grün) — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
 | M14c | erledigt | 6/6 IDs (Skript OK nach vollem E2E, 213 grün) — Gate-Feedback 2026-11-16 |
-| M14b | aktuell | 18/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
+| M14b | aktuell | 22/22 IDs (Skript OK nach vollem E2E: 229 grün; Abschluss M14.22 offen) — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
 
@@ -296,3 +296,5 @@ Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19,
 | 2026-11-16 | M14.37 | UI-21 | Einstellungen → Gefahr-Zone: `auth/wipe.ts` (`wipeLocalData`: Sitzung sperren, `StbDb.delete()` und `stb-v3-autobackup` löschen, **nie** `PainDiaryDB`), `DangerZone` mit zweistufiger Bestätigung (Eingabe „LÖSCHEN“), Hinweis „Serverdaten bleiben“ im Konto-Modus, danach Neuladen → Onboarding. Unit-Test (fake-indexeddb, PainDiaryDB bleibt) + E2E. |
 | 2026-11-16 | M14.38 | UI-22 | Updates: `data/update-settings.ts` (`auto` Standard / `notify`, Gerätetabelle `device`), `UpdateModeToggle` im Onboarding-Schritt „App installieren“ und `UpdateSettingsCard` in den Einstellungen mit „Nach Updates suchen“ (`sw-client.checkForUpdate`: `registration.update()`, meldet „aktuell“ oder zeigt den Hinweis). `UpdateBanner`: im Modus „Selbstständig“ kein Hinweis, die neue Version wird beim Wechsel in den Hintergrund aktiv (mit Auto-Sicherung davor); „Nur Hinweis“ = bisheriges Verhalten (UI-17-Tests stellen darauf um). Label „Selbstständig“ statt „Automatisch“ (Kollision mit der Darstellung, UI-06). Deploy-Test SYN-15 prüft nun die echte Suche. |
 | 2026-11-16 | M14.39 | UI-23 | Start-Banner „Mit Konto synchronisieren“ (`CloudSyncBanner`): nur local-only mit ≥ 1 Eintrag, Link zu den Einstellungen, „Ausblenden“ merkt sich das (`keys` `cloud-banner:dismissed`); im Konto-Modus nie. |
+| 2026-11-16 | M14.15d | BLK-44 | Start: `TemplateTiles` (Begrüßung „Hallo, <Name>“ im Konto-Modus; Kacheln mit Icon/Farbe/Name aller aktiven Vorlagen beschreibbarer Tagebücher in Vorlagen-Reihenfolge); Tipp öffnet `/entry/new?template=<id>` (`EntryEditorPage` vorbelegt die Vorlage, nur wenn wählbar). |
+| 2026-11-16 | M14b (E2E) | QA-03 | Basislinie nach Neustart: voller `test:e2e` 217 grün / 22 übersprungen, keine Abstürze; nach UI-21/22/23 und BLK-44: 229 grün / 24 übersprungen. Erkenntnisse: Playwright-Aufruf mit Dateifilter läuft wegen der Projektabhängigkeit des Deploy-Tests effektiv die ganze Suite; `name: "Automatisch"` in Locatoren ist Teilstring-Treffer (UI-06) → Update-Label heißt „Selbstständig“. |
