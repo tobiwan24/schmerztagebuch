@@ -11,7 +11,7 @@ test('SYN-15, UI-22: „Nach Updates suchen" meldet „aktuell"; neue Version �
   await onboardWithPassword(page);
   await swReady(page);
   const current = await activeVersion(page);
-  expect(current).toMatch(/^3\.0\.0-/);
+  expect(current).toMatch(/^3\.\d+\.\d+-/);
 
   // UI-22: ohne neue Version meldet die Suche „aktuell“, kein Hinweis.
   await go(page, '/more/settings');

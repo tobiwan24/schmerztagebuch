@@ -4,6 +4,14 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.1.0-alpha.1',
+    date: '2026-11-16',
+    points: [
+      'Neu: „Neu in Version x“ zeigt nach einem Update, was sich geändert hat; alle Neuigkeiten stehen unter Mehr → Einstellungen → Über.',
+      'Neu: Kurzanleitung beim ersten Besuch von Start, Eintrag, Verlauf, Auswertung und Vorlagen-Editor. Sie lässt sich überspringen und in den Einstellungen wieder einschalten.',
+    ],
+  },
+  {
     version: '3.0.0-alpha.1',
     date: '2026-11-16',
     points: [

@@ -7,7 +7,7 @@
 - **Meilenstein:** M14, M14b und M14c erledigt (Gesamt-Akzeptanz 211/211 automatisiert, QA-08 erfüllt: `verify:docker` 2026-11-16 grün; manuell 6/10). **v3.x (M15–M24) geplant**, Beginn mit M15.1. **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md) (aktualisiert 2026-11-16). Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M15.5 (Abschluss M15: `acceptance --milestone M15`, voller E2E, Bundle, `APP_VERSION` 3.1.0-alpha.1 + Changelog laut A-081), danach M16.1 (BLK-48). Plan v3.x: Aufgabenliste „v3.x“ unten, Entscheidungen A-080 bis A-095. G4-Abnahme (PDF mit echten Daten) bleibt beim User.
+- **Nächste Aufgabe:** M16.1 (BLK-48, Medikamenten-Block). Plan v3.x: Aufgabenliste „v3.x“ unten, Entscheidungen A-080 bis A-095. G4-Abnahme (PDF mit echten Daten) bleibt beim User.
 - **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29), M14.16 (BLK-30), M14.17 (BLK-31), M14.18 (BLK-35, BLK-36), M14.19 (UI-16, UI-19), M14.1 (BLK-40), M14.20 (UI-17), M14.21 (UI-18)
 - **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15), M14.31 (EXP-17), M14.32 (EXP-16), M14.33 (CRY-18), M14.34 (CRY-19), M14.35 (CRY-20), M14.36 (UI-20), M14.37 (UI-21), M14.38 (UI-22), M14.39 (UI-23), M14.15d (BLK-44)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
@@ -79,7 +79,7 @@ Abkürzungen: W = `apps/web/src`, S = `apps/server/src`, P = `packages`. Reihenf
 | M15.2 | `WhatsNewDialog` (lazy), Einstellungen → Über, Onboarding setzt lastSeen; E2E schalten den Dialog über `storageState` in der Playwright-Konfiguration ab — erledigt | UI-27 |
 | M15.3 | `W/tour/tour.ts`, `steps.ts`, `i18n/de.ts` — erledigt | UI-28 |
 | M15.4 | `TourGate`, `TourCard` (lazy), `data-tour`-Anker, Tour in E2E per `storageState` abgeschaltet, `e2e/tour.spec.ts` — erledigt | UI-29 |
-| M15.5 | Abschluss M15 | — |
+| M15.5 | Abschluss M15 — erledigt (`APP_VERSION` 3.1.0-alpha.1) | — |
 | M16.1 | `P/core/src/blocks/medication.ts`, `blocks/index.ts`, `blocks/analysis.ts` | BLK-48 |
 | M16.2 | Katalog-Vorlage, Intake-Abbildung (`P/core/src/catalog.ts`, `intake.ts`) | BLK-50 |
 | M16.3 | `P/analysis` (Working-Set, Filter, Aggregate, Fixture) | ANA-22 |
@@ -162,7 +162,7 @@ Manuell und nicht blockierend (vom User): EXP-25, VOI-17, ANA-31, SHR-16, DM-19.
 | M14 | erledigt | 28/28 IDs (Skript OK nach vollem E2E: 166 grün) — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
 | M14c | erledigt | 6/6 IDs (Skript OK nach vollem E2E, 213 grün) — Gate-Feedback 2026-11-16 |
 | M14b | erledigt | 22/22 IDs (Skript OK nach vollem E2E: 232 grün; Abschluss M14.22 erledigt) — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
-| M15 | offen | 0/4 IDs — Neuigkeiten und Tutorial |
+| M15 | erledigt | 4/4 IDs (Skript OK nach vollem E2E) — Neuigkeiten und Tutorial, Version 3.1.0-alpha.1 |
 | M16 | offen | 0/6 IDs — Medikamenten-Block |
 | M17 | offen | 0/7 IDs — Training View |
 | M18 | offen | 0/5 IDs (1 manuell) — Arzt-Link |
@@ -386,3 +386,4 @@ Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19,
 | 2026-11-16 | M15.2 (E2E) | QA-03 | Voller `test:e2e` nach M15.2: 238 grün / 25 übersprungen (232 + 6 neue Specs whats-new), keine Abstürze; `storageState` aus der Konfiguration wirkt in allen Kontexten. Bundle initial 240,3 KB gzip. |
 | 2026-11-16 | M15.3 | UI-28 | `tour/tour.ts` (Zustand `{done, skipAll}` im localStorage `stb-v3-tour`, `markPageDone`, `skipAllPages`, `resetTour`, `isPageDone`, `resolveSteps` überspringt Schritte ohne Ziel), `tour/steps.ts` (11 Schritte, `target` = Wert von `data-tour`; M15.4 muss die Anker `start-quick`, `start-tiles`, `nav`, `entry-fields`, `entry-save`, `history-filters`, `history-list`, `analysis-range`, `analysis-charts`, `editor-blocks`, `editor-save` setzen), Texte `de.tour`. Test erzwingt Titel und Text je Schritt. |
 | 2026-11-16 | M15.4 | UI-29 | `tour/TourGate.tsx` (AppShell, nur entsperrt; liest `stb-v3-tour`, lädt `TourCard` nur bei nicht erledigter Seite; **statt Provider** ein Gate wie bei den Neuigkeiten, kein Kontext nötig), `TourCard.tsx` (lazy; nicht modal, Karte unten über der Leiste; Ziele per `data-tour` gefunden und über `MutationObserver` nachgeführt, weil Daten asynchron laden; Hervorhebung `data-tour-active` + `TOUR_RING` aus `tour/anchor.ts`; Fokus auf „Weiter“, Esc überspringt die Seite), `TourRestartCard` (Einstellungen). Anker in Start, TemplateTiles, AppShell-Leiste, EntryForm, HistoryFilters, EntryListState, AnalysisPage, TemplateEditorPage; `tourPageForPath` in `tour.ts`. **E2E:** Tour per `storageState` (`stb-v3-tour` mit `skipAll`) in `playwright.config.ts` aus (statt `helpers.ts`, wie bei A-082-Abweichung M15.2); `tour.spec.ts` 4 Tests × 2 Browser grün. Seiten ohne Ziel (leerer Verlauf-/Auswertungsstand) zeigen keine Karte und gelten nicht als erledigt. |
+| 2026-11-16 | M15.5 | — | Abschluss M15: `APP_VERSION` 3.1.0-alpha.1, Changelog-Eintrag (A-081), SW-Version folgt automatisch. `sw-update.deploy.ts` prüfte hart `^3\.0\.0-` → auf `^3\.\d+\.\d+-` gelockert (sonst bricht jeder Versionssprung den Test). Voller E2E, Bundle 241,5 KB gzip. |

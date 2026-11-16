@@ -23,7 +23,7 @@ describe('Build', () => {
       // schwere Teile sind ausgelagert (Spec 12 „Budgets")
       expect(files.map((f) => f.file).join(' ')).not.toMatch(/AnalysisPage|ExportPage|MigratePage|TemplatesPage|useBackup/);
       const v = versions(out, join(root, 'apps/web/src/version.ts')) as { app: string; sw: string };
-      expect(v.app).toMatch(/^3\.0\.0-alpha\.\d+$/);
+      expect(v.app).toMatch(/^3\.\d+\.\d+-alpha\.\d+$/);
       expect(v.sw).toBe(v.app);
     } finally {
       rmSync(out, { recursive: true, force: true });
