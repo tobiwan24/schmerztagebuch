@@ -6,6 +6,8 @@ import { buildReport, exportCsvLong, exportCsvWide, renderReportPdf, type CsvPro
 import { createBodymapRenderer } from '@/lib/pdf-bodymap';
 import { renderChartImage } from '@/lib/pdf-chart';
 import { useAuth } from '@/auth/AuthContext';
+import { createReportLink } from '@/sharing/report-link';
+import { encodeReportPackage } from '@/sharing/report-package';
 import { unlockLocal } from '@/auth/local-account';
 import { APP_VERSION } from '@/version';
 import { markBackupDone, setReminderDays } from './backup-state';
@@ -21,14 +23,33 @@ export function useBackup() {
   const state = useBackupState();
   const query = state;
 
+  /** Berichtsmodell und PDF (gleiche Optionen wie der PDF-Export); Grundlage für Download und Arzt-Link. */
+  const buildPdf = useCallback(
+    async (opts: { filter?: FilterSpec; imageSize?: PdfImageSize; layout?: PdfLayout; multiselectBlockIds?: string[]; password?: string }) => {
+      const src = await collectExportSource(data.diary);
+      const report = buildReport(src, { now: now(), ...(opts.filter ? { filter: opts.filter } : {}) });
+      const renderBodymap = createBodymapRenderer(new Map(src.bodymapImages.map((i) => [i.id, i.dataUrl])));
+      const bytes = await renderReportPdf(report, { imageSize: opts.imageSize ?? 'a5', layout: opts.layout ?? 'table', renderBodymap, renderChart: renderChartImage, multiselectBlockIds: opts.multiselectBlockIds ?? [], ...(opts.password ? { password: opts.password } : {}) });
+      return { report, bytes };
+    },
+    [data.diary, now],
+  );
+
+  /** Arzt-Link (M18): Berichtspaket (Modell + PDF ohne Passwort) verschlüsseln, hochladen, Link liefern. */
+  const createDoctorLink = useCallback(
+    async (opts: { filter?: FilterSpec; imageSize?: PdfImageSize; layout?: PdfLayout; multiselectBlockIds?: string[]; expiresInDays: number; maxViews: number }) => {
+      const { expiresInDays, maxViews, ...pdfOpts } = opts;
+      const { report, bytes } = await buildPdf(pdfOpts);
+      return createReportLink({ origin: globalThis.location.origin, payload: encodeReportPackage(report, bytes), expiresInDays, maxViews });
+    },
+    [buildPdf],
+  );
+
   const exportFile = useCallback(
     async (format: ExportFormat, opts: { profile?: CsvProfile; filter?: FilterSpec; imageSize?: PdfImageSize; layout?: PdfLayout; multiselectBlockIds?: string[]; password?: string }): Promise<{ name: string; text: string | Uint8Array; mime: string }> => {
       const stamp = new Date(now()).toISOString().slice(0, 10);
       if (format === 'pdf') {
-        const src = await collectExportSource(data.diary);
-        const report = buildReport(src, { now: now(), ...(opts.filter ? { filter: opts.filter } : {}) });
-        const renderBodymap = createBodymapRenderer(new Map(src.bodymapImages.map((i) => [i.id, i.dataUrl])));
-        const bytes = await renderReportPdf(report, { imageSize: opts.imageSize ?? 'a5', layout: opts.layout ?? 'table', renderBodymap, renderChart: renderChartImage, multiselectBlockIds: opts.multiselectBlockIds ?? [], ...(opts.password ? { password: opts.password } : {}) });
+        const { bytes } = await buildPdf(opts);
         return { name: `schmerztagebuch-bericht-${stamp}.pdf`, text: bytes, mime: 'application/pdf' };
       }
       if (format === 'json') {
@@ -40,7 +61,7 @@ export function useBackup() {
       const text = format === 'csv-long' ? exportCsvLong(src, csvOpts) : exportCsvWide(src, csvOpts);
       return { name: `schmerztagebuch-${format}-${csvOpts.profile}-${stamp}.csv`, text, mime: 'text/csv;charset=utf-8' };
     },
-    [data.diary, data.attachments, now],
+    [buildPdf, data.diary, data.attachments, now],
   );
 
   /** Backup-Code lokal prüfen (gegen den Backup-Wrap der UMK), bevor damit verschlüsselt wird. */
@@ -68,7 +89,7 @@ export function useBackup() {
     query.retry();
   }, [db, query]);
 
-  return { state, exportFile, checkBackupCode, backupFile, readBackup, plan, apply, saveReminderDays };
+  return { state, exportFile, createDoctorLink, checkBackupCode, backupFile, readBackup, plan, apply, saveReminderDays };
 }
 
 /** Datei im Browser herunterladen. */

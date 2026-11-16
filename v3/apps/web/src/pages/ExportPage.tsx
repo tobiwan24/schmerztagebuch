@@ -2,7 +2,7 @@
 // Import mit Vorschau (neu / geändert / unverändert, „Als Kopie"). Alles entsteht und bleibt auf dem Gerät.
 import { useEffect, useState, type FormEvent } from 'react';
 import { useLocation } from 'react-router';
-import { Download, FileUp, ShieldCheck } from 'lucide-react';
+import { Download, FileUp, Link2, ShieldCheck } from 'lucide-react';
 import type { BackupSecret } from '@stb/crypto';
 import { parseExport, type CsvProfile, type ExportV1, type PdfImageSize, type PdfLayout } from '@stb/export';
 import type { FilterSpec, SavedFilter } from '@stb/analysis';
@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PageHeader } from '@/components/PageHeader';
+import { ReportLinkDialog } from '@/components/ReportLinkDialog';
 import { useAuth } from '@/auth/AuthContext';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
@@ -37,7 +38,9 @@ export function ExportPage() {
 
 function ExportCard() {
   const { diary } = useData();
-  const { exportFile } = useBackup();
+  const { exportFile, createDoctorLink } = useBackup();
+  const { accountMode } = useAuth();
+  const [linkOpen, setLinkOpen] = useState(false);
   const [format, setFormat] = useState<ExportFormat>('pdf');
   const [profile, setProfile] = useState<CsvProfile>('standard');
   // Aus dem Verlauf geöffnet: dessen angewendete Filter sind vorausgewählt (EXP-18, A-073).
@@ -66,12 +69,15 @@ function ExportCard() {
   const [busy, setBusy] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
 
+  const currentSpec = () => effectiveFilter(filter?.filter, period, { month, from: rangeFrom, to: rangeTo }, diaryIds.status === 'ok' ? diaryIds.data : []);
+  const multiselectBlockIds = () => msList.filter((m) => !skipped.has(m.id)).map((m) => m.id);
+
   async function run() {
     setBusy(true);
     setRunError(null);
     try {
-      const spec = effectiveFilter(filter?.filter, period, { month, from: rangeFrom, to: rangeTo }, diaryIds.status === 'ok' ? diaryIds.data : []);
-      const f = await exportFile(format, { profile, imageSize, layout, multiselectBlockIds: msList.filter((m) => !skipped.has(m.id)).map((m) => m.id), ...(pdfPassword ? { password: pdfPassword } : {}), ...(spec ? { filter: spec } : {}) });
+      const spec = currentSpec();
+      const f = await exportFile(format, { profile, imageSize, layout, multiselectBlockIds: multiselectBlockIds(), ...(pdfPassword ? { password: pdfPassword } : {}), ...(spec ? { filter: spec } : {}) });
       downloadText(f.name, f.text, f.mime);
     } catch {
       setRunError(t.downloadFailed);
@@ -183,6 +189,20 @@ function ExportCard() {
           <Download aria-hidden />
           {t.download}
         </Button>
+        {accountMode === 'cloud-primary' ? (
+          <>
+            <Button variant="outline" disabled={busy || (period === 'range' && (!rangeFrom || !rangeTo || rangeTo < rangeFrom)) || (period === 'month' && !month)} onClick={() => setLinkOpen(true)}>
+              <Link2 aria-hidden />
+              {t.reportLink.open}
+            </Button>
+            <ReportLinkDialog
+              open={linkOpen} onClose={() => setLinkOpen(false)}
+              create={(o) => { const spec = currentSpec(); return createDoctorLink({ imageSize, layout, multiselectBlockIds: multiselectBlockIds(), ...o, ...(spec ? { filter: spec } : {}) }); }}
+            />
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t.reportLink.localOnly}</p>
+        )}
         {runError ? <p role="alert" className="text-sm text-destructive">{runError}</p> : null}
       </CardContent>
     </Card>
