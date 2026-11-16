@@ -1,4 +1,6 @@
 // Eingabe je Blocktyp (Spec 05 „Blocktypen"). Werte in den Formen aus @stb/core; leere Werte bleiben `undefined`/leer.
+import { useState } from 'react';
+import { Check, Info } from 'lucide-react';
 import type { BlockDef, BodymapValue, CheckboxValue, DateValue, TextareaValue } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -7,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { BodyMapField } from './BodyMapField';
+import { optionTone } from '@/lib/option-colors';
+import { cn } from '@/lib/utils';
 import { de } from '@/i18n/de';
 
 export interface BlockFieldProps {
@@ -26,7 +30,8 @@ export function BlockField({ def, value, onChange, invalid, diaryId, onSetDefaul
   const aria = { 'aria-invalid': invalid || undefined, 'aria-describedby': invalid ? errorId : undefined };
   return (
     <section className="flex flex-col gap-2" data-testid="block-field" data-block-type={def.type}>
-      <Label htmlFor={id}>
+      {/* `hideLabel`: kein sichtbares Label, der zugängliche Name bleibt (BLK-41). */}
+      <Label htmlFor={id} className={def.hideLabel ? 'sr-only' : undefined}>
         {def.label}
         {def.required ? <span aria-label={de.entry.required}>{' *'}</span> : null}
       </Label>
@@ -41,6 +46,24 @@ export function BlockField({ def, value, onChange, invalid, diaryId, onSetDefaul
   );
 }
 
+/** Aufklappbarer Info-Hinweis am Slider (BLK-41). */
+function InfoHint({ id, text }: { id: string; text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex flex-col gap-1">
+      <Button type="button" variant="ghost" size="sm" className="self-start" aria-expanded={open} aria-controls={`${id}-info`} onClick={() => setOpen(!open)}>
+        <Info aria-hidden />
+        {open ? de.entry.infoHide : de.entry.infoShow}
+      </Button>
+      {open ? (
+        <p id={`${id}-info`} role="note" className="rounded-md bg-muted px-3 py-2 text-sm">
+          {text}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 type Aria = { 'aria-invalid'?: true; 'aria-describedby'?: string };
 
 function FieldInput({
@@ -49,9 +72,10 @@ function FieldInput({
   switch (def.type) {
     case 'slider': {
       const v = typeof value === 'number' ? value : undefined;
-      const { min, max, step, unit, minLabel, maxLabel } = def.config;
+      const { min, max, step, unit, minLabel, maxLabel, infoText } = def.config;
       return (
         <div className="flex flex-col gap-1">
+          {infoText ? <InfoHint id={id} text={infoText} /> : null}
           <div className="flex items-center gap-3">
             <Slider id={id} min={min} max={max} step={step} value={v ?? min} onChange={(e) => onChange(Number(e.target.value))} {...aria} />
             <output htmlFor={id} className="w-14 text-right text-lg font-semibold tabular-nums">
@@ -89,11 +113,19 @@ function FieldInput({
         onChange(v.includes(optId) ? v.filter((x) => x !== optId) : def.config.multiple ? [...v, optId] : [optId]);
       return (
         <div id={id} role="group" className="flex flex-wrap gap-2" {...aria}>
-          {def.config.options.map((o) => (
-            <Button key={o.id} type="button" size="sm" variant={v.includes(o.id) ? 'default' : 'outline'} aria-pressed={v.includes(o.id)} onClick={() => toggle(o.id)}>
-              {o.label}
-            </Button>
-          ))}
+          {def.config.options.map((o) => {
+            const on = v.includes(o.id);
+            const tone = optionTone(o.color);
+            return (
+              <Button
+                key={o.id} type="button" size="sm" variant={on ? 'default' : 'outline'} aria-pressed={on} onClick={() => toggle(o.id)}
+                className={cn(tone && (on ? tone.selected : tone.idle), on && 'font-semibold')}
+              >
+                {on ? <Check aria-hidden /> : null}
+                {o.label}
+              </Button>
+            );
+          })}
         </div>
       );
     }

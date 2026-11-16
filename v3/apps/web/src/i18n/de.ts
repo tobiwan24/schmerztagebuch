@@ -146,6 +146,8 @@ export const de = {
     edit: 'Bearbeiten',
     notFound: 'Dieser Eintrag existiert nicht (mehr).',
     archivedField: 'archiviertes Feld',
+    infoShow: 'Info anzeigen',
+    infoHide: 'Info ausblenden',
     tags: 'Tags',
     tagsPlaceholder: 'Tag eingeben, Enter oder Komma zum Hinzufügen',
     tagsSet: 'Gesetzte Tags',
