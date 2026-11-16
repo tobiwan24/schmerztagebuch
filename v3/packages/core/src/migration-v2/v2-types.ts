@@ -7,6 +7,8 @@ export interface V2Block {
   id: string;
   type: V2BlockType | string;
   label?: string;
+  /** v2: Label im Tagebuch ausblenden → v3 `hideLabel` (MIG-17). */
+  hideLabelInDiary?: boolean;
   isDeletable?: boolean;
   value?: unknown;
   /** Alte Multiselect-Optionen (nur Texte). */

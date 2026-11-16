@@ -129,6 +129,29 @@ describe('Migration v2 → v3: Transformation', () => {
     expect(att).toMatchObject({ entryId: e3.id, kind: 'image', mime: 'image/jpeg', name: 'Foto', dataUrl: V2_ATTACHMENT });
   });
 
+  it('MIG-17: hideLabelInDiary wird zu hideLabel: true am Block der passenden Vorlagenversion', () => {
+    const src = plainV2Source(buildV2Dump());
+    const tpl = src.templates.find((x) => x.name === 'Schmerz')!;
+    const mark = (blocks: typeof tpl.blocks) => blocks.map((b) => (b.type === 'slider' ? { ...b, hideLabelInDiary: true } : { ...b, hideLabelInDiary: false }));
+    const hidden = transformV2(
+      {
+        templates: src.templates.map((x) => (x.id === tpl.id ? { ...x, blocks: mark(x.blocks) } : x)),
+        entries: src.entries.map((e) => (e.templateId === tpl.id && e.blocks ? { ...e, blocks: mark(e.blocks) } : e)),
+      },
+      opts,
+    );
+    const versions = hidden.templates.find((x) => x.template.name === 'Schmerz')!.versions;
+    expect(versions.length).toBeGreaterThan(1);
+    for (const v of versions) {
+      for (const b of v.blocks) {
+        if (b.type === 'slider') expect(b.hideLabel).toBe(true);
+        else expect(b).not.toHaveProperty('hideLabel');
+      }
+    }
+    // ohne das v2-Flag entsteht nirgends hideLabel
+    for (const t of run().templates) for (const v of t.versions) for (const b of v.blocks) expect(b).not.toHaveProperty('hideLabel');
+  });
+
   it('MIG-06: Einträge mit geänderter v2-Vorlage bekommen eine eigene Vorlagenversion; Werte bleiben am richtigen Block', () => {
     const r = run();
     const t = r.templates.find((x) => x.template.name === 'Schmerz')!;

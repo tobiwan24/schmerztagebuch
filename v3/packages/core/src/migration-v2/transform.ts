@@ -203,7 +203,7 @@ function makeDef(b: V2Block, order: string, ctx: DefContext, dateMode?: 'datetim
     ctx.warnings.add(`„${ctx.templateName}“: unbekannter Blocktyp „${b.type}“ übersprungen`);
     return null;
   }
-  const base = { id: blockIdFor(ctx, b, t.type), label: b.label?.trim() || 'Feld', required: false, order };
+  const base = { id: blockIdFor(ctx, b, t.type), label: b.label?.trim() || 'Feld', required: false, order, ...(b.hideLabelInDiary === true ? { hideLabel: true } : {}) };
   let def: unknown;
   switch (t.type) {
     case 'text':
