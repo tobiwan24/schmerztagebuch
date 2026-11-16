@@ -805,6 +805,12 @@ export const de = {
     persistDenied: 'Nicht gewährt — der Browser kann Daten bei Speicherknappheit löschen. Sichere regelmäßig ein Backup.',
     persistUnknown: 'Dieser Browser gibt keine Auskunft.',
   },
+  cloudBanner: {
+    title: 'Auf mehreren Geräten nutzen?',
+    hint: 'Mit einem Konto werden deine Einträge Ende-zu-Ende verschlüsselt synchronisiert. Dein Backup-Code sichert den Zugang.',
+    action: 'Zu den Einstellungen',
+    dismiss: 'Ausblenden',
+  },
   updates: {
     title: 'Updates',
     modeLabel: 'Neue Versionen',
