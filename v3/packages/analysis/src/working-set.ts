@@ -17,6 +17,9 @@ export interface WsField {
   optionLabels: string[];
 }
 
+/** Schlüssel eines Medikaments für Häufigkeiten, Filter und Medikamententage: der Name ohne Groß/Klein (Spec 06, „je Name"). */
+export const medicationKey = (name: string): string => name.trim().toLowerCase();
+
 export interface WsEntry {
   id: string;
   diaryId: string;
@@ -96,7 +99,9 @@ export function buildWorkingSet(input: WorkingSetInput): WorkingSet {
       const optionLabels =
         value.kind === 'options' && def.type === 'multiselect'
           ? value.optionIds.map((id) => def.config.options.find((o) => o.id === id)?.label).filter((l): l is string => !!l)
-          : [];
+          : value.kind === 'medications'
+            ? value.items.map((i) => i.name)
+            : [];
       fields.push({
         blockId: def.id, type: def.type, label: labelDef.label, archived: !cur, value, display: displayValue(def, raw), optionLabels,
         ...((cur ?? def).role ? { role: (cur ?? def).role } : {}),

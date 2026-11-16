@@ -4,7 +4,7 @@
 // es als leer: `number`/`text`/`bodymap` treffen dann nicht, `option` mit `none` und `checkbox: false` treffen.
 import { z } from 'zod';
 import { roleSchema } from '@stb/core';
-import { dayIn, WEATHER_FIELD_NAMES, type WorkingSet, type WsEntry, type WsField } from './working-set.js';
+import { dayIn, medicationKey, WEATHER_FIELD_NAMES, type WorkingSet, type WsEntry, type WsField } from './working-set.js';
 
 const isoDate = z.iso.date();
 const withTarget = <T extends z.ZodRawShape>(shape: T) =>
@@ -88,10 +88,18 @@ export function matchesCondition(e: WsEntry, c: Condition): boolean {
       return fieldsFor(e, c).some((f) => f.value.kind === 'numeric' && compare(f.value.value, c.op, c.value));
     }
     case 'option': {
-      const selected = new Set(fieldsFor(e, c).flatMap((f) => (f.value.kind === 'options' ? f.value.optionIds : [])));
-      if (c.mode === 'any') return c.optionIds.some((id) => selected.has(id));
-      if (c.mode === 'all') return c.optionIds.every((id) => selected.has(id));
-      return !c.optionIds.some((id) => selected.has(id));
+      // Medikamenten-Blöcke: `optionIds` = Preset-ID oder Medikamentenname (Groß/Klein egal, `medicationKey`).
+      const selected = new Set(
+        fieldsFor(e, c).flatMap((f) =>
+          f.value.kind === 'options' ? f.value.optionIds
+          : f.value.kind === 'medications' ? f.value.items.flatMap((i) => [medicationKey(i.name), ...(i.presetId ? [i.presetId] : [])])
+          : [],
+        ),
+      );
+      const wanted = c.optionIds.map((id) => (selected.has(id) ? id : medicationKey(id)));
+      if (c.mode === 'any') return wanted.some((id) => selected.has(id));
+      if (c.mode === 'all') return wanted.every((id) => selected.has(id));
+      return !wanted.some((id) => selected.has(id));
     }
     case 'checkbox': {
       const checked = fieldsFor(e, c).some((f) => f.value.kind === 'event' && f.value.occurred);

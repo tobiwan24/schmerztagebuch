@@ -119,3 +119,50 @@ export const fixtureExtraEntries: Entry[] = [
   extra('e16', '2026-02-20T10:00:00.000Z', { [FIX.meds]: [FIX.ibu] }),
 ];
 
+// --- Medikamenten-Block (ANA-22): eigene kleine Datenbasis, damit die Erwartungen der übrigen Tests unverändert bleiben. ---
+
+export const FIXMED = { t: 't-med', pain: 'b-mpain', meds: 'b-med', pIbu: 'p-ibu', pPara: 'p-para' } as const;
+
+export const fixtureMedTemplates: Template[] = [
+  { id: FIXMED.t, diaryId: FIX.diary, name: 'Mit Medikamenten', order: 'c', currentVersion: 1, archived: false, createdAt: at, updatedAt: at },
+];
+
+export const fixtureMedVersions: TemplateVersion[] = [
+  {
+    templateId: FIXMED.t, version: 1, createdAt: at,
+    blocks: [
+      slider(FIXMED.pain, 'Schmerzstärke', 'outcome'),
+      {
+        id: FIXMED.meds, type: 'medication', label: 'Medikamente', required: false, order: FIXMED.meds, role: 'medication',
+        config: {
+          presets: [
+            { id: FIXMED.pIbu, name: 'Ibuprofen', dose: 400, unit: 'mg', color: '#3b82f6' },
+            { id: FIXMED.pPara, name: 'Paracetamol', dose: 500, unit: 'mg', color: '#10b981' },
+          ],
+          units: ['mg', 'ml', 'Stk', 'Tropfen', 'Hub'],
+          allowFree: true,
+        },
+      },
+    ],
+  },
+];
+
+const medItem = (id: string, name: string, extra: Record<string, unknown> = {}) => ({ id, name, ...extra });
+
+/**
+ * m1 (01.03.): Ibuprofen 400 (Vorgabe) + Paracetamol (frei) · m2 (01.03., zweiter Eintrag): Ibuprofen ·
+ * m3 (03.03.): „IBUPROFEN" frei 200 mg · m4 (02.04.): Novalgin 20 Tropfen · m5 (05.03.): nur Schmerz.
+ */
+export const fixtureMedEntries: Entry[] = [
+  { id: 'm1', day: '2026-03-01', values: { [FIXMED.pain]: 6, [FIXMED.meds]: { items: [medItem('i1', 'Ibuprofen', { presetId: FIXMED.pIbu, dose: 400, unit: 'mg', at: '2026-03-01T08:00:00+01:00', effect: 5 }), medItem('i2', 'Paracetamol', { dose: 500, unit: 'mg' })] } } },
+  { id: 'm2', day: '2026-03-01', values: { [FIXMED.meds]: { items: [medItem('i3', 'Ibuprofen', { presetId: FIXMED.pIbu, dose: 400, unit: 'mg' })] } } },
+  { id: 'm3', day: '2026-03-03', values: { [FIXMED.meds]: { items: [medItem('i4', 'IBUPROFEN', { dose: 200, unit: 'mg' })] } } },
+  { id: 'm4', day: '2026-04-02', values: { [FIXMED.meds]: { items: [medItem('i5', 'Novalgin', { dose: 20, unit: 'Tropfen' })] } } },
+  { id: 'm5', day: '2026-03-05', values: { [FIXMED.pain]: 4 } },
+].map((r) => {
+  const ts = `${r.day}T10:00:00.000Z`;
+  return {
+    id: r.id, diaryId: FIX.diary, templateId: FIXMED.t, templateVersion: 1, occurredAt: ts, recordedAt: ts, updatedAt: ts,
+    authorId: 'u1', values: r.values, tags: [], meta: { source: 'app', timezone: FIX.tz }, hlc: `${Date.parse(ts)}:0000:fix`,
+  } satisfies Entry;
+});

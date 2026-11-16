@@ -3,7 +3,7 @@
 // - Mehrere Einträge pro Tag: `mean` · `max` · `last` (Standard `max` für Rolle `outcome`, sonst `mean`).
 // - Leere Werte zählen nicht in `n`; Tage ohne Wert erscheinen nicht (nie „0").
 import type { Role } from '@stb/core';
-import type { WsEntry, WsField } from './working-set.js';
+import { medicationKey, type WsEntry, type WsField } from './working-set.js';
 import type { WeatherField } from './working-set.js';
 
 export type DailyMode = 'mean' | 'max' | 'last';
@@ -156,6 +156,22 @@ export function previousRange(r: DayRange): DayRange {
   return { from: shift(r.from, -len), to: shift(r.from, -1) };
 }
 
+/**
+ * Ereignisse eines Felds als (Schlüssel, Label): Optionen, angehakte Checkbox, Medikamente je Name (`medicationKey`;
+ * die Schreibweise der Vorgabe hat Vorrang, sonst die erste).
+ */
+function picksOf(f: WsField): [string, string, boolean][] {
+  const v = f.value;
+  if (v.kind === 'options') return v.optionIds.map((id, i) => [id, f.optionLabels[i] ?? id, false]);
+  if (v.kind === 'event' && v.occurred) return [[f.blockId, f.label, false]];
+  if (v.kind === 'medications') {
+    const seen = new Map<string, [string, boolean]>();
+    for (const i of v.items) if (!seen.has(medicationKey(i.name)) || i.presetId) seen.set(medicationKey(i.name), [i.name, !!i.presetId]);
+    return [...seen.entries()].map(([k, [name, pref]]) => [k, name, pref]);
+  }
+  return [];
+}
+
 export interface OptionDays {
   optionId: string;
   label: string;
@@ -168,16 +184,14 @@ export interface OptionDays {
 export function optionDays(entries: readonly WsEntry[], t: { blockId: string } | { role: Role }, range: DayRange): OptionDays[] {
   const scoped = entries.filter((e) => inRange(e.day, range));
   const recordedDays = new Set(scoped.map((e) => e.day)).size;
-  const days = new Map<string, { label: string; set: Set<string> }>();
+  const days = new Map<string, { label: string; pref: boolean; set: Set<string> }>();
   for (const e of scoped) {
     const fields = 'blockId' in t ? e.fields.filter((f) => f.blockId === t.blockId) : e.fields.filter((f) => f.role === t.role);
     for (const f of fields) {
-      const picks: [string, string][] =
-        f.value.kind === 'options' ? f.value.optionIds.map((id, i) => [id, f.optionLabels[i] ?? id])
-        : f.value.kind === 'event' && f.value.occurred ? [[f.blockId, f.label]]
-        : [];
-      for (const [id, label] of picks) {
-        const d = days.get(id) ?? { label, set: new Set<string>() };
+      const picks = picksOf(f);
+      for (const [id, label, pref] of picks) {
+        const d = days.get(id) ?? { label, pref, set: new Set<string>() };
+        if (pref && !d.pref) Object.assign(d, { label, pref });
         d.set.add(e.day);
         days.set(id, d);
       }
@@ -197,25 +211,23 @@ export interface MedicationMonth {
 
 /** Medikamententage je Monat (Spec 06): Blöcke der Rolle `medication`, je Option getrennt; Mehrfacheinnahme am Tag = 1 Tag. */
 export function medicationDaysByMonth(entries: readonly WsEntry[]): MedicationMonth[] {
-  const map = new Map<string, { month: string; optionId: string; label: string; set: Set<string> }>();
+  const map = new Map<string, { month: string; optionId: string; label: string; pref: boolean; set: Set<string> }>();
   for (const e of entries) {
     for (const f of e.fields) {
       if (f.role !== 'medication') continue;
-      const picks: [string, string][] =
-        f.value.kind === 'options' ? f.value.optionIds.map((id, i) => [id, f.optionLabels[i] ?? id])
-        : f.value.kind === 'event' && f.value.occurred ? [[f.blockId, f.label]]
-        : [];
-      for (const [id, label] of picks) {
+      const picks = picksOf(f);
+      for (const [id, label, pref] of picks) {
         const month = e.day.slice(0, 7);
         const key = `${month}|${id}`;
-        const m = map.get(key) ?? { month, optionId: id, label, set: new Set<string>() };
+        const m = map.get(key) ?? { month, optionId: id, label, pref, set: new Set<string>() };
+        if (pref && !m.pref) Object.assign(m, { label, pref });
         m.set.add(e.day);
         map.set(key, m);
       }
     }
   }
   return [...map.values()]
-    .map(({ set, ...m }) => ({ ...m, days: set.size }))
+    .map((m) => ({ month: m.month, optionId: m.optionId, label: m.label, days: m.set.size }))
     .sort((a, b) => (a.month < b.month ? -1 : a.month > b.month ? 1 : a.label < b.label ? -1 : 1));
 }
 
