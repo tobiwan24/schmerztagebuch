@@ -1,13 +1,14 @@
 // Eingabe je Blocktyp (Spec 05 „Blocktypen"). Werte in den Formen aus @stb/core; leere Werte bleiben `undefined`/leer.
 import { useState } from 'react';
 import { Check, Info } from 'lucide-react';
-import type { BlockDef, BodymapValue, CheckboxValue, DateValue, TextareaValue } from '@stb/core';
+import type { BlockDef, BodymapValue, CheckboxValue, DateValue, MedicationValue, TextareaValue } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { BodyMapField } from './BodyMapField';
+import { MedicationField } from './MedicationField';
 import { TextareaField, type AttachmentApi } from './TextareaField';
 import { optionTone } from '@/lib/option-colors';
 import { cn } from '@/lib/utils';
@@ -25,9 +26,11 @@ export interface BlockFieldProps {
   /** Textarea: Anhänge des Formulars (BLK-30/31) und ID-Quelle für Ereignisse. */
   attachments?: AttachmentApi;
   newId?: () => string;
+  /** ID-Quelle für Medikamenten-Positionen (auch im Schnelleintrag, wo `newId` fehlt). */
+  itemId?: () => string;
 }
 
-export function BlockField({ def, value, onChange, invalid, diaryId, onSetDefault, attachments, newId }: BlockFieldProps) {
+export function BlockField({ def, value, onChange, invalid, diaryId, onSetDefault, attachments, newId, itemId }: BlockFieldProps) {
   const id = `block-${def.id}`;
   const errorId = `${id}-error`;
   const aria = { 'aria-invalid': invalid || undefined, 'aria-describedby': invalid ? errorId : undefined };
@@ -39,7 +42,7 @@ export function BlockField({ def, value, onChange, invalid, diaryId, onSetDefaul
         {def.required ? <span aria-label={de.entry.required}>{' *'}</span> : null}
       </Label>
       {def.description ? <p className="text-xs text-muted-foreground">{def.description}</p> : null}
-      <FieldInput id={id} def={def} value={value} onChange={onChange} aria={aria} diaryId={diaryId} onSetDefault={onSetDefault ? (pid) => onSetDefault(def.id, pid) : undefined} attachments={attachments} newId={newId} />
+      <FieldInput id={id} def={def} value={value} onChange={onChange} aria={aria} diaryId={diaryId} onSetDefault={onSetDefault ? (pid) => onSetDefault(def.id, pid) : undefined} attachments={attachments} newId={newId} itemId={itemId ?? newId} />
       {invalid ? (
         <p id={errorId} role="alert" className="text-sm text-destructive">
           {de.entry.requiredMissing}
@@ -70,8 +73,8 @@ function InfoHint({ id, text }: { id: string; text: string }) {
 type Aria = { 'aria-invalid'?: true; 'aria-describedby'?: string };
 
 function FieldInput({
-  id, def, value, onChange, aria, diaryId, onSetDefault, attachments, newId,
-}: { id: string; def: BlockDef; value: unknown; onChange: (v: unknown) => void; aria: Aria; diaryId?: string; onSetDefault?: (presetId: string) => Promise<void>; attachments?: AttachmentApi; newId?: () => string }) {
+  id, def, value, onChange, aria, diaryId, onSetDefault, attachments, newId, itemId,
+}: { id: string; def: BlockDef; value: unknown; onChange: (v: unknown) => void; aria: Aria; diaryId?: string; onSetDefault?: (presetId: string) => Promise<void>; attachments?: AttachmentApi; newId?: () => string; itemId?: () => string }) {
   switch (def.type) {
     case 'slider': {
       const v = typeof value === 'number' ? value : undefined;
@@ -153,6 +156,8 @@ function FieldInput({
       );
     case 'date':
       return <DateInput id={id} mode={def.config.mode} value={value as DateValue | undefined} onChange={onChange} aria={aria} />;
+    case 'medication':
+      return <MedicationField id={id} config={def.config} value={value as MedicationValue | undefined} onChange={onChange} newId={itemId} />;
     case 'bodymap':
       return (
         <BodyMapField

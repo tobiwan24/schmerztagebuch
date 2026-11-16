@@ -117,7 +117,7 @@ export function QuickPage() {
         <form className="flex flex-col gap-6" noValidate onSubmit={(e) => (e.preventDefault(), void save())}>
           <p className="text-sm text-muted-foreground">{de.quick.now(selection.state.template.name)}</p>
           {selection.blocks.map((def) => (
-            <BlockField key={def.id} def={def} diaryId={selection.state.template.diaryId} value={values[def.id]} invalid={false} onChange={(v) => (setValues({ ...values, [def.id]: v }), setEmpty(false))} />
+            <BlockField key={def.id} def={def} diaryId={selection.state.template.diaryId} value={values[def.id]} invalid={false} itemId={data.newId} onChange={(v) => (setValues({ ...values, [def.id]: v }), setEmpty(false))} />
           ))}
           <WeatherSwitch settings={weatherSettings} checked={useGps} onChange={setUseGps} />
           {empty ? (

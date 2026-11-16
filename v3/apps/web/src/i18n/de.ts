@@ -299,6 +299,13 @@ export const de = {
         },
       },
       bodymap: { preset: 'Standardbild' },
+      medication: {
+        presets: 'Vorgaben', add: 'Medikament hinzufügen', allowFree: 'Freie Eingabe im Formular erlauben',
+        name: (n: number) => `Name von Medikament ${n}`, dose: (n: number) => `Dosis von Medikament ${n}`, unit: (n: number) => `Einheit von Medikament ${n}`,
+        defaultName: (n: number) => `Medikament ${n}`, remove: (name: string) => `Medikament ${name} entfernen`,
+        moveUp: (name: string) => `Medikament ${name} nach oben`, moveDown: (name: string) => `Medikament ${name} nach unten`,
+        color: (name: string) => `Farbe von ${name}`,
+      },
       date: { mode: 'Modus', modes: { date: 'Datum', datetime: 'Datum und Uhrzeit', duration: 'Dauer', range: 'Zeitraum' } },
       issues: {
         NAME_EMPTY: 'Bitte gib einen Namen ein.',
@@ -308,8 +315,19 @@ export const de = {
         OPTIONS_EMPTY: 'Mindestens eine Option ist nötig.',
         OPTION_LABEL_EMPTY: 'Jede Option braucht eine Bezeichnung.',
         OPTION_LABEL_DUPLICATE: 'Optionen dürfen nicht gleich heißen.',
+        PRESET_NAME_EMPTY: 'Jedes Medikament braucht einen Namen.',
+        PRESET_NAME_DUPLICATE: 'Medikamente dürfen nicht gleich heißen.',
       },
     },
+  },
+  medication: {
+    add: 'Medikament hinzufügen',
+    addFree: '+ Medikament',
+    addPreset: (name: string) => `+ ${name}`,
+    itemTitle: (n: number, name: string) => `Medikament ${n}: ${name}`,
+    defaultName: 'Neues Medikament', name: 'Name', dose: 'Dosis', unit: 'Einheit', time: 'Uhrzeit', effect: 'Wirkung (0–10)', noEffect: 'ohne Angabe',
+    remove: (name: string) => `${name} entfernen`, max: 'Mehr als 20 Medikamente sind nicht möglich.',
+    presetsGroup: 'Aus den Vorgaben',
   },
   quick: {
     title: 'Schnelleintrag',

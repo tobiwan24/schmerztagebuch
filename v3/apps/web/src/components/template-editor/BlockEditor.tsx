@@ -15,7 +15,7 @@ import { BlockConfigFields } from './BlockConfigFields';
 
 const t = de.templates.editor;
 /** Block-Typen der Palette. */
-const PALETTE: readonly BlockType[] = ['slider', 'checkbox', 'multiselect', 'text', 'textarea', 'date', 'bodymap'];
+const PALETTE: readonly BlockType[] = ['slider', 'checkbox', 'multiselect', 'text', 'textarea', 'date', 'bodymap', 'medication'];
 
 export function BlockEditor({
   blocks, issues, newId, onChange, quickIds, onQuickChange,

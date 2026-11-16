@@ -57,6 +57,15 @@ describe('Editor-Domäne', () => {
     expect(validateTemplateDraft({ blocks: [dup] }).map((i) => i.code)).toEqual(['OPTION_LABEL_DUPLICATE']);
   });
 
+  it('Medikamenten-Block: leere und doppelte Vorgaben-Namen werden gemeldet', () => {
+    const med = labelled(newBlock('medication', ids), 'Medikamente');
+    const preset = (name: string) => ({ id: ids.newId(), name, unit: 'mg', color: '#ef4444' });
+    const mk = (names: string[]) => ({ ...med, config: { ...med.config, presets: names.map(preset) } }) as BlockDef;
+    expect(validateTemplateDraft({ blocks: [mk(['Ibuprofen', 'Paracetamol'])] })).toEqual([]);
+    expect(validateTemplateDraft({ blocks: [mk(['Ibuprofen', ' '])] }).map((i) => i.code)).toEqual(['PRESET_NAME_EMPTY']);
+    expect(validateTemplateDraft({ blocks: [mk(['Ibuprofen', ' ibuprofen'])] }).map((i) => i.code)).toEqual(['PRESET_NAME_DUPLICATE']);
+  });
+
   it('BLK-22: moveBlock und removeBlock ändern nur Order-Key bzw. entfernen den Block', () => {
     const a = labelled(newBlock('text', ids), 'A');
     const b = labelled(newBlock('text', ids, a.order), 'B');

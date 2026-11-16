@@ -40,7 +40,9 @@ export type DraftIssueCode =
   | 'SLIDER_STEP'
   | 'OPTIONS_EMPTY'
   | 'OPTION_LABEL_EMPTY'
-  | 'OPTION_LABEL_DUPLICATE';
+  | 'OPTION_LABEL_DUPLICATE'
+  | 'PRESET_NAME_EMPTY'
+  | 'PRESET_NAME_DUPLICATE';
 
 export interface DraftIssue {
   code: DraftIssueCode;
@@ -75,6 +77,19 @@ export function validateTemplateDraft(draft: { name?: string; blocks: readonly B
       }
       if (empty) issues.push({ code: 'OPTION_LABEL_EMPTY', blockId: b.id });
       if (dup) issues.push({ code: 'OPTION_LABEL_DUPLICATE', blockId: b.id });
+    }
+    if (b.type === 'medication') {
+      const seen = new Set<string>();
+      let empty = false;
+      let dup = false;
+      for (const p of b.config.presets) {
+        const n = p.name.trim().toLocaleLowerCase('de');
+        if (n === '') empty = true;
+        else if (seen.has(n)) dup = true;
+        seen.add(n);
+      }
+      if (empty) issues.push({ code: 'PRESET_NAME_EMPTY', blockId: b.id });
+      if (dup) issues.push({ code: 'PRESET_NAME_DUPLICATE', blockId: b.id });
     }
   }
   return issues;

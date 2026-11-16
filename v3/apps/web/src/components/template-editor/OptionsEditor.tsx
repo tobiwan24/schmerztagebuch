@@ -17,7 +17,7 @@ export interface OptionDef {
 }
 
 /** Tailwind-Klassen je Palettenfarbe (statisch, damit sie im Build erhalten bleiben). */
-const SWATCH: Record<(typeof OPTION_COLORS)[number], string> = {
+export const SWATCH: Record<(typeof OPTION_COLORS)[number], string> = {
   '#ef4444': 'bg-red-500 hover:bg-red-500',
   '#f97316': 'bg-orange-500 hover:bg-orange-500',
   '#eab308': 'bg-yellow-500 hover:bg-yellow-500',

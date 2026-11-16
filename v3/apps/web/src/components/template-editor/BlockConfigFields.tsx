@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { de } from '@/i18n/de';
+import { MedicationPresetsEditor } from './MedicationPresetsEditor';
 import { OptionsEditor } from './OptionsEditor';
 
 const t = de.templates.editor;
@@ -137,6 +138,8 @@ export function BlockConfigFields({ def, newId, onChange }: { def: BlockDef; new
           <OptionsEditor blockId={def.id} options={def.config.options} newId={newId} onChange={(options) => onChange({ ...def, config: { ...def.config, options } })} />
         </>
       );
+    case 'medication':
+      return <MedicationPresetsEditor blockId={def.id} config={def.config} newId={newId} onChange={(config) => onChange({ ...def, config })} />;
     case 'bodymap':
       return (
         <div className="flex flex-col gap-2">
