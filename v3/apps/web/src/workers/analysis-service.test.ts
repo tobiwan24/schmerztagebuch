@@ -16,6 +16,7 @@ describe('Analyse-Worker-Protokoll', () => {
     expect(series[0]).toEqual({ day: '2026-03-01', value: 7, n: 1 });
     const meds = await client.medicationDays({ now: FIXTURE_NOW });
     expect(meds.map((m) => [m.label, m.days])).toEqual([['Ibuprofen', 3], ['Paracetamol', 2]]);
+    expect(await client.training({ now: FIXTURE_NOW })).toEqual({ weeks: [], totalDays: 0, levels: [] });
     port1.close();
     port2.close();
   });

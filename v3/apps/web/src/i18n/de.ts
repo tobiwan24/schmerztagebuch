@@ -62,7 +62,7 @@ export const de = {
     // Rein beschreibend (Spec 06): keine Ursachen- oder Wirkungsformulierungen (ANA-15).
     fewData: 'Wenige Daten — Unterschied kann zufällig sein.',
     views: 'Ansicht',
-    viewNames: { trend: 'Verlauf', calendar: 'Kalender', meds: 'Medis', freq: 'Häufig.', body: 'Körper' },
+    viewNames: { trend: 'Verlauf', calendar: 'Kalender', meds: 'Medis', freq: 'Häufig.', body: 'Körper', training: 'Übungen' },
     ranges: { day: 'Tag', '7d': '7 T', '30d': '30 T', '90d': '90 T', '6m': '6 M', '1y': '1 J' },
     block: 'Feld',
     blockOf: (label: string, template: string) => `${label} · ${template}`,
@@ -116,6 +116,16 @@ export const de = {
     calendar: 'Kalender',
     trend: 'Verlauf',
     bodymapOverview: 'Körperkarte im Zeitraum',
+    training: {
+      weeksTitle: 'Übungen: Tage mit Training je Woche',
+      weekOf: (day: string) => `Woche ab ${day}`,
+      weekDays: (n: number) => `${n} ${n === 1 ? 'Tag' : 'Tage'}`,
+      totalDays: (n: number) => `n = ${n} ${n === 1 ? 'Tag' : 'Tage'} mit erledigten Übungen`,
+      levelsTitle: (label: string) => `Stufe: ${label}`,
+      levelPoint: (day: string, label: string) => `${day}: ${label}`,
+      noLevels: 'Keine Stufenangaben im Zeitraum.',
+      noData: 'Im Zeitraum gibt es keine erledigten Übungen.',
+    },
   },
   more: {
     title: 'Mehr',
@@ -628,6 +638,11 @@ export const de = {
     dayNames: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
     denied: 'Benachrichtigungen sind für diese App blockiert. Erlaube sie in den Einstellungen des Geräts.',
     unsupported: 'Dieser Browser unterstützt keine Benachrichtigungen (auf dem iPhone: App zum Home-Bildschirm hinzufügen).',
+    training: {
+      title: 'Erinnerung „Übungen“',
+      hint: 'Eigene Erinnerung an deine Übungen, unabhängig von der Eintrags-Erinnerung. Gleiche Regeln: Sie erscheint, solange die App geöffnet oder im Hintergrund ist.',
+      enabled: 'Übungs-Erinnerung aktiv',
+    },
   },
   conflicts: {
     title: 'Konfliktprotokoll',

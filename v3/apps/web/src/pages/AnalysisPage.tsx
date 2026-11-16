@@ -25,9 +25,11 @@ import { cn } from '@/lib/utils';
 import { exportViewAsPng, renderViewAsPng } from '@/lib/export-png';
 import { de } from '@/i18n/de';
 
-type View = 'trend' | 'calendar' | 'meds' | 'freq' | 'body';
+type View = 'trend' | 'calendar' | 'meds' | 'freq' | 'body' | 'training';
 type Range = 'day' | '7d' | '30d' | '90d' | '6m' | '1y';
 const VIEWS: View[] = ['trend', 'calendar', 'meds', 'freq', 'body'];
+/** „Übungen“ erscheint nur, wenn es erledigte Übungen gibt (ANA-25). */
+const VIEWS_WITH_TRAINING: View[] = [...VIEWS, 'training'];
 const RANGES: Range[] = ['day', '7d', '30d', '90d', '6m', '1y'];
 const RANGE_DAYS: Record<Range, number> = { day: 1, '7d': 7, '30d': 30, '90d': 90, '6m': 182, '1y': 365 };
 const PALETTE = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
@@ -60,7 +62,10 @@ export function AnalysisPage() {
   const { diary, now } = useData();
   const scope = useDiaryScope(true);
   const entries = useQuery(async () => ({ count: (await diary.listAllEntries()).length, diaryIds: (await diary.listDiaries()).map((d) => d.id) }), [diary]);
-  const [view, setView] = useState<View>('trend');
+  const [pickedView, setView] = useState<View>('trend');
+  const trainingAny = useWorker((c) => c.training({ ...(scope.diaryId ? { spec: { diaryIds: [scope.diaryId], range: { preset: 'all' as const } } } : {}), now: now() }), [scope.diaryId]);
+  const views = trainingAny && trainingAny.totalDays > 0 ? VIEWS_WITH_TRAINING : VIEWS;
+  const view = views.includes(pickedView) ? pickedView : 'trend';
   const [range, setRange] = useState<Range>('30d');
   /** Wie viele Zeiträume zurück (0 = bis heute); Wischen nach rechts = älter, nach links = neuer. */
   const [shift, setShift] = useState(0);
@@ -96,7 +101,7 @@ export function AnalysisPage() {
     <>
       <PageHeader title={de.analysis.title} />
       <ToggleGroup aria-label={de.analysis.views}>
-        {VIEWS.map((v) => (
+        {views.map((v) => (
           <ToggleGroupItem key={v} pressed={view === v} onClick={() => setView(v)} className="px-1 text-xs">
             {de.analysis.viewNames[v]}
           </ToggleGroupItem>
@@ -152,6 +157,7 @@ export function AnalysisPage() {
         {view === 'meds' ? <MedsView spec={spec} /> : null}
         {view === 'freq' ? <FreqView spec={spec} from={from} to={to} /> : null}
         {view === 'body' ? <BodyView spec={spec} /> : null}
+        {view === 'training' ? <TrainingView spec={spec} /> : null}
       </section>
       {view !== 'calendar' ? <CompareCard diaryIds={diaryIds} from={from} to={to} /> : null}
     </>
@@ -433,6 +439,71 @@ function MedPie({ meds }: { meds: { optionId: string; label: string; days: numbe
         </ul>
       </CardContent>
     </Card>
+  );
+}
+
+/** „Übungen“ (ANA-25): Wochenbalken (Tage mit erledigten Übungen) und Stufenverlauf je Übung — rein beschreibend. */
+function TrainingView({ spec }: { spec: FilterSpec }) {
+  const { now } = useData();
+  const stats = useWorker((c) => c.training({ spec, now: now() }), [JSON.stringify(spec)]);
+  if (!stats) return <p className="text-muted-foreground">{de.app.loading}</p>;
+  const t = de.analysis.training;
+  if (stats.totalDays === 0) return <p className="text-sm text-muted-foreground">{t.noData}</p>;
+  return (
+    <>
+      <Card data-testid="training-weeks">
+        <CardHeader>
+          <CardTitle className="text-base">{t.weeksTitle}</CardTitle>
+          <p className="text-xs text-muted-foreground">{t.totalDays(stats.totalDays)}</p>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <ChartContainer config={{ days: { label: de.analysis.daysLabel, color: 'var(--chart-2)' } }}>
+            <BarChart data={stats.weeks.map((w) => ({ week: shortDay(w.weekStart), days: w.days }))} margin={{ left: -20, right: 8 }}>
+              <CartesianGrid vertical={false} />
+              <XAxis dataKey="week" tickLine={false} axisLine={false} />
+              <YAxis allowDecimals={false} domain={[0, 7]} tickLine={false} axisLine={false} />
+              <Tooltip content={<ChartTooltipContent />} />
+              <Bar dataKey="days" name={de.analysis.daysLabel} fill="var(--color-days)" radius={4} isAnimationActive={false} />
+            </BarChart>
+          </ChartContainer>
+          <ul data-testid="training-week-list" className="sr-only">
+            {stats.weeks.map((w) => (
+              <li key={w.weekStart}>
+                {t.weekOf(longDay(w.weekStart))}: {t.weekDays(w.days)}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+      {stats.levels.length === 0 ? <p className="text-sm text-muted-foreground">{t.noLevels}</p> : null}
+      {stats.levels.map((l) => {
+        const names = new Map(l.points.map((p) => [p.levelIndex, p.levelLabel]));
+        const ticks = [...names.keys()].sort((a, b) => a - b);
+        return (
+          <Card key={l.blockId} data-testid="training-levels">
+            <CardHeader>
+              <CardTitle className="text-base">{t.levelsTitle(l.label)}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <ChartContainer config={{ level: { label: l.label, color: 'var(--chart-1)' } }} className="h-40">
+                <LineChart data={l.points.map((p) => ({ day: shortDay(p.day), level: p.levelIndex }))} margin={{ left: 8, right: 8 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="day" tickLine={false} axisLine={false} />
+                  <YAxis ticks={ticks} domain={[Math.min(...ticks), Math.max(...ticks)]} tickFormatter={(i: number) => names.get(i) ?? ''} width={70} tickLine={false} axisLine={false} />
+                  <Tooltip content={<ChartTooltipContent formatter={(v) => names.get(Number(v)) ?? String(v)} />} />
+                  <Line type="stepAfter" dataKey="level" name={l.label} stroke="var(--color-level)" dot isAnimationActive={false} />
+                </LineChart>
+              </ChartContainer>
+              <ul data-testid="training-level-points" className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                {l.points.map((p) => (
+                  <li key={p.day}>{t.levelPoint(longDay(p.day), p.levelLabel)}</li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </>
   );
 }
 

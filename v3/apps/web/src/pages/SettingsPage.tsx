@@ -80,6 +80,7 @@ export function SettingsPage() {
       <UpdateSettingsCard />
       <TourRestartCard />
       <ReminderCard />
+      <ReminderCard kind="training" />
       <V2DataCard />
       <Button asChild variant="outline">
         <Link to="/more/settings/konflikte">{de.conflicts.open}</Link>

@@ -12,6 +12,14 @@ export interface ReminderSettings {
 
 export const DEFAULT_REMINDER: ReminderSettings = { enabled: false, time: '20:00', days: [1, 2, 3, 4, 5, 6, 7] };
 
+/** Art der Erinnerung: Tagebuch-Eintrag oder Übungen (UI-32, eigene Uhrzeit und Tage). */
+export type ReminderKind = 'diary' | 'training';
+export const REMINDER_KINDS: readonly ReminderKind[] = ['diary', 'training'];
+export const DEFAULT_REMINDERS: Record<ReminderKind, ReminderSettings> = {
+  diary: DEFAULT_REMINDER,
+  training: { enabled: false, time: '18:00', days: [1, 2, 3, 4, 5, 6, 7] },
+};
+
 const isoWeekday = (d: Date) => ((d.getDay() + 6) % 7) + 1;
 const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
@@ -53,17 +61,28 @@ export interface ReminderDeps {
 
 export const REMINDER_TITLE = 'Zeit für deinen Eintrag';
 export const REMINDER_BODY = 'Wie geht es dir heute?';
+
+/** Notification-Text und -Tag je Art (verschiedene Tags, damit beide nebeneinander erscheinen können). Beschreibend, ohne Empfehlung. */
+export interface ReminderTexts {
+  title: string;
+  body: string;
+  tag: string;
+}
+export const REMINDER_TEXTS: Record<ReminderKind, ReminderTexts> = {
+  diary: { title: REMINDER_TITLE, body: REMINDER_BODY, tag: 'stb-reminder' },
+  training: { title: 'Zeit für deine Übungen', body: 'Deine Trainingsvorlage wartet.', tag: 'stb-reminder-training' },
+};
 /** Browser-Timer sind auf ~24,8 Tage begrenzt; längere Wartezeiten werden in Etappen geplant. */
 const MAX_TIMER_MS = 2 ** 31 - 1;
 
 /** Plant die Erinnerungen; Rückgabe: Abmelden. */
-export function startReminders(s: ReminderSettings, deps: ReminderDeps): () => void {
+export function startReminders(s: ReminderSettings, deps: ReminderDeps, texts: ReminderTexts = REMINDER_TEXTS.diary): () => void {
   let handle: unknown = null;
   let stopped = false;
   async function fire() {
     const day = localDay(new Date(deps.now()));
     await deps.saveLastShown(day);
-    await deps.show(REMINDER_TITLE, REMINDER_BODY);
+    await deps.show(texts.title, texts.body);
   }
   function plan() {
     if (stopped) return;
@@ -87,10 +106,10 @@ export function startReminders(s: ReminderSettings, deps: ReminderDeps): () => v
 }
 
 /** Notification über den Service Worker (funktioniert auch als installierte PWA auf iOS ≥ 16.4). */
-export async function showViaServiceWorker(title: string, body: string): Promise<void> {
+export async function showViaServiceWorker(title: string, body: string, tag = 'stb-reminder'): Promise<void> {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
   const reg = await navigator.serviceWorker?.getRegistration();
-  const options: NotificationOptions = { body, icon: '/icon-192.png', tag: 'stb-reminder' };
+  const options: NotificationOptions = { body, icon: '/icon-192.png', tag };
   if (reg) await reg.showNotification(title, options);
   else new Notification(title, options);
 }

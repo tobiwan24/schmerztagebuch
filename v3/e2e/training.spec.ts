@@ -102,4 +102,66 @@ test.describe('Training', () => {
     await expect(page.getByText('Keine passende Trainingsvorlage')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Zu den Vorlagen' })).toBeVisible();
   });
+
+  test('ANA-25: Auswertung zeigt „Übungen“ erst mit erledigten Übungen: Wochenbalken und Stufenverlauf', async ({ page }) => {
+    await onboardWithPassword(page);
+    // Ein normaler Eintrag, damit die Auswertung Daten hat — ohne Training keine Ansicht „Übungen“
+    await go(page, '/entry/new');
+    await page.getByLabel(/Schmerzstärke/).fill('4');
+    await page.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByTestId('entry-time')).toBeVisible();
+    await go(page, '/analysis');
+    await expect(page.getByTestId('analysis-view-trend')).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Ansicht' }).getByRole('button', { name: 'Übungen' })).toHaveCount(0);
+
+    await createTraining(page);
+    await go(page, '/training');
+    await page.getByTestId('training-template').click();
+    await page.getByLabel('Stufe', { exact: true }).selectOption({ label: 'Schwer' });
+    await page.getByLabel('Erledigt').check();
+    await page.getByRole('button', { name: 'Weiter' }).click();
+    await page.getByRole('button', { name: 'Weiter' }).click();
+    await page.getByRole('button', { name: 'Durchgang speichern' }).click();
+    await expect(page.getByTestId('entry-time')).toBeVisible();
+
+    await go(page, '/analysis');
+    const views = page.getByRole('group', { name: 'Ansicht' });
+    await views.getByRole('button', { name: 'Übungen' }).click();
+    await expect(page.getByTestId('analysis-view-training')).toBeVisible();
+    await expect(page.getByTestId('training-weeks')).toContainText('n = 1 Tag mit erledigten Übungen');
+    await expect(page.getByTestId('training-week-list').getByRole('listitem')).toHaveCount(1);
+    await expect(page.getByTestId('training-week-list')).toContainText('1 Tag');
+    await expect(page.getByTestId('training-levels')).toContainText('Stufe: Brücke');
+    await expect(page.getByTestId('training-level-points')).toContainText('Schwer');
+    // Die Ansicht „Übungen“ bleibt rein beschreibend: keine Empfehlung
+    await expect(page.getByTestId('analysis-view-training')).not.toContainText(/empfehl|solltest/i);
+  });
+
+  test('UI-32: zusätzliche Erinnerung „Übungen“ mit eigener Uhrzeit und eigenen Tagen, unabhängig von der Eintrags-Erinnerung', async ({ page, context, browserName }) => {
+    if (browserName === 'chromium') await context.grantPermissions(['notifications']);
+    await onboardWithPassword(page);
+    await go(page, '/more/settings');
+    const diary = page.getByTestId('reminder-card');
+    const training = page.getByTestId('reminder-card-training');
+    await expect(training).toContainText('Erinnerung „Übungen“');
+    await expect(diary.getByLabel('Erinnerung aktiv', { exact: true })).not.toBeChecked();
+    await expect(training.getByLabel('Übungs-Erinnerung aktiv')).not.toBeChecked();
+    await expect(training.getByLabel('Uhrzeit')).toHaveValue('18:00');
+
+    await training.getByLabel('Übungs-Erinnerung aktiv').check();
+    await training.getByLabel('Uhrzeit').fill('17:15');
+    await training.getByRole('button', { name: 'So' }).click();
+    // Die Eintrags-Erinnerung bleibt unberührt
+    await expect(diary.getByLabel('Erinnerung aktiv', { exact: true })).not.toBeChecked();
+    await expect(diary.getByLabel('Uhrzeit')).toHaveValue('20:00');
+    await expect(diary.getByRole('button', { name: 'So' })).toHaveAttribute('aria-pressed', 'true');
+
+    await go(page, '/more');
+    await go(page, '/more/settings');
+    await expect(training.getByLabel('Übungs-Erinnerung aktiv')).toBeChecked();
+    await expect(training.getByLabel('Uhrzeit')).toHaveValue('17:15');
+    await expect(training.getByRole('button', { name: 'So' })).toHaveAttribute('aria-pressed', 'false');
+    await expect(training.getByRole('button', { name: 'Mo' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(diary.getByLabel('Erinnerung aktiv', { exact: true })).not.toBeChecked();
+  });
 });
