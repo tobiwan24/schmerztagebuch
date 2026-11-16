@@ -4,6 +4,7 @@ import { Pencil } from 'lucide-react';
 import { AttachmentList } from '@/components/AttachmentList';
 import { useAuthorName } from '@/data/useSharing';
 import { displayValue } from '@stb/core';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
@@ -84,6 +85,15 @@ export function EntryDetailPage() {
                 </div>
               ))}
           </Card>
+          {query.data.entry.tags.length > 0 ? (
+            <ul className="flex flex-wrap gap-2" aria-label={de.entry.tagsSet}>
+              {query.data.entry.tags.map((t) => (
+                <li key={t}>
+                  <Badge data-testid="tag-chip">{t}</Badge>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <AttachmentList ids={attachmentIdsOf(query.data.fields)} />
           <Button asChild variant="outline">
             <Link to={`/entry/${id}/edit`}>

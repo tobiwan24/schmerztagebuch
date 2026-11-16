@@ -4,11 +4,11 @@
 
 ## Aktuell
 
-- **Meilenstein:** M14 „Nacharbeiten v2-Parität" aktuell (13/28 IDs, M14.0 Doku erledigt); danach/parallel der Teil-Meilenstein M14b „v2-Parität, Rest" (3/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
+- **Meilenstein:** M14 „Nacharbeiten v2-Parität" aktuell (15/28 IDs, M14.0 Doku erledigt); danach/parallel der Teil-Meilenstein M14b „v2-Parität, Rest" (3/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M14.15 (Tags, BLK-28 BLK-29). Reihenfolge laut Tabelle; M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-058.
-- **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34)
+- **Nächste Aufgabe:** M14.15c (Vorlagen per Wischen wechseln, BLK-42; Tabellenreihenfolge nach M14.15), danach M14.16 (Anhänge, BLK-30). Entscheidungen: A-036 bis A-060. Reihenfolge laut Tabelle; M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-058.
+- **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29)
 - **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.23 (UI-24)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. **Achtung:** `npm run verify` überschreibt `reports/vitest.json` mit übersprungenem QA-08 → vor `npm run acceptance` gesamt `npm run verify:docker` (Docker Desktop muss laufen).
@@ -38,7 +38,7 @@
 | M14.12 | Ort-UI in Einstellungen und Onboarding-Schritt — erledigt | BLK-39 |
 | M14.13 | Wetter beim Speichern (Formular, Schnelleintrag, GPS-Schalter) — erledigt | BLK-32 BLK-33 |
 | M14.14 | Nachtrag-Auslöser (Entsperren, `online`) — erledigt | BLK-34 |
-| M14.15 | Tags: core-Regeln, `TagInput`, Chips im Detail | BLK-28 BLK-29 |
+| M14.15 | Tags: core-Regeln, `TagInput`, Chips im Detail — erledigt | BLK-28 BLK-29 |
 | M14.15c | Vorlagen per Wischen wechseln — M14b | BLK-42 |
 | M14.16 | Anhänge im Repository (`remove`, Reihenfolge, Limits), Entry-ID beim Öffnen | BLK-30 |
 | M14.24 | Filter-/Sortier-Logik in analysis (Working-Set um Anhang-Arten erweitern) — M14b | ANA-19 |
@@ -88,7 +88,7 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M11 | erledigt | 15/15 IDs → Gate G3 (wartet auf User) |
 | M12 | erledigt | 9/9 IDs |
 | M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
-| M14 | aktuell | 13/28 IDs erledigt — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
+| M14 | aktuell | 15/28 IDs erledigt — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
 | M14b | aktuell | 3/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
@@ -244,3 +244,4 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | 2026-11-16 | M14.13 | BLK-32 BLK-33 | core: `initialWeatherMeta` (fester Ort → sofort `weatherPending` + gerundeter Ort, GPS erst nach Position, Rückfall A-009), `metaForEdit` (Neuermittlung nur bei > 1 h am gespeicherten Ort, nie GPS); `resolveEntryWeather` baut darauf auf. Service: `complete` (Abruf + Rückschreiben mit neuem HLC, verwirft veraltete Ergebnisse), `followUp` (GPS-Position im Hintergrund, dann Abruf), `backfill` nutzt `complete`; `data.weather` im DataContext. UI: `WeatherSwitch` (nur bei aktivem Wetter, Vorbelegung `gpsDefault`) in Eintragsformular (nur neu) und Schnelleintrag; Speichern wartet nie auf das Netz (`void followUp`). E2E `weather.spec.ts` (Open-Meteo per `page.route` mit Gate, Geolocation per Kontext, SW blockiert). Offen: Nachtrag beim Entsperren/`online` folgt in M14.14; Wetter wird im Detail noch nicht angezeigt (nicht Teil der IDs). Initiales JS 243,9 KB. |
 | 2026-11-16 | perf | QA-02 | Initiales JS 243,9 → 230,3 KB gzip: Onboarding, Eintragsseiten (Formular/Detail), Schnelleintrag, Einstellungen, Tagebuchliste per `lazy` (Router). Wetterdienst/LocationPicker waren nur ~1 KB; die Masse sind react-dom, react-router, zod, dexie. E2E komplett grün (135). |
 | 2026-11-16 | M14.14 | BLK-34 | `weather/backfill-runner.ts` (pur: Tagebücher nacheinander, ein Lauf zur Zeit — gleichzeitige Auslöser teilen den Lauf, Fehler pro Tagebuch ignoriert), `components/WeatherBackfill.tsx` (Auslöser: Status `unlocked` und `online`; bei Treffern `bumpRevision`, HLC-Stand nachgezogen), in `App.tsx` eingehängt. Integrationstests `integration/weather/backfill-runner.test.ts`; Service-Nachtrag selbst (weatherPending entfernt, neuer HLC, fehlgeschlagene bleiben) bereits durch BLK-12-Tests abgedeckt. |
+| 2026-11-16 | M14.15 | BLK-28 BLK-29 | core `tags.ts` (`normalizeTag`, `addTag`, `suggestTags`; A-060), `components/TagInput.tsx` (Enter/Komma/Vorschlag/×, nur ui-Komponenten, neu `ui/badge.tsx`), im Formular (Vorschläge aus `listEntries` des Tagebuchs, Tag-Änderung fließt in `isDirty`) und Chips im Detail. Verlaufssuche indizierte Tags bereits (ANA). E2E `tags.spec.ts`. Erkenntnis: Liste und Eingabefeld dürfen nicht dasselbe aria-Label tragen (Playwright-Strictmode). |

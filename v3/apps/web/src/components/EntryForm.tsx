@@ -25,6 +25,7 @@ import {
   type TimeInput,
 } from '@stb/core';
 import { Button } from '@/components/ui/button';
+import { TagInput } from '@/components/TagInput';
 import { TemplateIcon } from '@/components/TemplateIcon';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
@@ -34,6 +35,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { WeatherSwitch, useDiaryWeatherSettings, useGpsChoice } from '@/components/WeatherSwitch';
 import { BlockField } from '@/components/blocks/BlockField';
 import { useData } from '@/data/DataContext';
+import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 
 interface Loaded {
@@ -84,6 +86,11 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
     // Nur beim Öffnen; spätere Wechsel über die Auswahl.
   }, []);
 
+  // Vorschläge: Tags der vorhandenen Einträge des Tagebuchs (BLK-28).
+  const diaryId = loaded?.template.diaryId;
+  const known = useQuery(async () => (diaryId ? (await data.diary.listEntries(diaryId)).map((e) => e.tags) : []), [data.diary, diaryId]);
+  const knownTags = known.status === 'ok' ? known.data : [];
+
   const weatherSettings = useDiaryWeatherSettings(loaded?.template.diaryId);
   const [useGps, setUseGps] = useGpsChoice(weatherSettings);
 
@@ -112,6 +119,7 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
     await data.diary.saveTemplate(updateTemplate(state, { blocks }, { now: data.now }).state);
   }
   const setTime = (time: TimeInput) => setCurrent({ ...current, time });
+  const setTags = (tags: string[]) => setCurrent({ ...current, tags });
 
   async function save() {
     if (!current || !loaded) return;
@@ -189,6 +197,8 @@ export function EntryForm({ templates, entry }: { templates: Template[]; entry?:
           diaryId={template.diaryId} onSetDefault={setBlockDefault}
         />
       ))}
+
+      <TagInput tags={current.tags} onChange={setTags} known={knownTags} />
 
       {!entry ? <WeatherSwitch settings={weatherSettings} checked={useGps} onChange={setUseGps} /> : null}
 

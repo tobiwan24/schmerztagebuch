@@ -16,3 +16,4 @@ export { createHlcClock, compareHlc, formatHlc, parseHlc, maxHlc, type HlcClock,
 export { mapIntakeToValues, buildShortcutPrompt, normalizeLabel, type IntakeInput, type IntakeMapping } from './intake.js';
 export * from './migration-v2/index.js';
 export * from './template-editor.js';
+export * from './tags.js';
