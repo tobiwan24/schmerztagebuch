@@ -77,6 +77,9 @@ export function SettingsPage() {
       <ReminderCard />
       <V2DataCard />
       <Button asChild variant="outline">
+        <Link to="/more/settings/konflikte">{de.conflicts.open}</Link>
+      </Button>
+      <Button asChild variant="outline">
         <Link to="/more/settings/diagnose">{de.diagnostics.open}</Link>
       </Button>
     </>

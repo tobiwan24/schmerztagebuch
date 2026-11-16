@@ -28,6 +28,7 @@ export const router = createBrowserRouter([
           { path: '/analysis', lazy: page(() => import('@/pages/AnalysisPage'), 'AnalysisPage') },
           { path: '/more', element: <MorePage /> },
           { path: '/more/settings', lazy: page(() => import('@/pages/SettingsPage'), 'SettingsPage') },
+          { path: '/more/settings/konflikte', lazy: page(() => import('@/pages/ConflictLogPage'), 'ConflictLogPage') },
           { path: '/more/settings/diagnose', lazy: page(() => import('@/pages/DiagnosticsPage'), 'DiagnosticsPage') },
           { path: '/more/templates', lazy: page(() => import('@/pages/TemplatesPage'), 'TemplatesPage') },
           { path: '/more/templates/new', lazy: page(() => import('@/pages/TemplateEditorPage'), 'TemplateEditorPage') },

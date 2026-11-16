@@ -6,6 +6,7 @@ import { EntryListState } from '@/components/EntryListState';
 import { BackupReminder } from '@/components/BackupReminder';
 import { V2Banner } from '@/components/V2DataCard';
 import { InstallBanner } from '@/components/InstallBanner';
+import { ConflictBanner } from '@/components/ConflictBanner';
 import { InboxCard } from '@/components/InboxCard';
 import { useWritableDiaries } from '@/data/useSharing';
 import { de } from '@/i18n/de';
@@ -18,6 +19,7 @@ export function StartPage() {
     <>
       <PageHeader title={de.start.title} />
       <InstallBanner />
+      <ConflictBanner />
       <V2Banner />
       <InboxCard />
       <BackupReminder />

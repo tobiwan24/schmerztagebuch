@@ -9,6 +9,7 @@ import { createCodecRegistry, type CodecRegistry } from './codec/registry';
 import { createRecordRepository, type RecordRepository } from './repositories/records';
 import { createDiaryRepository, type DiaryRepository } from './repositories/diary';
 import { createAttachmentRepository, type AttachmentRepository } from './repositories/attachments';
+import { createConflictRepository, type ConflictRepository } from './repositories/conflicts';
 import { createStamper, type Stamper } from './identity';
 import { createWeatherService } from '@/weather/service';
 
@@ -17,6 +18,8 @@ export interface DataApi {
   diary: DiaryRepository;
   /** Anhänge: Metadaten + lokaler Inhalt (A-032). */
   attachments: AttachmentRepository;
+  /** Konfliktprotokoll (lokal, UI-18). */
+  conflicts: ConflictRepository;
   /** Neue UUID v7 (Spec 02). */
   newId: () => string;
   /** HLC-Stempel und Autor für lokale Änderungen. */
@@ -50,7 +53,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       remove: (id, payload) => notify(raw.remove(id, payload)),
     };
     const { newId } = createIdGenerator({ now });
-    return { records, diary: createDiaryRepository(records), attachments: createAttachmentRepository(db, records, { now }), newId, stamper: createStamper(db, { now }, newId), now, registry, writes,
+    return { records, diary: createDiaryRepository(records), attachments: createAttachmentRepository(db, records, { now }), conflicts: createConflictRepository(db, registry, 'plain'), newId, stamper: createStamper(db, { now }, newId), now, registry, writes,
       weather: createWeatherService({ fetchFn: (input, init) => fetch(input, init), geolocation: navigator.geolocation, now }) };
   }, [db, now, accountMode]);
   const api = useMemo<DataApi>(() => ({ ...base, revision, bumpRevision }), [base, revision, bumpRevision]);
