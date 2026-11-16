@@ -1,7 +1,9 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { StbDb } from '../data/db.js';
-import { createLocalAccount, unlockLocal, recoverWithBackupCode, hasAccount, loadAccount } from './local-account.js';
+import {
+  createLocalAccount, unlockLocal, recoverWithBackupCode, hasAccount, loadAccount, setPassword, addPasskey, removePasskey, prepareBackupCodeRenewal, factorInfo,
+} from './local-account.js';
 import { unlockWithPasskey, preparePasskeyRequest, PRF_SALT_UMK, type CredentialsLike } from './passkey.js';
 
 let db: StbDb;
@@ -72,5 +74,51 @@ describe('Passkey-Klick-Handler', () => {
   it('fehlende PRF-Ausgabe → prf-unsupported', async () => {
     const credentials: CredentialsLike = { create: vi.fn(), get: async () => ({ getClientExtensionResults: () => ({}) }) as unknown as Credential };
     await expect(unlockWithPasskey(credentials, preparePasskeyRequest({ rpId: 'x', credentialIds: [] }))).rejects.toThrow('prf-unsupported');
+  });
+});
+
+describe('Faktorverwaltung (local-only)', () => {
+  it('M14.33a: Passwort ändern — alter Passwort-Wrap ungültig, neuer entsperrt dieselbe UMK, Backup-Code unverändert', async () => {
+    const { umk, backupCode } = await createLocalAccount(db, { factor: { kind: 'password', password: 'altes passwort 1' }, now });
+    await setPassword(db, umk, 'neues passwort 2');
+    await expect(unlockLocal(db, { kind: 'password', password: 'altes passwort 1' })).rejects.toMatchObject({ code: 'unwrap-failed' });
+    expect(await raw(await unlockLocal(db, { kind: 'password', password: 'neues passwort 2' }))).toEqual(await raw(umk));
+    expect(await raw(await unlockLocal(db, { kind: 'backup', code: backupCode }))).toEqual(await raw(umk));
+    expect((await loadAccount(db))?.wraps.filter((w) => w.factor === 'password')).toHaveLength(1);
+  });
+
+  it('M14.33a: Passkey hinzufügen und entfernen — nur mit bleibendem Passwort; allein als Faktor nicht entfernbar', async () => {
+    const { umk } = await createLocalAccount(db, { factor: { kind: 'password', password: 'passwort eins 1' }, now });
+    await addPasskey(db, umk, { prf: prf(5), credentialId: 'cred-5' });
+    expect(await raw(await unlockLocal(db, { kind: 'passkey', prf: prf(5) }))).toEqual(await raw(umk));
+    expect((await loadAccount(db))?.passkey).toEqual({ credentialId: 'cred-5' });
+    expect(await factorInfo(db)).toMatchObject({ hasPassword: true, hasPasskey: true });
+    await removePasskey(db);
+    await expect(unlockLocal(db, { kind: 'passkey', prf: prf(5) })).rejects.toMatchObject({ code: 'unwrap-failed' });
+    expect((await loadAccount(db))?.passkey).toBeUndefined();
+    expect(await raw(await unlockLocal(db, { kind: 'password', password: 'passwort eins 1' }))).toEqual(await raw(umk));
+
+    const only = new StbDb(`stb-v3-account-only-${n}`);
+    await only.open();
+    try {
+      const a = await createLocalAccount(only, { factor: { kind: 'passkey', prf: prf(7) }, credentialId: 'cred-7', now });
+      await expect(removePasskey(only)).rejects.toMatchObject({ code: 'last-factor' });
+      expect(await raw(await unlockLocal(only, { kind: 'passkey', prf: prf(7) }))).toEqual(await raw(a.umk));
+    } finally {
+      only.close();
+      await only.delete();
+    }
+  });
+
+  it('M14.33a: Backup-Code erneuern — erst nach commit() gilt der neue Code, der alte wird ungültig', async () => {
+    const { umk, backupCode: oldCode } = await createLocalAccount(db, { factor: { kind: 'password', password: 'passwort eins 1' }, now });
+    const pending = await prepareBackupCodeRenewal(db, umk);
+    expect(pending.backupCode).not.toBe(oldCode);
+    // vor der Bestätigung gilt noch der alte Code
+    expect(await raw(await unlockLocal(db, { kind: 'backup', code: oldCode }))).toEqual(await raw(umk));
+    await pending.commit();
+    await expect(unlockLocal(db, { kind: 'backup', code: oldCode })).rejects.toMatchObject({ code: 'unwrap-failed' });
+    expect(await raw(await unlockLocal(db, { kind: 'backup', code: pending.backupCode }))).toEqual(await raw(umk));
+    expect(await raw(await unlockLocal(db, { kind: 'password', password: 'passwort eins 1' }))).toEqual(await raw(umk));
   });
 });

@@ -6,9 +6,10 @@ import { plainCodec } from './codec/plain.js';
 import { createCodecRegistry } from './codec/registry.js';
 import { createRecordRepository } from './repositories/records.js';
 import { createDiaryRepository, type DiaryRepository } from './repositories/diary.js';
-import { createLocalAccount, loadAccount } from '../auth/local-account.js';
+import { createLocalAccount, loadAccount, setPassword } from '../auth/local-account.js';
 import { createExport } from './import-export.js';
 import { AutoBackupDb, autoBackupInfo, readAutoBackup, runAutoBackup, AUTO_BACKUP_DB, type AutoBackupDeps } from './auto-backup.js';
+import { refreshAutoBackupWraps } from './auto-backup-store.js';
 
 const DAY = 86_400_000;
 let t = 1_700_000_000_000;
@@ -110,5 +111,24 @@ describe('Auto-Sicherung', () => {
     now += DAY + 1000;
     expect(await runAutoBackup(d)).toBe('written');
     expect(await store.backups.count()).toBe(1);
+  });
+});
+
+describe('Auto-Sicherung und Faktoren', () => {
+  it('M14.33a: nach Passwortwechsel öffnet nur noch das neue Passwort die Sicherung (Kopie der Wraps aktualisiert)', async () => {
+    await seed();
+    const { umk } = await createLocalAccount(db, { factor: { kind: 'password', password: 'altes passwort 1' }, now: clock.now });
+    const named = new AutoBackupDb(); // Standardname, wie ihn refreshAutoBackupWraps verwendet
+    try {
+      await named.backups.clear();
+      expect(await runAutoBackup({ ...(await deps(umk, clock.now)), store: named })).toBe('written');
+      await readAutoBackup(named, { kind: 'password', password: 'altes passwort 1' });
+      await refreshAutoBackupWraps(await setPassword(db, umk, 'neues passwort 2'));
+      await expect(readAutoBackup(named, { kind: 'password', password: 'altes passwort 1' })).rejects.toMatchObject({ code: 'unwrap-failed' });
+      await expect(readAutoBackup(named, { kind: 'password', password: 'neues passwort 2' })).resolves.toBeTruthy();
+    } finally {
+      named.close();
+      await named.delete();
+    }
   });
 });

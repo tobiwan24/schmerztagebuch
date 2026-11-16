@@ -113,3 +113,77 @@ export async function recoverWithBackupCode(
   await pending.commit();
   return { umk: pending.umk, backupCode: pending.backupCode };
 }
+
+// --- Faktorverwaltung (Spec 03, CRY-18; local-only). Alle Funktionen setzen eine entsperrte Sitzung (UMK) voraus; die
+// Rückfrage mit dem aktuellen Faktor übernimmt die Oberfläche über `unlockLocal`. ---
+
+export type FactorError = 'not-local-only' | 'last-factor' | 'no-passkey';
+
+export class FactorManagementError extends Error {
+  constructor(readonly code: FactorError) {
+    super(code);
+    this.name = 'FactorManagementError';
+  }
+}
+
+async function requireLocal(db: StbDb): Promise<LocalAccount> {
+  const account = await loadAccount(db);
+  if (!account) throw new Error('Kein Konto auf diesem Gerät');
+  if ((account as { mode: string }).mode !== 'local-only') throw new FactorManagementError('not-local-only');
+  return account;
+}
+
+export async function factorInfo(db: StbDb): Promise<{ hasPassword: boolean; hasPasskey: boolean; wraps: UmkWrap[] } | undefined> {
+  const account = await loadAccount(db);
+  if (!account) return undefined;
+  return { hasPassword: account.wraps.some((w) => w.factor === 'password'), hasPasskey: account.wraps.some((w) => w.factor === 'passkey'), wraps: account.wraps };
+}
+
+/** Setzt oder ändert das Passwort: der alte Passwort-Wrap entfällt, der neue verpackt dieselbe UMK. Gibt die neuen Wraps zurück. */
+export async function setPassword(db: StbDb, umk: CryptoKey, password: string): Promise<UmkWrap[]> {
+  const account = await requireLocal(db);
+  const wraps = [...account.wraps.filter((w) => w.factor !== 'password'), await wrapUmk(umk, { kind: 'password', password })];
+  await save(db, { ...account, wraps });
+  return wraps;
+}
+
+/** Fügt einen Passkey hinzu (ersetzt einen vorhandenen — pro Gerät gibt es einen Passkey, `passkeyRequest` kennt eine Credential-ID). */
+export async function addPasskey(db: StbDb, umk: CryptoKey, input: { prf: Uint8Array<ArrayBuffer>; credentialId: string }): Promise<UmkWrap[]> {
+  const account = await requireLocal(db);
+  const wraps = [...account.wraps.filter((w) => w.factor !== 'passkey'), await wrapUmk(umk, { kind: 'passkey', prf: input.prf })];
+  await save(db, { ...account, wraps, passkey: { credentialId: input.credentialId } });
+  return wraps;
+}
+
+/** Entfernt den Passkey — nur, wenn ein Passwort bleibt (mindestens ein Faktor außer dem Backup-Code). */
+export async function removePasskey(db: StbDb): Promise<UmkWrap[]> {
+  const account = await requireLocal(db);
+  if (!account.wraps.some((w) => w.factor === 'passkey')) throw new FactorManagementError('no-passkey');
+  if (!account.wraps.some((w) => w.factor === 'password')) throw new FactorManagementError('last-factor');
+  const { passkey: _old, ...rest } = account;
+  void _old;
+  const wraps = account.wraps.filter((w) => w.factor !== 'passkey');
+  await save(db, { ...rest, wraps });
+  return wraps;
+}
+
+/** Neuer Backup-Code: gespeichert wird erst mit `commit()` nach der Pflichtbestätigung; der alte Wrap ist danach ungültig. */
+export interface PendingBackupCode {
+  backupCode: string;
+  commit(): Promise<UmkWrap[]>;
+}
+
+export async function prepareBackupCodeRenewal(db: StbDb, umk: CryptoKey): Promise<PendingBackupCode> {
+  await requireLocal(db);
+  const backupCode = await generateBackupCode();
+  const wrap = await wrapUmk(umk, { kind: 'backup', code: backupCode });
+  return {
+    backupCode,
+    async commit() {
+      const account = await requireLocal(db);
+      const wraps = [...account.wraps.filter((w) => w.factor !== 'backup'), wrap];
+      await save(db, { ...account, wraps });
+      return wraps;
+    },
+  };
+}

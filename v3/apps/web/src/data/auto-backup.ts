@@ -2,34 +2,13 @@
 // IndexedDB `stb-v3-autobackup`, getrennt von `stb-v3`; nur die letzte Sicherung bleibt (A-066).
 // Schlüssel: zufälliger Sicherungsschlüssel (BK), mit der UMK verpackt. Die Faktor-Wraps der UMK (Passwort, Backup-Code,
 // Passkey) liegen als Kopie daneben — die Wiederherstellung braucht also einen der Faktoren, auch wenn `stb-v3` gelöscht ist.
-import { Dexie, type EntityTable } from 'dexie';
 import {
   CryptoError, DOMAINS, fromBase64Url, openBackupFile, parseBackupCode, sealBackupFile, toBase64Url, unwrapUmk, type UmkFactor, type UmkWrap,
 } from '@stb/crypto';
 import { parseExport, type ExportV1 } from '@stb/export';
+import { AutoBackupDb, AUTO_BACKUP_DB, AUTO_BACKUP_MIN_INTERVAL_MS, autoBackupInfo, type AutoBackupRecord } from './auto-backup-store';
 
-export const AUTO_BACKUP_DB = 'stb-v3-autobackup';
-export const AUTO_BACKUP_MIN_INTERVAL_MS = 86_400_000;
-
-export interface AutoBackupRecord {
-  id: 'latest';
-  v: 1;
-  createdAt: string;
-  /** Kopie der Faktor-Wraps der UMK zum Zeitpunkt der Sicherung. */
-  wraps: UmkWrap[];
-  /** Sicherungsschlüssel, mit der UMK (AES-GCM) verpackt. */
-  keyBox: { iv: string; ct: string };
-  /** Dateiinhalt im Format `.stbbackup`. */
-  file: string;
-}
-
-export class AutoBackupDb extends Dexie {
-  backups!: EntityTable<AutoBackupRecord, 'id'>;
-  constructor(name = AUTO_BACKUP_DB) {
-    super(name);
-    this.version(1).stores({ backups: 'id' });
-  }
-}
+export { AutoBackupDb, AUTO_BACKUP_DB, AUTO_BACKUP_MIN_INTERVAL_MS, autoBackupInfo, type AutoBackupRecord };
 
 const subtle = () => globalThis.crypto.subtle;
 const aad = () => new TextEncoder().encode(DOMAINS.autoBackupKey);
@@ -43,11 +22,6 @@ async function sealKey(umk: CryptoKey, bk: string): Promise<AutoBackupRecord['ke
 async function openKey(umk: CryptoKey, box: AutoBackupRecord['keyBox']): Promise<string> {
   const pt = await subtle().decrypt({ name: 'AES-GCM', iv: fromBase64Url(box.iv), additionalData: aad() }, umk, fromBase64Url(box.ct));
   return new TextDecoder().decode(pt);
-}
-
-export async function autoBackupInfo(store: AutoBackupDb): Promise<{ createdAt: string } | null> {
-  const rec = await store.backups.get('latest');
-  return rec ? { createdAt: rec.createdAt } : null;
 }
 
 export interface AutoBackupDeps {

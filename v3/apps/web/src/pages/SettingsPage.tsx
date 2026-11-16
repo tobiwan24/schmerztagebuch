@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
 import { CloudRegister } from '@/components/CloudSetup';
 import { BackupCodeStep } from '@/components/BackupCodeStep';
+import { FactorsSection } from '@/components/FactorsSection';
 import { AuthErrorNotice } from '@/components/AuthErrorNotice';
 import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
 import type { PendingAccount } from '@/auth/local-account';
@@ -31,7 +32,7 @@ export function SettingsPage() {
         <CardHeader>
           <CardTitle>{de.settings.security}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-4">
           {auth.status === 'locked' ? (
             <Button asChild className="w-full">
               <Link to="/unlock?next=%2Fmore%2Fsettings">{de.lock.bannerAction}</Link>
@@ -41,6 +42,7 @@ export function SettingsPage() {
               {de.lock.lockNow}
             </Button>
           )}
+          {auth.status === 'unlocked' && auth.accountMode === 'local-only' ? <FactorsSection /> : null}
         </CardContent>
       </Card>
       {auth.status === 'unlocked' && auth.accountMode === 'local-only' ? <UpgradeToCloud /> : null}

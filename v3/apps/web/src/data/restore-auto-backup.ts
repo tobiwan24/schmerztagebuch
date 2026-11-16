@@ -1,7 +1,8 @@
 // Wiederherstellung aus der Auto-Sicherung (EXP-16/EXP-17). Lazy geladen — zieht Export und Backup-Datei mit.
 import { Dexie } from 'dexie';
 import type { UmkFactor } from '@stb/crypto';
-import { AUTO_BACKUP_DB, AutoBackupDb, autoBackupInfo, readAutoBackup } from './auto-backup';
+import { AUTO_BACKUP_DB, AutoBackupDb, autoBackupInfo } from './auto-backup-store';
+import { readAutoBackup } from './auto-backup';
 import { applyImport, planImport } from './import-export';
 import type { DataApi } from './DataContext';
 
