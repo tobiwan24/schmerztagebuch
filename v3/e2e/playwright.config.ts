@@ -7,8 +7,9 @@ export default defineConfig({
   testDir: '.',
   testMatch: '**/*.spec.ts',
   fullyParallel: true,
-  // Früher 2 (WebKit-Abstürze bei Volllast); mit 12 Kernen und kaum ausgelasteter CPU 6 (Freigabe User 2026-11-16); bei Instabilität 4.
-  workers: 6,
+  // 2: Mit 6 Workern stürzte der Playwright-WebKit-Browser unter Windows wiederholt ab (Crash-Dialog, CrashReport.dmp,
+  // 2026-11-16) — der Engpass ist WebKit, nicht die CPU. Zeitgewinn mit 6 war ohnehin gering (≈ 4 → 3,5 min).
+  workers: 2,
   retries: 0,
   // Jeder Test startet in einem frischen Browser-Kontext ohne Cache: Die App (Bundle, Lazy-Chunks, 2× PBKDF2 mit 600k beim
   // Onboarding) wird neu geladen und übersetzt. Auf einem Windows-Rechner mit zwei parallelen Browsern (WebKit ist dabei am
