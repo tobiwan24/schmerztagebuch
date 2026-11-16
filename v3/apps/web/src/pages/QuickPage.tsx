@@ -1,13 +1,14 @@
 // Schnelleintrag (Spec 05, Wireframe schnelleintrag.html): Tipp 1 „Schnell eintragen" · Tipp 2 Wert · Tipp 3 Speichern.
 // Zeitpunkt = jetzt, `meta.source = 'quick'`; weitere Felder später im Eintrag ergänzbar. Pflichtfelder gelten hier nicht.
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
-import { quickEntrySelection, valuesToSave, type Entry, type FormValues, type TemplateState } from '@stb/core';
+import { Link, useNavigate, useSearchParams } from 'react-router';
+import { quickEntrySelection, valuesToSave, type Diary, type Entry, type FormValues, type QuickEntrySelection, type TemplateState } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState, ErrorState } from '@/components/StateView';
 import { BlockField } from '@/components/blocks/BlockField';
 import { useData } from '@/data/DataContext';
+import { useWritableDiaries } from '@/data/useSharing';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 
@@ -17,18 +18,26 @@ export function QuickPage() {
   const [values, setValues] = useState<FormValues>({});
   const [empty, setEmpty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const query = useQuery(async () => {
-    const [diary] = await data.diary.listDiaries();
-    if (!diary) return null;
+  const wanted = useSearchParams()[0].get('diary');
+  const writable = useWritableDiaries();
+  const writableIds = writable.status === 'ok' ? writable.data.map((d) => d.id).join() : null;
+  // Mehrere beschreibbare Tagebücher ohne Angabe → Auswahl (A-041); sonst das gewählte bzw. einzige Tagebuch.
+  const query = useQuery<{ choose: Diary[] | null; selection: QuickEntrySelection | null }>(async () => {
+    if (writable.status !== 'ok') return { choose: null, selection: null };
+    const list = writable.data;
+    if (!wanted && list.length > 1) return { choose: list, selection: null };
+    const diary = wanted ? list.find((d) => d.id === wanted) : list[0];
+    if (!diary) return { choose: null, selection: null };
     const states = (await Promise.all((await data.diary.listTemplates(diary.id)).map((t) => data.diary.getTemplate(t.id)))).filter(
       (s): s is TemplateState => s !== undefined,
     );
-    return quickEntrySelection(diary, states);
-  }, [data.diary]);
+    return { choose: null, selection: quickEntrySelection(diary, states) };
+  }, [data.diary, wanted, writableIds]);
+  const selection = query.status === 'ok' ? query.data.selection : null;
 
   async function save() {
-    if (query.status !== 'ok' || !query.data) return;
-    const { state } = query.data;
+    if (!selection) return;
+    const { state } = selection;
     const toSave = valuesToSave(state.version, values);
     if (Object.keys(toSave).length === 0) return setEmpty(true);
     setSaving(true);
@@ -51,7 +60,17 @@ export function QuickPage() {
       <PageHeader title={de.quick.title} back />
       {query.status === 'loading' ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
       {query.status === 'error' ? <ErrorState onRetry={query.retry} /> : null}
-      {query.status === 'ok' && (!query.data || query.data.blocks.length === 0) ? (
+      {query.status === 'ok' && query.data.choose ? (
+        <section data-testid="quick-diary-choice" className="flex flex-col gap-2">
+          <h2 className="text-sm font-medium text-muted-foreground">{de.quick.chooseDiary}</h2>
+          {query.data.choose.map((d) => (
+            <Button key={d.id} asChild variant="outline" className="h-14 justify-start text-base">
+              <Link to={`/quick?diary=${d.id}`}>{d.name}</Link>
+            </Button>
+          ))}
+        </section>
+      ) : null}
+      {query.status === 'ok' && writable.status === 'ok' && !query.data.choose && (!selection || selection.blocks.length === 0) ? (
         <>
           <EmptyState title={de.quick.noBlocksTitle} hint={de.quick.noBlocksHint} />
           <Button asChild variant="outline">
@@ -59,11 +78,11 @@ export function QuickPage() {
           </Button>
         </>
       ) : null}
-      {query.status === 'ok' && query.data && query.data.blocks.length > 0 ? (
+      {selection && selection.blocks.length > 0 ? (
         <form className="flex flex-col gap-6" noValidate onSubmit={(e) => (e.preventDefault(), void save())}>
-          <p className="text-sm text-muted-foreground">{de.quick.now(query.data.state.template.name)}</p>
-          {query.data.blocks.map((def) => (
-            <BlockField key={def.id} def={def} diaryId={query.data?.state.template.diaryId} value={values[def.id]} invalid={false} onChange={(v) => (setValues({ ...values, [def.id]: v }), setEmpty(false))} />
+          <p className="text-sm text-muted-foreground">{de.quick.now(selection.state.template.name)}</p>
+          {selection.blocks.map((def) => (
+            <BlockField key={def.id} def={def} diaryId={selection.state.template.diaryId} value={values[def.id]} invalid={false} onChange={(v) => (setValues({ ...values, [def.id]: v }), setEmpty(false))} />
           ))}
           {empty ? (
             <p role="alert" className="text-sm text-destructive">

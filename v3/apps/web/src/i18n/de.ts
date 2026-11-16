@@ -19,6 +19,7 @@ export const de = {
   start: {
     title: 'Start',
     quickEntry: 'Schnell eintragen',
+    quickEntryFor: (diary: string) => `Schnell eintragen · ${diary}`,
     newEntry: 'Neuer Eintrag',
     emptyTitle: 'Noch keine Einträge',
     emptyHint: 'Tippe auf „Schnell eintragen“ oder „Neuer Eintrag“, um deinen ersten Eintrag zu erfassen.',
@@ -250,6 +251,7 @@ export const de = {
     emptyHint: 'Gib mindestens einen Wert ein.',
     noBlocksTitle: 'Kein Feld für den Schnelleintrag',
     noBlocksHint: 'Die Vorlage hat keinen Slider. Lege einen Eintrag über das vollständige Formular an.',
+    chooseDiary: 'Für welches Tagebuch?',
   },
   invite: {
     title: 'Einladung',
@@ -401,6 +403,11 @@ export const de = {
     weatherEnabled: 'Wetter zu jedem Eintrag speichern',
     weatherNoLocation: 'Ohne Ort kein Wetter: Der Ort lässt sich ab einer späteren Version hier festlegen.',
     gpsDefault: 'Aktuellen Standort standardmäßig verwenden',
+    quickTitle: 'Schnelleintrag',
+    quickTemplate: 'Vorlage für den Schnelleintrag',
+    quickDefault: 'Standard (automatisch)',
+    quickBlocks: 'Felder im Schnelleintrag',
+    quickBlocksHint: 'Ohne Auswahl gilt die Standardregel: alle Felder mit der Rolle Ergebnis, sonst der erste Slider.',
     save: 'Speichern',
     saving: 'Speichert …',
     saved: 'Gespeichert.',

@@ -89,6 +89,23 @@ export function useMembers(diaryId: string) {
   return { query, invite, revokeInvitation, changeRole, remove, leave, refresh: query.retry };
 }
 
+/** Tagebücher, in die dieses Gerät schreiben darf: local-only alle, mit Konto Rolle Besitzer/Editor (Mitgliederliste aus dem lokalen Cache; unbekannt = Besitzer wie in `useMembers`). */
+export function useWritableDiaries() {
+  const { db } = useAuth();
+  const { diary } = useData();
+  return useQuery(async () => {
+    const diaries = await diary.listDiaries();
+    const me = await self(db);
+    if (!me) return diaries;
+    const out: typeof diaries = [];
+    for (const d of diaries) {
+      const role = (await loadMembers(db, d.id)).find((m) => m.principalId === me.userId)?.role ?? 'owner';
+      if (role !== 'viewer') out.push(d);
+    }
+    return out;
+  }, [db, diary]);
+}
+
 /** „Erfasst von": Benutzername eines Autors in einem geteilten Tagebuch (nur, wenn es mehr als ein Mitglied gibt). */
 export function useAuthorName(diaryId: string | undefined, authorId: string | undefined) {
   const { db } = useAuth();
