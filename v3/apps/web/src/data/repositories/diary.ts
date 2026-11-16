@@ -34,6 +34,8 @@ export interface DiaryRepository {
   /** Legt ein Tagebuch an, optional mit erster Vorlage (eine Transaktion; Onboarding). */
   createDiary(diary: Diary, firstTemplate?: TemplateState): Promise<void>;
   getDiary(diaryId: string): Promise<Diary | undefined>;
+  /** Speichert ein geändertes Tagebuch (Einstellungen, DM-14); neue Tagebücher legt `createDiary` an. */
+  saveDiary(diary: Diary): Promise<void>;
   listDiaries(): Promise<Diary[]>;
   /** Eigene Body-Map-Bilder eines Tagebuchs (A-024), älteste zuerst. */
   listBodymapImages(diaryId: string): Promise<BodymapImage[]>;
@@ -84,6 +86,12 @@ export function createDiaryRepository(records: RecordRepository): DiaryRepositor
         );
       }
       await records.putMany(inputs);
+    },
+
+    async saveDiary(diary) {
+      const d = diarySchema.parse(diary);
+      if (!(await repo.getDiary(d.id))) throw new RangeError(`Tagebuch ${d.id} existiert nicht`);
+      await records.put({ id: d.id, diaryId: d.id, kind: 'diary', payload: d });
     },
 
     async getDiary(diaryId) {

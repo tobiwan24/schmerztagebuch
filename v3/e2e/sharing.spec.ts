@@ -92,16 +92,24 @@ test.describe('Geteilte Tagebücher', () => {
     await go(b, '/more/diaries');
     const shared = b.getByTestId('diary-card').filter({ has: b.getByRole('link', { name: 'Mitglieder & Einladungen' }) });
     let memberSees = '';
+    let sharedIndex = -1;
     for (let i = 0; i < (await shared.count()); i++) {
       await go(b, '/more/diaries');
       await b.getByTestId('diary-card').nth(i).getByRole('link', { name: 'Mitglieder & Einladungen' }).click();
       await b.getByTestId('members-card').waitFor();
       if ((await b.getByTestId('member').count()) === 2) {
         memberSees = (await b.getByTestId('safety-number').textContent())!;
+        sharedIndex = i;
         break;
       }
     }
     expect(memberSees).toBe(ownerSees);
+    // UI-14: Mitglieder ohne Owner-Rolle sehen die Tagebuch-Einstellungen nur lesend
+    await go(b, '/more/diaries');
+    await b.getByTestId('diary-card').nth(sharedIndex).getByRole('link', { name: 'Einstellungen' }).click();
+    await expect(b.getByLabel('Name')).toBeDisabled();
+    await expect(b.getByRole('button', { name: 'Speichern' })).toHaveCount(0);
+    await go(b, '/more/diaries');
 
     // SHR-09: beide bearbeiten denselben Eintrag gleichzeitig (offline), verschiedene Felder → zusammengeführt
     await openEntryWith(a, 'STB-E2E-MARKER vom Owner');
