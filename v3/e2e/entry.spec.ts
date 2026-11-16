@@ -126,8 +126,9 @@ test.describe('Eintragsformular', () => {
     await expect(page.getByRole('heading', { name: 'Verlauf' })).toBeVisible();
     await expect(page.getByRole('dialog')).toHaveCount(0);
 
-    // „Verwerfen" verlässt das Formular
-    await page.getByRole('link', { name: 'Neuer Eintrag' }).click();
+    // „Verwerfen" verlässt das Formular (Neuer Eintrag gibt es nur auf Start, UI-25)
+    await nav.getByRole('link', { name: 'Start' }).click();
+    await openNew();
     await page.getByLabel('Notizen').fill('x');
     await nav.getByRole('link', { name: 'Start' }).click();
     await page.getByRole('button', { name: 'Verwerfen' }).click();

@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 import { SORT_ORDERS, type FilterSpec, type SortOrder } from '@stb/analysis';
 import { EMPTY_FILTER, HistoryFilters, isActive, toSpec, type FilterState } from '@/components/HistoryFilters';
 import { useAnalysis } from '@/data/AnalysisContext';
-import { ChevronRight, Plus } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
@@ -62,12 +62,6 @@ export function HistoryPage() {
       </div>
       {active && !ids ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
       {!active || ids ? <EntryListState emptyTitle={de.history.emptyTitle} emptyHint={de.history.emptyHint} onlyIds={active ? ids : null} allowAllDiaries sort={sort} /> : null}
-      <Button asChild variant="outline">
-        <Link to="/entry/new">
-          <Plus aria-hidden />
-          {de.start.newEntry}
-        </Link>
-      </Button>
     </>
   );
 }

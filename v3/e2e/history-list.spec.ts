@@ -78,4 +78,18 @@ test.describe('Verlauf: Sortierung und Seiten', () => {
     await expect(rows).toHaveCount(50);
     await expect(days.first()).not.toContainText('Heute');
   });
+
+  test('UI-25: Verlauf hat keinen „Neuer Eintrag"-Knopf (leer und mit Einträgen); Start behält ihn', async ({ page }) => {
+    await onboardWithPassword(page);
+    await go(page, '/history');
+    await expect(page.getByRole('heading', { name: 'Verlauf' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Neuer Eintrag' })).toHaveCount(0);
+    await seed(page);
+    await go(page, '/');
+    await go(page, '/history');
+    await expect(page.getByTestId('entry-row').first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Neuer Eintrag' })).toHaveCount(0);
+    await go(page, '/');
+    await expect(page.getByRole('link', { name: 'Neuer Eintrag' })).toBeVisible();
+  });
 });
