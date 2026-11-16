@@ -3,6 +3,7 @@ type Listener = (waiting: boolean) => void;
 
 let waitingWorker: ServiceWorker | null = null;
 let updateRequested = false;
+let registration: ServiceWorkerRegistration | null = null;
 const listeners = new Set<Listener>();
 const notify = () => listeners.forEach((l) => l(waitingWorker !== null));
 
@@ -26,7 +27,40 @@ export function applyUpdate(): void {
   waitingWorker?.postMessage({ type: 'SKIP_WAITING' });
 }
 
+/** Nach „Nach Updates suchen“ soll der Hinweis auch im Modus „automatisch“ erscheinen. */
+export const SHOW_UPDATE_EVENT = 'stb:show-update';
+export type UpdateCheck = 'available' | 'current' | 'unsupported';
+
+/** „Nach Updates suchen“ (UI-22): `registration.update()`, danach meldet es, ob ein neuer Service Worker wartet. */
+export async function checkForUpdate(): Promise<UpdateCheck> {
+  if (waitingWorker) {
+    window.dispatchEvent(new Event(SHOW_UPDATE_EVENT));
+    return 'available';
+  }
+  if (!registration) return 'unsupported';
+  try {
+    await registration.update();
+  } catch {
+    return 'unsupported';
+  }
+  // Der neue Worker installiert sich asynchron; kurz warten, bis `installed` den Hinweis ausgelöst hat.
+  const reg = registration;
+  if (reg.installing) {
+    const w = reg.installing;
+    await new Promise<void>((resolve) => {
+      const done = () => w.state === 'installed' || w.state === 'redundant' || w.state === 'activated' ? resolve() : undefined;
+      w.addEventListener('statechange', done);
+      done();
+      setTimeout(resolve, 15_000);
+    });
+  }
+  const found = waitingWorker !== null || reg.waiting !== null;
+  if (found) window.dispatchEvent(new Event(SHOW_UPDATE_EVENT));
+  return found ? 'available' : 'current';
+}
+
 function track(reg: ServiceWorkerRegistration) {
+  registration = reg;
   if (reg.waiting && navigator.serviceWorker.controller) {
     waitingWorker = reg.waiting;
     notify();

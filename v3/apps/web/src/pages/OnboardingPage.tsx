@@ -6,6 +6,7 @@ import { Cloud, Smartphone } from 'lucide-react';
 import { createDiary, instantiateCatalogTemplate, keyBetween } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { UpdateModeToggle } from '@/components/UpdateSettings';
 import { PageHeader } from '@/components/PageHeader';
 import { BackupCodeStep } from '@/components/BackupCodeStep';
 import { FactorSetup, type NewFactor } from '@/components/FactorSetup';
@@ -93,7 +94,8 @@ export function OnboardingPage() {
             <CardTitle>{de.onboarding.installTitle}</CardTitle>
             <CardDescription>{de.onboarding.installHint}</CardDescription>
           </CardHeader>
-          <div className="px-5">
+          <div className="flex flex-col gap-4 px-5">
+            <UpdateModeToggle />
             <Button className="w-full" onClick={() => setStep('mode')}>
               {de.onboarding.installNext}
             </Button>
