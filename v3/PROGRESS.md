@@ -7,7 +7,7 @@
 - **Meilenstein:** M14, M14b und M14c erledigt (Gesamt-Akzeptanz 211/211 automatisiert, QA-08 erfüllt: `verify:docker` 2026-11-16 grün; manuell 6/10). **v3.x (M15–M24) geplant**, Beginn mit M15.1. **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md) (aktualisiert 2026-11-16). Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M18.6 (Abschluss M18) (Aufgabenliste „v3.x“ unten). Plan v3.x: Entscheidungen A-080 bis A-1xx. G4-Abnahme (PDF mit echten Daten) bleibt beim User.
+- **Nächste Aufgabe:** M19.1 (ARC-07, `packages/llm`) (Aufgabenliste „v3.x“ unten). Plan v3.x: Entscheidungen A-080 bis A-1xx. G4-Abnahme (PDF mit echten Daten) bleibt beim User.
 - **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29), M14.16 (BLK-30), M14.17 (BLK-31), M14.18 (BLK-35, BLK-36), M14.19 (UI-16, UI-19), M14.1 (BLK-40), M14.20 (UI-17), M14.21 (UI-18)
 - **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15), M14.31 (EXP-17), M14.32 (EXP-16), M14.33 (CRY-18), M14.34 (CRY-19), M14.35 (CRY-20), M14.36 (UI-20), M14.37 (UI-21), M14.38 (UI-22), M14.39 (UI-23), M14.15d (BLK-44)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
@@ -99,7 +99,7 @@ Abkürzungen: W = `apps/web/src`, S = `apps/server/src`, P = `packages`. Reihenf
 | M18.3 | Erstellen: `W/sharing/report-link.ts`, Dialog im Export — erledigt | EXP-23 (Erstellen) |
 | M18.4 | Ansicht `ReportViewerPage`, Route `/r/:id` außerhalb AppShell und Unlock-Guard — erledigt | EXP-23 |
 | M18.5 | Liste aktiver Links, Widerrufen — erledigt | EXP-24 |
-| M18.6 | Abschluss M18 inkl. `verify:docker` | — |
+| M18.6 | Abschluss M18 (`verify:docker` durch den Koordinator) — erledigt | — |
 | M19.1 | `P/llm/` (Interface, Fake), ESLint/check-deps, Bundle-Scan | ARC-07 |
 | M19.2 | Ollama-/Anthropic-Provider, Prompts (DECISIONS: `@anthropic-ai/sdk`) | VOI-12 |
 | M19.3 | `S/llm/routes.ts`, `S/config.ts`, Rate-Limit/Budget, `.env.example` | VOI-13 |
@@ -165,7 +165,7 @@ Manuell und nicht blockierend (vom User): EXP-25, VOI-17, ANA-31, SHR-16, DM-19.
 | M15 | erledigt | 4/4 IDs (Skript OK nach vollem E2E) — Neuigkeiten und Tutorial, Version 3.1.0-alpha.1 |
 | M16 | erledigt | 6/6 IDs (Skript OK nach vollem E2E, 250 grün) — Medikamenten-Block, Version 3.2.0-alpha.1 |
 | M17 | erledigt | 7/7 IDs (Skript OK nach vollem E2E) — Training View, Version 3.3.0-alpha.1 |
-| M18 | offen | 0/5 IDs (1 manuell) — Arzt-Link |
+| M18 | erledigt | 4/4 IDs automatisiert (EXP-25 manuell, offen) — Arzt-Link, Version 3.4.0-alpha.1; `verify:docker` durch den Koordinator |
 | M19 | offen | 0/8 IDs (1 manuell) — LLM |
 | M20 | offen | 0/6 IDs (1 manuell) — Zusammenhänge, Hinweise |
 | M21 | offen | 0/4 IDs — Dashboard-Baukasten |
@@ -408,3 +408,4 @@ Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19,
 | 2026-11-16 | M18.3 | EXP-23 \(Erstellen\) | Erstellen: `sharing/report-package.ts` (Paket Bericht+PDF), `sharing/report-link.ts` (`createReportLink`, `openReportLink`, unterscheidbare Fehler), `ReportLinkDialog` im Export (nur Konto-Modus, A-104), `useBackup.createDoctorLink` (PDF-Erzeugung gemeinsam mit dem Download). Unit-Test: Schlüssel nur im Fragment, nie in Anfragen. E2E zu EXP-23 folgt mit der Ansicht (M18.4). |
 | 2026-11-16 | M18.4 | EXP-23 | Ansicht `/r/:id`: `ReportViewerPage` (eigenständig gerendert in `main.tsx` ohne Provider/SW/IndexedDB, plus Router-Route außerhalb AppShell, A-105), Tabellen, Kennzahlen, Diagramm, PDF-Download, Fehlertexte je Grund; shadcn `ui/table.tsx`. E2E `report-link.spec.ts` (Chromium): Erstellen, frischer Kontext, kein Schlüssel/Referer/IndexedDB, falscher/fehlender Schlüssel, abgelaufen, unbekannt. EXP-23 erfüllt. |
 | 2026-11-16 | M18.5 | EXP-24 | `ReportLinkList` unter dem Arzt-Link-Knopf im Export (Konto-Modus): Status-Badge, „x von y Aufrufen“, Ablauf, Widerrufen mit Rückfrage (shadcn Badge/Button); `listReportLinks`/`revokeReportLink` in `sharing/report-link.ts`; local-only-Hinweis bestand seit M18.3. E2E: Liste, Aufruf zählt, Widerruf → Ansicht meldet „widerrufen“. Erkenntnis: `go()` auf dieselbe Route remountet nicht — im E2E erst wegnavigieren. |
+| 2026-11-16 | M18.6 | — | Abschluss M18: voller E2E (262 grün, 27 übersprungen), `APP_VERSION` 3.4.0-alpha.1 mit Changelog. `verify:docker` (Server berührt) durch den Koordinator. EXP-25 bleibt manuell (Arzt-Link auf fremdem Gerät). |

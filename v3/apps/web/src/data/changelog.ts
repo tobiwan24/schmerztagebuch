@@ -4,6 +4,15 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.4.0-alpha.1',
+    date: '2026-11-16',
+    points: [
+      'Neu: Arzt-Link. Im Export erstellst du einen befristeten Link zu deinem Bericht. Der Bericht wird auf deinem Gerät verschlüsselt, der Schlüssel steckt nur im Link.',
+      'Wer den Link öffnet, braucht kein Konto und sieht Tabelle, Diagramme und das PDF zum Herunterladen.',
+      'Du legst Ablauf und Höchstzahl der Aufrufe fest und siehst unter dem Knopf alle Links mit ihren Aufrufen. Ein Link lässt sich jederzeit widerrufen.',
+    ],
+  },
+  {
     version: '3.3.0-alpha.1',
     date: '2026-11-16',
     points: [
