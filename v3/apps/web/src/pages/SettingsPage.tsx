@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
 import { CloudRegister } from '@/components/CloudSetup';
 import { BackupCodeStep } from '@/components/BackupCodeStep';
+import { LockSettingsCard } from '@/components/LockSettingsCard';
 import { DevicesSection } from '@/components/DevicesSection';
 import { FactorsSection } from '@/components/FactorsSection';
 import { AuthErrorNotice } from '@/components/AuthErrorNotice';
@@ -46,6 +47,7 @@ export function SettingsPage() {
           {auth.status === 'unlocked' && auth.accountMode !== null ? <FactorsSection /> : null}
         </CardContent>
       </Card>
+      {auth.status === 'unlocked' ? <LockSettingsCard /> : null}
       {auth.status === 'unlocked' && auth.accountMode === 'local-only' ? <UpgradeToCloud /> : null}
       {auth.accountMode === 'cloud-primary' ? (
         <Card data-testid="account-card">

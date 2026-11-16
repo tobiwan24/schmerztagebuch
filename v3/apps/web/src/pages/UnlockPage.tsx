@@ -13,6 +13,7 @@ import { AuthErrorNotice } from '@/components/AuthErrorNotice';
 import { BackupCodeStep } from '@/components/BackupCodeStep';
 import { FactorSetup, type NewFactor } from '@/components/FactorSetup';
 import { useAuth } from '@/auth/AuthContext';
+import { DEFAULT_LOCK_SETTINGS, loadLockSettings } from '@/data/lock-settings';
 import { unlockWithPasskey } from '@/auth/passkey';
 import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
 import { prepareRecovery, type PendingAccount } from '@/auth/local-account';
@@ -30,6 +31,7 @@ export function UnlockPage() {
   const [error, setError] = useState<AuthErrorCode | null>(null);
   const [busy, setBusy] = useState(false);
   const [stay, setStay] = useState(false);
+  const [stayDays, setStayDays] = useState(DEFAULT_LOCK_SETTINGS.stayDays);
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [pending, setPending] = useState<PendingAccount | null>(null);
@@ -37,6 +39,9 @@ export function UnlockPage() {
 
   // Beim Öffnen einmal vorbereiten. Abhängig nur von der (stabilen) DB — `auth` selbst ist pro Render neu.
   const { passkeyRequest, hasPasswordFactor, db } = auth;
+  useEffect(() => {
+    void loadLockSettings(db).then((l) => setStayDays(l.stayDays));
+  }, [db]);
   useEffect(() => {
     let cancelled = false;
     void passkeyRequest().then((p) => {
@@ -132,7 +137,7 @@ export function UnlockPage() {
             ) : null}
             <Label className="min-h-11">
               <Checkbox checked={stay} onChange={(e) => setStay(e.target.checked)} />
-              {de.lock.stayUnlocked}
+              {de.lock.stayUnlocked(stayDays)}
             </Label>
             <Button variant="ghost" onClick={() => setMode('recovery-code')}>
               <LifeBuoy aria-hidden />

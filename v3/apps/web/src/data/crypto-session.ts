@@ -27,6 +27,8 @@ export interface CryptoSession {
   stayUnlocked(days?: number): Promise<void>;
   /** Beim App-Start: entsperrt aus dem Device-Wrap, falls gültig. Abgelaufen → Wrap löschen, gesperrt bleiben. */
   restore(): Promise<boolean>;
+  /** Läuft „entsperrt bleiben“? Ablaufzeit oder `null` (nie aktiviert, widerrufen oder abgelaufen). */
+  stayStatus(): Promise<{ expiresAt: number } | null>;
   forgetDevice(): Promise<void>;
 }
 
@@ -92,6 +94,16 @@ export function createCryptoSession(db: StbDb, clock: { now(): number }): Crypto
         await session.forgetDevice();
         return false;
       }
+    },
+
+    async stayStatus() {
+      const wrap = (await db.keys.get(WRAP_ID))?.value as DeviceWrap | undefined;
+      if (!wrap) return null;
+      if (wrap.expiresAt <= clock.now()) {
+        await session.forgetDevice();
+        return null;
+      }
+      return { expiresAt: wrap.expiresAt };
     },
 
     async forgetDevice() {

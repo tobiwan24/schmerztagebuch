@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { UmkFactor } from '@stb/crypto';
 import { StbDb } from '@/data/db';
 import { createCryptoSession, type CryptoSession } from '@/data/crypto-session';
+import { createIdleMonitor, loadLockSettings } from '@/data/lock-settings';
 import { discardLocalKeys, loadDevices, type DeviceView } from './devices';
 import { hasAccount, loadAccount, unlockLocal, type PendingAccount, type PendingBackupCode } from './local-account';
 import { preparePasskeyRequest, prfOutput, type CredentialsLike } from './passkey';
@@ -106,6 +107,30 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
     };
   }, [db, session]);
 
+  // Sperre bei Inaktivität (CRY-20): Aktivität setzt zurück; geprüft alle 15 s und beim Zurückkehren in die App.
+  useEffect(() => {
+    if (status !== 'unlocked') return;
+    const monitor = createIdleMonitor({ now }, () => {
+      session.lock();
+      void session.forgetDevice();
+      setStatus('locked');
+    });
+    const check = () => void loadLockSettings(db).then((l) => monitor.check(l.idleMinutes));
+    const touch = () => monitor.touch();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') check();
+    };
+    const events = ['pointerdown', 'keydown', 'touchstart'] as const;
+    for (const e of events) window.addEventListener(e, touch, { passive: true });
+    document.addEventListener('visibilitychange', onVisible);
+    const timer = window.setInterval(check, 15_000);
+    return () => {
+      for (const e of events) window.removeEventListener(e, touch);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.clearInterval(timer);
+    };
+  }, [status, db, session, now]);
+
   // Stabiles Objekt (nur bei Statuswechsel neu), damit Effekte in Ansichten nicht bei jedem Render erneut laufen.
   const api = useMemo<AuthApi>(() => ({
     status,
@@ -120,14 +145,14 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
       session.unlock(pending.umk);
       await loadDiaryKeys(pending.umk);
       setAccountVersion((v) => v + 1);
-      if (opts?.stayUnlocked) await session.stayUnlocked();
+      if (opts?.stayUnlocked) await session.stayUnlocked((await loadLockSettings(db)).stayDays);
       setStatus('unlocked');
     },
     async unlockWith(factor, opts) {
       const umk = await unlockLocal(db, factor);
       session.unlock(umk);
       await loadDiaryKeys(umk);
-      if (opts?.stayUnlocked) await session.stayUnlocked();
+      if (opts?.stayUnlocked) await session.stayUnlocked((await loadLockSettings(db)).stayDays);
       setStatus('unlocked');
     },
     async passkeyRequest() {
