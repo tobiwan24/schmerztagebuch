@@ -57,6 +57,7 @@ export const GLOSSARY: ExportV1['glossary'] = {
     textarea: 'Freitext mit optionalen Ereignissen (Arzttermin/Ereignis) und Anhängen',
     date: 'Zeitpunkt, Zeitraum oder Dauer innerhalb eines Eintrags',
     bodymap: 'Körperkarte: Bild (Standard- oder eigenes Bild) und Markierungen mit normalisierten Koordinaten 0..1',
+    medication: 'Medikamente: Liste von Positionen mit Name, optional Dosis (Zahl), Einheit, Uhrzeit (ISO) und Wirkung 0..10',
   },
   roles: {
     outcome: 'Ergebniswert, z. B. Schmerzstärke', symptom: 'Begleitsymptom', medication: 'Medikament', trigger: 'Möglicher Auslöser (beschreibend)',

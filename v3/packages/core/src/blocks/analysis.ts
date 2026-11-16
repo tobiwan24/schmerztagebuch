@@ -47,6 +47,12 @@ export interface PointsAnalysis {
   points: { x: number; y: number; intensity?: number }[];
 }
 
+/** Medikamente: je Position Name (Analyse zählt je Name), Dosis numerisch, optional Zeit und Wirkung. */
+export interface MedicationsAnalysis {
+  kind: 'medications';
+  items: { name: string; presetId?: string; dose?: number; unit?: string; at?: string; effect?: number }[];
+}
+
 export type AnalysisValue =
   | NumericAnalysis
   | EventAnalysis
@@ -54,6 +60,7 @@ export type AnalysisValue =
   | TextAnalysis
   | TextEventsAnalysis
   | TimeAnalysis
-  | PointsAnalysis;
+  | PointsAnalysis
+  | MedicationsAnalysis;
 
 export type AnalysisKind = AnalysisValue['kind'];

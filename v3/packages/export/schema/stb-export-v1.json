@@ -1790,6 +1790,121 @@
                                 "config"
                               ],
                               "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "required": {
+                                  "type": "boolean"
+                                },
+                                "role": {
+                                  "type": "string",
+                                  "enum": [
+                                    "outcome",
+                                    "symptom",
+                                    "medication",
+                                    "trigger",
+                                    "activity",
+                                    "sleep",
+                                    "mood",
+                                    "function",
+                                    "note"
+                                  ]
+                                },
+                                "order": {
+                                  "type": "string"
+                                },
+                                "hideLabel": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "medication"
+                                },
+                                "config": {
+                                  "type": "object",
+                                  "properties": {
+                                    "presets": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "id": {
+                                            "type": "string"
+                                          },
+                                          "name": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "dose": {
+                                            "type": "number",
+                                            "exclusiveMinimum": 0
+                                          },
+                                          "unit": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 20
+                                          },
+                                          "color": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        },
+                                        "required": [
+                                          "id",
+                                          "name",
+                                          "unit",
+                                          "color"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    },
+                                    "units": {
+                                      "default": [
+                                        "mg",
+                                        "ml",
+                                        "Stk",
+                                        "Tropfen",
+                                        "Hub"
+                                      ],
+                                      "minItems": 1,
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 20
+                                      }
+                                    },
+                                    "allowFree": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "presets",
+                                    "allowFree"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "required",
+                                "order",
+                                "type",
+                                "config"
+                              ],
+                              "additionalProperties": false
                             }
                           ]
                         }

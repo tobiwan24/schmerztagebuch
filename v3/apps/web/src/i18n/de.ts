@@ -260,7 +260,7 @@ export const de = {
       addBlock: 'Feld hinzufügen',
       blockTitle: (n: number, type: string) => `Feld ${n}: ${type}`,
       types: {
-        slider: 'Slider', checkbox: 'Checkbox', multiselect: 'Auswahl', text: 'Text', textarea: 'Textfeld', date: 'Datum und Zeit', bodymap: 'Körperkarte',
+        slider: 'Slider', checkbox: 'Checkbox', multiselect: 'Auswahl', text: 'Text', textarea: 'Textfeld', date: 'Datum und Zeit', bodymap: 'Körperkarte', medication: 'Medikamente',
       },
       blockLabel: 'Bezeichnung',
       blockDescription: 'Beschreibung (optional)',

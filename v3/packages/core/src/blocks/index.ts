@@ -6,10 +6,11 @@ import { text } from './text.js';
 import { textarea } from './textarea.js';
 import { date } from './date.js';
 import { bodymap } from './bodymap.js';
+import { medication } from './medication.js';
 import type { BlockModule } from './common.js';
 import type { AnalysisValue } from './analysis.js';
 
-export const blockModules = { slider, checkbox, multiselect, text, textarea, date, bodymap } as const;
+export const blockModules = { slider, checkbox, multiselect, text, textarea, date, bodymap, medication } as const;
 
 export type BlockType = keyof typeof blockModules;
 export const BLOCK_TYPES = Object.keys(blockModules) as BlockType[];
@@ -55,4 +56,6 @@ export type { TextConfig } from './text.js';
 export type { TextareaConfig, TextareaValue } from './textarea.js';
 export type { DateConfig, DateValue } from './date.js';
 export type { BodymapConfig, BodymapValue } from './bodymap.js';
+export type { MedicationConfig, MedicationItem, MedicationValue } from './medication.js';
+export { MEDICATION_MAX_ITEMS, DEFAULT_MEDICATION_UNITS } from './medication.js';
 export { BODYMAP_MAX_PATH } from './bodymap.js';

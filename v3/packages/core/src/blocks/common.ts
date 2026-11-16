@@ -21,6 +21,8 @@ export interface BlockModule<C, V> {
   toDisplay(value: V, config: C): string;
   /** Normalform für Analyse (Spec 06). Wird nur für nicht-leere Werte aufgerufen. */
   toAnalysis(value: V, config: C): AnalysisValue;
+  /** Optionale Einzelzellen-Darstellung für den CSV-Export (sonst `toDisplay`). */
+  toCsv?(value: V, config: C): string;
 }
 
 /** Hilfsfunktion: Typinferenz für Blockmodule ohne Wiederholung der Generics. */

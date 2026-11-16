@@ -74,6 +74,11 @@ const cases: Case[] = [
       { presetId: '', points: [] },
     ],
   },
+  {
+    type: 'medication', config: { presets: [], allowFree: true },
+    validValues: [{ items: [] }, { items: [{ id: e1, name: 'Ibuprofen', dose: 400, unit: 'mg' }] }],
+    invalidValues: [{}, { items: [{ id: e1, name: '', dose: 1 }] }, { items: [{ id: e1, name: 'X', dose: 0 }] }],
+  },
 ];
 
 const invalidConfigs: [BlockType, unknown][] = [
@@ -87,6 +92,7 @@ const invalidConfigs: [BlockType, unknown][] = [
   ['textarea', { allowAttachments: true }],
   ['date', { mode: 'week' }],
   ['bodymap', {}],
+  ['medication', { presets: [] }],
 ];
 
 describe('Blockschemas', () => {

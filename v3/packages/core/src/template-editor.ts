@@ -5,7 +5,7 @@ import type { IdGenerator } from './ids.js';
 import { keyBetween, compareByOrder } from './fractional-index.js';
 import { DEFAULT_BODYMAP_PRESET_ID } from './catalog.js';
 import { createTemplate, type BlockDef, type TemplateState } from './templates.js';
-import type { BlockType } from './blocks/index.js';
+import { DEFAULT_MEDICATION_UNITS, type BlockType } from './blocks/index.js';
 
 /** Farbpalette für Multiselect-Optionen (Hex, wie die Katalogvorlagen). */
 export const OPTION_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'] as const;
@@ -28,6 +28,8 @@ export function newBlock(type: BlockType, ids: IdGenerator, afterOrder: string |
       return { ...base, type, config: { mode: 'date' } };
     case 'bodymap':
       return { ...base, type, config: { defaultPresetId: DEFAULT_BODYMAP_PRESET_ID } };
+    case 'medication':
+      return { ...base, type, role: 'medication', config: { presets: [], units: [...DEFAULT_MEDICATION_UNITS], allowFree: true } };
   }
 }
 
