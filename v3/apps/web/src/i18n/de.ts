@@ -747,6 +747,18 @@ export const de = {
       changedBadge: 'Von der KI ausgefüllt',
       dismiss: 'Hinweis schließen',
     },
+    summary: {
+      heading: 'Zusammenfassung für den Arzt',
+      hint: 'Die KI formuliert aus den Kennzahlen des gewählten Zeitraums einen kurzen Text. Standardmäßig werden nur Kennzahlen gesendet, keine Notizen.',
+      includeNotes: 'Notizen mitsenden',
+      button: 'Zusammenfassung erstellen',
+      consentTitle: 'Kennzahlen an die KI senden?',
+      extraFactsOnly: 'Gesendet werden nur diese Kennzahlen, keine Notizen und keine einzelnen Einträge.',
+      extraNotes: 'Gesendet werden diese Kennzahlen und die ausgewählten Notizen (neueste zuerst, höchstens 30).',
+      textLabel: 'Entwurf der Zusammenfassung (bearbeitbar)',
+      notice: 'Entwurf der KI, keine Diagnose und keine Therapieempfehlung. Bitte prüfe und ändere den Text, bevor du ihn weitergibst.',
+      includeInPdf: 'Als Abschnitt in den PDF-Export aufnehmen',
+    },
     roles: {
       button: 'Rollen vorschlagen',
       needValid: 'Behebe zuerst die Fehler in den Bausteinen, dann kann die KI Rollen vorschlagen.',

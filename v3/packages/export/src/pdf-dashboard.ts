@@ -2,7 +2,7 @@
 // Kennzahlen der `outcome`-Blöcke, Arztbesuchen und den Häufigkeiten der gewählten Multiselect-Blöcke; danach die Karten.
 import type { Report } from './pdf-model.js';
 import { drawCards } from './pdf-cards.js';
-import { MARGIN, addPageFooters, safeImage, createPdfDoc, fmtDay, fmtNum, pdfText, type PdfOptions } from './pdf-common.js';
+import { MARGIN, addSummarySection, addPageFooters, safeImage, createPdfDoc, fmtDay, fmtNum, pdfText, type PdfOptions } from './pdf-common.js';
 
 const FOOTER = 14;
 const MAX_BARS = 8;
@@ -110,6 +110,7 @@ export async function renderDashboardPdf(report: Report, opts: PdfOptions): Prom
   // Einträge als Karten
   doc.addPage();
   await drawCards(doc, report, opts, MARGIN);
+  addSummarySection(doc, opts.summary);
   addPageFooters(doc, report);
   return new Uint8Array(doc.output('arraybuffer'));
 }

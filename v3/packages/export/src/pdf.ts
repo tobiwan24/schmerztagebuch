@@ -3,7 +3,7 @@
 // Die Body-Map-Bilder (Bild + Markierungen) rendert der Aufrufer (Browser: Canvas) — hier keine DOM-Abhängigkeit.
 import type { jsPDF } from 'jspdf';
 import type { Report } from './pdf-model.js';
-import { MARGIN, PDF_IMAGE_SIZE_MM, addPageFooters, safeImage, createPdfDoc, fmtDay, fmtNum, pdfText, type PdfOptions } from './pdf-common.js';
+import { MARGIN, addSummarySection, PDF_IMAGE_SIZE_MM, addPageFooters, safeImage, createPdfDoc, fmtDay, fmtNum, pdfText, type PdfOptions } from './pdf-common.js';
 import { renderCardsPdf } from './pdf-cards.js';
 import { renderDashboardPdf } from './pdf-dashboard.js';
 
@@ -135,6 +135,7 @@ export async function renderReportPdf(report: Report, opts: PdfOptions): Promise
     }
   }
 
+  addSummarySection(doc, opts.summary);
   addPageFooters(doc, report);
   return new Uint8Array(doc.output('arraybuffer'));
 }

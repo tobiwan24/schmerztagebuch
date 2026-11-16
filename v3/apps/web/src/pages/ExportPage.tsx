@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { LlmSummaryPanel } from '@/components/LlmSummaryPanel';
 import { PageHeader } from '@/components/PageHeader';
 import { ReportLinkDialog } from '@/components/ReportLinkDialog';
 import { ReportLinkList } from '@/components/ReportLinkList';
@@ -39,7 +40,7 @@ export function ExportPage() {
 
 function ExportCard() {
   const { diary } = useData();
-  const { exportFile, createDoctorLink } = useBackup();
+  const { exportFile, createDoctorLink, summaryInput } = useBackup();
   const { accountMode } = useAuth();
   const [linkOpen, setLinkOpen] = useState(false);
   const [linksRefresh, setLinksRefresh] = useState(0);
@@ -68,6 +69,8 @@ function ExportCard() {
   const [rangeTo, setRangeTo] = useState('');
   const saved = useQuery(async () => (await Promise.all((await diary.listDiaries()).map((d) => diary.listSavedFilters(d.id)))).flat(), [diary]);
   const diaryIds = useQuery(async () => (await diary.listDiaries()).map((d) => d.id), [diary]);
+  const [summaryText, setSummaryText] = useState('');
+  const [summaryInPdf, setSummaryInPdf] = useState(false);
   const [busy, setBusy] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
 
@@ -79,7 +82,7 @@ function ExportCard() {
     setRunError(null);
     try {
       const spec = currentSpec();
-      const f = await exportFile(format, { profile, imageSize, layout, multiselectBlockIds: multiselectBlockIds(), ...(pdfPassword ? { password: pdfPassword } : {}), ...(spec ? { filter: spec } : {}) });
+      const f = await exportFile(format, { profile, imageSize, layout, multiselectBlockIds: multiselectBlockIds(), ...(summaryInPdf && summaryText.trim() ? { summary: summaryText } : {}), ...(pdfPassword ? { password: pdfPassword } : {}), ...(spec ? { filter: spec } : {}) });
       downloadText(f.name, f.text, f.mime);
     } catch {
       setRunError(t.downloadFailed);
@@ -187,6 +190,11 @@ function ExportCard() {
             </div>
           </div>
         ) : null}
+        <LlmSummaryPanel
+          buildInput={(includeNotes) => { const spec = currentSpec(); return summaryInput({ includeNotes, ...(spec ? { filter: spec } : {}) }); }}
+          disabled={busy || (period === 'range' && (!rangeFrom || !rangeTo || rangeTo < rangeFrom)) || (period === 'month' && !month)}
+          text={summaryText} onText={setSummaryText} includeInPdf={summaryInPdf} onIncludeInPdf={setSummaryInPdf}
+        />
         <Button disabled={busy || (period === 'range' && (!rangeFrom || !rangeTo || rangeTo < rangeFrom)) || (period === 'month' && !month)} onClick={() => void run()}>
           <Download aria-hidden />
           {t.download}
@@ -199,7 +207,7 @@ function ExportCard() {
             </Button>
             <ReportLinkDialog
               open={linkOpen} onClose={() => setLinkOpen(false)}
-              create={async (o) => { const spec = currentSpec(); const made = await createDoctorLink({ imageSize, layout, multiselectBlockIds: multiselectBlockIds(), ...o, ...(spec ? { filter: spec } : {}) }); setLinksRefresh((n) => n + 1); return made; }}
+              create={async (o) => { const spec = currentSpec(); const made = await createDoctorLink({ imageSize, layout, multiselectBlockIds: multiselectBlockIds(), ...(summaryInPdf && summaryText.trim() ? { summary: summaryText } : {}), ...o, ...(spec ? { filter: spec } : {}) }); setLinksRefresh((n) => n + 1); return made; }}
             />
             <ReportLinkList refresh={linksRefresh} />
           </>

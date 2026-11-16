@@ -2,7 +2,7 @@
 import { useCallback } from 'react';
 import type { BackupSecret } from '@stb/crypto';
 import type { FilterSpec } from '@stb/analysis';
-import { buildReport, exportCsvLong, exportCsvWide, renderReportPdf, type CsvProfile, type ExportV1, type PdfImageSize, type PdfLayout } from '@stb/export';
+import { buildReport, buildSummaryInput, exportCsvLong, exportCsvWide, renderReportPdf, type CsvProfile, type ExportV1, type PdfImageSize, type PdfLayout } from '@stb/export';
 import { createBodymapRenderer } from '@/lib/pdf-bodymap';
 import { renderChartImage } from '@/lib/pdf-chart';
 import { useAuth } from '@/auth/AuthContext';
@@ -25,11 +25,11 @@ export function useBackup() {
 
   /** Berichtsmodell und PDF (gleiche Optionen wie der PDF-Export); Grundlage für Download und Arzt-Link. */
   const buildPdf = useCallback(
-    async (opts: { filter?: FilterSpec; imageSize?: PdfImageSize; layout?: PdfLayout; multiselectBlockIds?: string[]; password?: string }) => {
+    async (opts: { filter?: FilterSpec; imageSize?: PdfImageSize; layout?: PdfLayout; multiselectBlockIds?: string[]; password?: string; summary?: string }) => {
       const src = await collectExportSource(data.diary);
       const report = buildReport(src, { now: now(), ...(opts.filter ? { filter: opts.filter } : {}) });
       const renderBodymap = createBodymapRenderer(new Map(src.bodymapImages.map((i) => [i.id, i.dataUrl])));
-      const bytes = await renderReportPdf(report, { imageSize: opts.imageSize ?? 'a5', layout: opts.layout ?? 'table', renderBodymap, renderChart: renderChartImage, multiselectBlockIds: opts.multiselectBlockIds ?? [], ...(opts.password ? { password: opts.password } : {}) });
+      const bytes = await renderReportPdf(report, { imageSize: opts.imageSize ?? 'a5', layout: opts.layout ?? 'table', renderBodymap, renderChart: renderChartImage, multiselectBlockIds: opts.multiselectBlockIds ?? [], ...(opts.password ? { password: opts.password } : {}), ...(opts.summary?.trim() ? { summary: opts.summary } : {}) });
       return { report, bytes };
     },
     [data.diary, now],
@@ -37,7 +37,7 @@ export function useBackup() {
 
   /** Arzt-Link (M18): Berichtspaket (Modell + PDF ohne Passwort) verschlüsseln, hochladen, Link liefern. */
   const createDoctorLink = useCallback(
-    async (opts: { filter?: FilterSpec; imageSize?: PdfImageSize; layout?: PdfLayout; multiselectBlockIds?: string[]; expiresInDays: number; maxViews: number }) => {
+    async (opts: { filter?: FilterSpec; imageSize?: PdfImageSize; layout?: PdfLayout; multiselectBlockIds?: string[]; summary?: string; expiresInDays: number; maxViews: number }) => {
       const { expiresInDays, maxViews, ...pdfOpts } = opts;
       const { report, bytes } = await buildPdf(pdfOpts);
       return createReportLink({ origin: globalThis.location.origin, payload: encodeReportPackage(report, bytes), expiresInDays, maxViews });
@@ -46,7 +46,7 @@ export function useBackup() {
   );
 
   const exportFile = useCallback(
-    async (format: ExportFormat, opts: { profile?: CsvProfile; filter?: FilterSpec; imageSize?: PdfImageSize; layout?: PdfLayout; multiselectBlockIds?: string[]; password?: string }): Promise<{ name: string; text: string | Uint8Array; mime: string }> => {
+    async (format: ExportFormat, opts: { profile?: CsvProfile; filter?: FilterSpec; imageSize?: PdfImageSize; layout?: PdfLayout; multiselectBlockIds?: string[]; password?: string; summary?: string }): Promise<{ name: string; text: string | Uint8Array; mime: string }> => {
       const stamp = new Date(now()).toISOString().slice(0, 10);
       if (format === 'pdf') {
         const { bytes } = await buildPdf(opts);
@@ -62,6 +62,12 @@ export function useBackup() {
       return { name: `schmerztagebuch-${format}-${csvOpts.profile}-${stamp}.csv`, text, mime: 'text/csv;charset=utf-8' };
     },
     [buildPdf, data.diary, data.attachments, now],
+  );
+
+  /** Eingabe für die KI-Zusammenfassung (VOI-15): Kennzahlen des gewählten Umfangs, Notizen nur auf Wunsch. */
+  const summaryInput = useCallback(
+    async (opts: { filter?: FilterSpec; includeNotes: boolean }) => buildSummaryInput(await collectExportSource(data.diary), { now: now(), includeNotes: opts.includeNotes, ...(opts.filter ? { filter: opts.filter } : {}) }),
+    [data.diary, now],
   );
 
   /** Backup-Code lokal prüfen (gegen den Backup-Wrap der UMK), bevor damit verschlüsselt wird. */
@@ -89,7 +95,7 @@ export function useBackup() {
     query.retry();
   }, [db, query]);
 
-  return { state, exportFile, createDoctorLink, checkBackupCode, backupFile, readBackup, plan, apply, saveReminderDays };
+  return { state, exportFile, createDoctorLink, summaryInput, checkBackupCode, backupFile, readBackup, plan, apply, saveReminderDays };
 }
 
 /** Datei im Browser herunterladen. */

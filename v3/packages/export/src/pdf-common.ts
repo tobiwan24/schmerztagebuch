@@ -30,6 +30,8 @@ export interface PdfOptions {
   renderChart?: (chart: ReportChart) => Promise<RenderedImage | null>;
   /** Dashboard-Layout: Multiselect-Blöcke (Block-IDs), deren Häufigkeiten gezeigt werden. */
   multiselectBlockIds?: string[];
+  /** Zusammenfassung für den Arzt (VOI-15): bearbeiteter Text, erscheint als eigener Abschnitt am Ende. */
+  summary?: string;
 }
 
 export const MARGIN = 15;
@@ -59,6 +61,35 @@ export function createPdfDoc(orientation: 'landscape' | 'portrait', password?: s
     orientation, unit: 'mm', format: 'a4', compress: true,
     ...(password ? { encryption: { userPassword: password, ownerPassword: `${password}#owner`, userPermissions: ['print', 'copy'] } } : {}),
   });
+}
+
+/** Abschnitt „Zusammenfassung für den Arzt“ (VOI-15) auf neuer Seite; ohne Text entfällt er. Rein beschreibend, keine Diagnose. */
+export function addSummarySection(doc: jsPDF, summary: string | undefined): void {
+  const body = summary?.trim();
+  if (!body) return;
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  doc.addPage();
+  let y = MARGIN + 4;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text(pdfText('Zusammenfassung für den Arzt'), MARGIN, y);
+  y += 8;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  for (const line of doc.splitTextToSize(pdfText(body), W - 2 * MARGIN) as string[]) {
+    if (y > H - MARGIN - 12) {
+      doc.addPage();
+      y = MARGIN + 4;
+    }
+    doc.text(line, MARGIN, y);
+    y += 5;
+  }
+  y += 3;
+  doc.setFontSize(8);
+  doc.setTextColor(110);
+  doc.text(pdfText('Vom Nutzer geprüfter Text. Keine Diagnose und keine Therapieempfehlung.'), MARGIN, Math.min(y, H - MARGIN - 6));
+  doc.setTextColor(0);
 }
 
 /** Fußzeile mit Seitenzahlen auf allen Seiten. */

@@ -3,4 +3,5 @@ export * from './copy.js';
 export * from './csv.js';
 export * from './pdf-model.js';
 export * from './pdf.js';
+export * from './summary.js';
 export * from './fixture.js';

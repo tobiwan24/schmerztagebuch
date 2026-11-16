@@ -147,3 +147,15 @@ describe('PDF-Layout Dashboard', () => {
     expect((await inspect(locked, 'Arzt-2026')).images).toHaveLength(0);
   }, 60_000);
 });
+
+describe('PDF Zusammenfassung für den Arzt', () => {
+  it('Abschnitt mit bearbeitetem Text und Hinweis „Keine Diagnose“ in allen drei Layouts (Teil von VOI-15)', async () => {
+    for (const layout of ['table', 'cards', 'dashboard'] as const) {
+      const bytes = await renderReportPdf(report, { layout, imageSize: 'none', renderBodymap: async () => null, summary: 'Im Mittel Schmerzstärke 5 an drei Tagen.' });
+      const r = await inspect(bytes);
+      expect(r.text, layout).toContain('Zusammenfassung für den Arzt');
+      expect(r.text, layout).toContain('Im Mittel Schmerzstärke 5 an drei Tagen.');
+      expect(r.text, layout).toContain('Keine Diagnose');
+    }
+  });
+});

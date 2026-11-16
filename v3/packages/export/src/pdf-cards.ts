@@ -2,7 +2,7 @@
 // Vorlage, allen Werten (Label links, Wert rechts) und dem Body-Map-Bild in der gewählten Größe.
 import type { Report } from './pdf-model.js';
 import type { jsPDF } from 'jspdf';
-import { MARGIN, addPageFooters, safeImage, createPdfDoc, fitImage, fmtDay, pdfText, type PdfOptions } from './pdf-common.js';
+import { MARGIN, addSummarySection, addPageFooters, safeImage, createPdfDoc, fitImage, fmtDay, pdfText, type PdfOptions } from './pdf-common.js';
 
 const LABEL_W = 50;
 const FOOTER = 14;
@@ -18,6 +18,7 @@ export async function renderCardsPdf(report: Report, opts: PdfOptions): Promise<
   doc.setFontSize(9);
   doc.text(pdfText(`${fmtDay(report.from)} - ${fmtDay(report.to)} · ${report.entryCount} Einträge`), W - MARGIN, MARGIN + 3, { align: 'right' });
   await drawCards(doc, report, opts, MARGIN + 10);
+  addSummarySection(doc, opts.summary);
   addPageFooters(doc, report);
   return new Uint8Array(doc.output('arraybuffer'));
 }
