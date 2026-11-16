@@ -38,7 +38,11 @@ import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { WeatherSwitch, useDiaryWeatherSettings, useGpsChoice } from '@/components/WeatherSwitch';
 import { BlockField } from '@/components/blocks/BlockField';
+import { LlmFillButton } from '@/components/LlmFillButton';
+import { LlmDraftNotice, LlmMarked } from '@/components/LlmDraftNotice';
+import { applyFill, type FillDraft } from '@/llm/fill';
 import type { AttachmentApi } from '@/components/blocks/TextareaField';
+import type { LlmFillResponse } from '@stb/sync-protocol';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
@@ -87,6 +91,9 @@ export function EntryForm({ templates, entry, prefill }: { templates: Template[]
   const [keptOldVersion, setKeptOldVersion] = useState(false);
   /** Duplizieren: gilt nur für die erste Vorlagenwahl beim Öffnen. */
   const prefillRef = useRef(prefill);
+  /** KI-Entwurf (Spec 08): Hinweis und markierte Felder; nur Anzeige, gespeichert wird erst durch den Nutzer. */
+  const [draft, setDraft] = useState<FillDraft | null>(null);
+  const [llmChanged, setLlmChanged] = useState<ReadonlySet<string>>(new Set());
 
   function clearPending() {
     setPending((prev) => {
@@ -123,6 +130,8 @@ export function EntryForm({ templates, entry, prefill }: { templates: Template[]
     setInitial((prev) => (!discard && prev && current && isDirty(prev, current) ? prev : next));
     setCurrent(next);
     setShowErrors(false);
+    setDraft(null);
+    setLlmChanged(new Set());
   }
 
   useEffect(() => {
@@ -229,6 +238,13 @@ export function EntryForm({ templates, entry, prefill }: { templates: Template[]
     await data.diary.saveTemplate(updateTemplate(state, { blocks }, { now: data.now }).state);
   }
   const setTime = (time: TimeInput) => setCurrent({ ...current, time });
+  function onDraft(response: LlmFillResponse) {
+    if (!current) return;
+    const d = applyFill(version, current.values, response);
+    setCurrent({ ...current, values: d.values, ...(d.time && !entry ? { time: d.time } : {}) });
+    setLlmChanged(new Set(d.changed));
+    setDraft(d);
+  }
   const setTags = (tags: string[]) => setCurrent({ ...current, tags });
 
   async function save() {
@@ -310,14 +326,23 @@ export function EntryForm({ templates, entry, prefill }: { templates: Template[]
         </p>
       ) : null}
 
+      <LlmFillButton templateName={template.name} version={version} onDraft={onDraft} />
+      {draft ? <LlmDraftNotice draft={draft} onDismiss={() => setDraft(null)} /> : null}
+
       <div data-tour="entry-fields" className={cn('flex flex-col gap-6', TOUR_RING)}>
         <TimeField time={current.time} error={timeError} onChange={setTime} />
 
         {sortedBlocks(version).map((def) => (
-          <BlockField
-            key={def.id} def={def} value={current.values[def.id]} invalid={missing.has(def.id)} onChange={(v) => setValues({ ...current.values, [def.id]: v })}
-            diaryId={template.diaryId} onSetDefault={setBlockDefault} attachments={attachmentApi} newId={data.newId}
-          />
+          <LlmMarked key={def.id} marked={llmChanged.has(def.id)}>
+            <BlockField
+              def={def} value={current.values[def.id]} invalid={missing.has(def.id)}
+              onChange={(v) => {
+                setValues({ ...current.values, [def.id]: v });
+                if (llmChanged.has(def.id)) setLlmChanged((prev) => new Set([...prev].filter((id) => id !== def.id)));
+              }}
+              diaryId={template.diaryId} onSetDefault={setBlockDefault} attachments={attachmentApi} newId={data.newId}
+            />
+          </LlmMarked>
         ))}
       </div>
 

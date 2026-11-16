@@ -38,3 +38,11 @@ export const llmStatusSchema = z.strictObject({
   usedTokens: z.number().int(),
 });
 export type LlmStatus = z.infer<typeof llmStatusSchema>;
+
+/** Antwort auf `fill`: Block-ID → Rohwert (nie vertrauenswürdig, der Client prüft gegen die Block-Schemas). */
+export const llmFillResponseSchema = z.object({
+  occurredAt: z.string().optional(),
+  text: z.string().optional(),
+  values: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])),
+});
+export type LlmFillResponse = z.infer<typeof llmFillResponseSchema>;

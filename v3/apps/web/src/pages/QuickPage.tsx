@@ -10,6 +10,10 @@ import { PageHeader } from '@/components/PageHeader';
 import { EmptyState, ErrorState } from '@/components/StateView';
 import { WeatherSwitch, useDiaryWeatherSettings, useGpsChoice } from '@/components/WeatherSwitch';
 import { BlockField } from '@/components/blocks/BlockField';
+import { LlmFillButton } from '@/components/LlmFillButton';
+import { LlmDraftNotice, LlmMarked } from '@/components/LlmDraftNotice';
+import { applyFill, type FillDraft } from '@/llm/fill';
+import type { LlmFillResponse } from '@stb/sync-protocol';
 import { useData } from '@/data/DataContext';
 import { useWritableDiaries } from '@/data/useSharing';
 import { useQuery } from '@/data/useQuery';
@@ -23,6 +27,8 @@ export function QuickPage() {
   const [saving, setSaving] = useState(false);
   const [chosen, setChosen] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
+  const [draft, setDraft] = useState<FillDraft | null>(null);
+  const [llmChanged, setLlmChanged] = useState<ReadonlySet<string>>(new Set());
   const wanted = useSearchParams()[0].get('diary');
   const writable = useWritableDiaries();
   const writableIds = writable.status === 'ok' ? writable.data.map((d) => d.id).join() : null;
@@ -49,6 +55,16 @@ export function QuickPage() {
   };
   const weatherSettings = useDiaryWeatherSettings(selection?.state.template.diaryId);
   const [useGps, setUseGps] = useGpsChoice(weatherSettings);
+  // Der KI-Entwurf gilt nur für die Schnelleintrag-Felder der gewählten Vorlage (das Modell sieht nur diese Blöcke).
+  const quickVersion = selection ? { ...selection.state.version, blocks: selection.blocks } : null;
+  function onDraft(response: LlmFillResponse) {
+    if (!quickVersion) return;
+    const d = applyFill(quickVersion, values, response);
+    setValues(d.values);
+    setEmpty(false);
+    setLlmChanged(new Set(d.changed));
+    setDraft(d);
+  }
 
   async function save() {
     if (!selection) return;
@@ -116,8 +132,19 @@ export function QuickPage() {
       {selection && selection.blocks.length > 0 ? (
         <form className="flex flex-col gap-6" noValidate onSubmit={(e) => (e.preventDefault(), void save())}>
           <p className="text-sm text-muted-foreground">{de.quick.now(selection.state.template.name)}</p>
+          {quickVersion ? <LlmFillButton templateName={selection.state.template.name} version={quickVersion} onDraft={onDraft} /> : null}
+          {draft ? <LlmDraftNotice draft={draft} onDismiss={() => setDraft(null)} /> : null}
           {selection.blocks.map((def) => (
-            <BlockField key={def.id} def={def} diaryId={selection.state.template.diaryId} value={values[def.id]} invalid={false} itemId={data.newId} onChange={(v) => (setValues({ ...values, [def.id]: v }), setEmpty(false))} />
+            <LlmMarked key={def.id} marked={llmChanged.has(def.id)}>
+              <BlockField
+                def={def} diaryId={selection.state.template.diaryId} value={values[def.id]} invalid={false} itemId={data.newId}
+                onChange={(v) => {
+                  setValues({ ...values, [def.id]: v });
+                  setEmpty(false);
+                  if (llmChanged.has(def.id)) setLlmChanged((prev) => new Set([...prev].filter((id) => id !== def.id)));
+                }}
+              />
+            </LlmMarked>
           ))}
           <WeatherSwitch settings={weatherSettings} checked={useGps} onChange={setUseGps} />
           {empty ? (
@@ -140,7 +167,7 @@ export function QuickPage() {
           <Button type="button" variant="outline" onClick={() => setPending(null)}>
             {de.entry.keepEditing}
           </Button>
-          <Button type="button" variant="destructive" onClick={() => (setChosen(pending), setValues({}), setEmpty(false), setPending(null))}>
+          <Button type="button" variant="destructive" onClick={() => (setChosen(pending), setValues({}), setEmpty(false), setPending(null), setDraft(null), setLlmChanged(new Set()))}>
             {de.entry.switchConfirm}
           </Button>
         </DialogFooter>
