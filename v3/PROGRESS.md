@@ -4,11 +4,11 @@
 
 ## Aktuell
 
-- **Meilenstein:** M14 „Nacharbeiten v2-Parität" aktuell (3/28 IDs, M14.0 Doku erledigt); danach/parallel der Teil-Meilenstein M14b „v2-Parität, Rest" (2/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
+- **Meilenstein:** M14 „Nacharbeiten v2-Parität" aktuell (4/28 IDs, M14.0 Doku erledigt); danach/parallel der Teil-Meilenstein M14b „v2-Parität, Rest" (2/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M14.5 (Blöcke umsortieren per Pointer + Tastatur, entfernen, Warnung bei Ungespeichertem; BLK-25). Reihenfolge laut Tabelle; M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-058.
-- **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24)
+- **Nächste Aufgabe:** M14.6 (Options-Labels über die Eintragsversion, Version beim Bearbeiten heben; BLK-26 BLK-27). Reihenfolge laut Tabelle (danach M14.7 Umnummerierung); M14.1 und M14.19–M14.21 sind unabhängig und können eingeschoben werden. Entscheidungen: A-036 bis A-058.
+- **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25)
 - **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
 - **Blocker:** keine. **Achtung:** `npm run verify` überschreibt `reports/vitest.json` mit übersprungenem QA-08 → vor `npm run acceptance` gesamt `npm run verify:docker` (Docker Desktop muss laufen).
@@ -27,7 +27,7 @@
 | M14.4c | `hideLabel` in Schema, Editor (je Block / alle) und Export-Schema — M14b — erledigt | BLK-43 |
 | M14.4d | Migration `hideLabelInDiary` — M14b — erledigt | MIG-17 |
 | M14.15b | Formular-Parität: infoText, Optionsfarben, `hideLabel`-Darstellung — M14b | BLK-41 |
-| M14.5 | Blöcke umsortieren (Pointer + Tastatur), entfernen, Warnung bei Ungespeichertem | BLK-25 |
+| M14.5 | Blöcke umsortieren (Pointer + Tastatur), entfernen, Warnung bei Ungespeichertem — erledigt | BLK-25 |
 | M14.6 | Options-Labels über die Eintragsversion; Version beim Bearbeiten heben | BLK-26 BLK-27 |
 | M14.7 | Umnummerierung n+2 (`planVersionRenumber`, Engine, Strukturdaten vor Einträgen) | SYN-17 SYN-18 |
 | M14.8 | Diary-Stempel, `updateDiarySettings`, `saveDiary`, Einstellungsseite | DM-14 UI-14 |
@@ -88,7 +88,7 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M11 | erledigt | 15/15 IDs → Gate G3 (wartet auf User) |
 | M12 | erledigt | 9/9 IDs |
 | M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
-| M14 | aktuell | 3/28 IDs erledigt — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
+| M14 | aktuell | 4/28 IDs erledigt — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
 | M14b | aktuell | 2/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
@@ -231,3 +231,4 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | 2026-11-16 | M14.4b | BLK-24 | `components/template-editor/OptionsEditor.tsx`: Optionen hinzufügen/umbenennen/entfernen, Farbpalette (OPTION_COLORS als shadcn-Button-Kreise), Reihenfolge per Ziehen und Pfeiltasten am Griff (Muster der Vorlagenliste); `BlockConfigFields`: Auswahl einfach/mehrfach, Body-Map-Standardbild (Select der sechs Presets, Namen aus `de.bodymap.presets`, ohne Bild-Import). Palette hat jetzt alle 7 Typen. E2E `BLK-24` (Chromium + WebKit): alle sieben Typen, doppelte Optionsnamen blockieren, Farbe, Tastatur-Umsortieren, neuer Eintrag zeigt Einfachauswahl und Standardbild. Erkenntnis: Body-Map-Feld enthält das Label „Intensität“ — Test-Label des Sliders daher „Schmerzgrad“. Initiales JS 237,6 KB gzip. |
 | 2026-11-16 | M14.4c | BLK-43 | `BlockDef.hideLabel` (optional boolean) in `core/templates.ts`; `setHideLabel(blocks, hide, id?)` in `template-editor.ts` („aus“ entfernt das Feld, kein `false` im Datensatz); Editor: Checkbox je Feld und Knopf „Alle Bezeichnungen aus-/einblenden“; Umschalten ändert die kanonische Blockliste → neue Version (Test). JSON-Schema des Exports neu generiert (`npx tsc -b packages/export && node scripts/gen-export-schema.mjs` — ohne vorheriges tsc bleibt das Schema veraltet). Darstellung im Formular folgt mit M14.15b; E2E-Test des Editors bewusst ohne ID im Namen. |
 | 2026-11-16 | M14.4d | MIG-17 | `V2Block.hideLabelInDiary` gelesen; `makeDef` setzt `hideLabel: true` (sonst kein Feld). Die Versionssignatur (`canonical(defs)`) enthält das Feld, abweichende Momentaufnahmen ergeben damit korrekt eigene Vorlagenversionen. Golden File unverändert (Fixture ohne das Flag); Test mutiert die Fixture im Speicher. |
+| 2026-11-16 | M14.5 | BLK-25 | Blockeditor: Griff je Feld (Ziehen per Pointer wie in der Vorlagenliste, Pfeil hoch/runter per Tastatur; nutzt `moveBlock` aus core, nur der verschobene Block bekommt einen neuen Order-Key), Entfernen-Knopf (`removeBlock`); `TemplateEditorPage`: Warn-Dialog über `useBlocker` und `beforeunload`, Vergleich über `canonical` des Ausgangszustands (Hinzufügen+Entfernen = keine Änderung). E2E (Chromium + WebKit): Tastatur, Maus-Ziehen, Entfernen → älterer Eintrag zeigt Gamma als „archiviertes Feld“, Warnung nur nach echter Änderung, kein Typ-Auswahlfeld. Erkenntnis: `go()` legt Historieneinträge außerhalb des Routers an — ein Blocker auf den Zurück-Weg dorthin greift nicht (Router-Warnung); Test verlässt die Seite deshalb über den Navigationslink (PUSH). Ziehen mit der Maus braucht im Test ein hohes Fenster (alle Karten sichtbar). |

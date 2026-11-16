@@ -136,6 +136,90 @@ test.describe('Vorlagen-Editor', () => {
     await expect(field('Stärke')).toBeVisible();
   });
 
+  test('BLK-25: Felder per Tastatur und Ziehen umsortieren, entfernen (neue Version, Archiviertes Feld), Warnung beim Verlassen nur nach echter Änderung', async ({ page }) => {
+    // Hohes Fenster: Ziehen mit der Maus braucht alle Karten im sichtbaren Bereich
+    await page.setViewportSize({ width: 600, height: 2400 });
+    await go(page, '/more/templates/new');
+    await page.getByLabel('Name', { exact: true }).fill('Reihe');
+    for (const label of ['Alpha', 'Beta', 'Gamma']) {
+      await page.getByRole('group', { name: 'Feld hinzufügen' }).getByRole('button', { name: 'Text', exact: true }).click();
+      await page.getByRole('region', { name: /^Feld [0-9]+: Text$/ }).last().getByLabel('Bezeichnung', { exact: true }).fill(label);
+    }
+    // Ein Typwechsel wird nicht angeboten
+    await expect(page.getByRole('region', { name: /^Feld 1:/ }).getByLabel('Typ')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+
+    // Eintrag mit allen drei Feldern (Version 1)
+    await go(page, '/entry/new');
+    await page.getByRole('button', { name: 'Reihe' }).click();
+    await page.getByLabel('Gamma').fill('Wert-G');
+    await page.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByTestId('entry-field').filter({ hasText: 'Gamma' })).toContainText('Wert-G');
+    const entryUrl = page.url();
+
+    const labels = () => page.getByTestId('block-editor-card').getByLabel('Bezeichnung', { exact: true }).evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value));
+    await go(page, '/more/templates');
+    await page.getByRole('link', { name: 'Reihe bearbeiten' }).click();
+    await expect.poll(labels).toEqual(['Alpha', 'Beta', 'Gamma']);
+
+    // Tastatur: Gamma zweimal nach oben
+    const gamma = page.getByRole('button', { name: 'Feld Gamma verschieben' });
+    await gamma.press('ArrowUp');
+    await gamma.press('ArrowUp');
+    await expect.poll(labels).toEqual(['Gamma', 'Alpha', 'Beta']);
+    // Ziehen: Beta mit der Maus über Gamma ziehen
+    const grip = await page.getByRole('button', { name: 'Feld Beta verschieben' }).boundingBox();
+    const top = await page.getByRole('region', { name: /^Feld 1:/ }).boundingBox();
+    await page.mouse.move(grip!.x + grip!.width / 2, grip!.y + grip!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(grip!.x + grip!.width / 2, top!.y + 5, { steps: 12 });
+    await page.mouse.up();
+    await expect.poll(labels).toEqual(['Beta', 'Gamma', 'Alpha']);
+    await page.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+
+    // Neuer Eintrag zeigt die neue Reihenfolge
+    await go(page, '/entry/new');
+    await page.getByRole('button', { name: 'Reihe' }).click();
+    await expect(page.getByTestId('block-field').locator('label').first()).toContainText('Beta');
+    await expect(page.getByTestId('block-field')).toHaveCount(3);
+
+    // Entfernen: Gamma weg → neue Version; der ältere Eintrag zeigt den Wert als archiviertes Feld
+    await go(page, '/more/templates');
+    await page.getByRole('link', { name: 'Reihe bearbeiten' }).click();
+    await page.getByRole('button', { name: 'Feld Gamma entfernen' }).click();
+    await expect.poll(labels).toEqual(['Beta', 'Alpha']);
+    await page.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await go(page, new URL(entryUrl).pathname);
+    await expect(page.getByTestId('entry-field').filter({ hasText: 'Gamma' })).toContainText('Wert-G');
+    await expect(page.getByTestId('entry-field').filter({ hasText: 'Gamma' })).toContainText('archiviertes Feld');
+
+    // Warnung: ohne echte Änderung keine Abfrage (auch nach Hinzufügen und Entfernen), nach Änderung schon
+    await go(page, '/more/templates');
+    await page.getByRole('link', { name: 'Reihe bearbeiten' }).click();
+    await page.getByRole('group', { name: 'Feld hinzufügen' }).getByRole('button', { name: 'Text', exact: true }).click();
+    await page.getByRole('button', { name: /^Feld .* entfernen$/ }).last().click();
+    const nav = (name: string) => page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('link', { name });
+    await nav('Start').click();
+    await expect(page).toHaveURL(/[/]$/);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await go(page, '/more/templates');
+    await page.getByRole('link', { name: 'Reihe bearbeiten' }).click();
+    await page.getByLabel('Name', { exact: true }).fill('Reihe 2');
+    await nav('Start').click();
+    await expect(page.getByRole('dialog', { name: 'Änderungen verwerfen?' })).toBeVisible();
+    await page.getByRole('button', { name: 'Weiter bearbeiten' }).click();
+    await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Reihe 2');
+    await nav('Start').click();
+    await page.getByRole('button', { name: 'Verwerfen' }).click();
+    await expect(page).toHaveURL(/[/]$/);
+    await go(page, '/more/templates');
+    await expect(page.getByTestId('template-row').filter({ hasText: 'Reihe 2' })).toHaveCount(0);
+    await expect(page.getByTestId('template-row').filter({ hasText: 'Reihe' })).toHaveCount(1);
+  });
+
   // Editor-Teil von BLK-43 (je Block und alle); die Darstellung im Formular folgt mit M14.15b, daher ohne ID im Namen.
   test('M14.4c Editor: Bezeichnung ausblenden je Feld und für alle bleibt gespeichert', async ({ page }) => {
     await go(page, '/more/templates/new');

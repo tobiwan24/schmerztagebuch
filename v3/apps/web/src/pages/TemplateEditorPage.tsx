@@ -1,11 +1,12 @@
 // Vorlagen-Editor (Spec 05 „Vorlagen-Editor", A-037): Route `/more/templates/new` und `/more/templates/:id`.
 // Name/Icon/Farbe ändern nur `Template` (keine neue Version); Änderungen an den Blöcken erzeugen Version n+1.
-// Blockeditor: Palette, Bezeichnung, Pflicht, Rolle, Konfiguration (Auswahl-Optionen/Körperkarte, Umsortieren, Entfernen folgen).
-import { useMemo, useState, type FormEvent } from 'react';
-import { useNavigate, useParams } from 'react-router';
+// Blockeditor: Palette, Bezeichnung, Pflicht, Rolle, Konfiguration, Umsortieren, Entfernen; Warnung bei ungespeicherten Änderungen.
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useBlocker, useNavigate, useParams } from 'react-router';
 import { Copy } from 'lucide-react';
-import { compareByOrder, createTemplate, duplicateTemplate, keyBetween, updateTemplate, validateTemplateDraft, type BlockDef, type TemplateState } from '@stb/core';
+import { canonical, compareByOrder, createTemplate, duplicateTemplate, keyBetween, updateTemplate, validateTemplateDraft, type BlockDef, type TemplateState } from '@stb/core';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/PageHeader';
@@ -59,6 +60,18 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
   const [blocks, setBlocks] = useState<BlockDef[]>(() => [...(state?.version.blocks ?? [])].sort(compareByOrder));
   const [showErrors, setShowErrors] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Ungespeicherte Änderungen: Vergleich mit dem Ausgangszustand (Hinzufügen und wieder Entfernen ist keine Änderung, BLK-25).
+  const snapshot = (n: string, i: string, c: string, b: readonly BlockDef[]) => canonical({ n, i, c, b: [...b].sort(compareByOrder) });
+  const initialSnapshot = useRef(snapshot(name, icon, color, blocks));
+  const dirty = snapshot(name, icon, color, blocks) !== initialSnapshot.current;
+  const leaving = useRef(false);
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => dirty && !leaving.current && currentLocation.pathname !== nextLocation.pathname);
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
   const issues = useMemo(() => validateTemplateDraft({ name, blocks }), [name, blocks]);
   const nameInvalid = showErrors && issues.some((i) => i.code === 'NAME_EMPTY');
   const blockIssues = useMemo(() => {
@@ -83,6 +96,7 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
           createTemplate({ id: data.newId(), diaryId: loaded.diaryId, name: trimmed, icon, color, order: keyBetween(loaded.lastOrder, null), blocks }, { now: data.now }),
         );
       }
+      leaving.current = true;
       void navigate('/more/templates');
     } finally {
       setBusy(false);
@@ -95,6 +109,7 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
     try {
       const copy = duplicateTemplate(state, { newId: data.newId }, { now: data.now }, loaded.nextOrder);
       await data.diary.saveTemplate(copy);
+      leaving.current = true;
       void navigate(`/more/templates/${copy.template.id}`);
     } finally {
       setBusy(false);
@@ -132,6 +147,18 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
           </Button>
         ) : null}
       </div>
+      <Dialog open={blocker.state === 'blocked'} onClose={() => blocker.reset?.()} aria-labelledby="discard-template-title">
+        <DialogTitle id="discard-template-title">{de.templates.editor.discardTitle}</DialogTitle>
+        <DialogDescription>{de.templates.editor.discardHint}</DialogDescription>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => blocker.reset?.()}>
+            {de.entry.keepEditing}
+          </Button>
+          <Button type="button" variant="destructive" onClick={() => blocker.proceed?.()}>
+            {de.entry.discard}
+          </Button>
+        </DialogFooter>
+      </Dialog>
     </form>
   );
 }
