@@ -80,4 +80,42 @@ test.describe('Arzt-Link', () => {
     await expect(unknown.getByTestId('report-error')).toContainText('gibt es nicht');
     await ctx.close();
   });
+
+  test('EXP-24: Liste zeigt aktive Links mit Aufrufen und Ablauf, Widerrufen meldet in der Ansicht „widerrufen“', async ({ page, browser, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Konto mit virtuellem Authenticator (Chromium)');
+    await addVirtualAuthenticator(page);
+    await onboardWithCloud(page, uniqueUser('arztliste'));
+    await addEntry(page);
+
+    await go(page, '/more/export');
+    await expect(page.getByText('Noch keine Arzt-Links erstellt.')).toBeVisible();
+    await page.getByRole('button', { name: 'Arzt-Link erstellen' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByRole('button', { name: 'Link erstellen' }).click();
+    const link = await dialog.getByTestId('report-link').inputValue();
+    await dialog.getByRole('button', { name: 'Schließen' }).click();
+
+    const row = page.getByTestId('report-link-row');
+    await expect(row).toHaveCount(1);
+    await expect(row).toContainText('aktiv');
+    await expect(row).toContainText('0 von 5 Aufrufen');
+    await expect(row).toContainText('gültig bis');
+
+    const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, locale: 'de-DE' });
+    const viewer = await ctx.newPage();
+    await viewer.goto(link);
+    await expect(viewer.getByTestId('report-viewer')).toBeVisible();
+
+    await go(page, '/more');
+    await go(page, '/more/export');
+    await expect(page.getByTestId('report-link-row')).toContainText('1 von 5 Aufrufen');
+    await page.getByRole('button', { name: 'Widerrufen' }).click();
+    await page.getByRole('button', { name: 'Ja, widerrufen' }).click();
+    await expect(page.getByTestId('report-link-row')).toContainText('widerrufen');
+
+    const again = await ctx.newPage();
+    await again.goto(link);
+    await expect(again.getByTestId('report-error')).toContainText('widerrufen');
+    await ctx.close();
+  });
 });

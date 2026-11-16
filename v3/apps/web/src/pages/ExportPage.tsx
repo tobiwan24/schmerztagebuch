@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PageHeader } from '@/components/PageHeader';
 import { ReportLinkDialog } from '@/components/ReportLinkDialog';
+import { ReportLinkList } from '@/components/ReportLinkList';
 import { useAuth } from '@/auth/AuthContext';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
@@ -41,6 +42,7 @@ function ExportCard() {
   const { exportFile, createDoctorLink } = useBackup();
   const { accountMode } = useAuth();
   const [linkOpen, setLinkOpen] = useState(false);
+  const [linksRefresh, setLinksRefresh] = useState(0);
   const [format, setFormat] = useState<ExportFormat>('pdf');
   const [profile, setProfile] = useState<CsvProfile>('standard');
   // Aus dem Verlauf geöffnet: dessen angewendete Filter sind vorausgewählt (EXP-18, A-073).
@@ -197,8 +199,9 @@ function ExportCard() {
             </Button>
             <ReportLinkDialog
               open={linkOpen} onClose={() => setLinkOpen(false)}
-              create={(o) => { const spec = currentSpec(); return createDoctorLink({ imageSize, layout, multiselectBlockIds: multiselectBlockIds(), ...o, ...(spec ? { filter: spec } : {}) }); }}
+              create={async (o) => { const spec = currentSpec(); const made = await createDoctorLink({ imageSize, layout, multiselectBlockIds: multiselectBlockIds(), ...o, ...(spec ? { filter: spec } : {}) }); setLinksRefresh((n) => n + 1); return made; }}
             />
+            <ReportLinkList refresh={linksRefresh} />
           </>
         ) : (
           <p className="text-sm text-muted-foreground">{t.reportLink.localOnly}</p>

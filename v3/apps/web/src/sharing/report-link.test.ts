@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseReportKey } from '@stb/crypto';
-import { createReportLink, openReportLink } from './report-link';
+import { createReportLink, listReportLinks, openReportLink, revokeReportLink } from './report-link';
 import { decodeReportPackage, encodeReportPackage, pdfBytes } from './report-package';
 import type { Report } from '@stb/export';
 
@@ -56,5 +56,21 @@ describe('Arzt-Link im Client', () => {
     }
     await expect(openReportLink('A'.repeat(22), 'A'.repeat(43), respond(404))).rejects.toMatchObject({ code: 'not-found' });
     expect(() => decodeReportPackage(new TextEncoder().encode('{"v":2}'))).toThrow();
+  });
+
+  it('EXP-24: Liste und Widerruf sprechen die richtigen Endpunkte an und melden Fehler unterscheidbar', async () => {
+    const calls: string[] = [];
+    const info = { id: 'A'.repeat(22), createdAt: 1, expiresAt: 2, maxViews: 5, views: 1, status: 'active' };
+    const fetchFn = (async (url: string, init?: RequestInit) => {
+      calls.push(`${init?.method ?? 'GET'} ${url}`);
+      return init?.method === 'DELETE' ? new Response(null, { status: 204 }) : new Response(JSON.stringify({ shares: [info] }), { status: 200 });
+    }) as typeof fetch;
+    expect(await listReportLinks(fetchFn)).toEqual([info]);
+    await revokeReportLink(info.id, fetchFn);
+    expect(calls).toEqual(['GET /api/v1/shares', `DELETE /api/v1/shares/${info.id}`]);
+    const respond = (status: number) => (async () => new Response('{}', { status })) as unknown as typeof fetch;
+    await expect(listReportLinks(respond(401))).rejects.toMatchObject({ code: 'unauthenticated' });
+    await expect(revokeReportLink(info.id, respond(404))).rejects.toMatchObject({ code: 'not-found' });
+    await expect(revokeReportLink(info.id, (async () => { throw new TypeError('x'); }) as unknown as typeof fetch)).rejects.toMatchObject({ code: 'offline' });
   });
 });

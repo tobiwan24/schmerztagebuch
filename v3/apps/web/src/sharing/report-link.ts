@@ -1,7 +1,7 @@
 // Arzt-Link erstellen und abrufen (Spec 07, M18). Der Schlüssel K steht nur im URL-Fragment: er wird nie in eine
 // Anfrage geschrieben, die Anfragen enthalten nur die ID und den Chiffretext.
 import { buildReportLink, decryptReport, encryptReport, generateShareId, generateShareKey } from '@stb/crypto';
-import { SHARE_CIPHERTEXT_MAX_CHARS } from '@stb/sync-protocol';
+import { SHARE_CIPHERTEXT_MAX_CHARS, sharesListResponseSchema, type ShareInfo } from '@stb/sync-protocol';
 import { decodeReportPackage, type ReportPackage } from './report-package.js';
 
 export type ReportLinkErrorCode = 'too-large' | 'unauthenticated' | 'rate-limited' | 'offline' | 'failed' | 'not-found' | 'expired' | 'exhausted' | 'revoked' | 'bad-key' | 'bad-package';
@@ -76,4 +76,30 @@ export async function openReportLink(id: string, key: string, fetchFn: typeof fe
   } catch {
     throw new ReportLinkError('bad-package');
   }
+}
+
+/** Eigene Arzt-Links mit Aufrufen und Status (EXP-24). */
+export async function listReportLinks(fetchFn: typeof fetch = globalThis.fetch.bind(globalThis)): Promise<ShareInfo[]> {
+  let res: Response;
+  try {
+    res = await fetchFn('/api/v1/shares', { credentials: 'include', cache: 'no-store' });
+  } catch {
+    throw new ReportLinkError('offline');
+  }
+  if (res.status === 401) throw new ReportLinkError('unauthenticated');
+  if (!res.ok) throw new ReportLinkError('failed');
+  return sharesListResponseSchema.parse(await res.json()).shares;
+}
+
+/** Widerruft einen Link; danach meldet die Ansicht „widerrufen“ (410). */
+export async function revokeReportLink(id: string, fetchFn: typeof fetch = globalThis.fetch.bind(globalThis)): Promise<void> {
+  let res: Response;
+  try {
+    res = await fetchFn(`/api/v1/shares/${encodeURIComponent(id)}`, { method: 'DELETE', credentials: 'include', cache: 'no-store' });
+  } catch {
+    throw new ReportLinkError('offline');
+  }
+  if (res.status === 401) throw new ReportLinkError('unauthenticated');
+  if (res.status === 404) throw new ReportLinkError('not-found');
+  if (!res.ok) throw new ReportLinkError('failed');
 }
