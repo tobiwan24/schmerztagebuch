@@ -5,6 +5,7 @@ import { SyncProvider } from './data/SyncContext';
 import { AnalysisProvider } from './data/AnalysisContext';
 import { router } from './router';
 import { UpdateBanner } from './components/UpdateBanner';
+import { WeatherBackfill } from './components/WeatherBackfill';
 
 export function App() {
   return (
@@ -13,6 +14,7 @@ export function App() {
         <SyncProvider>
           <AnalysisProvider>
             <UpdateBanner />
+            <WeatherBackfill />
             <RouterProvider router={router} />
           </AnalysisProvider>
         </SyncProvider>
