@@ -1,7 +1,7 @@
 // Ansichten-Gerüst laut Wireframes (G1). Inhalte folgen mit den jeweiligen Meilensteinen (M8, M9, M12).
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import type { FilterSpec } from '@stb/analysis';
+import { SORT_ORDERS, type FilterSpec, type SortOrder } from '@stb/analysis';
 import { EMPTY_FILTER, HistoryFilters, isActive, toSpec, type FilterState } from '@/components/HistoryFilters';
 import { useAnalysis } from '@/data/AnalysisContext';
 import { ChevronRight, Plus } from 'lucide-react';
@@ -11,6 +11,9 @@ import { PageHeader } from '@/components/PageHeader';
 import { EntryListState } from '@/components/EntryListState';
 import { useData } from '@/data/DataContext';
 import { useDiaryScope } from '@/data/diary-scope';
+import { useHistorySort } from '@/data/use-history-sort';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 
@@ -18,6 +21,7 @@ export function HistoryPage() {
   const { diary, now } = useData();
   const { client, version } = useAnalysis();
   const [filter, setFilter] = useState<FilterState>(EMPTY_FILTER);
+  const [sort, setSort] = useHistorySort();
   const [ids, setIds] = useState<ReadonlySet<string> | null>(null);
   const meta = useQuery(async () => {
     const [diaries, versions] = await Promise.all([diary.listDiaries(), diary.listAllTemplateVersions()]);
@@ -46,8 +50,18 @@ export function HistoryPage() {
     <>
       <PageHeader title={de.history.title} />
       {diaryIds.length ? <HistoryFilters state={filter} onChange={setFilter} diaryIds={diaryIds} medOptionIds={medOptionIds} templates={templates} /> : null}
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="history-sort">{de.history.sort}</Label>
+        <Select id="history-sort" value={sort} onChange={(e) => setSort(e.target.value as SortOrder)}>
+          {SORT_ORDERS.map((o) => (
+            <option key={o} value={o}>
+              {de.history.sorts[o]}
+            </option>
+          ))}
+        </Select>
+      </div>
       {active && !ids ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
-      {!active || ids ? <EntryListState emptyTitle={de.history.emptyTitle} emptyHint={de.history.emptyHint} onlyIds={active ? ids : null} allowAllDiaries /> : null}
+      {!active || ids ? <EntryListState emptyTitle={de.history.emptyTitle} emptyHint={de.history.emptyHint} onlyIds={active ? ids : null} allowAllDiaries sort={sort} /> : null}
       <Button asChild variant="outline">
         <Link to="/entry/new">
           <Plus aria-hidden />
