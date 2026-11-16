@@ -18,7 +18,7 @@ const t = de.templates.editor;
 const PALETTE: readonly BlockType[] = ['slider', 'checkbox', 'multiselect', 'text', 'textarea', 'date', 'bodymap', 'medication'];
 
 export function BlockEditor({
-  blocks, issues, newId, onChange, quickIds, onQuickChange,
+  blocks, issues, newId, onChange, quickIds, onQuickChange, training = false,
 }: {
   /** Nach `order` sortiert. */
   blocks: BlockDef[];
@@ -29,6 +29,8 @@ export function BlockEditor({
   /** Blöcke im Schnelleintrag (A-070); unversioniert, daher getrennt von `blocks`. */
   quickIds: readonly string[];
   onQuickChange: (id: string, on: boolean) => void;
+  /** Trainingsvorlage: der Übungsblock steht in der Palette. */
+  training?: boolean;
 }) {
   const replace = (next: BlockDef) => onChange(blocks.map((b) => (b.id === next.id ? next : b)));
   const [dragId, setDragId] = useState<string | null>(null);
@@ -96,7 +98,7 @@ export function BlockEditor({
         />
       ))}
       <div className="flex flex-wrap gap-2" role="group" aria-label={t.addBlock}>
-        {PALETTE.map((type) => (
+        {(training ? [...PALETTE, 'exercise' as const] : PALETTE).map((type) => (
           <Button
             key={type}
             type="button"

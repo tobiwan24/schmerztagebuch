@@ -307,6 +307,19 @@ export const de = {
         moveUp: (name: string) => `Medikament ${name} nach oben`, moveDown: (name: string) => `Medikament ${name} nach unten`,
         color: (name: string) => `Farbe von ${name}`,
       },
+      training: {
+        toggle: 'Trainingsvorlage',
+        toggleHint: 'Trainingsvorlagen erscheinen unter „Übungen“ und nicht als Kachel auf der Startseite.',
+        phases: 'Funktionsphasen (optional)',
+        phasesHint: 'Phasen als Zahlen, z. B. „1, 2“. Die Vorlage erscheint nur in diesen Phasen, leer = immer. Die Phase ist der jüngste Wert eines Felds mit der Rolle „Funktion“.',
+        phasesInvalid: 'Bitte nur Zahlen angeben, höchstens 20.',
+      },
+      exercise: {
+        description: 'Erklärung der Übung (optional)', sets: 'Sätze (optional)', reps: 'Wiederholungen (optional)', duration: 'Dauer in Sekunden (optional)',
+        steps: 'Schritte (einer je Zeile, höchstens 20)', video: 'Video-Link (https, optional)', videoOpen: 'Video-Link in neuem Tab öffnen',
+        levels: 'Stufen', addLevel: 'Stufe hinzufügen', levelLabel: (n: number) => `Bezeichnung von Stufe ${n}`, defaultLevel: (n: number) => `Stufe ${n}`,
+        removeLevel: (name: string) => `Stufe ${name} entfernen`, moveUp: (name: string) => `Stufe ${name} nach oben`, moveDown: (name: string) => `Stufe ${name} nach unten`,
+      },
       date: { mode: 'Modus', modes: { date: 'Datum', datetime: 'Datum und Uhrzeit', duration: 'Dauer', range: 'Zeitraum' } },
       issues: {
         NAME_EMPTY: 'Bitte gib einen Namen ein.',
@@ -318,6 +331,8 @@ export const de = {
         OPTION_LABEL_DUPLICATE: 'Optionen dürfen nicht gleich heißen.',
         PRESET_NAME_EMPTY: 'Jedes Medikament braucht einen Namen.',
         PRESET_NAME_DUPLICATE: 'Medikamente dürfen nicht gleich heißen.',
+        VIDEO_URL_INVALID: 'Der Video-Link muss mit https:// beginnen.',
+        LEVEL_LABEL_EMPTY: 'Jede Stufe braucht eine Bezeichnung.',
       },
     },
   },

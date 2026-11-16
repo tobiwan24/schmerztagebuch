@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { de } from '@/i18n/de';
+import { ExerciseConfigEditor } from './ExerciseConfigEditor';
 import { MedicationPresetsEditor } from './MedicationPresetsEditor';
 import { OptionsEditor } from './OptionsEditor';
 
@@ -140,6 +141,8 @@ export function BlockConfigFields({ def, newId, onChange }: { def: BlockDef; new
       );
     case 'medication':
       return <MedicationPresetsEditor blockId={def.id} config={def.config} newId={newId} onChange={(config) => onChange({ ...def, config })} />;
+    case 'exercise':
+      return <ExerciseConfigEditor blockId={def.id} config={def.config} newId={newId} onChange={(config) => onChange({ ...def, config })} />;
     case 'bodymap':
       return (
         <div className="flex flex-col gap-2">

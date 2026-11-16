@@ -10,7 +10,8 @@ import {
   type TemplateState,
 } from './templates.js';
 import { duplicateTemplate } from './template-editor.js';
-import { currentFunctionPhase, trainingTemplatesFor } from './training.js';
+import { currentFunctionPhase, parseFunctionPhases, trainingTemplatesFor } from './training.js';
+import { validateTemplateDraft } from './template-editor.js';
 
 let t = Date.parse('2026-03-01T08:00:00.000Z');
 const clock = { now: () => (t += 1000) };
@@ -108,5 +109,21 @@ describe('Training', () => {
     const e = [entry('2026-03-05T08:00:00.000Z', { [functionBlock.id]: 3 }, diary)];
     expect(trainingTemplatesFor([v2, early, late], e).phase).toBeNull();
     expect(trainingTemplatesFor([v2, early, late], e, [diary.version]).phase).toBe(3);
+  });
+
+  it('Training: parseFunctionPhases liest Zahlenlisten, sortiert, ohne Doppelte; Unsinn ist ungültig', () => {
+    expect(parseFunctionPhases('')).toEqual({ phases: [], invalid: false });
+    expect(parseFunctionPhases('3, 1;2 2')).toEqual({ phases: [1, 2, 3], invalid: false });
+    expect(parseFunctionPhases('1, x').invalid).toBe(true);
+  });
+
+  it('Training: Entwurfsprüfung meldet ungültigen Video-Link und leere Stufenbezeichnung', () => {
+    const base = { id: newId(), type: 'exercise' as const, label: 'Übung', required: false, order: 'a' };
+    const codes = (config: object) => validateTemplateDraft({ blocks: [{ ...base, config } as BlockDef] }).map((i) => i.code);
+    expect(codes({})).toEqual([]);
+    expect(codes({ videoUrl: 'https://example.org/v' })).toEqual([]);
+    expect(codes({ videoUrl: 'http://example.org/v' })).toEqual(['VIDEO_URL_INVALID']);
+    expect(codes({ videoUrl: 'abc' })).toEqual(['VIDEO_URL_INVALID']);
+    expect(codes({ levels: [{ id: newId(), label: ' ' }] })).toEqual(['LEVEL_LABEL_EMPTY']);
   });
 });

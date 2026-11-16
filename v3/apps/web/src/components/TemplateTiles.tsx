@@ -20,7 +20,7 @@ export function TemplateTiles() {
   const query = useQuery(async () => {
     if (writable.status !== 'ok') return { tiles: [], username: null as string | null };
     const ids = new Set(writable.data.map((d) => d.id));
-    const tiles = (await diary.listAllTemplates()).filter((t) => !t.archived && ids.has(t.diaryId));
+    const tiles = (await diary.listAllTemplates()).filter((t) => !t.archived && t.purpose !== 'training' && ids.has(t.diaryId));
     const account: unknown = await loadAccount(db);
     return { tiles, username: isCloudAccount(account) ? account.cloud.username : null };
   }, [db, diary, writableIds, accountMode]);

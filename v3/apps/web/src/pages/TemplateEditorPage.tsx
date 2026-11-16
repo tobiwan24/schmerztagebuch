@@ -6,9 +6,10 @@ import { TOUR_RING } from '@/tour/anchor';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useBlocker, useNavigate, useParams } from 'react-router';
 import { Copy } from 'lucide-react';
-import { canonical, compareByOrder, createTemplate, duplicateTemplate, keyBetween, updateTemplate, validateTemplateDraft, type BlockDef, type TemplateState } from '@stb/core';
+import { canonical, compareByOrder, createTemplate, duplicateTemplate, keyBetween, parseFunctionPhases, updateTemplate, validateTemplateDraft, type BlockDef, type TemplateState } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/PageHeader';
@@ -68,14 +69,19 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
   const [color, setColor] = useState(state?.template.color ?? DEFAULT_TEMPLATE_COLOR);
   const [blocks, setBlocks] = useState<BlockDef[]>(() => [...(state?.version.blocks ?? [])].sort(compareByOrder));
   const [quickIds, setQuickIds] = useState<string[]>(state?.template.quickBlockIds ?? []);
+  const [training, setTraining] = useState(state?.template.purpose === 'training');
+  const [phasesText, setPhasesText] = useState((state?.template.functionPhases ?? []).join(', '));
+  const phases = parseFunctionPhases(phasesText);
   const [showErrors, setShowErrors] = useState(false);
   const [busy, setBusy] = useState(false);
   // Ungespeicherte Änderungen: Vergleich mit dem Ausgangszustand (Hinzufügen und wieder Entfernen ist keine Änderung, BLK-25).
   // Schnelleintrag-Auswahl nur für noch vorhandene Blöcke, in Vorlagen-Reihenfolge (A-070).
   const quickOf = (b: readonly BlockDef[], q: readonly string[]) => [...b].sort(compareByOrder).filter((x) => q.includes(x.id)).map((x) => x.id);
-  const snapshot = (n: string, i: string, c: string, b: readonly BlockDef[], q: readonly string[]) => canonical({ n, i, c, b: [...b].sort(compareByOrder), q: quickOf(b, q) });
-  const initialSnapshot = useRef(snapshot(name, icon, color, blocks, quickIds));
-  const dirty = snapshot(name, icon, color, blocks, quickIds) !== initialSnapshot.current;
+  const snapshot = (n: string, i: string, c: string, b: readonly BlockDef[], q: readonly string[], tr: boolean, ph: readonly number[]) =>
+    canonical({ n, i, c, b: [...b].sort(compareByOrder), q: quickOf(b, q), tr, ph: tr ? ph : [] });
+  const currentSnapshot = () => snapshot(name, icon, color, blocks, quickIds, training, phases.phases);
+  const initialSnapshot = useRef(currentSnapshot());
+  const dirty = currentSnapshot() !== initialSnapshot.current;
   const leaving = useRef(false);
   const blocker = useBlocker(({ currentLocation, nextLocation }) => dirty && !leaving.current && currentLocation.pathname !== nextLocation.pathname);
   useEffect(() => {
@@ -94,19 +100,23 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
 
   async function save(e: FormEvent) {
     e.preventDefault();
-    if (issues.length > 0) return setShowErrors(true);
+    if (issues.length > 0 || (training && phases.invalid)) return setShowErrors(true);
     setBusy(true);
     try {
       const trimmed = name.trim();
       if (state) {
         // Name/Icon/Farbe sind Metadaten (keine neue Version); geänderte Blöcke ergeben Version n+1 (DM-06).
         const quick = quickOf(blocks, quickIds);
-        const next = updateTemplate(state, { name: trimmed, icon, color, blocks, quickBlockIds: quick.length ? quick : null }, { now: data.now });
+        const next = updateTemplate(
+          state,
+          { name: trimmed, icon, color, blocks, quickBlockIds: quick.length ? quick : null, purpose: training ? 'training' : null, functionPhases: training && phases.phases.length ? phases.phases : null },
+          { now: data.now },
+        );
         if (next.newVersion) await data.diary.saveTemplate(next.state);
         else await data.diary.saveTemplateMeta(next.state.template);
       } else {
         await data.diary.saveTemplate(
-          createTemplate({ id: data.newId(), diaryId: loaded.diaryId, name: trimmed, icon, color, order: keyBetween(loaded.lastOrder, null), blocks, ...(quickOf(blocks, quickIds).length ? { quickBlockIds: quickOf(blocks, quickIds) } : {}) }, { now: data.now }),
+          createTemplate({ id: data.newId(), diaryId: loaded.diaryId, name: trimmed, icon, color, order: keyBetween(loaded.lastOrder, null), blocks, ...(quickOf(blocks, quickIds).length ? { quickBlockIds: quickOf(blocks, quickIds) } : {}), ...(training ? { purpose: 'training' as const } : {}), ...(training && phases.phases.length ? { functionPhases: phases.phases } : {}) }, { now: data.now }),
         );
       }
       leaving.current = true;
@@ -148,8 +158,35 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
         ) : null}
       </div>
       <TemplateStylePicker icon={icon} color={color} onIcon={setIcon} onColor={setColor} />
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <Checkbox id="template-training" checked={training} onChange={(e) => setTraining(e.target.checked)} aria-describedby="template-training-hint" />
+          <Label htmlFor="template-training" className="font-normal">
+            {de.templates.editor.training.toggle}
+          </Label>
+        </div>
+        <p id="template-training-hint" className="text-sm text-muted-foreground">
+          {de.templates.editor.training.toggleHint}
+        </p>
+        {training ? (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="template-phases">{de.templates.editor.training.phases}</Label>
+            <Input
+              id="template-phases"
+              inputMode="numeric"
+              value={phasesText}
+              aria-invalid={showErrors && phases.invalid}
+              aria-describedby="template-phases-hint"
+              onChange={(e) => setPhasesText(e.target.value)}
+            />
+            <p id="template-phases-hint" className={cn('text-sm', showErrors && phases.invalid ? 'text-destructive' : 'text-muted-foreground')}>
+              {showErrors && phases.invalid ? de.templates.editor.training.phasesInvalid : de.templates.editor.training.phasesHint}
+            </p>
+          </div>
+        ) : null}
+      </div>
       <div data-tour="editor-blocks" className={TOUR_RING}>
-      <BlockEditor blocks={blocks} issues={blockIssues} newId={data.newId} onChange={setBlocks} quickIds={quickIds} onQuickChange={(id, on) => setQuickIds(on ? [...quickIds, id] : quickIds.filter((x) => x !== id))} />
+      <BlockEditor training={training} blocks={blocks} issues={blockIssues} newId={data.newId} onChange={setBlocks} quickIds={quickIds} onQuickChange={(id, on) => setQuickIds(on ? [...quickIds, id] : quickIds.filter((x) => x !== id))} />
       </div>
       <div data-tour="editor-save" className={cn('flex flex-col gap-2', TOUR_RING)}>
         <Button type="submit" disabled={busy}>

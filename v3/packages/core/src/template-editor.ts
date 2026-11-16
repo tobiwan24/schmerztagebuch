@@ -44,13 +44,23 @@ export type DraftIssueCode =
   | 'OPTION_LABEL_EMPTY'
   | 'OPTION_LABEL_DUPLICATE'
   | 'PRESET_NAME_EMPTY'
-  | 'PRESET_NAME_DUPLICATE';
+  | 'PRESET_NAME_DUPLICATE'
+  | 'VIDEO_URL_INVALID'
+  | 'LEVEL_LABEL_EMPTY';
 
 export interface DraftIssue {
   code: DraftIssueCode;
   /** Betroffener Block; fehlt bei `NAME_EMPTY`. */
   blockId?: string;
 }
+
+const isHttpsUrl = (s: string): boolean => {
+  try {
+    return new URL(s).protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
 
 /** Prüft einen Entwurf vor dem Speichern; leere Liste = speicherbar. */
 export function validateTemplateDraft(draft: { name?: string; blocks: readonly BlockDef[] }): DraftIssue[] {
@@ -92,6 +102,10 @@ export function validateTemplateDraft(draft: { name?: string; blocks: readonly B
       }
       if (empty) issues.push({ code: 'PRESET_NAME_EMPTY', blockId: b.id });
       if (dup) issues.push({ code: 'PRESET_NAME_DUPLICATE', blockId: b.id });
+    }
+    if (b.type === 'exercise') {
+      if (b.config.videoUrl !== undefined && !isHttpsUrl(b.config.videoUrl)) issues.push({ code: 'VIDEO_URL_INVALID', blockId: b.id });
+      if (b.config.levels?.some((l) => l.label.trim() === '')) issues.push({ code: 'LEVEL_LABEL_EMPTY', blockId: b.id });
     }
   }
   return issues;

@@ -62,3 +62,15 @@ export function trainingTemplatesFor(
     .sort((a, b) => compareByOrder(a.template, b.template));
   return { phase, templates: selected };
 }
+
+/**
+ * Liest die Eingabe „1, 2, 3“ (Komma, Semikolon oder Leerzeichen) als Funktionsphasen: sortiert, ohne Doppelte, höchstens 20.
+ * `invalid`, wenn ein Teil keine Zahl ist oder mehr als 20 Werte angegeben sind.
+ */
+export function parseFunctionPhases(text: string): { phases: number[]; invalid: boolean } {
+  const parts = text.split(/[\s,;]+/).filter((x) => x !== '');
+  const nums = parts.map((x) => Number(x.replace(',', '.')));
+  const invalid = nums.some((n) => !Number.isFinite(n)) || new Set(nums).size > 20;
+  const phases = [...new Set(nums.filter((n) => Number.isFinite(n)))].sort((a, b) => a - b).slice(0, 20);
+  return { phases, invalid };
+}
