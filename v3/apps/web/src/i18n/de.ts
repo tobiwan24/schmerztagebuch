@@ -26,6 +26,7 @@ export const de = {
   },
   history: {
     title: 'Verlauf',
+    export: 'Exportieren',
     emptyTitle: 'Noch nichts im Verlauf',
     emptyHint: 'Einträge erscheinen hier, nach Tagen gruppiert.',
     filters: 'Suche und Filter',
@@ -670,6 +671,7 @@ export const de = {
     profiles: { standard: 'Standard', 'excel-de': 'Excel (DE)' },
     filter: 'Umfang',
     allEntries: 'Alle Einträge',
+    fromHistory: 'Auswahl aus dem Verlauf',
     period: 'Zeitraum',
     periods: { all: 'Gesamt', month: 'Monat', range: 'Von – bis' },
     periodMonth: 'Monat',

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Download, type Page } from '@playwright/test';
 import { addDeviceWithBackupCode, addVirtualAuthenticator, go, onboardWithCloud, onboardWithPassword, uniqueUser } from './helpers';
 
 async function addEntry(page: Page, pain: string, note?: string) {
@@ -7,6 +7,12 @@ async function addEntry(page: Page, pain: string, note?: string) {
   if (note) await page.getByLabel('Notizen').fill(note);
   await page.getByRole('button', { name: 'Speichern' }).click();
   await expect(page.getByTestId('entry-time')).toBeVisible();
+}
+
+async function textOf(d: Download): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const c of (await d.createReadStream())!) chunks.push(c as Buffer);
+  return Buffer.concat(chunks).toString('utf8');
 }
 
 const rows = (page: Page) => page.getByTestId('entry-row');
@@ -34,6 +40,33 @@ test.describe('Verlauf: Suche und Filter', () => {
     await expect(rows(page)).toHaveCount(2);
     await page.getByRole('button', { name: '7 Tage' }).click();
     await expect(rows(page)).toHaveCount(2);
+  });
+
+  test('EXP-18: Exportieren im Verlauf übernimmt die angewendeten Filter; Mehr → Export bleibt', async ({ page }) => {
+    await onboardWithPassword(page);
+    await addEntry(page, '8', 'Übelkeit am Morgen');
+    await addEntry(page, '2', 'ruhiger Tag');
+    await addEntry(page, '7');
+    await go(page, '/history');
+    await expect(rows(page)).toHaveCount(3);
+    await page.getByRole('button', { name: 'Schmerz ≥ 6' }).click();
+    await expect(rows(page)).toHaveCount(2);
+
+    await page.getByRole('link', { name: 'Exportieren' }).click();
+    await expect(page).toHaveURL(/\/more\/export$/);
+    await expect(page.getByRole('button', { name: 'Auswahl aus dem Verlauf' })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: 'JSON', exact: true }).click();
+    const [json] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Herunterladen', exact: true }).click()]);
+    const doc = JSON.parse(await textOf(json)) as { diaries: { entries: unknown[] }[] };
+    expect(doc.diaries[0]!.entries).toHaveLength(2);
+
+    // „Alle Einträge" wählbar; über Mehr → Export gibt es keine Verlaufs-Auswahl
+    await page.getByRole('button', { name: 'Alle Einträge' }).click();
+    const [all] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Herunterladen', exact: true }).click()]);
+    expect(((JSON.parse(await textOf(all)) as { diaries: { entries: unknown[] }[] }).diaries[0]!.entries)).toHaveLength(3);
+    await go(page, '/more/export');
+    await expect(page.getByRole('button', { name: 'Auswahl aus dem Verlauf' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Alle Einträge' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('ANA-18: freier Zeitraum, Vorlagen und Inhalt (UND) grenzen ein; gespeicherter Filter stellt alles wieder her', async ({ page }) => {

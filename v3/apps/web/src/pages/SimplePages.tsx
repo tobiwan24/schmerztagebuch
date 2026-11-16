@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 import { SORT_ORDERS, type FilterSpec, type SortOrder } from '@stb/analysis';
 import { EMPTY_FILTER, HistoryFilters, isActive, toSpec, type FilterState } from '@/components/HistoryFilters';
 import { useAnalysis } from '@/data/AnalysisContext';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/PageHeader';
@@ -60,6 +60,15 @@ export function HistoryPage() {
           ))}
         </Select>
       </div>
+      {diaryIds.length ? (
+        // Export mit den aktuell angewendeten Filtern (EXP-18, A-073): FilterSpec als Router-State an die Export-Seite.
+        <Button asChild variant="outline" className="self-start">
+          <Link to="/more/export" state={{ filter: toSpec(filter, diaryIds, medOptionIds) }}>
+            <Download aria-hidden />
+            {de.history.export}
+          </Link>
+        </Button>
+      ) : null}
       {active && !ids ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
       {!active || ids ? <EntryListState emptyTitle={de.history.emptyTitle} emptyHint={de.history.emptyHint} onlyIds={active ? ids : null} allowAllDiaries sort={sort} /> : null}
     </>

@@ -1,6 +1,7 @@
 // Mehr → Export & Backup (Spec 07): Export (JSON v1, CSV long/wide, optional gefiltert), verschlüsseltes Backup,
 // Import mit Vorschau (neu / geändert / unverändert, „Als Kopie"). Alles entsteht und bleibt auf dem Gerät.
 import { useEffect, useState, type FormEvent } from 'react';
+import { useLocation } from 'react-router';
 import { Download, FileUp, ShieldCheck } from 'lucide-react';
 import type { BackupSecret } from '@stb/crypto';
 import { parseExport, type CsvProfile, type ExportV1, type PdfImageSize, type PdfLayout } from '@stb/export';
@@ -39,7 +40,10 @@ function ExportCard() {
   const { exportFile } = useBackup();
   const [format, setFormat] = useState<ExportFormat>('pdf');
   const [profile, setProfile] = useState<CsvProfile>('standard');
-  const [filter, setFilter] = useState<SavedFilter | null>(null);
+  // Aus dem Verlauf geöffnet: dessen angewendete Filter sind vorausgewählt (EXP-18, A-073).
+  const fromHistory = (useLocation().state as { filter?: FilterSpec } | null)?.filter;
+  const historyChoice: Scope | null = fromHistory ? { id: 'history', name: t.fromHistory, filter: fromHistory } : null;
+  const [filter, setFilter] = useState<Scope | null>(historyChoice);
   const [imageSize, setImageSize] = useState<PdfImageSize>('a5');
   const [layout, setLayout] = useState<PdfLayout>('table');
   /** Multiselect-Blöcke für das Dashboard-Layout: standardmäßig alle, abgewählte merkt sich diese Menge. */
@@ -139,6 +143,11 @@ function ExportCard() {
           <Button size="sm" variant={filter === null ? 'default' : 'outline'} aria-pressed={filter === null} onClick={() => setFilter(null)}>
             {t.allEntries}
           </Button>
+          {historyChoice ? (
+            <Button size="sm" variant={filter?.id === 'history' ? 'default' : 'outline'} aria-pressed={filter?.id === 'history'} onClick={() => setFilter(historyChoice)}>
+              {historyChoice.name}
+            </Button>
+          ) : null}
           {(saved.status === 'ok' ? saved.data : []).map((f) => (
             <Button key={f.id} size="sm" variant={filter?.id === f.id ? 'default' : 'outline'} aria-pressed={filter?.id === f.id} onClick={() => setFilter(f)}>
               {f.name}
@@ -181,6 +190,8 @@ function ExportCard() {
 }
 
 type Period = 'all' | 'month' | 'range';
+/** Umfang des Exports: gespeicherter Filter oder die Filter des Verlaufs. */
+type Scope = Pick<SavedFilter, 'id' | 'name' | 'filter'>;
 
 /** Zeitraum (Monat oder von–bis, Spec 06 Custom-Zeitraum) mit einem gespeicherten Filter kombinieren. `undefined` = alles. */
 function effectiveFilter(saved: FilterSpec | undefined, period: Period, p: { month: string; from: string; to: string }, diaryIds: string[]): FilterSpec | undefined {

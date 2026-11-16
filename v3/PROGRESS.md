@@ -7,7 +7,7 @@
 - **Meilenstein:** M14 „Nacharbeiten v2-Parität" erledigt (28/28 IDs, Skript „OK"; Abschlussaufgabe M14.22 läuft mit M14b); aktuell der Teil-Meilenstein M14b „v2-Parität, Rest" (15/22 IDs, Doku M14b.0 erledigt). M13 abgeschlossen (8/8). **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md), wird am Ende von M14 aktualisiert. Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M14c.5 Export im Verlauf mit angewendeten Filtern (EXP-18) (siehe Gate-Feedback), dann erst M14.34 (CRY-19). Entscheidungen: A-036 bis A-073. **verify:docker (QA-08) am Ende von M14b/M14c einmal nachholen** (Docker Desktop stürzt beim compose-Build ab).
+- **Nächste Aufgabe:** M14c abschließen (Akzeptanz-Skript), dann restliches M14b ab M14.34 (CRY-19). Entscheidungen: A-036 bis A-073. **verify:docker (QA-08) am Ende von M14b/M14c einmal nachholen** (Docker Desktop stürzt beim compose-Build ab).
 - **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29), M14.16 (BLK-30), M14.17 (BLK-31), M14.18 (BLK-35, BLK-36), M14.19 (UI-16, UI-19), M14.1 (BLK-40), M14.20 (UI-17), M14.21 (UI-18)
 - **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15), M14.31 (EXP-17), M14.32 (EXP-16), M14.33 (CRY-18)
 - **Hinweis Ablauf:** `npm run verify` + `npm run test:e2e` vor `npm run acceptance` (Playwright-Report wird nur von test:e2e erzeugt).
@@ -89,7 +89,7 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M12 | erledigt | 9/9 IDs |
 | M13 | erledigt | 8/8 IDs → Gate G4 (wartet auf User) |
 | M14 | erledigt | 28/28 IDs (Skript OK nach vollem E2E: 166 grün) — Nacharbeiten v2-Parität (vor G4), Aufgaben M14.1–M14.22 |
-| M14c | aktuell (Vorrang) | 1/6 IDs — Gate-Feedback 2026-11-16 |
+| M14c | aktuell (Vorrang) | 6/6 IDs — Gate-Feedback 2026-11-16 |
 | M14b | zurückgestellt | 15/22 IDs — Teil-Meilenstein v2-Parität, Rest (Aufgaben M14.4c/4d/15b/15c/15d, M14.23–M14.39) |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
@@ -132,7 +132,7 @@ E2E nie gegen echtes Open-Meteo (`page.route`); Onboarding-Ort-Schritt ändert `
 | M14c.2 | erledigt: Schnelleintrag überarbeiten: Editor-Schalter je Block, Vorlagenwahl, Migration der Tagebuch-Einstellung | BLK-45 BLK-46 |
 | M14c.3 | erledigt: Kein „Neuer Eintrag" im Verlauf | UI-25 |
 | M14c.4 | erledigt: Body-Map-Bild in der Eintrags-Detailansicht | BLK-47 |
-| M14c.5 | Export im Verlauf mit angewendeten Filtern | EXP-18 |
+| M14c.5 | erledigt: Export im Verlauf mit angewendeten Filtern | EXP-18 |
 
 - 2026-11-12 (nach M4-Stopp): Docker Desktop gestartet. A-010: v2-Datum-Block diente zum **Nachtragen** und für
   **Zeiträume** → umgesetzt als Zeitangabe des Eintrags (`occurredAt` + optionales `period`), Specs 02/05/11 + BLK-19 (M8).
@@ -288,3 +288,4 @@ Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19,
 | 2026-11-16 | M14c.2 | BLK-45 BLK-46 | Schnelleintrag: `Template.quickBlockIds` (optional, unversioniert; `updateTemplate` ändert dafür keine Version, `duplicateTemplate` und Export-Kopie remappen die IDs, JSON-Schema neu generiert). Editor: Schalter „Im Schnelleintrag" je Block (Teil des Dirty-Snapshots, nur vorhandene Blöcke in Vorlagenreihenfolge). `quick-entry.ts`: `quickBlocksOf`, `quickEntryOptions`, `quickEntrySelection(…, preferredTemplateId)`, `legacyQuickEntryMigration`. QuickPage: Vorlagenwahl (Knöpfe, zuletzt genutzte = Vorlage des jüngsten Eintrags vorausgewählt, Wechsel mit Eingaben nur nach Rückfrage). Tagebuch-Einstellungen ohne Schnelleintrag; `QuickEntryMigration` überträgt alte Tagebuch-Einstellung nach dem Entsperren in die Vorlage (nur wenn leer) und entfernt sie. E2E `quick-template.spec.ts` (inkl. Migration über IndexedDB-Manipulation), BLK-37 auf Editor umgestellt. Kurzbefehl/Intake nutzen weiter die erste Vorlage. |
 | 2026-11-16 | M14c.3 | UI-25 | „Neuer Eintrag"-Knopf aus `HistoryPage` entfernt (Start behält ihn); E2E in `history-list.spec.ts` (leer und mit Einträgen), `entry.spec.ts` (BLK-09) geht für „Neuer Eintrag" jetzt über Start. |
 | 2026-11-16 | M14c.4 | BLK-47 | Detailansicht: neue `BodyMapView` (BodyMapField.tsx) zeigt Bild (Standard oder eigenes) + Markierungen schreibgeschützt über die exportierte `MarkShape` des Felds (identisches SVG wie im Editor, im E2E verglichen), darunter Liste mit Nummer/Art/Intensität/Kommentar. A-074 (nur bei vorhandenem Wert; leere Markierungsliste → Bild ohne Marker). |
+| 2026-11-16 | M14c.5 | EXP-18 | Verlauf: Knopf „Exportieren“ (Link mit FilterSpec als Router-State) → Export-Seite mit vorausgewählter „Auswahl aus dem Verlauf“; „Mehr → Export“ unverändert. E2E in history-filter.spec (JSON enthält 2 von 3 Einträgen). |
