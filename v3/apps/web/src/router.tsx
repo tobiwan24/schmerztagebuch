@@ -3,8 +3,7 @@ import { createBrowserRouter } from 'react-router';
 import { AppShell } from '@/components/AppShell';
 import { RouteMarker } from '@/components/RouteMarker';
 import { StartPage } from '@/pages/StartPage';
-import { HistoryPage, MorePage, NotFoundPage } from '@/pages/SimplePages';
-import { UnlockPage } from '@/pages/UnlockPage';
+import { MorePage, NotFoundPage } from '@/pages/SimplePages';
 
 /**
  * Schwere Ansichten (Diagramme, PDF/Export, Migration, Vorlagen-Editor, selten genutzte Seiten) werden erst beim Aufruf
@@ -19,12 +18,12 @@ export const router = createBrowserRouter([
     element: <RouteMarker />,
     children: [
       { path: '/onboarding', lazy: page(() => import('@/pages/OnboardingPage'), 'OnboardingPage') },
-      { path: '/unlock', element: <UnlockPage /> },
+      { path: '/unlock', lazy: page(() => import('@/pages/UnlockPage'), 'UnlockPage') },
       {
         element: <AppShell />,
         children: [
           { path: '/', element: <StartPage /> },
-          { path: '/history', element: <HistoryPage /> },
+          { path: '/history', lazy: page(() => import('@/pages/HistoryPage'), 'HistoryPage') },
           { path: '/analysis', lazy: page(() => import('@/pages/AnalysisPage'), 'AnalysisPage') },
           { path: '/more', element: <MorePage /> },
           { path: '/more/settings', lazy: page(() => import('@/pages/SettingsPage'), 'SettingsPage') },
