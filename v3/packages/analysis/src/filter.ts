@@ -17,6 +17,7 @@ export const conditionSchema = z.union([
   withTarget({ kind: z.literal('checkbox'), checked: z.boolean() }),
   withTarget({ kind: z.literal('text'), contains: z.string().min(1) }),
   withTarget({ kind: z.literal('bodymap'), region: z.string().min(1).optional() }),
+  z.strictObject({ kind: z.literal('bodymap'), region: z.string().min(1).optional() }),
   z.strictObject({ kind: z.literal('attachment'), attachmentKind: z.enum(['image', 'pdf']).optional() }),
   z.strictObject({ kind: z.literal('event'), category: z.enum(['event', 'doctor']).optional() }),
   z.strictObject({ kind: z.literal('meta'), field: z.enum(['source', 'author']), value: z.string().min(1) }),
@@ -105,7 +106,7 @@ export function matchesCondition(e: WsEntry, c: Condition): boolean {
     }
     case 'bodymap':
       // Regionen werden aus den Preset-Definitionen abgeleitet, sobald diese existieren; bis dahin = Preset-ID (A-025).
-      return fieldsFor(e, c).some((f) => f.value.kind === 'points' && f.value.points.length > 0 && (!c.region || f.value.presetId === c.region));
+      return ('blockId' in c || 'role' in c ? fieldsFor(e, c) : e.fields).some((f) => f.value.kind === 'points' && f.value.points.length > 0 && (!c.region || f.value.presetId === c.region));
     case 'attachment':
       // Ohne Art: irgendein Anhang (auch wenn die Metadaten noch fehlen); mit Art nur laut `attachmentMeta`.
       return c.attachmentKind ? e.attachmentKinds.includes(c.attachmentKind) : e.hasAttachment;
@@ -166,19 +167,20 @@ export type SavedFilter = z.infer<typeof savedFilterSchema>;
 export const SORT_ORDERS = ['newest', 'oldest', 'template_az', 'template_date'] as const;
 export type SortOrder = (typeof SORT_ORDERS)[number];
 
-const byTime = (a: WsEntry, b: WsEntry) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt);
-const byTemplate = (a: WsEntry, b: WsEntry) => a.templateName.localeCompare(b.templateName, 'de');
+type Sortable = Pick<WsEntry, 'occurredAt' | 'templateName'>;
+const byTime = (a: Sortable, b: Sortable) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt);
+const byTemplate = (a: Sortable, b: Sortable) => a.templateName.localeCompare(b.templateName, 'de');
 
 /**
  * Sortiert Einträge (Spec 06, ANA-19), stabil und ohne die Eingabe zu verändern. `template_az`: Vorlagenname, Einträge
  * derselben Vorlage behalten die Eingabereihenfolge; `template_date`: Vorlagenname, darin neueste zuerst.
  */
-export function sortEntries(entries: readonly WsEntry[], order: SortOrder): WsEntry[] {
+export function sortEntries<T extends Sortable>(entries: readonly T[], order: SortOrder): T[] {
   const cmp = {
-    newest: (a: WsEntry, b: WsEntry) => byTime(b, a),
+    newest: (a: T, b: T) => byTime(b, a),
     oldest: byTime,
     template_az: byTemplate,
-    template_date: (a: WsEntry, b: WsEntry) => byTemplate(a, b) || byTime(b, a),
+    template_date: (a: T, b: T) => byTemplate(a, b) || byTime(b, a),
   }[order];
   return [...entries].sort(cmp);
 }

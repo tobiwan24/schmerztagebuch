@@ -22,11 +22,13 @@ export function HistoryPage() {
   const meta = useQuery(async () => {
     const [diaries, versions] = await Promise.all([diary.listDiaries(), diary.listAllTemplateVersions()]);
     const medOptionIds = [...new Set(versions.flatMap((v) => v.blocks.flatMap((b) => (b.role === 'medication' && b.type === 'multiselect' ? b.config.options.map((o) => o.id) : []))))];
-    return { diaryIds: diaries.map((d) => d.id), medOptionIds };
+    const templates = await diary.listAllTemplates();
+    return { diaryIds: diaries.map((d) => d.id), medOptionIds, templates: templates.map((t) => ({ id: t.id, name: t.name, diaryId: t.diaryId })) };
   }, [diary]);
   const scope = useDiaryScope(true);
   const diaryIds = meta.status === 'ok' ? (scope.diaryId ? [scope.diaryId] : meta.data.diaryIds) : [];
   const medOptionIds = meta.status === 'ok' ? meta.data.medOptionIds : [];
+  const templates = meta.status === 'ok' ? meta.data.templates.filter((t) => diaryIds.includes(t.diaryId)) : [];
   const active = isActive(filter);
   const specKey = JSON.stringify(active ? toSpec(filter, diaryIds, medOptionIds) : null);
 
@@ -43,7 +45,7 @@ export function HistoryPage() {
   return (
     <>
       <PageHeader title={de.history.title} />
-      {diaryIds.length ? <HistoryFilters state={filter} onChange={setFilter} diaryIds={diaryIds} medOptionIds={medOptionIds} /> : null}
+      {diaryIds.length ? <HistoryFilters state={filter} onChange={setFilter} diaryIds={diaryIds} medOptionIds={medOptionIds} templates={templates} /> : null}
       {active && !ids ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
       {!active || ids ? <EntryListState emptyTitle={de.history.emptyTitle} emptyHint={de.history.emptyHint} onlyIds={active ? ids : null} allowAllDiaries /> : null}
       <Button asChild variant="outline">

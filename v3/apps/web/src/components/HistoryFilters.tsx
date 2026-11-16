@@ -13,17 +13,37 @@ import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 
 export type RangePreset = 'all' | '7d' | '30d' | '90d';
+export type ContentKind = 'doctor' | 'bodymap' | 'image' | 'pdf';
+export const CONTENT_KINDS: ContentKind[] = ['doctor', 'bodymap', 'image', 'pdf'];
 export interface FilterState {
   text: string;
   range: RangePreset;
+  /** Freier Zeitraum (`YYYY-MM-DD`, leer = offen); hat Vorrang vor `range`. */
+  from: string;
+  to: string;
+  /** Vorlagen-IDs; leer = alle. */
+  templateIds: string[];
   outcome: boolean;
   meds: boolean;
   events: boolean;
+  /** Inhalt (UND): Arztbesuch, Body-Map, Foto, PDF. */
+  content: ContentKind[];
 }
-export const EMPTY_FILTER: FilterState = { text: '', range: 'all', outcome: false, meds: false, events: false };
+export const EMPTY_FILTER: FilterState = { text: '', range: 'all', from: '', to: '', templateIds: [], outcome: false, meds: false, events: false, content: [] };
 export const OUTCOME_THRESHOLD = 6;
+const OPEN_FROM = '1970-01-01';
+const OPEN_TO = '9999-12-31';
 
-export const isActive = (s: FilterState) => s.text.trim() !== '' || s.range !== 'all' || s.outcome || s.meds || s.events;
+export const isActive = (s: FilterState) =>
+  s.text.trim() !== '' || s.range !== 'all' || s.from !== '' || s.to !== '' || s.templateIds.length > 0 || s.outcome || s.meds || s.events || s.content.length > 0;
+
+type Cond = NonNullable<FilterSpec['conditions']>[number];
+const CONTENT_CONDITIONS: Record<ContentKind, Cond> = {
+  doctor: { kind: 'event', category: 'doctor' },
+  bodymap: { kind: 'bodymap' },
+  image: { kind: 'attachment', attachmentKind: 'image' },
+  pdf: { kind: 'attachment', attachmentKind: 'pdf' },
+};
 
 /** UI-Zustand → FilterSpec. `medOptionIds`: alle Optionen der Blöcke mit Rolle `medication`. */
 export function toSpec(s: FilterState, diaryIds: string[], medOptionIds: string[]): FilterSpec {
@@ -31,8 +51,14 @@ export function toSpec(s: FilterState, diaryIds: string[], medOptionIds: string[
   if (s.outcome) conditions.push({ kind: 'number', role: 'outcome', op: '>=', value: OUTCOME_THRESHOLD });
   if (s.meds && medOptionIds.length) conditions.push({ kind: 'option', role: 'medication', optionIds: medOptionIds, mode: 'any' });
   if (s.events) conditions.push({ kind: 'event' });
+  for (const k of CONTENT_KINDS) if (s.content.includes(k)) conditions.push(CONTENT_CONDITIONS[k]);
+  const free = s.from !== '' || s.to !== '';
+  const from = s.from || OPEN_FROM;
+  const to = s.to || OPEN_TO;
   return {
-    diaryIds, range: { preset: s.range },
+    diaryIds,
+    range: free ? (from <= to ? { from, to } : { from: to, to: from }) : { preset: s.range },
+    ...(s.templateIds.length ? { templateIds: s.templateIds } : {}),
     ...(s.text.trim() ? { text: s.text.trim() } : {}),
     ...(conditions.length ? { conditions } : {}),
   };
@@ -41,23 +67,29 @@ export function toSpec(s: FilterState, diaryIds: string[], medOptionIds: string[
 /** FilterSpec (aus gespeichertem Filter) → UI-Zustand; unbekannte Bestandteile bleiben unberücksichtigt. */
 export function fromSpec(spec: FilterSpec): FilterState {
   const c = spec.conditions ?? [];
+  const free = 'from' in spec.range ? spec.range : null;
   const range = 'preset' in spec.range && ['all', '7d', '30d', '90d'].includes(spec.range.preset) ? (spec.range.preset as RangePreset) : 'all';
   return {
     text: spec.text ?? '',
     range,
+    from: free && free.from !== OPEN_FROM ? free.from : '',
+    to: free && free.to !== OPEN_TO ? free.to : '',
+    templateIds: spec.templateIds ?? [],
     outcome: c.some((x) => x.kind === 'number' && 'role' in x && x.role === 'outcome'),
     meds: c.some((x) => x.kind === 'option' && 'role' in x && x.role === 'medication'),
-    events: c.some((x) => x.kind === 'event'),
+    events: c.some((x) => x.kind === 'event' && !x.category),
+    content: CONTENT_KINDS.filter((k) => c.some((x) => JSON.stringify(x) === JSON.stringify(CONTENT_CONDITIONS[k]))),
   };
 }
 
 const RANGES: RangePreset[] = ['all', '7d', '30d', '90d'];
 
-export function HistoryFilters({ state, onChange, diaryIds, medOptionIds }: { state: FilterState; onChange: (s: FilterState) => void; diaryIds: string[]; medOptionIds: string[] }) {
+export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templates }: { state: FilterState; onChange: (s: FilterState) => void; diaryIds: string[]; medOptionIds: string[]; templates: { id: string; name: string }[] }) {
   const data = useData();
   const ownerDiary = diaryIds[0];
   const saved = useQuery(async () => (ownerDiary ? data.diary.listSavedFilters(ownerDiary) : []), [data.diary, ownerDiary]);
   const [text, setText] = useState(state.text);
+  const freeRange = state.from !== '' || state.to !== '';
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
 
@@ -106,11 +138,34 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds }: { st
       </div>
       <ToggleGroup aria-label={de.history.range}>
         {RANGES.map((r) => (
-          <ToggleGroupItem key={r} pressed={state.range === r} onClick={() => onChange({ ...state, range: r })}>
+          <ToggleGroupItem key={r} pressed={state.range === r && !freeRange} onClick={() => onChange({ ...state, range: r, from: '', to: '' })}>
             {de.history.ranges[r]}
           </ToggleGroupItem>
         ))}
       </ToggleGroup>
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="history-from">{de.history.from}</Label>
+          <Input id="history-from" type="date" value={state.from} max={state.to || undefined} onChange={(e) => onChange({ ...state, from: e.target.value })} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="history-to">{de.history.to}</Label>
+          <Input id="history-to" type="date" value={state.to} min={state.from || undefined} onChange={(e) => onChange({ ...state, to: e.target.value })} />
+        </div>
+      </div>
+      {templates.length > 1 ? (
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label={de.history.templates}>
+          <span className="text-xs text-muted-foreground">{de.history.templates}</span>
+          {templates.map((t) => {
+            const on = state.templateIds.includes(t.id);
+            return (
+              <Button key={t.id} size="sm" variant={on ? 'default' : 'outline'} aria-pressed={on} onClick={() => onChange({ ...state, templateIds: on ? state.templateIds.filter((x) => x !== t.id) : [...state.templateIds, t.id] })}>
+                {t.name}
+              </Button>
+            );
+          })}
+        </div>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant={state.outcome ? 'default' : 'outline'} aria-pressed={state.outcome} onClick={() => toggle('outcome')}>
           {de.history.chipOutcome(OUTCOME_THRESHOLD)}
@@ -123,6 +178,11 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds }: { st
         <Button size="sm" variant={state.events ? 'default' : 'outline'} aria-pressed={state.events} onClick={() => toggle('events')}>
           {de.history.chipEvents}
         </Button>
+        {CONTENT_KINDS.map((k) => (
+          <Button key={k} size="sm" variant={state.content.includes(k) ? 'default' : 'outline'} aria-pressed={state.content.includes(k)} onClick={() => onChange({ ...state, content: state.content.includes(k) ? state.content.filter((x) => x !== k) : [...state.content, k] })}>
+            {de.history.content[k]}
+          </Button>
+        ))}
         {isActive(state) ? (
           <>
             <Button size="sm" variant="ghost" onClick={() => onChange(EMPTY_FILTER)}>

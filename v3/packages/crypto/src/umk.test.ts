@@ -44,7 +44,7 @@ describe('UMK-Wrap', () => {
   it('CRY-04: Faktor einer anderen Art oder manipulierter Wrap → unwrap-failed', async () => {
     const wrap = await wrapUmk(await generateUmk(), factors[0]![1]);
     expect(await code(unwrapUmk(wrap, factors[2]![1]))).toBe('unwrap-failed');
-    const tampered = { ...wrap, wrapped: wrap.wrapped.slice(0, -2) + (wrap.wrapped.endsWith('AA') ? 'AB' : 'AA') };
+    const tampered = { ...wrap, wrapped: (wrap.wrapped.startsWith('AA') ? 'BB' : 'AA') + wrap.wrapped.slice(2) }; // vorn ändern: am Ende liegen ungenutzte Base64-Bits
     expect(await code(unwrapUmk(tampered, factors[0]![1]))).toBe('unwrap-failed');
   });
 

@@ -145,6 +145,11 @@ describe('Verlaufsfilter und Sortierung', () => {
     expect(matchesCondition(mk('a', 2), { kind: 'bodymap', blockId: 'bm', region: 'p2' })).toBe(false);
   });
 
+  it('ANA-19: bodymap ohne Ziel ist als FilterSpec gültig und läuft durch applyFilter', () => {
+    expect(() => filterSpecSchema.parse({ ...base, conditions: [{ kind: 'bodymap' }] })).not.toThrow();
+    expect(() => run({ conditions: [{ kind: 'bodymap' }] })).not.toThrow();
+  });
+
   it('ANA-19: sortEntries newest, oldest, template_az, template_date — stabil, Eingabe unverändert', () => {
     const mk = (id: string, templateName: string, day: string): WsEntry => ({
       id, diaryId: 'd', templateId: templateName, templateName, occurredAt: `${day}T10:00:00.000Z`, day, tags: [], source: 'app', authorId: 'u',

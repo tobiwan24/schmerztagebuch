@@ -501,6 +501,23 @@
                 "properties": {
                   "kind": {
                     "type": "string",
+                    "const": "bodymap"
+                  },
+                  "region": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
                     "const": "attachment"
                   },
                   "attachmentKind": {
@@ -977,6 +994,23 @@
                       "additionalProperties": false
                     }
                   ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "bodymap"
+                    },
+                    "region": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false
                 },
                 {
                   "type": "object",
@@ -2518,6 +2552,23 @@
                             "properties": {
                               "kind": {
                                 "type": "string",
+                                "const": "bodymap"
+                              },
+                              "region": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            },
+                            "required": [
+                              "kind"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
                                 "const": "attachment"
                               },
                               "attachmentKind": {
@@ -2994,6 +3045,23 @@
                                   "additionalProperties": false
                                 }
                               ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "const": "bodymap"
+                                },
+                                "region": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "required": [
+                                "kind"
+                              ],
+                              "additionalProperties": false
                             },
                             {
                               "type": "object",
