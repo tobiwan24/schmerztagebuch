@@ -95,3 +95,4 @@ export const BLOB_MAX_BYTES = 20 * 1024 * 1024;
 export const BLOB_CIPHERTEXT_MAX_CHARS = Math.ceil(((BLOB_MAX_BYTES + 33) * 4) / 3);
 export const blobIdSchema = z.string().regex(/^[A-Za-z0-9-]{1,128}$/);
 export const blobQuerySchema = z.strictObject({ diaryId: z.string().min(1).max(128) });
+export { planVersionRenumber, type RenumberInput, type RenumberPlan } from './renumber.js';

@@ -1,13 +1,14 @@
 // Sync-Engine (Spec 04): Push → (Konflikte) → Pull. Ver-/Entschlüsselung mit dem DK passiert ausschließlich hier, unmittelbar
 // vor dem Push bzw. nach dem Pull (Spec 02/04). Lokal bleibt `payload` im lokalen Codec.
 import { decryptRecord, encryptRecord, parseEnvelope } from '@stb/crypto';
-import type { HlcClock } from '@stb/core';
+import { deepEqual, type HlcClock } from '@stb/core';
 import { PULL_LIMIT_MAX, PUSH_OPS_MAX, type PulledRecord, type PushOp, type PushResult } from '@stb/sync-protocol';
 import type { StbDb, OutboxOp, LocalRecord } from '../data/db.js';
 import type { CodecRegistry } from '../data/codec/registry.js';
 import type { SyncTransport } from './transport.js';
 import { createSingleFlight, type SingleFlight } from './single-flight.js';
 import { resolveConflict, type Side } from './resolve.js';
+import { renumberCollidedVersion } from './renumber.js';
 
 /** Liefert den aktuellen Diary Key eines Tagebuchs (gehalten von `data/crypto-session.ts`, Spec 01). */
 export interface DiaryKeyProvider {
@@ -119,6 +120,15 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
     const local: Side = { payload: await codec.decode(rec.payload, ctx), deleted: rec.deleted === 1 };
     const base: Side | undefined = rec.base === undefined ? undefined : { payload: await codec.decode(rec.base, ctx), deleted: false };
     const server: Side = { payload: serverPayload, deleted: c.server.deleted };
+    // Kollidierende Vorlagenversion: eigene Version unter der nächsten freien Nummer neu anlegen (A-016, A-039).
+    if (rec.kind === 'templateVersion' && !local.deleted && !server.deleted && !deepEqual(local, server)) {
+      const applied = await renumberCollidedVersion(
+        { db, registry, writeCodec: deps.writeCodec, hlc: deps.hlc, clock: deps.clock }, op, rec,
+        local.payload as Parameters<typeof renumberCollidedVersion>[3], { payload: serverPayload, rev: c.server.rev, deleted: c.server.deleted },
+      );
+      if (applied) summary.resolved++;
+      return;
+    }
     const r = resolveConflict(rec.kind, base, local, server);
     if (r.kind === 'unresolvable') {
       await db.outbox.update(op.seq, { lastError: r.reason, attempts: op.attempts + 1 });
@@ -172,6 +182,14 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
       .filter((o) => o.diaryId === diaryId && !o.lastError)
       .sort((a, b) => kindRank(a.kind) - kindRank(b.kind) || (a.seq ?? 0) - (b.seq ?? 0));
 
+    // Strukturdaten (Tagebuch, Vorlage, Vorlagenversion) zuerst; Einträge erst, wenn sie ohne offene Kollision durch sind
+    // (sonst gingen sie mit einer Version hinaus, die gleich umnummeriert wird, Spec 04, A-039).
+    const structure = pending.filter((o) => kindRank(o.kind) < KIND_ORDER.length);
+    await pushList(structure);
+    if (!conflicts.length) await pushList(pending.filter((o) => kindRank(o.kind) >= KIND_ORDER.length));
+    return conflicts;
+
+    async function pushList(pending: OutboxOp[]) {
     for (let i = 0; i < pending.length; i += PUSH_OPS_MAX) {
       const batch: { op: OutboxOp; snapshot: LocalRecord }[] = [];
       for (const op of pending.slice(i, i + PUSH_OPS_MAX)) {
@@ -187,7 +205,7 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
         await applyPushResults(group, results);
       }
     }
-    return conflicts;
+    }
 
     async function applyPushResults(group: { op: OutboxOp; snapshot: LocalRecord }[], results: PushResult[]) {
       await db.transaction('rw', db.records, db.outbox, async () => {
