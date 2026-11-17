@@ -1,7 +1,7 @@
 export { CryptoError, type CryptoErrorCode } from './errors.js';
 export { toBase64Url, fromBase64Url } from './encoding.js';
 export { DOMAINS } from './domains.js';
-export { deriveLocalDiaryKey, LOCAL_DK_EPOCH } from './local-dk.js';
+export { deriveLocalDiaryKey, deriveSearchIndexKey, LOCAL_DK_EPOCH } from './local-dk.js';
 export {
   ENVELOPE_VERSION,
   buildAad,

@@ -2,7 +2,7 @@
 // damit er in Tests direkt (und im Worker über `attachAnalysisService`) läuft. Die Logik selbst liegt in `@stb/analysis`.
 import {
   applyFilter, bodymapOverview, buildWorkingSet, comparePeriods, correlate, createSearchIndex, dailySeries, entrySeries, evaluateRules, eventMarks, medicationDaysByMonth, optionDays, trainingStats, triggerLift,
-  type DailyMode, type DayRange, type FilterSpec, type NumericTarget, type SearchIndex, type WorkingSet, type WorkingSetInput,
+  type DailyMode, type DayRange, type FilterSpec, type NumericTarget, type SearchIndex, type SearchSnapshot, type WorkingSet, type WorkingSetInput,
 } from '@stb/analysis';
 import type { NotificationRule, Role } from '@stb/core';
 
@@ -19,10 +19,19 @@ export function createAnalysisService() {
     return spec ? applyFilter(w, spec, { now, search: (t) => i.search(t) }) : w.entries;
   };
   return {
-    load(input: WorkingSetInput) {
+    /**
+     * Arbeitsset laden. Der Suchindex wird beim ersten Laden aus `snapshot` (persistierter Stand, M23) aufgebaut und
+     * danach nur noch inkrementell mit dem Arbeitsset abgeglichen (ANA-33).
+     */
+    load(input: WorkingSetInput, snapshot?: unknown) {
       ws = buildWorkingSet(input);
-      index = createSearchIndex(ws);
+      if (index) index.sync(ws);
+      else index = createSearchIndex(ws, snapshot === undefined ? {} : { snapshot });
       return { entries: ws.entries.length };
+    },
+    /** Persistierbarer Stand des Suchindex; `null`, wenn sich seit dem letzten Aufruf nichts geändert hat. */
+    searchSnapshot(): SearchSnapshot | null {
+      return need().index.snapshot();
     },
     filter(spec: FilterSpec, now: number) {
       return scope(spec, now).map((e) => e.id);
@@ -129,6 +138,6 @@ export function createAnalysisClient(port: Port): AnalysisClient {
       pending.set(id, { resolve, reject });
       port.postMessage({ id, method, args } satisfies Request);
     });
-  const methods: AnalysisMethod[] = ['load', 'filter', 'search', 'dailySeries', 'entrySeries', 'compare', 'optionDays', 'medicationDays', 'events', 'bodymap', 'training', 'correlation', 'triggers', 'rules', 'blocks'];
+  const methods: AnalysisMethod[] = ['load', 'filter', 'search', 'dailySeries', 'entrySeries', 'compare', 'optionDays', 'medicationDays', 'events', 'bodymap', 'training', 'correlation', 'triggers', 'rules', 'blocks', 'searchSnapshot'];
   return Object.fromEntries(methods.map((m) => [m, call(m)])) as AnalysisClient;
 }

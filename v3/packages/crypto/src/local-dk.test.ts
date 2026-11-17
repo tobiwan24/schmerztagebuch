@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deriveLocalDiaryKey, LOCAL_DK_EPOCH } from './local-dk.js';
+import { deriveLocalDiaryKey, deriveSearchIndexKey, LOCAL_DK_EPOCH } from './local-dk.js';
 import { generateUmk } from './umk.js';
 import { decryptRecord, encryptRecord } from './envelope.js';
 
@@ -15,6 +15,16 @@ describe('DK für lokale Tagebücher (A-125)', () => {
     expect(await raw(await deriveLocalDiaryKey(umk, 'diary-b'))).not.toEqual(a1);
     expect(await raw(await deriveLocalDiaryKey(await generateUmk(), 'diary-a'))).not.toEqual(a1);
     expect(a1).not.toEqual(await raw(umk));
+  });
+
+  it('A-126: der Suchindex-Schlüssel ist je UMK stabil, nicht extrahierbar und verschieden von jedem Tagebuch-DK', async () => {
+    const umk = await generateUmk();
+    const key = await deriveSearchIndexKey(umk);
+    expect(key.extractable).toBe(false);
+    const ct = await encryptRecord(key, aad('device'), new TextEncoder().encode('index'));
+    expect(new TextDecoder().decode(await decryptRecord(await deriveSearchIndexKey(umk), aad('device'), ct))).toBe('index');
+    await expect(decryptRecord(await deriveSearchIndexKey(await generateUmk()), aad('device'), ct)).rejects.toThrow();
+    await expect(decryptRecord(await deriveLocalDiaryKey(umk, 'device'), aad('device'), ct)).rejects.toThrow();
   });
 
   it('A-125: der abgeleitete Schlüssel verschlüsselt (Epoche 1) und ist extrahierbar (für den Wrap beim Wechsel ins Konto)', async () => {

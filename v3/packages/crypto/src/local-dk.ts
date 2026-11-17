@@ -26,3 +26,7 @@ export function deriveLocalDiaryKey(umk: CryptoKey, diaryId: string): Promise<Cr
   return hkdfAesKey(umk, `${DOMAINS.localDk}|${diaryId}`, true);
 }
 
+/** Schlüssel für den persistierten Suchindex (A-126): `info = "stb/v3/search-index"`, nicht extrahierbar, nur lokal. */
+export function deriveSearchIndexKey(umk: CryptoKey): Promise<CryptoKey> {
+  return hkdfAesKey(umk, DOMAINS.searchIndex, false);
+}

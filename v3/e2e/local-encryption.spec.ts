@@ -55,6 +55,23 @@ async function unlock(page: Page) {
   await expect(page.getByTestId('lock-banner')).toHaveCount(0, { timeout: 30_000 });
 }
 
+async function hasDeviceRow(page: Page, id: string): Promise<boolean> {
+  return page.evaluate(
+    (rowId) =>
+      new Promise<boolean>((resolve, reject) => {
+        const req = indexedDB.open('stb-v3');
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => {
+          const db = req.result;
+          const get = db.transaction('device').objectStore('device').get(rowId);
+          get.onsuccess = () => (db.close(), resolve(get.result !== undefined));
+          get.onerror = () => (db.close(), reject(get.error));
+        };
+      }),
+    id,
+  );
+}
+
 async function hasAutoBackup(page: Page): Promise<boolean> {
   return page.evaluate(
     () =>
@@ -114,6 +131,9 @@ test.describe('Lokale Verschlüsselung', () => {
     // Auto-Sicherung (liest über das Repository) entsteht auch mit verschlüsselten Daten
     await page.clock.fastForward(40_000);
     await expect.poll(() => hasAutoBackup(page), { timeout: 60_000 }).toBe(true);
+    // Persistierter Suchindex (ANA-33): entsteht nach einer Ruhezeit und enthält keinen Klartext
+    await expect.poll(() => hasDeviceRow(page, 'search-index'), { timeout: 30_000 }).toBe(true);
+    expect((await scanDb(page)).dump).not.toContain(MARKER);
 
     // Export liefert den Klartext der Einträge (über das Repository)
     await go(page, '/more/export');
@@ -128,6 +148,9 @@ test.describe('Lokale Verschlüsselung', () => {
     await unlock(page);
     await go(page, '/history');
     await expect(page.getByTestId('entry-row')).toHaveCount(3);
+    // Kaltstart-Suche aus dem gespeicherten Index findet den Eintrag
+    await page.getByLabel('Suchen').fill('drei');
+    await expect(page.getByTestId('entry-row')).toHaveCount(1);
   });
 
   test('DM-18: eine unterbrochene Umstellung wird nach dem Entsperren fortgesetzt', async ({ page }) => {

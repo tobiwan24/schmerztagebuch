@@ -9,7 +9,8 @@ Zusammenhänge. Jede Kennzahl zeigt ihre Fallzahl `n`.
   Tagebücher ein Arbeitsset im Speicher auf: Einträge mit aufgelösten Vorlagenversionen, Normalform je Wert
   (`toAnalysis`, 05) und Wetterfeldern.
 - Der Worker hält einen **MiniSearch**-Index über Textwerte, Options-Labels, Tags, Ereignistitel und Vorlagen-/Blocknamen.
-  Der Index wird nicht persistiert (Neuaufbau beim Entsperren und inkrementell bei Änderungen).
+  Der Index wird standardmäßig nicht persistiert (Neuaufbau beim Entsperren und inkrementell bei Änderungen); mit
+  eingeschalteter lokaler Verschlüsselung wird er verschlüsselt gespeichert (siehe „Erweiterungen v3.x“).
 - Alle Funktionen der Filter- und Aggregationslogik liegen **pur** in `packages/analysis` und sind ohne Worker/DOM testbar.
 
 ## Filter (`FilterSpec`, zod-Schema in `packages/analysis`)
@@ -89,7 +90,7 @@ Condition =
 - **Zusammenhänge (M20):** Spearman auf Tageswerten, Zeitversatz 0–7 Tage, erst ab n ≥ 14 gemeinsamen Tagen; Lift für Auslöser (Ereignis an Tag d bzw. d−1 → Ergebnis ≥ Schwelle), erst ab 10 Fällen; immer mit Fallzahl und dem Hinweis „Zusammenhang ist keine Ursache“. Unterhalb der Mindestzahl erscheint keine Zahl; keine p-Werte, Stärke in Worten (schwach/mittel/stark).
 - **Hinweise / Schwellwerte (M20):** Record-kind `notificationRule` `{ id, diaryId, blockId, op: '>=' | '<=', value, consecutiveDays, cooldownHours (Standard 24) }`, nur beschreibende Texte („Schmerz ≥ 7 an 3 Tagen in Folge“), keine Empfehlungen. Ausgelöst nach dem Speichern und beim Öffnen; Banner auf Start + lokale Notification über den Service Worker, falls erlaubt. Kein Push-Server.
 - **Dashboard-Baukasten (M21):** `Dashboard { id, diaryId, name, order, widgets: [{ id, kind: 'timeseries' | 'heatmap' | 'medicationDays' | 'frequency' | 'bodymap' | 'correlation' | 'kpi', config, span: 1 | 2 }], hlc, updatedAt }`, Record-kind `dashboard`, Push nur durch den Owner, Konflikt: ganzer Datensatz per HLC. Die Standard-Ansichten bleiben unverändert. `config` je Art (`core/dashboard.ts`): alle haben `days` (1–3650), `timeseries`/`heatmap`/`frequency`/`bodymap`/`kpi` optional `blockId`, `kpi` zusätzlich `stat` (`mean`/`median`/`max`/`min`), `correlation` `blockIdA`, `blockIdB`, `lag` (0–7); höchstens 24 Widgets. Dashboards stehen im JSON-v1-Export (`dashboards`).
-- **Persistierter Suchindex (M23):** lokaler, verschlüsselter Record (nicht synchronisiert), inkrementell aktualisiert.
+- **Persistierter Suchindex (M23, A-126):** nur mit „Daten auf dem Gerät verschlüsseln“. Lokaler, verschlüsselter, nicht synchronisierter Stand in `device` (`search-index`; Schlüssel per HKDF aus der UMK, `stb/v3/search-index`), bestehend aus MiniSearch-JSON und einem Inhalts-Fingerabdruck je Eintrag. Beim Kaltstart wird er geladen und nur um die Unterschiede zum Arbeitsset ergänzt (neue/geänderte Einträge indizieren, entfernte verwerfen); im laufenden Betrieb gleicht der Worker inkrementell ab und der Stand wird nach einer Ruhezeit (5 s) und nur bei Änderungen gesichert. Ein unbrauchbarer Stand (Version, Format, anderer Schlüssel) führt zum normalen Neuaufbau.
 - **LLM-Zusammenfassung für den Arzt (M19):** siehe 08; sendet standardmäßig nur Kennzahlen aus dieser Spec.
 
 ## Akzeptanztests

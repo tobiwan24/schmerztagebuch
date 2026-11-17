@@ -30,4 +30,28 @@ describe('Analyse-Worker-Protokoll', () => {
     port1.close();
     port2.close();
   });
+
+  it('ANA-33: Suchindex aus persistiertem Stand; weitere Ladevorgänge gleichen nur ab; Stand nur bei Änderungen', async () => {
+    const { port1, port2 } = new MessageChannel();
+    attachAnalysisService(port2);
+    const client = createAnalysisClient(port1);
+    const input = { entries: fixtureEntries, templates: fixtureTemplates, versions: fixtureVersions, diaries: fixtureDiaries };
+    await client.load(input);
+    const snapshot = JSON.parse(JSON.stringify(await client.searchSnapshot())) as unknown;
+    expect(snapshot).not.toBeNull();
+    expect(await client.searchSnapshot()).toBeNull(); // nichts geändert
+
+    // Neuer Worker (Kaltstart) mit dem gespeicherten Stand: gleiche Treffer, nichts neu zu sichern
+    const second = new MessageChannel();
+    attachAnalysisService(second.port2);
+    const cold = createAnalysisClient(second.port1);
+    await cold.load(input, snapshot);
+    expect((await cold.search('Ibuprofen')).sort()).toEqual(['e01', 'e03', 'e10']);
+    expect(await cold.searchSnapshot()).toBeNull();
+    // Ein Eintrag weniger (Arbeitsset-Abgleich im laufenden Betrieb) → Stand ändert sich, Treffer folgen
+    await cold.load({ ...input, entries: fixtureEntries.filter((e) => e.id !== 'e10') });
+    expect((await cold.search('Ibuprofen')).sort()).toEqual(['e01', 'e03']);
+    expect(await cold.searchSnapshot()).not.toBeNull();
+    for (const p of [port1, port2, second.port1, second.port2]) p.close();
+  });
 });
