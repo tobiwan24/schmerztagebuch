@@ -4,6 +4,14 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.7.0-alpha.1',
+    date: '2026-11-17',
+    points: [
+      'Neu: Auswertung → Dashboards. Du stellst eigene Dashboards aus Ansichten zusammen (Verlauf, Kalender, Medikamententage, Häufigkeiten, Körperkarte, Zusammenhang, Kennzahl), benennst sie um und sortierst sie. Sie werden mit deinen anderen Geräten abgeglichen.',
+      'Ein Dashboard lässt sich als ein Bild (PNG) speichern oder als PDF im Layout „Dashboard“ ausgeben. Das PDF zeigt dein Dashboard auf der ersten Seite.',
+    ],
+  },
+  {
     version: '3.6.0-alpha.1',
     date: '2026-11-17',
     points: [
