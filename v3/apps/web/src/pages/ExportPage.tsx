@@ -22,6 +22,7 @@ import { useQuery } from '@/data/useQuery';
 import { downloadText, useBackup, type ExportFormat } from '@/data/useBackup';
 import type { ImportPlan } from '@/data/import-export';
 import { de } from '@/i18n/de';
+import { deOnboarding } from '@/i18n/lazy/onboarding';
 
 const t = de.exportPage;
 const errorText = (e: unknown) => t.errors[(e as { code?: string }).code as keyof typeof t.errors] ?? t.errors.unknown;
@@ -279,8 +280,8 @@ function BackupCard({ localOnly }: { localOnly: boolean }) {
     e.preventDefault();
     setError(null);
     setDone(false);
-    if (kind === 'password' && value.length < 8) return setError(de.onboarding.passwordTooShort);
-    if (kind === 'password' && value !== repeat) return setError(de.onboarding.passwordMismatch);
+    if (kind === 'password' && value.length < 8) return setError(deOnboarding.passwordTooShort);
+    if (kind === 'password' && value !== repeat) return setError(deOnboarding.passwordMismatch);
     setBusy(true);
     try {
       if (kind === 'backup-code' && !(await checkBackupCode(value))) return setError(t.errors['wrong-backup-code']);
@@ -307,7 +308,7 @@ function BackupCard({ localOnly }: { localOnly: boolean }) {
           {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
           <Button type="submit" disabled={busy || !value}>
             <ShieldCheck aria-hidden />
-            {busy ? de.onboarding.working : t.backupDownload}
+            {busy ? deOnboarding.working : t.backupDownload}
           </Button>
           {done ? <p role="status" className="text-sm text-muted-foreground">{t.backupDone}</p> : null}
           <p className="text-xs text-muted-foreground" data-testid="last-backup">
@@ -407,7 +408,7 @@ function ImportCard() {
         {needsSecret ? (
           <form className="flex flex-col gap-3" onSubmit={(e) => void unlock(e)}>
             <SecretFields kind={kind} onKind={setKind} value={value} onValue={setValue} idPrefix="import" />
-            <Button type="submit" disabled={busy || !value}>{busy ? de.onboarding.working : t.openBackup}</Button>
+            <Button type="submit" disabled={busy || !value}>{busy ? deOnboarding.working : t.openBackup}</Button>
           </form>
         ) : null}
         {preview && doc ? (

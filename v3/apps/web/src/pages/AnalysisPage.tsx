@@ -23,6 +23,8 @@ import { BlockPicker, useWorker } from '@/components/AnalysisShared';
 import { cn } from '@/lib/utils';
 import { exportViewAsPng, renderViewAsPng } from '@/lib/export-png';
 import { de } from '@/i18n/de';
+import { deAnalysis } from '@/i18n/lazy/analysis';
+import { deBodymap } from '@/i18n/lazy/bodymap';
 
 type View = 'trend' | 'calendar' | 'meds' | 'freq' | 'body' | 'corr' | 'training' | 'dashboards';
 type Range = 'day' | '7d' | '30d' | '90d' | '6m' | '1y';
@@ -59,9 +61,9 @@ export function AnalysisPage() {
   const [exporting, setExporting] = useState(false);
   const [chartEntryOpen, setChartEntryOpen] = useState(false);
 
-  if (entries.status === 'error') return (<><PageHeader title={de.analysis.title} /><ErrorState onRetry={entries.retry} /></>);
-  if (entries.status === 'loading') return (<><PageHeader title={de.analysis.title} /><p className="text-muted-foreground">{de.app.loading}</p></>);
-  if (entries.data.count === 0) return (<><PageHeader title={de.analysis.title} /><EmptyState title={de.analysis.emptyTitle} hint={de.analysis.emptyHint} /></>);
+  if (entries.status === 'error') return (<><PageHeader title={deAnalysis.title} /><ErrorState onRetry={entries.retry} /></>);
+  if (entries.status === 'loading') return (<><PageHeader title={deAnalysis.title} /><p className="text-muted-foreground">{de.app.loading}</p></>);
+  if (entries.data.count === 0) return (<><PageHeader title={deAnalysis.title} /><EmptyState title={deAnalysis.emptyTitle} hint={deAnalysis.emptyHint} /></>);
   const to = addDays(today(now()), -shift * RANGE_DAYS[range]);
   const from = addDays(to, -(RANGE_DAYS[range] - 1));
   const older = () => setShift((s) => s + 1);
@@ -72,13 +74,13 @@ export function AnalysisPage() {
   // Kalender und Dashboards haben eigene Zeiträume (Monat bzw. je Widget)
   const ownRange = view === 'calendar' || view === 'dashboards';
   const period = ownRange ? '' : range === 'day' ? ` · ${longDay(to)}` : ` · ${shortDay(from)}–${shortDay(to)}${to.slice(0, 4)}`;
-  const viewTitle = `${de.analysis.viewNames[view]}${period}`;
+  const viewTitle = `${deAnalysis.viewNames[view]}${period}`;
 
   async function exportPng() {
     if (!viewRef.current) return;
     setExporting(true);
     try {
-      await exportViewAsPng(viewRef.current, viewTitle, de.analysis.pngFileName(view, to));
+      await exportViewAsPng(viewRef.current, viewTitle, deAnalysis.pngFileName(view, to));
     } finally {
       setExporting(false);
     }
@@ -86,11 +88,11 @@ export function AnalysisPage() {
 
   return (
     <>
-      <PageHeader title={de.analysis.title} />
-      <ToggleGroup aria-label={de.analysis.views}>
+      <PageHeader title={deAnalysis.title} />
+      <ToggleGroup aria-label={deAnalysis.views}>
         {views.map((v) => (
           <ToggleGroupItem key={v} pressed={view === v} onClick={() => setView(v)} className="px-1 text-xs">
-            {de.analysis.viewNames[v]}
+            {deAnalysis.viewNames[v]}
           </ToggleGroupItem>
         ))}
       </ToggleGroup>
@@ -98,26 +100,26 @@ export function AnalysisPage() {
         <ToggleGroup aria-label={de.history.range} data-tour="analysis-range" className={TOUR_RING}>
           {RANGES.map((r) => (
             <ToggleGroupItem key={r} pressed={range === r} onClick={() => (setRange(r), setShift(0))}>
-              {de.analysis.ranges[r]}
+              {deAnalysis.ranges[r]}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
       ) : null}
       {!ownRange ? (
         <div className="flex items-center justify-between gap-2">
-          <Button size="sm" variant="ghost" aria-label={de.analysis.olderPeriod} onClick={older}>‹</Button>
+          <Button size="sm" variant="ghost" aria-label={deAnalysis.olderPeriod} onClick={older}>‹</Button>
           <span data-testid="analysis-period" className="text-sm tabular-nums">{range === 'day' ? longDay(to) : `${longDay(from)} – ${longDay(to)}`}</span>
-          <Button size="sm" variant="ghost" aria-label={de.analysis.newerPeriod} disabled={shift === 0} onClick={newer}>›</Button>
+          <Button size="sm" variant="ghost" aria-label={deAnalysis.newerPeriod} disabled={shift === 0} onClick={newer}>›</Button>
         </div>
       ) : null}
       <div className="flex flex-wrap justify-end gap-2">
         <Button variant="outline" size="sm" onClick={() => setChartEntryOpen(true)}>
           <FilePlus aria-hidden />
-          {de.analysis.chartEntry.open}
+          {deAnalysis.chartEntry.open}
         </Button>
         <Button variant="outline" size="sm" disabled={exporting} onClick={() => void exportPng()}>
           <ImageDown aria-hidden />
-          {de.analysis.exportPng}
+          {deAnalysis.exportPng}
         </Button>
       </div>
       <ChartEntryDialog
@@ -169,12 +171,12 @@ export function TrendView({ spec, intraday, blockId: initialBlockId }: { spec: F
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">{de.analysis.trendTitle(label)}</CardTitle>
-        <p className="text-xs text-muted-foreground" data-testid="trend-n">{de.analysis.nDays(series.length)}</p>
+        <CardTitle className="text-base">{deAnalysis.trendTitle(label)}</CardTitle>
+        <p className="text-xs text-muted-foreground" data-testid="trend-n">{deAnalysis.nDays(series.length)}</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <BlockPicker blocks={numeric} value={blockId} onChange={setPicked} />
-        {series.length === 0 ? <p className="text-sm text-muted-foreground">{de.analysis.noValues}</p> : (
+        {series.length === 0 ? <p className="text-sm text-muted-foreground">{deAnalysis.noValues}</p> : (
           <ChartContainer config={{ value: { label, color: 'var(--chart-1)' } }}>
             <LineChart data={series.map((d) => ({ day: d.day, value: d.value }))} margin={{ left: -20, right: 8, top: 16 }}>
               <CartesianGrid vertical={false} />
@@ -198,7 +200,7 @@ export function TrendView({ spec, intraday, blockId: initialBlockId }: { spec: F
         {(events ?? []).length ? (
           <ul data-testid="event-marks" className="flex flex-col gap-1 text-xs text-muted-foreground">
             {events!.map((ev, i) => (
-              <li key={i}>{`◆ ${shortDay(ev.day)} ${ev.category === 'doctor' ? de.analysis.doctor : de.analysis.event}: ${ev.title}`}</li>
+              <li key={i}>{`◆ ${shortDay(ev.day)} ${ev.category === 'doctor' ? deAnalysis.doctor : deAnalysis.event}: ${ev.title}`}</li>
             ))}
           </ul>
         ) : null}
@@ -218,12 +220,12 @@ function IntradayCard({ label, points, numeric, blockId, onPick, events }: { lab
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">{de.analysis.trendTitleDay(label)}</CardTitle>
-        <p className="text-xs text-muted-foreground" data-testid="trend-n">{de.analysis.nValues(points.length)}</p>
+        <CardTitle className="text-base">{deAnalysis.trendTitleDay(label)}</CardTitle>
+        <p className="text-xs text-muted-foreground" data-testid="trend-n">{deAnalysis.nValues(points.length)}</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <BlockPicker blocks={numeric} value={blockId} onChange={onPick} />
-        {points.length === 0 ? <p className="text-sm text-muted-foreground">{de.analysis.noValues}</p> : (
+        {points.length === 0 ? <p className="text-sm text-muted-foreground">{deAnalysis.noValues}</p> : (
           <ChartContainer config={{ value: { label, color: 'var(--chart-1)' } }}>
             <LineChart data={data} margin={{ left: -20, right: 8, top: 16 }}>
               <CartesianGrid vertical={false} />
@@ -237,7 +239,7 @@ function IntradayCard({ label, points, numeric, blockId, onPick, events }: { lab
         {events.length ? (
           <ul data-testid="event-marks" className="flex flex-col gap-1 text-xs text-muted-foreground">
             {events.map((ev, i) => (
-              <li key={i}>{`◆ ${ev.category === 'doctor' ? de.analysis.doctor : de.analysis.event}: ${ev.title}`}</li>
+              <li key={i}>{`◆ ${ev.category === 'doctor' ? deAnalysis.doctor : deAnalysis.event}: ${ev.title}`}</li>
             ))}
           </ul>
         ) : null}
@@ -266,14 +268,14 @@ export function CalendarView({ diaryIds }: { diaryIds: string[] }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <Button size="sm" variant="ghost" aria-label={de.analysis.prevMonth} onClick={() => setOffset(offset - 1)}>‹</Button>
+        <Button size="sm" variant="ghost" aria-label={deAnalysis.prevMonth} onClick={() => setOffset(offset - 1)}>‹</Button>
         <CardTitle className="text-base">{month.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</CardTitle>
-        <Button size="sm" variant="ghost" aria-label={de.analysis.nextMonth} onClick={() => setOffset(offset + 1)}>›</Button>
+        <Button size="sm" variant="ghost" aria-label={deAnalysis.nextMonth} onClick={() => setOffset(offset + 1)}>›</Button>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
-        <p className="text-xs text-muted-foreground">{outcome ? de.analysis.calendarHint(outcome.label) : de.analysis.noValues}</p>
+        <p className="text-xs text-muted-foreground">{outcome ? deAnalysis.calendarHint(outcome.label) : deAnalysis.noValues}</p>
         <div className="grid grid-cols-7 gap-1 text-center text-xs" data-testid="calendar-grid">
-          {de.analysis.weekdays.map((w) => (
+          {deAnalysis.weekdays.map((w) => (
             <span key={w} className="text-muted-foreground">{w}</span>
           ))}
           {Array.from({ length: lead }, (_, i) => <span key={`l${i}`} />)}
@@ -285,7 +287,7 @@ export function CalendarView({ diaryIds }: { diaryIds: string[] }) {
                 key={day}
                 data-testid="calendar-day"
                 data-value={v ?? ''}
-                title={v === undefined ? `${shortDay(day)} ${de.analysis.noEntry}` : `${shortDay(day)}: ${fmt(v)}`}
+                title={v === undefined ? `${shortDay(day)} ${deAnalysis.noEntry}` : `${shortDay(day)}: ${fmt(v)}`}
                 className={cn('flex aspect-square items-center justify-center rounded-md border', v === undefined ? 'text-muted-foreground' : bucket(v))}
               >
                 {i + 1}
@@ -317,10 +319,10 @@ export function MedsView({ spec }: { spec: FilterSpec }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">{de.analysis.medicationDays}</CardTitle>
+        <CardTitle className="text-base">{deAnalysis.medicationDays}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        {rows.length === 0 ? <p className="text-sm text-muted-foreground">{de.analysis.noMedication}</p> : (
+        {rows.length === 0 ? <p className="text-sm text-muted-foreground">{deAnalysis.noMedication}</p> : (
           <ChartContainer config={config}>
             <BarChart data={rows} margin={{ left: -20, right: 8 }}>
               <CartesianGrid vertical={false} />
@@ -343,7 +345,7 @@ export function MedsView({ spec }: { spec: FilterSpec }) {
           </ul>
         ) : null}
         <div className="flex items-center gap-2">
-          <Label htmlFor="med-marker" className="font-normal">{de.analysis.markerLine}</Label>
+          <Label htmlFor="med-marker" className="font-normal">{deAnalysis.markerLine}</Label>
           <Input id="med-marker" type="number" min={0} inputMode="numeric" className="w-24" value={marker} onChange={(e) => setMarker(e.target.value)} />
         </div>
       </CardContent>
@@ -364,17 +366,17 @@ export function FreqView({ spec, from, to }: { spec: FilterSpec; from: string; t
     <>
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">{de.analysis.frequencies}</CardTitle>
+        <CardTitle className="text-base">{deAnalysis.frequencies}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <BlockPicker blocks={choice} value={blockId} onChange={setPicked} />
-        {days.length === 0 ? <p className="text-sm text-muted-foreground">{de.analysis.noValues}</p> : (
-          <ChartContainer config={{ days: { label: de.analysis.daysLabel, color: 'var(--chart-2)' } }} className={days.length <= 4 ? 'h-40' : days.length <= 7 ? 'h-64' : 'h-96'}>
+        {days.length === 0 ? <p className="text-sm text-muted-foreground">{deAnalysis.noValues}</p> : (
+          <ChartContainer config={{ days: { label: deAnalysis.daysLabel, color: 'var(--chart-2)' } }} className={days.length <= 4 ? 'h-40' : days.length <= 7 ? 'h-64' : 'h-96'}>
             <BarChart data={days.map((d) => ({ label: d.label, days: d.days }))} layout="vertical" margin={{ left: 8, right: 16 }}>
               <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
               <YAxis type="category" dataKey="label" width={110} tickLine={false} axisLine={false} />
               <Tooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="days" name={de.analysis.daysLabel} fill="var(--color-days)" radius={4} isAnimationActive={false} />
+              <Bar dataKey="days" name={deAnalysis.daysLabel} fill="var(--color-days)" radius={4} isAnimationActive={false} />
             </BarChart>
           </ChartContainer>
         )}
@@ -392,12 +394,12 @@ function MedPie({ meds }: { meds: { optionId: string; label: string; days: numbe
   return (
     <Card data-testid="med-pie">
       <CardHeader>
-        <CardTitle className="text-base">{de.analysis.medicationShare}</CardTitle>
+        <CardTitle className="text-base">{deAnalysis.medicationShare}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <ChartContainer config={Object.fromEntries(meds.map((m, i) => [`m${i}`, { label: m.label, color: PALETTE[i % PALETTE.length]! }]))} className="h-56">
           <PieChart>
-            <Tooltip content={<ChartTooltipContent formatter={(v) => `${v} ${de.analysis.daysLabel}`} />} />
+            <Tooltip content={<ChartTooltipContent formatter={(v) => `${v} ${deAnalysis.daysLabel}`} />} />
             <Pie data={meds.map((m) => ({ name: m.label, value: m.days }))} dataKey="value" nameKey="name" innerRadius={40} outerRadius={80} isAnimationActive={false}>
               {meds.map((m, i) => <Cell key={m.optionId} fill={PALETTE[i % PALETTE.length]} />)}
             </Pie>
@@ -407,7 +409,7 @@ function MedPie({ meds }: { meds: { optionId: string; label: string; days: numbe
           {meds.map((m, i) => (
             <li key={m.optionId} className="flex items-center gap-2">
               <svg aria-hidden className="size-3" viewBox="0 0 12 12"><rect width="12" height="12" rx="2" fill={PALETTE[i % PALETTE.length]} /></svg>
-              {m.label}: {pct(m.days)} ({m.days} {de.analysis.daysLabel})
+              {m.label}: {pct(m.days)} ({m.days} {deAnalysis.daysLabel})
             </li>
           ))}
         </ul>
@@ -421,7 +423,7 @@ function TrainingView({ spec }: { spec: FilterSpec }) {
   const { now } = useData();
   const stats = useWorker((c) => c.training({ spec, now: now() }), [JSON.stringify(spec)]);
   if (!stats) return <p className="text-muted-foreground">{de.app.loading}</p>;
-  const t = de.analysis.training;
+  const t = deAnalysis.training;
   if (stats.totalDays === 0) return <p className="text-sm text-muted-foreground">{t.noData}</p>;
   return (
     <>
@@ -431,13 +433,13 @@ function TrainingView({ spec }: { spec: FilterSpec }) {
           <p className="text-xs text-muted-foreground">{t.totalDays(stats.totalDays)}</p>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <ChartContainer config={{ days: { label: de.analysis.daysLabel, color: 'var(--chart-2)' } }}>
+          <ChartContainer config={{ days: { label: deAnalysis.daysLabel, color: 'var(--chart-2)' } }}>
             <BarChart data={stats.weeks.map((w) => ({ week: shortDay(w.weekStart), days: w.days }))} margin={{ left: -20, right: 8 }}>
               <CartesianGrid vertical={false} />
               <XAxis dataKey="week" tickLine={false} axisLine={false} />
               <YAxis allowDecimals={false} domain={[0, 7]} tickLine={false} axisLine={false} />
               <Tooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="days" name={de.analysis.daysLabel} fill="var(--color-days)" radius={4} isAnimationActive={false} />
+              <Bar dataKey="days" name={deAnalysis.daysLabel} fill="var(--color-days)" radius={4} isAnimationActive={false} />
             </BarChart>
           </ChartContainer>
           <ul data-testid="training-week-list" className="sr-only">
@@ -486,16 +488,16 @@ export function BodyView({ spec }: { spec: FilterSpec }) {
   const overview = useWorker((c) => c.bodymap({ spec, now: now() }), [JSON.stringify(spec)]);
   const own = useQuery(async () => (await Promise.all(spec.diaryIds.map((d) => diary.listBodymapImages(d)))).flat(), [diary, spec.diaryIds.join()]);
   if (!overview) return <p className="text-muted-foreground">{de.app.loading}</p>;
-  if (overview.length === 0) return <p className="text-sm text-muted-foreground">{de.analysis.noValues}</p>;
+  if (overview.length === 0) return <p className="text-sm text-muted-foreground">{deAnalysis.noValues}</p>;
   const srcOf = (id: string) => BODYMAP_PRESETS.find((p) => p.id === id)?.src ?? (own.status === 'ok' ? own.data.find((i) => i.id === id)?.dataUrl : undefined);
-  const nameOf = (id: string) => de.bodymap.presets[id as keyof typeof de.bodymap.presets] ?? (own.status === 'ok' ? own.data.find((i) => i.id === id)?.name : undefined) ?? id;
+  const nameOf = (id: string) => deBodymap.presets[id as keyof typeof deBodymap.presets] ?? (own.status === 'ok' ? own.data.find((i) => i.id === id)?.name : undefined) ?? id;
   return (
     <>
       {overview.map((o) => (
         <Card key={o.presetId}>
           <CardHeader>
             <CardTitle className="text-base">{nameOf(o.presetId)}</CardTitle>
-            <p className="text-xs text-muted-foreground">{de.analysis.bodymapCount(o.entries, o.points.length)}</p>
+            <p className="text-xs text-muted-foreground">{deAnalysis.bodymapCount(o.entries, o.points.length)}</p>
           </CardHeader>
           <CardContent>
             <OverviewImage src={srcOf(o.presetId)} alt={nameOf(o.presetId)} points={o.points} />
@@ -518,27 +520,27 @@ function CompareCard({ diaryIds, from, to }: { diaryIds: string[]; from: string;
   );
   if (!cmp) return null;
   const rows: [string, number | null, number | null, number | null][] = [
-    [de.analysis.count, cmp.b.n, cmp.a.n, cmp.b.n - cmp.a.n],
-    [de.analysis.mean, cmp.b.mean, cmp.a.mean, cmp.diff.mean],
-    [de.analysis.median, cmp.b.median, cmp.a.median, cmp.diff.median],
-    [de.analysis.min, cmp.b.min, cmp.a.min, cmp.diff.min],
-    [de.analysis.max, cmp.b.max, cmp.a.max, cmp.diff.max],
-    [de.analysis.daysAtOrAbove, cmp.b.daysAtOrAbove, cmp.a.daysAtOrAbove, cmp.diff.daysAtOrAbove],
-    [de.analysis.daysWithEntry, cmp.b.daysWithEntry, cmp.a.daysWithEntry, cmp.b.daysWithEntry - cmp.a.daysWithEntry],
+    [deAnalysis.count, cmp.b.n, cmp.a.n, cmp.b.n - cmp.a.n],
+    [deAnalysis.mean, cmp.b.mean, cmp.a.mean, cmp.diff.mean],
+    [deAnalysis.median, cmp.b.median, cmp.a.median, cmp.diff.median],
+    [deAnalysis.min, cmp.b.min, cmp.a.min, cmp.diff.min],
+    [deAnalysis.max, cmp.b.max, cmp.a.max, cmp.diff.max],
+    [deAnalysis.daysAtOrAbove, cmp.b.daysAtOrAbove, cmp.a.daysAtOrAbove, cmp.diff.daysAtOrAbove],
+    [deAnalysis.daysWithEntry, cmp.b.daysWithEntry, cmp.a.daysWithEntry, cmp.b.daysWithEntry - cmp.a.daysWithEntry],
   ];
   const sign = (v: number | null) => (v === null ? '–' : `${v > 0 ? '+' : ''}${fmt(v)}`);
   return (
     <Card data-testid="compare-card">
       <CardHeader>
-        <CardTitle className="text-base">{de.analysis.compareTitle}</CardTitle>
-        <p className="text-xs text-muted-foreground">{de.analysis.compareRanges(longDay(from), longDay(to), longDay(prev.from), longDay(prev.to))}</p>
+        <CardTitle className="text-base">{deAnalysis.compareTitle}</CardTitle>
+        <p className="text-xs text-muted-foreground">{deAnalysis.compareRanges(longDay(from), longDay(to), longDay(prev.from), longDay(prev.to))}</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="grid grid-cols-4 gap-x-2 gap-y-1 text-sm">
           <span />
-          <span className="text-right text-xs text-muted-foreground">{de.analysis.currentPeriod}</span>
-          <span className="text-right text-xs text-muted-foreground">{de.analysis.previousPeriod}</span>
-          <span className="text-right text-xs text-muted-foreground">{de.analysis.difference}</span>
+          <span className="text-right text-xs text-muted-foreground">{deAnalysis.currentPeriod}</span>
+          <span className="text-right text-xs text-muted-foreground">{deAnalysis.previousPeriod}</span>
+          <span className="text-right text-xs text-muted-foreground">{deAnalysis.difference}</span>
           {rows.map(([label, cur, before, diff]) => (
             <div key={label} className="contents">
               <span className="text-muted-foreground">{label}</span>
@@ -549,11 +551,11 @@ function CompareCard({ diaryIds, from, to }: { diaryIds: string[]; from: string;
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <Label htmlFor="compare-threshold" className="font-normal">{de.analysis.threshold}</Label>
+          <Label htmlFor="compare-threshold" className="font-normal">{deAnalysis.threshold}</Label>
           <Input id="compare-threshold" type="number" min={0} inputMode="numeric" className="w-20" value={threshold} onChange={(e) => setThreshold(e.target.value)} />
         </div>
-        {cmp.fewData ? <p role="note" data-testid="few-data" className="text-sm text-muted-foreground">{de.analysis.fewData}</p> : null}
-        <p className="text-xs text-muted-foreground">{de.analysis.descriptiveOnly}</p>
+        {cmp.fewData ? <p role="note" data-testid="few-data" className="text-sm text-muted-foreground">{deAnalysis.fewData}</p> : null}
+        <p className="text-xs text-muted-foreground">{deAnalysis.descriptiveOnly}</p>
       </CardContent>
     </Card>
   );

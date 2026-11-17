@@ -3,9 +3,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { resetTour, writeTourState } from './tour';
-import { de } from '@/i18n/de';
+import { deTour } from '@/i18n/lazy/tour';
 
-const t = de.tour;
+const t = deTour;
 
 export function TourRestartCard() {
   const [done, setDone] = useState(false);

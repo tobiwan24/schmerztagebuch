@@ -18,6 +18,7 @@ import { unlockWithPasskey } from '@/auth/passkey';
 import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
 import { prepareRecovery, type PendingAccount } from '@/auth/local-account';
 import { de } from '@/i18n/de';
+import { deOnboarding } from '@/i18n/lazy/onboarding';
 
 type Mode = 'unlock' | 'recovery-code' | 'recovery-factor' | 'recovery-backup';
 
@@ -170,7 +171,7 @@ export function UnlockPage() {
       {mode === 'recovery-factor' ? (
         <>
           <p className="text-sm text-muted-foreground">{de.lock.recoveryNewFactor}</p>
-          <FactorSetup title={de.onboarding.factorTitle} onFactor={onNewFactor} />
+          <FactorSetup title={deOnboarding.factorTitle} onFactor={onNewFactor} />
         </>
       ) : null}
       {mode === 'recovery-backup' && pending ? (

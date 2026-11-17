@@ -19,6 +19,7 @@ import { useCanEditTemplates } from '@/data/useSharing';
 import { useQuery } from '@/data/useQuery';
 import { cn } from '@/lib/utils';
 import { de } from '@/i18n/de';
+import { deTemplates } from '@/i18n/lazy/templates';
 
 interface Row {
   template: Template;
@@ -73,13 +74,13 @@ export function TemplatesPage() {
 
   return (
     <>
-      <PageHeader title={de.templates.title} back />
+      <PageHeader title={deTemplates.title} back />
       {query.status === 'loading' ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
       {query.status === 'error' ? <ErrorState onRetry={query.retry} /> : null}
       {query.status === 'ok' ? (
         <>
-          {canEdit ? null : <p role="status" className="text-sm text-muted-foreground">{de.templates.readOnly}</p>}
-          {query.data.rows.filter((r) => !r.template.archived).length === 0 ? <EmptyState title={de.templates.emptyTitle} hint={de.templates.emptyHint} /> : null}
+          {canEdit ? null : <p role="status" className="text-sm text-muted-foreground">{deTemplates.readOnly}</p>}
+          {query.data.rows.filter((r) => !r.template.archived).length === 0 ? <EmptyState title={deTemplates.emptyTitle} hint={deTemplates.emptyHint} /> : null}
           <SortableTemplates
             key={query.data.rows.map((r) => r.template.id + r.template.order + String(r.template.archived)).join()}
             rows={query.data.rows.filter((r) => !r.template.archived)}
@@ -91,7 +92,7 @@ export function TemplatesPage() {
           />
           {query.data.rows.some((r) => r.template.archived) ? (
             <section className="flex flex-col gap-2">
-              <h2 className="text-sm font-medium text-muted-foreground">{de.templates.archived}</h2>
+              <h2 className="text-sm font-medium text-muted-foreground">{deTemplates.archived}</h2>
               <Card className="gap-0 py-0" data-testid="archived-templates">
                 {query.data.rows
                   .filter((r) => r.template.archived)
@@ -99,14 +100,14 @@ export function TemplatesPage() {
                     <div key={r.template.id} className="flex min-h-12 items-center justify-between gap-2 border-b px-4 py-2 last:border-b-0">
                       <span className="flex flex-col">
                         <span>{r.template.name}</span>
-                        <span className="text-xs text-muted-foreground">{de.templates.entryCount(r.entries)}</span>
+                        <span className="text-xs text-muted-foreground">{deTemplates.entryCount(r.entries)}</span>
                       </span>
                       <span className="flex gap-1">
                         {canEdit ? <>
-                        <Button variant="ghost" size="icon" aria-label={de.templates.restore(r.template.name)} onClick={() => void saveMeta(r.template, { archived: false })}>
+                        <Button variant="ghost" size="icon" aria-label={deTemplates.restore(r.template.name)} onClick={() => void saveMeta(r.template, { archived: false })}>
                           <ArchiveRestore aria-hidden />
                         </Button>
-                        <Button variant="ghost" size="icon" aria-label={de.templates.delete(r.template.name)} onClick={() => setDeleting(r)}>
+                        <Button variant="ghost" size="icon" aria-label={deTemplates.delete(r.template.name)} onClick={() => setDeleting(r)}>
                           <Trash2 aria-hidden />
                         </Button>
                         </> : null}
@@ -120,13 +121,13 @@ export function TemplatesPage() {
             <Button asChild variant="outline">
               <Link to="/more/templates/new">
                 <Plus aria-hidden />
-                {de.templates.create}
+                {deTemplates.create}
               </Link>
             </Button>
           ) : null}
           {query.data.diaryId && canEdit ? (
             <section className="flex flex-col gap-2">
-              <h2 className="text-sm font-medium text-muted-foreground">{de.templates.fromCatalog}</h2>
+              <h2 className="text-sm font-medium text-muted-foreground">{deTemplates.fromCatalog}</h2>
               <div className="flex flex-col gap-2">
                 {TEMPLATE_CATALOG.map((c) => (
                   <Button key={c.id} variant="outline" className="h-auto justify-start py-3 text-left" onClick={() => void addFromCatalog(c.id, query.data.diaryId!, query.data.rows)}>
@@ -221,8 +222,8 @@ function SortableTemplates({
             variant="ghost"
             size="icon"
             className="cursor-grab touch-none"
-            aria-label={de.templates.move(r.template.name)}
-            aria-description={de.templates.moveHint}
+            aria-label={deTemplates.move(r.template.name)}
+            aria-description={deTemplates.moveHint}
             onPointerDown={(e) => onPointerDown(e, r.template.id)}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -234,18 +235,18 @@ function SortableTemplates({
           <TemplateIcon icon={r.template.icon} color={r.template.color} />
           <span className="flex flex-1 flex-col">
             <span>{r.template.name}</span>
-            <span className="text-xs text-muted-foreground">{de.templates.entryCount(r.entries)}</span>
+            <span className="text-xs text-muted-foreground">{deTemplates.entryCount(r.entries)}</span>
           </span>
           {readOnly ? null : <Button asChild variant="ghost" size="icon">
-            <Link to={`/more/templates/${r.template.id}`} aria-label={de.templates.edit(r.template.name)}>
+            <Link to={`/more/templates/${r.template.id}`} aria-label={deTemplates.edit(r.template.name)}>
               <Pencil aria-hidden />
             </Link>
           </Button>}
-          {readOnly ? null : <Button variant="ghost" size="icon" aria-label={de.templates.archive(r.template.name)} onClick={() => onArchive(r.template)}>
+          {readOnly ? null : <Button variant="ghost" size="icon" aria-label={deTemplates.archive(r.template.name)} onClick={() => onArchive(r.template)}>
             <Archive aria-hidden />
           </Button>}
           {!readOnly && r.entries === 0 ? (
-            <Button variant="ghost" size="icon" aria-label={de.templates.delete(r.template.name)} onClick={() => onDelete(r)}>
+            <Button variant="ghost" size="icon" aria-label={deTemplates.delete(r.template.name)} onClick={() => onDelete(r)}>
               <Trash2 aria-hidden />
             </Button>
           ) : null}
@@ -262,13 +263,13 @@ function DeleteDialog({ row, onCancel, onConfirm }: { row: Row | null; onCancel:
     <Dialog open={row !== null} onClose={() => (setUnderstood(false), onCancel())} aria-labelledby="delete-template-title">
       {row ? (
         <>
-          <DialogTitle id="delete-template-title">{de.templates.deleteTitle(row.template.name)}</DialogTitle>
-          <DialogDescription data-testid="delete-count">{de.templates.deleteHint(row.entries)}</DialogDescription>
+          <DialogTitle id="delete-template-title">{deTemplates.deleteTitle(row.template.name)}</DialogTitle>
+          <DialogDescription data-testid="delete-count">{deTemplates.deleteHint(row.entries)}</DialogDescription>
           {needsConfirm ? (
             <div className="mt-4 flex items-center gap-3">
               <Checkbox id="delete-understood" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
               <Label htmlFor="delete-understood" className="font-normal">
-                {de.templates.deleteConfirm}
+                {deTemplates.deleteConfirm}
               </Label>
             </div>
           ) : null}
@@ -277,7 +278,7 @@ function DeleteDialog({ row, onCancel, onConfirm }: { row: Row | null; onCancel:
               {de.lock.cancel}
             </Button>
             <Button variant="destructive" disabled={needsConfirm && !understood} onClick={() => (setUnderstood(false), onConfirm(row))}>
-              {de.templates.deleteFinal}
+              {deTemplates.deleteFinal}
             </Button>
           </DialogFooter>
         </>

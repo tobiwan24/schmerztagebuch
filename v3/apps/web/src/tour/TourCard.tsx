@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { TOUR_STEPS } from './steps';
 import { markPageDone, readTourState, resolveSteps, skipAllPages, writeTourState, type TourPage, type TourStep } from './tour';
-import { de } from '@/i18n/de';
+import { deTour } from '@/i18n/lazy/tour';
 
-const t = de.tour;
+const t = deTour;
 const targetEl = (target: string): HTMLElement | null => document.querySelector<HTMLElement>(`[data-tour="${target}"]`);
 
 /** Schritte der Seite, deren Ziel im DOM steht; beobachtet Änderungen, weil Ziele asynchron erscheinen (Daten laden). */

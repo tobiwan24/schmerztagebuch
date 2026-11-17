@@ -8,10 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { de } from '@/i18n/de';
+import { deTemplates } from '@/i18n/lazy/templates';
 import { SWATCH } from './OptionsEditor';
 
-const t = de.templates.editor.medication;
+const t = deTemplates.editor.medication;
 type Preset = MedicationConfig['presets'][number];
 
 /** Dosis mit eigenem Textzustand (Zwischenstände wie „1,“ bleiben erhalten); leer = keine Vorgabe. */
@@ -77,7 +77,7 @@ export function MedicationPresetsEditor({
             <div className="flex flex-wrap items-center gap-1" role="group" aria-label={t.color(nm)}>
               {OPTION_COLORS.map((c) => (
                 <Button
-                  key={c} type="button" variant="ghost" size="icon" aria-label={de.templates.editor.multiselect.colorNames[c]} aria-pressed={p.color === c}
+                  key={c} type="button" variant="ghost" size="icon" aria-label={deTemplates.editor.multiselect.colorNames[c]} aria-pressed={p.color === c}
                   onClick={() => patch(p.id, { color: c })}
                   className={cn('size-7 rounded-full border-2 border-transparent p-0', SWATCH[c], p.color === c && 'border-foreground')}
                 />

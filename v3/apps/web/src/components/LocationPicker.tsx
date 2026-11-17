@@ -7,9 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createGeocodingClient, GEOCODING_MIN_CHARS, locationFromPlace, locationFromPosition, type PlaceHit, type WeatherLocation } from '@/weather/geocoding';
 import { geolocationPosition } from '@/weather/service';
-import { de } from '@/i18n/de';
+import { deLocation } from '@/i18n/lazy/location';
 
-const t = de.location;
+const t = deLocation;
 const DEBOUNCE_MS = 400;
 
 interface SearchResult {

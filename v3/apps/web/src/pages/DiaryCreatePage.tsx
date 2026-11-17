@@ -9,7 +9,7 @@ import { AuthErrorNotice } from '@/components/AuthErrorNotice';
 import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
 import { useAuth } from '@/auth/AuthContext';
 import { useData } from '@/data/DataContext';
-import { de } from '@/i18n/de';
+import { deDiaries } from '@/i18n/lazy/diaries';
 
 export function DiaryCreatePage() {
   const auth = useAuth();
@@ -42,7 +42,7 @@ export function DiaryCreatePage() {
 
   return (
     <>
-      <PageHeader title={de.diaries.create} back />
+      <PageHeader title={deDiaries.create} back />
       {choice ? <TemplateStep busy={busy} onDone={(id) => void finish(id)} /> : <DiaryStep initialName="" onNext={setChoice} />}
       {error ? <AuthErrorNotice code={error} /> : null}
     </>

@@ -9,6 +9,7 @@ import { Select } from '@/components/ui/select';
 import { useData } from '@/data/DataContext';
 import { listChartTargets, saveChartAsEntry, type ChartTarget } from '@/lib/chart-entry';
 import { de } from '@/i18n/de';
+import { deAnalysis } from '@/i18n/lazy/analysis';
 
 export function ChartEntryDialog({
   open, diaryIds, defaultCaption, render, onClose,
@@ -55,7 +56,7 @@ export function ChartEntryDialog({
     }
   }
 
-  const t = de.analysis.chartEntry;
+  const t = deAnalysis.chartEntry;
   return (
     <Dialog open={open} onClose={onClose} aria-labelledby="chart-entry-title">
       <DialogTitle id="chart-entry-title">{t.title}</DialogTitle>

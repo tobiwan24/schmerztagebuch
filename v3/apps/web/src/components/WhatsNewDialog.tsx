@@ -7,7 +7,7 @@ import { changelog } from '@/data/changelog';
 import { unseenReleases } from '@/data/whats-new';
 import { writeLastSeen } from '@/data/whats-new-state';
 import { APP_VERSION } from '@/version';
-import { de } from '@/i18n/de';
+import { deWhatsNew } from '@/i18n/lazy/whatsNew';
 
 export default function WhatsNewDialog({ lastSeen }: { lastSeen: string | null }) {
   const [open, setOpen] = useState(true);
@@ -23,12 +23,12 @@ export default function WhatsNewDialog({ lastSeen }: { lastSeen: string | null }
   };
   return (
     <Dialog open={open} onClose={close} aria-labelledby="whats-new-title" data-testid="whats-new-dialog" className="max-h-[80dvh] overflow-y-auto">
-      <DialogTitle id="whats-new-title">{de.whatsNew.title(unseen[0]!.version)}</DialogTitle>
+      <DialogTitle id="whats-new-title">{deWhatsNew.title(unseen[0]!.version)}</DialogTitle>
       <div className="mt-4">
         <ReleaseList releases={unseen} testId="whats-new-unseen" />
       </div>
       <DialogFooter>
-        <Button onClick={close}>{de.whatsNew.close}</Button>
+        <Button onClick={close}>{deWhatsNew.close}</Button>
       </DialogFooter>
     </Dialog>
   );

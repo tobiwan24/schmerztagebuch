@@ -8,9 +8,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
-import { de } from '@/i18n/de';
+import { deTraining } from '@/i18n/lazy/training';
 
-const t = de.training.field;
+const t = deTraining.field;
 
 const pad = (n: number) => String(n).padStart(2, '0');
 /** Sekunden als „m:ss“. */

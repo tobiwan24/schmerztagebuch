@@ -5,12 +5,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
-import { de } from '@/i18n/de';
+import { deTemplates } from '@/i18n/lazy/templates';
+import { deBodymap } from '@/i18n/lazy/bodymap';
 import { ExerciseConfigEditor } from './ExerciseConfigEditor';
 import { MedicationPresetsEditor } from './MedicationPresetsEditor';
 import { OptionsEditor } from './OptionsEditor';
 
-const t = de.templates.editor;
+const t = deTemplates.editor;
 
 /** Leere Eingabe entfernt das optionale Feld (kein `undefined` im Datensatz). */
 function setOptional<T extends object>(obj: T, key: string, value: string | number | undefined): T {
@@ -148,9 +149,9 @@ export function BlockConfigFields({ def, newId, onChange }: { def: BlockDef; new
         <div className="flex flex-col gap-2">
           <Label htmlFor={id('preset')}>{t.bodymap.preset}</Label>
           <Select id={id('preset')} value={def.config.defaultPresetId} onChange={(e) => onChange({ ...def, config: { ...def.config, defaultPresetId: e.target.value } })}>
-            {(Object.keys(de.bodymap.presets) as (keyof typeof de.bodymap.presets)[]).map((p) => (
+            {(Object.keys(deBodymap.presets) as (keyof typeof deBodymap.presets)[]).map((p) => (
               <option key={p} value={p}>
-                {de.bodymap.presets[p]}
+                {deBodymap.presets[p]}
               </option>
             ))}
           </Select>

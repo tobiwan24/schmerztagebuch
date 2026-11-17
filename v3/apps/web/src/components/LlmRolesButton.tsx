@@ -11,9 +11,10 @@ import { llmErrorMessage } from '@/components/LlmFillButton';
 import { requestRoles } from '@/llm/client';
 import { draftVersion, rolesPreview, usableSuggestions, withRole, type RoleSuggestion } from '@/llm/roles';
 import { useLlm } from '@/llm/useLlm';
-import { de } from '@/i18n/de';
+import { deTemplates } from '@/i18n/lazy/templates';
+import { deLlm } from '@/i18n/lazy/llm';
 
-const t = de.llm.roles;
+const t = deLlm.roles;
 
 export function LlmRolesButton({ templateName, templateId, blocks, valid, now, onBlocks }: {
   templateName: string;
@@ -42,7 +43,7 @@ export function LlmRolesButton({ templateName, templateId, blocks, valid, now, o
     setBusy(true);
     setError(null);
     try {
-      const response = await requestRoles({ templateName: templateName.trim() || de.templates.editor.titleNew, version: draftVersion(templateId, blocks, now) });
+      const response = await requestRoles({ templateName: templateName.trim() || deTemplates.editor.titleNew, version: draftVersion(templateId, blocks, now) });
       setOpen(usableSuggestions(blocks, response));
       setStep('result');
       setBusy(false);
@@ -60,11 +61,11 @@ export function LlmRolesButton({ templateName, templateId, blocks, valid, now, o
         <Sparkles aria-hidden />
         {t.button}
       </Button>
-      {llm.availability === 'disabled' ? <p className="text-sm text-muted-foreground">{de.llm.offlineHint}</p> : null}
+      {llm.availability === 'disabled' ? <p className="text-sm text-muted-foreground">{deLlm.offlineHint}</p> : null}
       {llm.availability === 'enabled' && !valid && blocks.length > 0 ? <p className="text-sm text-muted-foreground">{t.needValid}</p> : null}
 
       <LlmConsentDialog
-        open={step === 'consent'} title={t.consentTitle} content={rolesPreview(blocks)} extra={t.extra} recipient={de.llm.recipient(llm.status.provider, llm.status.thirdParty)}
+        open={step === 'consent'} title={t.consentTitle} content={rolesPreview(blocks)} extra={t.extra} recipient={deLlm.recipient(llm.status.provider, llm.status.thirdParty)}
         busy={busy} error={error} onConfirm={() => void send()} onCancel={() => step === 'consent' && close()}
       />
 
@@ -75,7 +76,7 @@ export function LlmRolesButton({ templateName, templateId, blocks, valid, now, o
           {open.map((s) => (
             <li key={s.blockId} className="flex flex-col gap-2 rounded-md border p-3" data-testid="llm-roles-item">
               <p className="text-sm font-medium">
-                {s.label} <Badge variant="secondary">{de.templates.editor.roles[s.role]}</Badge>
+                {s.label} <Badge variant="secondary">{deTemplates.editor.roles[s.role]}</Badge>
               </p>
               {s.reason ? <p className="text-sm text-muted-foreground">{s.reason}</p> : null}
               <div className="flex gap-2">

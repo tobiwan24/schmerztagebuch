@@ -6,9 +6,9 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useAuth } from '@/auth/AuthContext';
 import { DEFAULT_UPDATE_MODE, loadUpdateMode, saveUpdateMode, type UpdateMode } from '@/data/update-settings';
 import { checkForUpdate, type UpdateCheck } from '@/sw-client';
-import { de } from '@/i18n/de';
+import { deUpdates } from '@/i18n/lazy/updates';
 
-const t = de.updates;
+const t = deUpdates;
 
 export function UpdateModeToggle() {
   const { db } = useAuth();

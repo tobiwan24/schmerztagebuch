@@ -8,8 +8,9 @@ import { useAuth } from '@/auth/AuthContext';
 import { useSync } from '@/data/SyncContext';
 import type { DeviceView } from '@/auth/devices';
 import { de } from '@/i18n/de';
+import { deDevices } from '@/i18n/lazy/devices';
 
-const t = de.devices;
+const t = deDevices;
 const day = (ms: number) => new Date(ms).toLocaleDateString('de-DE');
 
 export function DevicesSection() {

@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/select';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
+import { deAnalysis } from '@/i18n/lazy/analysis';
 
 const t = de.hints;
 
@@ -96,7 +97,7 @@ export function RulesCard() {
               <Select id="rule-field" value={blockId || fields[0]!.blockId} onChange={(e) => setBlockId(e.target.value)}>
                 {fields.map((f) => (
                   <option key={f.blockId} value={f.blockId}>
-                    {dup(f.label) ? de.analysis.blockOf(f.label, f.templateName) : f.label}
+                    {dup(f.label) ? deAnalysis.blockOf(f.label, f.templateName) : f.label}
                   </option>
                 ))}
               </Select>

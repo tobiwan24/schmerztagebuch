@@ -23,11 +23,14 @@ import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
 import type { PendingAccount } from '@/auth/local-account';
 import { setTheme, storedTheme, type ThemeChoice } from '@/theme';
 import { de } from '@/i18n/de';
+import { deSettings } from '@/i18n/lazy/settings';
+import { deDiagnostics } from '@/i18n/lazy/diagnostics';
+import { deInstall } from '@/i18n/lazy/install';
 
 const OPTIONS: { value: ThemeChoice; label: string; Icon: typeof Sun }[] = [
-  { value: 'light', label: de.settings.themeLight, Icon: Sun },
-  { value: 'dark', label: de.settings.themeDark, Icon: Moon },
-  { value: 'system', label: de.settings.themeSystem, Icon: Monitor },
+  { value: 'light', label: deSettings.themeLight, Icon: Sun },
+  { value: 'dark', label: deSettings.themeDark, Icon: Moon },
+  { value: 'system', label: deSettings.themeSystem, Icon: Monitor },
 ];
 
 export function SettingsPage() {
@@ -35,10 +38,10 @@ export function SettingsPage() {
   const auth = useAuth();
   return (
     <>
-      <PageHeader title={de.settings.title} back />
+      <PageHeader title={deSettings.title} back />
       <Card>
         <CardHeader>
-          <CardTitle>{de.settings.security}</CardTitle>
+          <CardTitle>{deSettings.security}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {auth.status === 'locked' ? (
@@ -59,9 +62,9 @@ export function SettingsPage() {
       {auth.status === 'unlocked' && auth.syncAttached ? <DevicesSection /> : null}
       <Card>
         <CardHeader>
-          <CardTitle>{de.settings.appearance}</CardTitle>
+          <CardTitle>{deSettings.appearance}</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-2" role="group" aria-label={de.settings.appearance}>
+        <CardContent className="grid grid-cols-3 gap-2" role="group" aria-label={deSettings.appearance}>
           {OPTIONS.map(({ value, label, Icon }) => (
             <Button
               key={value}
@@ -90,7 +93,7 @@ export function SettingsPage() {
         <Link to="/more/settings/konflikte">{de.conflicts.open}</Link>
       </Button>
       <Button asChild variant="outline">
-        <Link to="/more/settings/diagnose">{de.diagnostics.open}</Link>
+        <Link to="/more/settings/diagnose">{deDiagnostics.open}</Link>
       </Button>
       {auth.status !== 'loading' && auth.accountMode !== null ? <DangerZone /> : null}
     </>
@@ -131,12 +134,12 @@ function UpgradeToCloud() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{de.settings.account}</CardTitle>
+        <CardTitle>{deSettings.account}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <p className="text-sm text-muted-foreground">{de.settings.localOnly}</p>
+        <p className="text-sm text-muted-foreground">{deSettings.localOnly}</p>
         <Button variant="outline" onClick={() => setOpen(true)}>
-          {de.settings.upgradeAction}
+          {deSettings.upgradeAction}
         </Button>
       </CardContent>
     </Card>
@@ -156,7 +159,7 @@ function PersistCard() {
       live = false;
     };
   }, []);
-  const t = de.install;
+  const t = deInstall;
   return (
     <Card data-testid="persist-card">
       <CardHeader>

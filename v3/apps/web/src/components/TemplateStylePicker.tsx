@@ -2,7 +2,7 @@
 import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { de } from '@/i18n/de';
+import { deTemplates } from '@/i18n/lazy/templates';
 import { TEMPLATE_COLORS, TEMPLATE_ICONS } from './TemplateIcon';
 
 export function TemplateStylePicker({
@@ -12,7 +12,7 @@ export function TemplateStylePicker({
   return (
     <>
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-sm font-medium">{de.templates.editor.icon}</legend>
+        <legend className="mb-1 text-sm font-medium">{deTemplates.editor.icon}</legend>
         <div className="flex flex-wrap gap-2">
           {Object.entries(TEMPLATE_ICONS).map(([name, Icon]) => (
             <Button
@@ -21,7 +21,7 @@ export function TemplateStylePicker({
               size="icon"
               variant={name === icon ? 'default' : 'outline'}
               aria-pressed={name === icon}
-              aria-label={de.templates.editor.iconLabel(name)}
+              aria-label={deTemplates.editor.iconLabel(name)}
               onClick={() => onIcon(name)}
             >
               <Icon aria-hidden className={cn(name !== icon && tone)} />
@@ -30,7 +30,7 @@ export function TemplateStylePicker({
         </div>
       </fieldset>
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-sm font-medium">{de.templates.editor.color}</legend>
+        <legend className="mb-1 text-sm font-medium">{deTemplates.editor.color}</legend>
         <div className="flex flex-wrap gap-2">
           {Object.entries(TEMPLATE_COLORS).map(([token, c]) => (
             <Button
@@ -39,7 +39,7 @@ export function TemplateStylePicker({
               size="icon"
               variant="outline"
               aria-pressed={token === color}
-              aria-label={de.templates.editor.colorNames[token as keyof typeof de.templates.editor.colorNames]}
+              aria-label={deTemplates.editor.colorNames[token as keyof typeof deTemplates.editor.colorNames]}
               onClick={() => onColor(token)}
             >
               <span className={cn('flex size-6 items-center justify-center rounded-full text-white', c.bg)}>

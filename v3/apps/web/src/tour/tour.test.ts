@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { de } from '@/i18n/de';
+import { deTour } from '@/i18n/lazy/tour';
 import { TOUR_STEPS } from './steps';
 import {
   EMPTY_TOUR,
@@ -56,11 +56,11 @@ describe('Tour-Logik', () => {
     expect(new Set(TOUR_STEPS.map((s) => s.id)).size).toBe(TOUR_STEPS.length);
     for (const p of TOUR_PAGES) expect(TOUR_STEPS.some((s) => s.page === p)).toBe(true);
     for (const s of TOUR_STEPS) {
-      const t = de.tour.steps[s.id];
+      const t = deTour.steps[s.id];
       expect(t?.title.length, s.id).toBeGreaterThan(0);
       expect(t?.body.length, s.id).toBeGreaterThan(0);
     }
-    expect(Object.keys(de.tour.steps).sort()).toEqual(TOUR_STEPS.map((s) => s.id).sort());
+    expect(Object.keys(deTour.steps).sort()).toEqual(TOUR_STEPS.map((s) => s.id).sort());
   });
 
   it('UI-28: Pfade werden den Tour-Seiten zugeordnet', () => {

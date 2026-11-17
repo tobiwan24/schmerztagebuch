@@ -11,6 +11,7 @@ import { createPasskey } from '@/auth/passkey';
 import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
 import { useAuth } from '@/auth/AuthContext';
 import { de } from '@/i18n/de';
+import { deOnboarding } from '@/i18n/lazy/onboarding';
 
 export type NewFactor = { factor: Exclude<UmkFactor, { kind: 'backup' }>; credentialId?: string };
 
@@ -39,8 +40,8 @@ export function FactorSetup({ title, onFactor }: { title: string; onFactor: (f: 
 
   async function withPassword(e: FormEvent) {
     e.preventDefault();
-    if (pw.length < 8) return setFormError(de.onboarding.passwordTooShort);
-    if (pw !== pw2) return setFormError(de.onboarding.passwordMismatch);
+    if (pw.length < 8) return setFormError(deOnboarding.passwordTooShort);
+    if (pw !== pw2) return setFormError(deOnboarding.passwordMismatch);
     setFormError(null);
     setBusy(true);
     try {
@@ -61,26 +62,26 @@ export function FactorSetup({ title, onFactor }: { title: string; onFactor: (f: 
           <>
             <Button disabled={busy} onClick={() => void withPasskey()}>
               <Fingerprint aria-hidden />
-              {busy ? de.onboarding.working : de.onboarding.factorPasskey}
+              {busy ? deOnboarding.working : deOnboarding.factorPasskey}
             </Button>
             <Button variant="outline" disabled={busy} onClick={() => setMode('password')}>
               <KeyRound aria-hidden />
-              {de.onboarding.factorPassword}
+              {deOnboarding.factorPassword}
             </Button>
           </>
         ) : (
           <form className="flex flex-col gap-3" onSubmit={(e) => void withPassword(e)}>
             <Label htmlFor="pw" className="flex-col items-start">
-              {de.onboarding.passwordLabel}
+              {deOnboarding.passwordLabel}
               <Input id="pw" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} />
             </Label>
             <Label htmlFor="pw2" className="flex-col items-start">
-              {de.onboarding.passwordRepeat}
+              {deOnboarding.passwordRepeat}
               <Input id="pw2" type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />
             </Label>
             {formError ? <p role="alert" className="text-sm text-destructive">{formError}</p> : null}
             <Button type="submit" disabled={busy}>
-              {busy ? de.onboarding.working : de.onboarding.create}
+              {busy ? deOnboarding.working : deOnboarding.create}
             </Button>
           </form>
         )}

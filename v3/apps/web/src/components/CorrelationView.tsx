@@ -9,6 +9,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { BlockPicker, useWorker } from '@/components/AnalysisShared';
 import { useData } from '@/data/DataContext';
 import { de } from '@/i18n/de';
+import { deAnalysis } from '@/i18n/lazy/analysis';
 
 const LAGS = [0, 1, 2, 3, 4, 5, 6, 7] as const;
 const TRIGGER_TYPES = ['multiselect', 'checkbox', 'medication'];
@@ -21,8 +22,8 @@ export function CorrelationView({ spec }: { spec: FilterSpec }) {
   if (!blocks) return <p className="text-muted-foreground">{de.app.loading}</p>;
   return (
     <div className="flex flex-col gap-3">
-      <p data-testid="corr-caveat" className="text-sm text-muted-foreground">{de.analysis.corr.caveat}</p>
-      {numeric.length < 2 ? <p className="text-sm text-muted-foreground">{de.analysis.corr.needTwo}</p> : <PairCard spec={spec} numeric={numeric} />}
+      <p data-testid="corr-caveat" className="text-sm text-muted-foreground">{deAnalysis.corr.caveat}</p>
+      {numeric.length < 2 ? <p className="text-sm text-muted-foreground">{deAnalysis.corr.needTwo}</p> : <PairCard spec={spec} numeric={numeric} />}
       <TriggerCard spec={spec} numeric={numeric} options={blocks.filter((b) => TRIGGER_TYPES.includes(b.type))} />
     </div>
   );
@@ -32,7 +33,7 @@ type Field = { blockId: string; label: string; templateName: string; role?: stri
 
 function PairCard({ spec, numeric }: { spec: FilterSpec; numeric: Field[] }) {
   const { now } = useData();
-  const t = de.analysis.corr;
+  const t = deAnalysis.corr;
   const [pickA, setA] = useState<string>();
   const [pickB, setB] = useState<string>();
   const [lag, setLag] = useState<number>(0);
@@ -67,7 +68,7 @@ function PairCard({ spec, numeric }: { spec: FilterSpec; numeric: Field[] }) {
 
 function TriggerCard({ spec, numeric, options }: { spec: FilterSpec; numeric: Field[]; options: Field[] }) {
   const { now } = useData();
-  const t = de.analysis.corr;
+  const t = deAnalysis.corr;
   const [pickOutcome, setOutcome] = useState<string>();
   const [pickTrigger, setTrigger] = useState<string>();
   const [threshold, setThreshold] = useState('7');

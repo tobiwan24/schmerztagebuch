@@ -18,6 +18,7 @@ import { useData } from '@/data/DataContext';
 import { useWritableDiaries } from '@/data/useSharing';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
+import { deQuick } from '@/i18n/lazy/quick';
 
 export function QuickPage() {
   const data = useData();
@@ -92,12 +93,12 @@ export function QuickPage() {
 
   return (
     <>
-      <PageHeader title={de.quick.title} back />
+      <PageHeader title={deQuick.title} back />
       {query.status === 'loading' ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
       {query.status === 'error' ? <ErrorState onRetry={query.retry} /> : null}
       {query.status === 'ok' && query.data.choose ? (
         <section data-testid="quick-diary-choice" className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium text-muted-foreground">{de.quick.chooseDiary}</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">{deQuick.chooseDiary}</h2>
           {query.data.choose.map((d) => (
             <Button key={d.id} asChild variant="outline" className="h-14 justify-start text-base">
               <Link to={`/quick?diary=${d.id}`}>{d.name}</Link>
@@ -107,7 +108,7 @@ export function QuickPage() {
       ) : null}
       {selection && options.length > 1 ? (
         <fieldset className="flex flex-col gap-2" data-testid="quick-template-choice">
-          <legend className="mb-2 text-sm font-medium">{de.quick.template}</legend>
+          <legend className="mb-2 text-sm font-medium">{deQuick.template}</legend>
           <div className="flex flex-wrap gap-2">
             {options.map((o) => {
               const active = o.state.template.id === selection.state.template.id;
@@ -123,7 +124,7 @@ export function QuickPage() {
       ) : null}
       {query.status === 'ok' && writable.status === 'ok' && !query.data.choose && (!selection || selection.blocks.length === 0) ? (
         <>
-          <EmptyState title={de.quick.noBlocksTitle} hint={de.quick.noBlocksHint} />
+          <EmptyState title={deQuick.noBlocksTitle} hint={deQuick.noBlocksHint} />
           <Button asChild variant="outline">
             <Link to="/entry/new">{de.start.newEntry}</Link>
           </Button>
@@ -131,7 +132,7 @@ export function QuickPage() {
       ) : null}
       {selection && selection.blocks.length > 0 ? (
         <form className="flex flex-col gap-6" noValidate onSubmit={(e) => (e.preventDefault(), void save())}>
-          <p className="text-sm text-muted-foreground">{de.quick.now(selection.state.template.name)}</p>
+          <p className="text-sm text-muted-foreground">{deQuick.now(selection.state.template.name)}</p>
           {quickVersion ? <LlmFillButton templateName={selection.state.template.name} version={quickVersion} onDraft={onDraft} /> : null}
           {draft ? <LlmDraftNotice draft={draft} onDismiss={() => setDraft(null)} /> : null}
           {selection.blocks.map((def) => (
@@ -149,14 +150,14 @@ export function QuickPage() {
           <WeatherSwitch settings={weatherSettings} checked={useGps} onChange={setUseGps} />
           {empty ? (
             <p role="alert" className="text-sm text-destructive">
-              {de.quick.emptyHint}
+              {deQuick.emptyHint}
             </p>
           ) : null}
           <Button type="submit" size="lg" className="h-14 w-full text-base" disabled={saving}>
             {saving ? de.entry.saving : de.entry.save}
           </Button>
           <Button asChild variant="ghost">
-            <Link to="/entry/new">{de.quick.moreFields}</Link>
+            <Link to="/entry/new">{deQuick.moreFields}</Link>
           </Button>
         </form>
       ) : null}

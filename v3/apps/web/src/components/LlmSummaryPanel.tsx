@@ -12,9 +12,9 @@ import { LlmConsentDialog } from '@/components/LlmConsentDialog';
 import { llmErrorMessage } from '@/components/LlmFillButton';
 import { requestSummary } from '@/llm/client';
 import { useLlm } from '@/llm/useLlm';
-import { de } from '@/i18n/de';
+import { deLlm } from '@/i18n/lazy/llm';
 
-const t = de.llm.summary;
+const t = deLlm.summary;
 
 export function LlmSummaryPanel({ buildInput, disabled = false, text, onText, includeInPdf, onIncludeInPdf }: {
   /** Kennzahlen (und mit `includeNotes` auch Notizen) für den aktuell gewählten Zeitraum und Filter. */
@@ -37,7 +37,7 @@ export function LlmSummaryPanel({ buildInput, disabled = false, text, onText, in
     try {
       setInput(await buildInput(includeNotes));
     } catch {
-      setError(de.llm.errors.failed!);
+      setError(deLlm.errors.failed!);
     }
   }
 
@@ -69,7 +69,7 @@ export function LlmSummaryPanel({ buildInput, disabled = false, text, onText, in
         <Sparkles aria-hidden />
         {t.button}
       </Button>
-      {llm.availability === 'disabled' ? <p className="text-sm text-muted-foreground">{de.llm.offlineHint}</p> : null}
+      {llm.availability === 'disabled' ? <p className="text-sm text-muted-foreground">{deLlm.offlineHint}</p> : null}
       {error && !input ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
 
       {text ? (
@@ -86,7 +86,7 @@ export function LlmSummaryPanel({ buildInput, disabled = false, text, onText, in
 
       <LlmConsentDialog
         open={input !== null} title={t.consentTitle} content={input ? summaryPreview(input) : ''}
-        extra={input?.notes?.length ? t.extraNotes : t.extraFactsOnly} recipient={de.llm.recipient(llm.status.provider, llm.status.thirdParty)}
+        extra={input?.notes?.length ? t.extraNotes : t.extraFactsOnly} recipient={deLlm.recipient(llm.status.provider, llm.status.thirdParty)}
         busy={busy} error={error} onConfirm={() => void send()} onCancel={() => { setInput(null); setError(null); }}
       />
     </section>

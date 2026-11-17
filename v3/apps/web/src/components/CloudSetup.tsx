@@ -11,6 +11,8 @@ import { useAuth, type RecoveryStart } from '@/auth/AuthContext';
 import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
 import type { PendingAccount } from '@/auth/local-account';
 import { de } from '@/i18n/de';
+import { deSettings } from '@/i18n/lazy/settings';
+import { deOnboarding } from '@/i18n/lazy/onboarding';
 
 const USERNAME_RE = /^[\p{L}\p{N}._@+-]{3,64}$/u;
 
@@ -26,14 +28,14 @@ export function CloudRegister({ onPending, mode = 'register' }: { onPending: (p:
   async function loadOptions(e: FormEvent) {
     e.preventDefault();
     const name = username.trim();
-    if (!USERNAME_RE.test(name)) return setFormError(de.onboarding.usernameInvalid);
+    if (!USERNAME_RE.test(name)) return setFormError(deOnboarding.usernameInvalid);
     setFormError(null);
     setError(null);
     setBusy(true);
     try {
       setPrepared(await auth.cloud.registrationOptions(name));
     } catch (err) {
-      if ((err as { code?: string }).code === 'username-taken') setFormError(de.onboarding.usernameTaken);
+      if ((err as { code?: string }).code === 'username-taken') setFormError(deOnboarding.usernameTaken);
       else setError(toAuthErrorCode(err));
     } finally {
       setBusy(false);
@@ -62,25 +64,25 @@ export function CloudRegister({ onPending, mode = 'register' }: { onPending: (p:
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{mode === 'upgrade' ? de.settings.upgradeTitle : de.onboarding.cloudTitle}</CardTitle>
-        <CardDescription>{mode === 'upgrade' ? de.settings.upgradeHint : de.onboarding.cloudHint}</CardDescription>
+        <CardTitle>{mode === 'upgrade' ? deSettings.upgradeTitle : deOnboarding.cloudTitle}</CardTitle>
+        <CardDescription>{mode === 'upgrade' ? deSettings.upgradeHint : deOnboarding.cloudHint}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {!prepared ? (
           <form className="flex flex-col gap-3" onSubmit={(e) => void loadOptions(e)}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="cloud-username">{de.onboarding.username}</Label>
+              <Label htmlFor="cloud-username">{deOnboarding.username}</Label>
               <Input id="cloud-username" autoComplete="username webauthn" value={username} aria-invalid={formError !== null} onChange={(e) => setUsername(e.target.value)} />
               {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
             </div>
             <Button type="submit" disabled={busy}>
-              {busy ? de.onboarding.working : de.onboarding.next}
+              {busy ? deOnboarding.working : deOnboarding.next}
             </Button>
           </form>
         ) : (
           <Button onClick={createPasskey} disabled={busy}>
             <Fingerprint aria-hidden />
-            {busy ? de.onboarding.working : de.onboarding.createPasskey}
+            {busy ? deOnboarding.working : deOnboarding.createPasskey}
           </Button>
         )}
         {error ? <AuthErrorNotice code={error} /> : null}
@@ -130,13 +132,13 @@ export function CloudLogin({ onDone }: { onDone: () => void }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{de.onboarding.loginTitle}</CardTitle>
-        <CardDescription>{de.onboarding.loginHint}</CardDescription>
+        <CardTitle>{deOnboarding.loginTitle}</CardTitle>
+        <CardDescription>{deOnboarding.loginHint}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Button onClick={login} disabled={busy || !prepared}>
           <LogIn aria-hidden />
-          {busy ? de.onboarding.working : de.onboarding.loginPasskey}
+          {busy ? deOnboarding.working : deOnboarding.loginPasskey}
         </Button>
         {error ? <AuthErrorNotice code={error} /> : null}
       </CardContent>
@@ -186,14 +188,14 @@ export function CloudRecovery({ onPending }: { onPending: (p: PendingAccount) =>
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{de.onboarding.recoveryTitle}</CardTitle>
-        <CardDescription>{de.onboarding.recoveryHint}</CardDescription>
+        <CardTitle>{deOnboarding.recoveryTitle}</CardTitle>
+        <CardDescription>{deOnboarding.recoveryHint}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {!start ? (
           <form className="flex flex-col gap-3" onSubmit={(e) => void check(e)}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="recovery-username">{de.onboarding.username}</Label>
+              <Label htmlFor="recovery-username">{deOnboarding.username}</Label>
               <Input id="recovery-username" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} />
             </div>
             <div className="flex flex-col gap-2">
@@ -201,13 +203,13 @@ export function CloudRecovery({ onPending }: { onPending: (p: PendingAccount) =>
               <Input id="recovery-code" autoComplete="off" spellCheck={false} value={code} onChange={(e) => setCode(e.target.value)} />
             </div>
             <Button type="submit" disabled={busy || !username.trim() || !code.trim()}>
-              {busy ? de.onboarding.working : de.onboarding.next}
+              {busy ? deOnboarding.working : deOnboarding.next}
             </Button>
           </form>
         ) : (
           <Button onClick={createPasskey} disabled={busy}>
             <Fingerprint aria-hidden />
-            {busy ? de.onboarding.working : de.onboarding.createDevicePasskey}
+            {busy ? deOnboarding.working : deOnboarding.createDevicePasskey}
           </Button>
         )}
         {error ? <AuthErrorNotice code={error} /> : null}
@@ -221,7 +223,7 @@ export function RecoveryLink({ onClick }: { onClick: () => void }) {
   return (
     <Button variant="link" onClick={onClick}>
       <KeyRound aria-hidden />
-      {de.onboarding.useBackupCode}
+      {deOnboarding.useBackupCode}
     </Button>
   );
 }

@@ -9,11 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { de } from '@/i18n/de';
+import { deReportViewer } from '@/i18n/lazy/reportViewer';
 import { openReportLink, reportIdFromPath, ReportLinkError } from '@/sharing/report-link';
 import { pdfBytes, type ReportPackage } from '@/sharing/report-package';
 
-const t = de.reportViewer;
+const t = deReportViewer;
 const shortDay = (day: string) => `${day.slice(8, 10)}.${day.slice(5, 7)}.`;
 const longDay = (day: string) => `${shortDay(day)}${day.slice(0, 4)}`;
 const fmt = (n: number | null) => (n === null ? '–' : String(Math.round(n * 10) / 10).replace('.', ','));

@@ -23,6 +23,7 @@ import { useDiaryScope } from '@/data/diary-scope';
 import { useCanEditTemplates } from '@/data/useSharing';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
+import { deTemplates } from '@/i18n/lazy/templates';
 
 interface Loaded {
   diaryId: string;
@@ -51,11 +52,11 @@ export function TemplateEditorPage() {
 
   return (
     <>
-      <PageHeader title={id ? de.templates.editor.titleEdit : de.templates.editor.titleNew} back />
+      <PageHeader title={id ? deTemplates.editor.titleEdit : deTemplates.editor.titleNew} back />
       {query.status === 'loading' ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
       {query.status === 'error' ? <ErrorState onRetry={query.retry} /> : null}
-      {query.status === 'ok' && query.data === null ? <ErrorState detail={de.templates.editor.notFound} /> : null}
-      {query.status === 'ok' && query.data && owner === false ? <ErrorState detail={de.templates.readOnly} /> : null}
+      {query.status === 'ok' && query.data === null ? <ErrorState detail={deTemplates.editor.notFound} /> : null}
+      {query.status === 'ok' && query.data && owner === false ? <ErrorState detail={deTemplates.readOnly} /> : null}
       {query.status === 'ok' && query.data && owner === true ? <EditorForm key={id ?? 'new'} loaded={query.data} /> : null}
     </>
   );
@@ -96,7 +97,7 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
   const nameInvalid = showErrors && issues.some((i) => i.code === 'NAME_EMPTY');
   const blockIssues = useMemo(() => {
     const m = new Map<string, string[]>();
-    if (showErrors) for (const i of issues) if (i.blockId) m.set(i.blockId, [...(m.get(i.blockId) ?? []), de.templates.editor.issues[i.code]]);
+    if (showErrors) for (const i of issues) if (i.blockId) m.set(i.blockId, [...(m.get(i.blockId) ?? []), deTemplates.editor.issues[i.code]]);
     return m;
   }, [issues, showErrors]);
 
@@ -144,7 +145,7 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
   return (
     <form className="flex flex-col gap-6" noValidate onSubmit={(e) => void save(e)}>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="template-name">{de.templates.editor.name}</Label>
+        <Label htmlFor="template-name">{deTemplates.editor.name}</Label>
         <Input
           id="template-name"
           value={name}
@@ -155,7 +156,7 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
         />
         {nameInvalid ? (
           <p id="template-name-error" className="text-sm text-destructive">
-            {de.templates.editor.nameRequired}
+            {deTemplates.editor.nameRequired}
           </p>
         ) : null}
       </div>
@@ -164,15 +165,15 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
         <div className="flex items-center gap-3">
           <Checkbox id="template-training" checked={training} onChange={(e) => setTraining(e.target.checked)} aria-describedby="template-training-hint" />
           <Label htmlFor="template-training" className="font-normal">
-            {de.templates.editor.training.toggle}
+            {deTemplates.editor.training.toggle}
           </Label>
         </div>
         <p id="template-training-hint" className="text-sm text-muted-foreground">
-          {de.templates.editor.training.toggleHint}
+          {deTemplates.editor.training.toggleHint}
         </p>
         {training ? (
           <div className="flex flex-col gap-2">
-            <Label htmlFor="template-phases">{de.templates.editor.training.phases}</Label>
+            <Label htmlFor="template-phases">{deTemplates.editor.training.phases}</Label>
             <Input
               id="template-phases"
               inputMode="numeric"
@@ -182,7 +183,7 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
               onChange={(e) => setPhasesText(e.target.value)}
             />
             <p id="template-phases-hint" className={cn('text-sm', showErrors && phases.invalid ? 'text-destructive' : 'text-muted-foreground')}>
-              {showErrors && phases.invalid ? de.templates.editor.training.phasesInvalid : de.templates.editor.training.phasesHint}
+              {showErrors && phases.invalid ? deTemplates.editor.training.phasesInvalid : deTemplates.editor.training.phasesHint}
             </p>
           </div>
         ) : null}
@@ -193,18 +194,18 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
       </div>
       <div data-tour="editor-save" className={cn('flex flex-col gap-2', TOUR_RING)}>
         <Button type="submit" disabled={busy}>
-          {de.templates.editor.save}
+          {deTemplates.editor.save}
         </Button>
         {state ? (
           <Button type="button" variant="outline" disabled={busy} onClick={() => void duplicate()}>
             <Copy aria-hidden />
-            {de.templates.editor.duplicate}
+            {deTemplates.editor.duplicate}
           </Button>
         ) : null}
       </div>
       <Dialog open={blocker.state === 'blocked'} onClose={() => blocker.reset?.()} aria-labelledby="discard-template-title">
-        <DialogTitle id="discard-template-title">{de.templates.editor.discardTitle}</DialogTitle>
-        <DialogDescription>{de.templates.editor.discardHint}</DialogDescription>
+        <DialogTitle id="discard-template-title">{deTemplates.editor.discardTitle}</DialogTitle>
+        <DialogDescription>{deTemplates.editor.discardHint}</DialogDescription>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => blocker.reset?.()}>
             {de.entry.keepEditing}

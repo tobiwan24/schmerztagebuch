@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { de } from '@/i18n/de';
+import { deTemplates } from '@/i18n/lazy/templates';
 
-const t = de.templates.editor.exercise;
+const t = deTemplates.editor.exercise;
 
 /** Entfernt ein optionales Feld (kein `undefined` im Datensatz). */
 function withOptional(c: ExerciseConfig, key: keyof ExerciseConfig, value: unknown): ExerciseConfig {

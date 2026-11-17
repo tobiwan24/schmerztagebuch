@@ -11,9 +11,9 @@ import { ErrorState } from '@/components/StateView';
 import { Progress } from '@/components/ui/progress';
 import { useSync } from '@/data/SyncContext';
 import { useMembers, type MemberView } from '@/data/useSharing';
-import { de } from '@/i18n/de';
+import { deMembers } from '@/i18n/lazy/members';
 
-const t = de.members;
+const t = deMembers;
 
 export function MembersPage() {
   const { id = '' } = useParams();

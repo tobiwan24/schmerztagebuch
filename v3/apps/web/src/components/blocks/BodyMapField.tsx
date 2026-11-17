@@ -17,6 +17,7 @@ import { useQuery } from '@/data/useQuery';
 import { cropImage, readFileAsDataUrl, resizeImage, type CropArea } from '@/lib/image';
 import { BODYMAP_PRESETS, intensityFill, intensityStroke, presetById } from './bodymap-presets';
 import { de } from '@/i18n/de';
+import { deBodymap } from '@/i18n/lazy/bodymap';
 
 /** Zuschnitt (react-easy-crop) erst beim Öffnen laden — gehört nicht ins initiale JS (QA-02). */
 const CropDialog = lazy(() => import('./CropDialog').then((m) => ({ default: m.CropDialog })));
@@ -49,7 +50,7 @@ export function BodyMapField({ id, value, defaultPresetId, onChange, diaryId, on
   const ownImages = own.status === 'ok' ? own.data : [];
   const ownImage = ownImages.find((i) => i.id === current.presetId);
   const preset = presetById(current.presetId) ?? BODYMAP_PRESETS[0];
-  const image = ownImage ? { id: ownImage.id, src: ownImage.dataUrl, name: ownImage.name } : { id: preset.id, src: preset.src, name: de.bodymap.presets[preset.id] };
+  const image = ownImage ? { id: ownImage.id, src: ownImage.dataUrl, name: ownImage.name } : { id: preset.id, src: preset.src, name: deBodymap.presets[preset.id] };
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [savingImage, setSavingImage] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -62,7 +63,7 @@ export function BodyMapField({ id, value, defaultPresetId, onChange, diaryId, on
   const [stroke, setStroke] = useState<{ x: number; y: number }[] | null>(null);
   const [switchTo, setSwitchTo] = useState<string | null>(null);
   const area = useRef<HTMLDivElement>(null);
-  const presetName = (pid: string) => de.bodymap.presets[pid as keyof typeof de.bodymap.presets] ?? pid;
+  const presetName = (pid: string) => deBodymap.presets[pid as keyof typeof deBodymap.presets] ?? pid;
 
   const toNorm = (e: PointerEvent) => {
     const rect = area.current!.getBoundingClientRect();
@@ -145,7 +146,7 @@ export function BodyMapField({ id, value, defaultPresetId, onChange, diaryId, on
 
   return (
     <div id={id} className="flex flex-col gap-3">
-      <div role="group" aria-label={de.bodymap.image} className="flex flex-wrap gap-2">
+      <div role="group" aria-label={deBodymap.image} className="flex flex-wrap gap-2">
         {BODYMAP_PRESETS.map((p) => (
           <Button key={p.id} type="button" size="sm" variant={p.id === image.id ? 'default' : 'outline'} aria-pressed={p.id === image.id} onClick={() => choosePreset(p.id)}>
             {presetName(p.id)}
@@ -160,50 +161,50 @@ export function BodyMapField({ id, value, defaultPresetId, onChange, diaryId, on
 
       {diaryId ? (
         <div className="flex flex-wrap gap-2">
-          <Input ref={fileInput} type="file" accept="image/*" className="hidden" aria-label={de.bodymap.uploadImage} onChange={(e) => void onFile(e.target.files?.[0]).finally(() => (e.target.value = ''))} />
+          <Input ref={fileInput} type="file" accept="image/*" className="hidden" aria-label={deBodymap.uploadImage} onChange={(e) => void onFile(e.target.files?.[0]).finally(() => (e.target.value = ''))} />
           <Button type="button" size="sm" variant="outline" onClick={() => fileInput.current?.click()}>
             <ImagePlus aria-hidden />
-            {de.bodymap.uploadImage}
+            {deBodymap.uploadImage}
           </Button>
           <Button type="button" size="sm" variant="outline" onClick={() => setCropSrc(image.src)}>
             <Crop aria-hidden />
-            {de.bodymap.cropImage}
+            {deBodymap.cropImage}
           </Button>
           {ownImage ? (
             <Button type="button" size="sm" variant="outline" onClick={() => setConfirmDelete(true)}>
               <Trash2 aria-hidden />
-              {de.bodymap.deleteImage}
+              {deBodymap.deleteImage}
             </Button>
           ) : null}
           {onSetDefault && image.id !== defaultPresetId ? (
             <Button type="button" size="sm" variant="outline" onClick={() => void setAsDefault()}>
               <Star aria-hidden />
-              {de.bodymap.setDefault}
+              {deBodymap.setDefault}
             </Button>
           ) : null}
         </div>
       ) : null}
       {defaultInfo ? (
         <p role="status" className="text-xs text-muted-foreground">
-          {de.bodymap.defaultSet}
+          {deBodymap.defaultSet}
         </p>
       ) : null}
 
       <div className="grid grid-cols-1 gap-2 min-[440px]:grid-cols-2">
-        <ToggleGroup aria-label={de.bodymap.tool}>
-          <ToggleGroupItem pressed={tool === 'point'} aria-label={de.bodymap.toolPoint} onClick={() => setTool('point')}>
+        <ToggleGroup aria-label={deBodymap.tool}>
+          <ToggleGroupItem pressed={tool === 'point'} aria-label={deBodymap.toolPoint} onClick={() => setTool('point')}>
             <ArrowDownToDot className="size-4" aria-hidden />
-            {de.bodymap.toolPoint}
+            {deBodymap.toolPoint}
           </ToggleGroupItem>
-          <ToggleGroupItem pressed={tool === 'brush'} aria-label={de.bodymap.toolBrush} onClick={() => setTool('brush')}>
+          <ToggleGroupItem pressed={tool === 'brush'} aria-label={deBodymap.toolBrush} onClick={() => setTool('brush')}>
             <Brush className="size-4" aria-hidden />
-            {de.bodymap.toolBrush}
+            {deBodymap.toolBrush}
           </ToggleGroupItem>
         </ToggleGroup>
-        <ToggleGroup aria-label={de.bodymap.size}>
+        <ToggleGroup aria-label={deBodymap.size}>
           {(Object.keys(BODYMAP_SIZES) as SizeKey[]).map((k) => (
             <ToggleGroupItem key={k} pressed={size === k} onClick={() => setSize(k)}>
-              {de.bodymap.sizes[k]}
+              {deBodymap.sizes[k]}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
@@ -211,7 +212,7 @@ export function BodyMapField({ id, value, defaultPresetId, onChange, diaryId, on
 
       <div className="flex items-center gap-3">
         <Label htmlFor={`${id}-intensity`} className="shrink-0 font-normal">
-          {de.bodymap.intensity}
+          {deBodymap.intensity}
         </Label>
         <Slider id={`${id}-intensity`} min={1} max={10} step={1} value={intensity} onChange={(e) => setIntensity(Number(e.target.value))} />
         <span className="w-6 text-right font-semibold tabular-nums">{intensity}</span>
@@ -221,7 +222,7 @@ export function BodyMapField({ id, value, defaultPresetId, onChange, diaryId, on
         ref={area}
         data-testid="bodymap-canvas"
         data-tool={tool}
-        aria-label={de.bodymap.tapHint}
+        aria-label={deBodymap.tapHint}
         className="relative cursor-crosshair touch-none overflow-hidden rounded-lg border-2 select-none"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -254,19 +255,19 @@ export function BodyMapField({ id, value, defaultPresetId, onChange, diaryId, on
           </svg>
         ) : null}
       </div>
-      <p className="text-xs text-muted-foreground">{tool === 'brush' ? de.bodymap.brushHint : de.bodymap.tapHint}</p>
+      <p className="text-xs text-muted-foreground">{tool === 'brush' ? deBodymap.brushHint : deBodymap.tapHint}</p>
 
       {current.points.length > 0 ? (
         <ul data-testid="bodymap-points" className="flex flex-col gap-2">
           {current.points.map((m, i) => (
             <li key={m.id} data-testid="bodymap-mark" className="flex flex-col gap-2 rounded-md border px-3 py-2 text-sm">
               <div className="flex items-center justify-between gap-2">
-                <span>{de.bodymap.markLabel(i + 1, m.kind === 'brush', m.intensity ?? 5)}</span>
-                <Button type="button" variant="ghost" size="icon" aria-label={de.bodymap.removePoint(i + 1)} onClick={() => remove(m.id)}>
+                <span>{deBodymap.markLabel(i + 1, m.kind === 'brush', m.intensity ?? 5)}</span>
+                <Button type="button" variant="ghost" size="icon" aria-label={deBodymap.removePoint(i + 1)} onClick={() => remove(m.id)}>
                   <X aria-hidden />
                 </Button>
               </div>
-              <Input aria-label={de.bodymap.commentFor(i + 1)} placeholder={de.bodymap.commentPlaceholder} value={m.comment ?? ''} onChange={(e) => setComment(m.id, e.target.value)} />
+              <Input aria-label={deBodymap.commentFor(i + 1)} placeholder={deBodymap.commentPlaceholder} value={m.comment ?? ''} onChange={(e) => setComment(m.id, e.target.value)} />
             </li>
           ))}
         </ul>
@@ -277,7 +278,7 @@ export function BodyMapField({ id, value, defaultPresetId, onChange, diaryId, on
           <CropDialog
             key={cropSrc}
             src={cropSrc}
-            defaultName={de.bodymap.ownImageName(ownImages.length + 1)}
+            defaultName={deBodymap.ownImageName(ownImages.length + 1)}
             hasMarks={current.points.length > 0}
             busy={savingImage}
             onCancel={() => setCropSrc(null)}
@@ -286,20 +287,20 @@ export function BodyMapField({ id, value, defaultPresetId, onChange, diaryId, on
         </Suspense>
       ) : null}
       <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)} aria-labelledby={`${id}-delete-title`}>
-        <DialogTitle id={`${id}-delete-title`}>{de.bodymap.deleteImageTitle}</DialogTitle>
-        <DialogDescription>{de.bodymap.deleteImageHint}</DialogDescription>
+        <DialogTitle id={`${id}-delete-title`}>{deBodymap.deleteImageTitle}</DialogTitle>
+        <DialogDescription>{deBodymap.deleteImageHint}</DialogDescription>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => setConfirmDelete(false)}>
             {de.lock.cancel}
           </Button>
           <Button type="button" variant="destructive" onClick={() => void deleteOwn()}>
-            {de.bodymap.deleteImage}
+            {deBodymap.deleteImage}
           </Button>
         </DialogFooter>
       </Dialog>
       <Dialog open={switchTo !== null} onClose={() => setSwitchTo(null)} aria-labelledby={`${id}-switch-title`}>
-        <DialogTitle id={`${id}-switch-title`}>{de.bodymap.switchTitle}</DialogTitle>
-        <DialogDescription>{de.bodymap.switchHint}</DialogDescription>
+        <DialogTitle id={`${id}-switch-title`}>{deBodymap.switchTitle}</DialogTitle>
+        <DialogDescription>{deBodymap.switchHint}</DialogDescription>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => setSwitchTo(null)}>
             {de.lock.cancel}
@@ -312,7 +313,7 @@ export function BodyMapField({ id, value, defaultPresetId, onChange, diaryId, on
               setSwitchTo(null);
             }}
           >
-            {de.bodymap.switchConfirm}
+            {deBodymap.switchConfirm}
           </Button>
         </DialogFooter>
       </Dialog>
@@ -359,7 +360,7 @@ export function BodyMapView({ value, diaryId, label }: { value: BodymapValue; di
   const own = useQuery(async () => diary.listBodymapImages(diaryId), [diary, diaryId]);
   const ownImage = own.status === 'ok' ? own.data.find((i) => i.id === value.presetId) : undefined;
   const preset = presetById(value.presetId) ?? BODYMAP_PRESETS[0];
-  const image = ownImage ? { src: ownImage.dataUrl, name: ownImage.name } : { src: preset.src, name: de.bodymap.presets[preset.id] };
+  const image = ownImage ? { src: ownImage.dataUrl, name: ownImage.name } : { src: preset.src, name: deBodymap.presets[preset.id] };
   const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
   return (
     <section data-testid="bodymap-view" className="flex flex-col gap-2" aria-label={label}>
@@ -378,7 +379,7 @@ export function BodyMapView({ value, diaryId, label }: { value: BodymapValue; di
         <ul className="flex flex-col gap-1 text-sm">
           {value.points.map((m, i) => (
             <li key={m.id} data-testid="bodymap-view-mark">
-              {de.bodymap.markLabel(i + 1, m.kind === 'brush', m.intensity ?? 5)}
+              {deBodymap.markLabel(i + 1, m.kind === 'brush', m.intensity ?? 5)}
               {m.comment ? <span className="text-muted-foreground"> — {m.comment}</span> : null}
             </li>
           ))}

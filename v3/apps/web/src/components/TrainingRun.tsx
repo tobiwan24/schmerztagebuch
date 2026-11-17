@@ -13,8 +13,9 @@ import { ExerciseField } from '@/components/blocks/ExerciseField';
 import { TemplateIcon } from '@/components/TemplateIcon';
 import { useData } from '@/data/DataContext';
 import { de } from '@/i18n/de';
+import { deTraining } from '@/i18n/lazy/training';
 
-const t = de.training;
+const t = deTraining;
 
 export function TrainingRun({ state, onCancel }: { state: TemplateState; onCancel: () => void }) {
   const data = useData();

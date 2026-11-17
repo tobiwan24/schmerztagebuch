@@ -6,9 +6,9 @@ import { OPTION_COLORS } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { de } from '@/i18n/de';
+import { deTemplates } from '@/i18n/lazy/templates';
 
-const t = de.templates.editor.multiselect;
+const t = deTemplates.editor.multiselect;
 
 export interface OptionDef {
   id: string;

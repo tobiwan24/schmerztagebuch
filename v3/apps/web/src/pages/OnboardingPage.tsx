@@ -21,6 +21,7 @@ import { requestPersistentStorage } from '@/lib/install';
 import { prepareLocalAccount, type PendingAccount } from '@/auth/local-account';
 import { useAuth } from '@/auth/AuthContext';
 import { de } from '@/i18n/de';
+import { deOnboarding } from '@/i18n/lazy/onboarding';
 import { readLastSeen, writeLastSeen } from '@/data/whats-new-state';
 import { APP_VERSION } from '@/version';
 import { SETUP_STEPS, enterSetup, type Step } from './onboarding-steps';
@@ -97,42 +98,42 @@ export function OnboardingPage() {
       {current === 'install' ? (
         <Card>
           <CardHeader>
-            <CardTitle>{de.onboarding.installTitle}</CardTitle>
-            <CardDescription>{de.onboarding.installHint}</CardDescription>
+            <CardTitle>{deOnboarding.installTitle}</CardTitle>
+            <CardDescription>{deOnboarding.installHint}</CardDescription>
           </CardHeader>
           <div className="flex flex-col gap-4 px-5">
             <UpdateModeToggle />
             <Button className="w-full" onClick={() => setStep('mode')}>
-              {de.onboarding.installNext}
+              {deOnboarding.installNext}
             </Button>
           </div>
         </Card>
       ) : null}
       {current === 'mode' ? (
         <>
-          <h2 className="text-lg font-semibold">{de.onboarding.modeTitle}</h2>
+          <h2 className="text-lg font-semibold">{deOnboarding.modeTitle}</h2>
           <Button variant="outline" className="h-auto justify-start py-3 text-left" onClick={() => setStep('factor')}>
             <Smartphone aria-hidden />
             <span className="flex flex-col whitespace-normal">
-              <span>{de.onboarding.modeLocal}</span>
-              <span className="text-xs text-muted-foreground">{de.onboarding.modeLocalHint}</span>
+              <span>{deOnboarding.modeLocal}</span>
+              <span className="text-xs text-muted-foreground">{deOnboarding.modeLocalHint}</span>
             </span>
           </Button>
           <Button variant="outline" className="h-auto justify-start py-3 text-left" onClick={() => setStep('cloud')}>
             <Cloud aria-hidden />
             <span className="flex flex-col whitespace-normal">
-              <span>{de.onboarding.modeCloud}</span>
-              <span className="text-xs text-muted-foreground">{de.onboarding.modeCloudHint}</span>
+              <span>{deOnboarding.modeCloud}</span>
+              <span className="text-xs text-muted-foreground">{deOnboarding.modeCloudHint}</span>
             </span>
           </Button>
         </>
       ) : null}
-      {current === 'factor' ? <FactorSetup title={de.onboarding.factorTitle} onFactor={onFactor} /> : null}
+      {current === 'factor' ? <FactorSetup title={deOnboarding.factorTitle} onFactor={onFactor} /> : null}
       {current === 'cloud' ? (
         <>
           <CloudRegister onPending={(p) => (setPending(p), setStep('backup'))} />
           <Button variant="link" onClick={() => setStep('cloud-login')}>
-            {de.onboarding.haveAccount}
+            {deOnboarding.haveAccount}
           </Button>
         </>
       ) : null}

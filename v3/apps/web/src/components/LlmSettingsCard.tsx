@@ -8,8 +8,9 @@ import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/componen
 import { Label } from '@/components/ui/label';
 import { useLlm } from '@/llm/useLlm';
 import { de } from '@/i18n/de';
+import { deLlm } from '@/i18n/lazy/llm';
 
-const t = de.llm;
+const t = deLlm;
 
 export function LlmSettingsCard() {
   const llm = useLlm();

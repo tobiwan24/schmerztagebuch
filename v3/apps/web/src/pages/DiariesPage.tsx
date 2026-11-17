@@ -8,8 +8,9 @@ import { ErrorState } from '@/components/StateView';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
+import { deDiaries } from '@/i18n/lazy/diaries';
 
-const t = de.diaries;
+const t = deDiaries;
 
 export function DiariesPage() {
   const { diary } = useData();

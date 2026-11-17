@@ -14,8 +14,9 @@ import { useDiaryScope } from '@/data/diary-scope';
 import { useWritableDiaries } from '@/data/useSharing';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
+import { deTraining } from '@/i18n/lazy/training';
 
-const t = de.training;
+const t = deTraining;
 
 interface Group {
   diaryId: string;

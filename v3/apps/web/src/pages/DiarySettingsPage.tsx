@@ -15,8 +15,9 @@ import { useData } from '@/data/DataContext';
 import { useMembers } from '@/data/useSharing';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
+import { deDiaries } from '@/i18n/lazy/diaries';
 
-const t = de.diaries;
+const t = deDiaries;
 
 function timeZones(current: string): string[] {
   let all: string[] = [];

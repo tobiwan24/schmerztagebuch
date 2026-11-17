@@ -22,8 +22,9 @@ import { useDiaryScope } from '@/data/diary-scope';
 import { useMembers } from '@/data/useSharing';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
+import { deAnalysis } from '@/i18n/lazy/analysis';
 
-const t = de.analysis.dashboards;
+const t = deAnalysis.dashboards;
 const DAYS = [7, 30, 90, 182, 365] as const;
 const num = (n: number, digits = 1) => n.toLocaleString('de-DE', { maximumFractionDigits: digits });
 
@@ -238,7 +239,7 @@ function WidgetBody({ widget, diaryId }: { widget: Widget; diaryId: string }) {
 
 function CorrelationWidget({ spec, a, b, lag }: { spec: FilterSpec; a: string; b: string; lag: number }) {
   const { now } = useData();
-  const c = de.analysis.corr;
+  const c = deAnalysis.corr;
   const result = useWorker((w) => w.correlation({ blockId: a }, { blockId: b }, lag, { spec, now: now() }), [JSON.stringify(spec), a, b, lag]);
   return (
     <Card>
@@ -272,7 +273,7 @@ function KpiWidget({ spec, stat, blockId }: { spec: FilterSpec; stat: 'mean' | '
       </CardHeader>
       <CardContent className="flex flex-col gap-1">
         <p data-testid="kpi-value" className="text-3xl font-semibold tabular-nums">{!series ? '…' : value === null ? '–' : num(value)}</p>
-        <p className="text-xs text-muted-foreground" data-testid="kpi-n">{series ? de.analysis.nDays(values.length) : ''}</p>
+        <p className="text-xs text-muted-foreground" data-testid="kpi-n">{series ? deAnalysis.nDays(values.length) : ''}</p>
       </CardContent>
     </Card>
   );

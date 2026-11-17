@@ -7,9 +7,10 @@ import { PageHeader } from '@/components/PageHeader';
 import { ErrorState } from '@/components/StateView';
 import { useDiagnostics } from '@/data/useDiagnostics';
 import { useSync } from '@/data/SyncContext';
-import { de } from '@/i18n/de';
+import { deWhatsNew } from '@/i18n/lazy/whatsNew';
+import { deDiagnostics } from '@/i18n/lazy/diagnostics';
 
-const t = de.diagnostics;
+const t = deDiagnostics;
 const mb = (n: number) => `${(n / 1024 / 1024).toFixed(1).replace('.', ',')} MB`;
 
 export function DiagnosticsPage() {
@@ -54,10 +55,10 @@ export function DiagnosticsPage() {
       ) : null}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{de.whatsNew.heading}</CardTitle>
+          <CardTitle className="text-base">{deWhatsNew.heading}</CardTitle>
         </CardHeader>
         <CardContent>
-          {changelog.length === 0 ? <p className="text-sm text-muted-foreground">{de.whatsNew.empty}</p> : <ReleaseList releases={changelog} testId="whats-new-list" />}
+          {changelog.length === 0 ? <p className="text-sm text-muted-foreground">{deWhatsNew.empty}</p> : <ReleaseList releases={changelog} testId="whats-new-list" />}
         </CardContent>
       </Card>
       <Button variant="outline" onClick={d.retry}>

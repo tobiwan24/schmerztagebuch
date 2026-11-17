@@ -10,10 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { de } from '@/i18n/de';
+import { deTemplates } from '@/i18n/lazy/templates';
 import { BlockConfigFields } from './BlockConfigFields';
 
-const t = de.templates.editor;
+const t = deTemplates.editor;
 /** Block-Typen der Palette. */
 const PALETTE: readonly BlockType[] = ['slider', 'checkbox', 'multiselect', 'text', 'textarea', 'date', 'bodymap', 'medication'];
 

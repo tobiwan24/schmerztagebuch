@@ -11,9 +11,9 @@ import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/PageHeader';
 import { downloadText } from '@/data/useBackup';
 import { reportText, useMigration } from '@/migration/useMigration';
-import { de } from '@/i18n/de';
+import { deMigration } from '@/i18n/lazy/migration';
 
-const t = de.migration;
+const t = deMigration;
 const codeOf = (e: unknown) => (e as { code?: string; name?: string; message?: string }).code ?? (e as { message?: string }).message ?? '';
 
 export function MigratePage() {

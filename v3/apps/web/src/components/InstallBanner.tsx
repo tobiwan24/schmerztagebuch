@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { currentInstallEnv, installContext } from '@/lib/install';
-import { de } from '@/i18n/de';
+import { deInstall } from '@/i18n/lazy/install';
 
 const KEY = 'stb.install-banner.dismissed';
 
@@ -31,11 +31,11 @@ export function InstallBanner() {
   return (
     <div role="status" data-testid="install-banner" className="flex items-start justify-between gap-2 rounded-lg border bg-accent px-4 py-3 text-sm">
       <div className="flex flex-col gap-1">
-        <span className="font-medium">{de.install.title}</span>
-        <span>{de.install.hint}</span>
-        {context === 'ios-other-browser' ? <span data-testid="install-safari-hint">{de.install.safariHint}</span> : null}
+        <span className="font-medium">{deInstall.title}</span>
+        <span>{deInstall.hint}</span>
+        {context === 'ios-other-browser' ? <span data-testid="install-safari-hint">{deInstall.safariHint}</span> : null}
       </div>
-      <Button variant="ghost" size="icon" aria-label={de.install.dismiss} onClick={dismiss}>
+      <Button variant="ghost" size="icon" aria-label={deInstall.dismiss} onClick={dismiss}>
         <X aria-hidden />
       </Button>
     </div>

@@ -1,6 +1,6 @@
 // Verbindlich unterscheidbare Fehlercodes (Spec 03 „Fehlermeldungen"): jeder hat einen eigenen, handlungsorientierten
 // Text (CRY-11). Fehler werden nie zu einem generischen `false` reduziert.
-import { de } from '@/i18n/de';
+import { deAuthErrors } from '@/i18n/lazy/authErrors';
 
 export const AUTH_ERROR_CODES = [
   'webauthn-cancelled',
@@ -17,7 +17,7 @@ export const AUTH_ERROR_CODES = [
 export type AuthErrorCode = (typeof AUTH_ERROR_CODES)[number];
 
 export function authErrorText(code: AuthErrorCode): { title: string; action: string } {
-  return de.authErrors[code];
+  return deAuthErrors[code];
 }
 
 /**

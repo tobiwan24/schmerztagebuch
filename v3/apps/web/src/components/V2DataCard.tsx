@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { useRemoveV2, useV2Status } from '@/migration/status';
-import { de } from '@/i18n/de';
+import { deMigration } from '@/i18n/lazy/migration';
 
-const t = de.migration;
+const t = deMigration;
 
 export function V2DataCard() {
   const status = useV2Status();

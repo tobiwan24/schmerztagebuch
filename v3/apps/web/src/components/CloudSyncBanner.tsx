@@ -7,9 +7,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/auth/AuthContext';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
-import { de } from '@/i18n/de';
+import { deCloudBanner } from '@/i18n/lazy/cloudBanner';
 
-const t = de.cloudBanner;
+const t = deCloudBanner;
 const DISMISSED = 'cloud-banner:dismissed';
 
 export function CloudSyncBanner() {

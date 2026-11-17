@@ -12,6 +12,7 @@ import { Slider } from '@/components/ui/slider';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import type { CropArea } from '@/lib/image';
 import { de } from '@/i18n/de';
+import { deBodymap } from '@/i18n/lazy/bodymap';
 
 const ASPECTS = [
   { key: 'portrait', value: 3 / 4 },
@@ -32,8 +33,8 @@ export function CropDialog({
 
   return (
     <Dialog open={src !== null} onClose={onCancel} aria-labelledby="crop-title" className="max-w-md">
-      <DialogTitle id="crop-title">{de.bodymap.cropTitle}</DialogTitle>
-      {hasMarks ? <DialogDescription>{de.bodymap.cropMarksLost}</DialogDescription> : null}
+      <DialogTitle id="crop-title">{deBodymap.cropTitle}</DialogTitle>
+      {hasMarks ? <DialogDescription>{deBodymap.cropMarksLost}</DialogDescription> : null}
       <div data-testid="crop-area" className="relative mt-4 h-72 w-full overflow-hidden rounded-md bg-muted">
         {src ? (
           <Cropper
@@ -49,21 +50,21 @@ export function CropDialog({
         ) : null}
       </div>
       <div className="mt-4 flex flex-col gap-3">
-        <ToggleGroup aria-label={de.bodymap.cropAspect}>
+        <ToggleGroup aria-label={deBodymap.cropAspect}>
           {ASPECTS.map((a) => (
             <ToggleGroupItem key={a.key} pressed={aspect === a.key} onClick={() => setAspect(a.key)}>
-              {de.bodymap.aspects[a.key]}
+              {deBodymap.aspects[a.key]}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
         <div className="flex items-center gap-3">
           <Label htmlFor="crop-zoom" className="shrink-0 font-normal">
-            {de.bodymap.cropZoom}
+            {deBodymap.cropZoom}
           </Label>
           <Slider id="crop-zoom" min={1} max={3} step={0.1} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="crop-name">{de.bodymap.imageName}</Label>
+          <Label htmlFor="crop-name">{deBodymap.imageName}</Label>
           <Input id="crop-name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
         </div>
       </div>
@@ -72,7 +73,7 @@ export function CropDialog({
           {de.lock.cancel}
         </Button>
         <Button type="button" disabled={busy || !area || !name.trim()} onClick={() => area && onApply(area, name.trim())}>
-          {busy ? de.entry.saving : de.bodymap.cropApply}
+          {busy ? de.entry.saving : deBodymap.cropApply}
         </Button>
       </DialogFooter>
     </Dialog>

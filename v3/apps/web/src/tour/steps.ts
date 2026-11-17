@@ -1,4 +1,4 @@
-// Schritte der Tour (UI-28). Texte stehen in `de.tour.steps[id]` (Lint UI-07); `target` ist der Wert von `data-tour`.
+// Schritte der Tour (UI-28). Texte stehen in `deTour.steps[id]` (Lint UI-07); `target` ist der Wert von `data-tour`.
 import type { TourStep } from './tour';
 
 export const TOUR_STEPS: readonly TourStep[] = [

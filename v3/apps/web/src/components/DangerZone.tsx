@@ -6,9 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/auth/AuthContext';
 import { WIPE_CONFIRM_WORD, wipeLocalData } from '@/auth/wipe';
-import { de } from '@/i18n/de';
+import { deDanger } from '@/i18n/lazy/danger';
 
-const t = de.danger;
+const t = deDanger;
 
 export function DangerZone() {
   const { db, session, accountMode } = useAuth();

@@ -4,9 +4,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { FillDraft } from '@/llm/fill';
 import { cn } from '@/lib/utils';
-import { de } from '@/i18n/de';
+import { deLlm } from '@/i18n/lazy/llm';
 
-const t = de.llm.fill;
+const t = deLlm.fill;
 
 export function LlmDraftNotice({ draft, onDismiss }: { draft: FillDraft; onDismiss: () => void }) {
   return (

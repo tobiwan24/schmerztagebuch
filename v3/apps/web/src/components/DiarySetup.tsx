@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LocationPicker } from '@/components/LocationPicker';
 import type { WeatherLocation } from '@/weather/geocoding';
-import { de } from '@/i18n/de';
+import { deOnboarding } from '@/i18n/lazy/onboarding';
 
 export interface DiaryChoice {
   name: string;
@@ -19,7 +19,7 @@ export interface DiaryChoice {
 
 const SUBJECTS: readonly DiarySubject[] = ['human', 'animal', 'other'];
 
-export function DiaryStep({ onNext, initialName = de.onboarding.diaryDefaultName }: { onNext: (c: DiaryChoice) => void; initialName?: string }) {
+export function DiaryStep({ onNext, initialName = deOnboarding.diaryDefaultName }: { onNext: (c: DiaryChoice) => void; initialName?: string }) {
   const [name, setName] = useState<string>(initialName);
   const [subject, setSubject] = useState<DiarySubject>('human');
   const [error, setError] = useState(false);
@@ -33,26 +33,26 @@ export function DiaryStep({ onNext, initialName = de.onboarding.diaryDefaultName
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{de.onboarding.diaryTitle}</CardTitle>
+        <CardTitle>{deOnboarding.diaryTitle}</CardTitle>
       </CardHeader>
       <CardContent>
         <form className="flex flex-col gap-4" onSubmit={submit}>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="diary-name">{de.onboarding.diaryName}</Label>
+            <Label htmlFor="diary-name">{deOnboarding.diaryName}</Label>
             <Input id="diary-name" value={name} aria-invalid={error} onChange={(e) => (setName(e.target.value), setError(false))} />
-            {error ? <p className="text-sm text-destructive">{de.onboarding.diaryNameMissing}</p> : null}
+            {error ? <p className="text-sm text-destructive">{deOnboarding.diaryNameMissing}</p> : null}
           </div>
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-2 text-sm font-medium">{de.onboarding.diarySubject}</legend>
+            <legend className="mb-2 text-sm font-medium">{deOnboarding.diarySubject}</legend>
             <div className="grid grid-cols-3 gap-2">
               {SUBJECTS.map((s) => (
                 <Button key={s} type="button" variant={subject === s ? 'default' : 'outline'} aria-pressed={subject === s} onClick={() => setSubject(s)}>
-                  {de.onboarding.subjects[s]}
+                  {deOnboarding.subjects[s]}
                 </Button>
               ))}
             </div>
           </fieldset>
-          <Button type="submit">{de.onboarding.next}</Button>
+          <Button type="submit">{deOnboarding.next}</Button>
         </form>
       </CardContent>
     </Card>
@@ -65,13 +65,13 @@ export function LocationStep({ onDone }: { onDone: (location: WeatherLocation | 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{de.onboarding.locationTitle}</CardTitle>
-        <CardDescription>{de.onboarding.locationHint}</CardDescription>
+        <CardTitle>{deOnboarding.locationTitle}</CardTitle>
+        <CardDescription>{deOnboarding.locationHint}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <LocationPicker idPrefix="onboarding-location" value={location} onChange={(l) => setLocation(l ?? undefined)} />
         <Button type="button" variant={location ? 'default' : 'outline'} onClick={() => onDone(location)}>
-          {location ? de.onboarding.next : de.onboarding.locationLater}
+          {location ? deOnboarding.next : deOnboarding.locationLater}
         </Button>
       </CardContent>
     </Card>
@@ -81,11 +81,11 @@ export function LocationStep({ onDone }: { onDone: (location: WeatherLocation | 
 /** `null` = leer beginnen. */
 export function TemplateStep({ busy, onDone }: { busy: boolean; onDone: (catalogId: string | null) => void }) {
   const [choice, setChoice] = useState<string | null>(TEMPLATE_CATALOG[0]?.id ?? null);
-  const options = [...TEMPLATE_CATALOG.map((c) => ({ id: c.id as string | null, name: c.name, hint: c.description })), { id: null, name: de.onboarding.templateEmpty, hint: de.onboarding.templateEmptyHint }];
+  const options = [...TEMPLATE_CATALOG.map((c) => ({ id: c.id as string | null, name: c.name, hint: c.description })), { id: null, name: deOnboarding.templateEmpty, hint: deOnboarding.templateEmptyHint }];
   return (
     <>
-      <h2 className="text-lg font-semibold">{de.onboarding.templateTitle}</h2>
-      <div role="radiogroup" aria-label={de.onboarding.templateTitle} className="flex flex-col gap-2">
+      <h2 className="text-lg font-semibold">{deOnboarding.templateTitle}</h2>
+      <div role="radiogroup" aria-label={deOnboarding.templateTitle} className="flex flex-col gap-2">
         {options.map((o) => (
           <Button
             key={o.id ?? 'empty'}
@@ -105,7 +105,7 @@ export function TemplateStep({ busy, onDone }: { busy: boolean; onDone: (catalog
         ))}
       </div>
       <Button disabled={busy} onClick={() => onDone(choice)}>
-        {busy ? de.onboarding.working : de.onboarding.finish}
+        {busy ? deOnboarding.working : deOnboarding.finish}
       </Button>
     </>
   );

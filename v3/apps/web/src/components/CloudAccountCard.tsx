@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/auth/AuthContext';
 import { useSync } from '@/data/SyncContext';
 import { de } from '@/i18n/de';
+import { deSettings } from '@/i18n/lazy/settings';
 
-const t = de.settings;
+const t = deSettings;
 
 export function CloudAccountCard() {
   const auth = useAuth();

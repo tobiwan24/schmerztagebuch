@@ -7,9 +7,9 @@ import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useReminderSettings } from '@/data/useReminders';
 import type { ReminderKind, ReminderSettings } from '@/reminders/reminders';
-import { de } from '@/i18n/de';
+import { deReminders } from '@/i18n/lazy/reminders';
 
-const base = de.reminders;
+const base = deReminders;
 
 /** `kind` „training“ = zusätzliche Erinnerung „Übungen“ (UI-32) mit eigener Uhrzeit und eigenen Tagen. */
 export function ReminderCard({ kind = 'diary' }: { kind?: ReminderKind }) {

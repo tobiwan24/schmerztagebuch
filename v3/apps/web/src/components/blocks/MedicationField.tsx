@@ -8,9 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { optionTone } from '@/lib/option-colors';
 import { cn } from '@/lib/utils';
-import { de } from '@/i18n/de';
+import { deMedication } from '@/i18n/lazy/medication';
 
-const t = de.medication;
+const t = deMedication;
 
 const pad = (n: number) => String(n).padStart(2, '0');
 /** Lokale Uhrzeit „HH:MM“ eines ISO-Werts. */

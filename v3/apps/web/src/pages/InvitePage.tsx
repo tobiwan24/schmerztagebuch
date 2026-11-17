@@ -7,9 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { PageHeader } from '@/components/PageHeader';
 import { useInvitation } from '@/data/useSharing';
 import { parseInviteFragment } from '@/sharing/flow';
-import { de } from '@/i18n/de';
+import { deInvite } from '@/i18n/lazy/invite';
 
-const t = de.invite;
+const t = deInvite;
 
 export function InvitePage() {
   const { hash } = useLocation();

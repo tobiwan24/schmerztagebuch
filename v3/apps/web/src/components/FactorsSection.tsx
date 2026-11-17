@@ -14,8 +14,10 @@ import { createPasskey } from '@/auth/passkey';
 import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
 import { refreshAutoBackupWraps } from '@/data/auto-backup-store';
 import { de } from '@/i18n/de';
+import { deOnboarding } from '@/i18n/lazy/onboarding';
+import { deFactors } from '@/i18n/lazy/factors';
 
-const t = de.factors;
+const t = deFactors;
 type Action = 'password' | 'passkey-add' | 'passkey-remove' | 'backup';
 
 export function FactorsSection() {
@@ -96,8 +98,8 @@ export function FactorsSection() {
 
   async function savePassword(e: FormEvent) {
     e.preventDefault();
-    if (next.length < 8) return setFormError(de.onboarding.passwordTooShort);
-    if (next !== repeat) return setFormError(de.onboarding.passwordMismatch);
+    if (next.length < 8) return setFormError(deOnboarding.passwordTooShort);
+    if (next !== repeat) return setFormError(deOnboarding.passwordMismatch);
     setFormError(null);
     setBusy(true);
     try {
@@ -164,7 +166,7 @@ export function FactorsSection() {
             <Input id="factor-current" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
           </Label>
           <div className="flex gap-2">
-            <Button type="submit" disabled={busy || !current}>{busy ? de.onboarding.working : t.confirm}</Button>
+            <Button type="submit" disabled={busy || !current}>{busy ? deOnboarding.working : t.confirm}</Button>
             <Button type="button" variant="outline" onClick={reset}>{de.lock.cancel}</Button>
           </div>
         </form>
@@ -182,7 +184,7 @@ export function FactorsSection() {
           </Label>
           {formError ? <p role="alert" className="text-sm text-destructive">{formError}</p> : null}
           <div className="flex gap-2">
-            <Button type="submit" disabled={busy}>{busy ? de.onboarding.working : t.save}</Button>
+            <Button type="submit" disabled={busy}>{busy ? deOnboarding.working : t.save}</Button>
             <Button type="button" variant="outline" onClick={reset}>{de.lock.cancel}</Button>
           </div>
         </form>
@@ -192,7 +194,7 @@ export function FactorsSection() {
         <div className="flex gap-2">
           <Button disabled={busy} onClick={() => void createNewPasskey()}>
             <Fingerprint aria-hidden />
-            {busy ? de.onboarding.working : t.passkeyCreate}
+            {busy ? deOnboarding.working : t.passkeyCreate}
           </Button>
           <Button variant="outline" onClick={reset}>{de.lock.cancel}</Button>
         </div>

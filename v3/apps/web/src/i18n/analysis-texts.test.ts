@@ -2,7 +2,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { de } from './de';
+import { deAnalysis } from './lazy/analysis';
 
 const FORBIDDEN = [/verursach/i, /führt zu/i, /\bwegen\b/i, /\bdeshalb\b/i, /\bdaher\b/i, /\bausgelöst durch\b/i];
 
@@ -15,7 +15,7 @@ function strings(o: unknown): string[] {
 
 describe('Analyse-Texte', () => {
   it('ANA-15: Analyse-Texte enthalten keine kausalen Formulierungen (Wortliste „verursacht", „führt zu", „wegen")', () => {
-    const texts = strings(de.analysis);
+    const texts = strings(deAnalysis);
     expect(texts.length).toBeGreaterThan(5);
     const dir = fileURLToPath(new URL('../../../../packages/analysis/src/', import.meta.url));
     for (const f of readdirSync(dir).filter((n) => n.endsWith('.ts') && !n.endsWith('.test.ts'))) {

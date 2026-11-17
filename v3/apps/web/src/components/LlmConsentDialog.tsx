@@ -1,9 +1,9 @@
 // Freigabe je Vorgang (Spec 08, A-086): zeigt den genauen Text und den Empfänger, gesendet wird erst nach „Senden“.
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
-import { de } from '@/i18n/de';
+import { deLlm } from '@/i18n/lazy/llm';
 
-const t = de.llm.consent;
+const t = deLlm.consent;
 
 export function LlmConsentDialog({ open, title, content, extra, recipient, busy, error, onConfirm, onCancel }: {
   open: boolean;

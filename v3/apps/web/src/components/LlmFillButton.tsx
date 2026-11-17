@@ -11,13 +11,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { LlmConsentDialog } from '@/components/LlmConsentDialog';
 import { LlmClientError, requestFill } from '@/llm/client';
 import { useLlm } from '@/llm/useLlm';
-import { de } from '@/i18n/de';
+import { deLlm } from '@/i18n/lazy/llm';
 
-const t = de.llm.fill;
+const t = deLlm.fill;
 
 export function llmErrorMessage(e: unknown): string {
   const code = e instanceof LlmClientError ? e.code : 'failed';
-  return de.llm.errors[code] ?? de.llm.errors.failed!;
+  return deLlm.errors[code] ?? deLlm.errors.failed!;
 }
 
 export function LlmFillButton({ templateName, version, onDraft }: { templateName: string; version: TemplateVersion; onDraft: (r: LlmFillResponse) => void }) {
@@ -54,7 +54,7 @@ export function LlmFillButton({ templateName, version, onDraft }: { templateName
         <Sparkles aria-hidden />
         {t.button}
       </Button>
-      {llm.availability === 'disabled' ? <p className="text-sm text-muted-foreground">{de.llm.offlineHint}</p> : null}
+      {llm.availability === 'disabled' ? <p className="text-sm text-muted-foreground">{deLlm.offlineHint}</p> : null}
 
       <Dialog open={step === 'input'} onClose={() => step === 'input' && close()} aria-labelledby="llm-fill-title">
         <DialogTitle id="llm-fill-title">{t.title}</DialogTitle>
@@ -64,13 +64,13 @@ export function LlmFillButton({ templateName, version, onDraft }: { templateName
           <Textarea id="llm-fill-text" value={text} maxLength={LLM_TEXT_MAX_CHARS} placeholder={t.placeholder} onChange={(e) => setText(e.target.value)} />
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={close}>{de.llm.consent.cancel}</Button>
+          <Button type="button" variant="outline" onClick={close}>{deLlm.consent.cancel}</Button>
           <Button type="button" disabled={text.trim() === ''} onClick={() => setStep('consent')}>{t.next}</Button>
         </DialogFooter>
       </Dialog>
 
       <LlmConsentDialog
-        open={step === 'consent'} title={t.consentTitle} content={text.trim()} extra={t.extra} recipient={de.llm.recipient(llm.status.provider, llm.status.thirdParty)}
+        open={step === 'consent'} title={t.consentTitle} content={text.trim()} extra={t.extra} recipient={deLlm.recipient(llm.status.provider, llm.status.thirdParty)}
         busy={busy} error={error} onConfirm={() => void send()} onCancel={() => step === 'consent' && close()}
       />
     </div>
