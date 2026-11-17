@@ -4,6 +4,15 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.6.0-alpha.1',
+    date: '2026-11-17',
+    points: [
+      'Neu: Auswertung „Zusammenhänge“. Du vergleichst zwei Felder, auch mit einem Tag Versatz, und siehst die Stärke in Worten samt Anzahl der Tage. Unter 14 Tagen gibt es nur einen Hinweis statt einer Zahl.',
+      'Mögliche Auslöser: Wie oft ein Ereignis an Tagen mit hohen Werten vorkam, mit Fallzahl. Ein Zusammenhang ist keine Ursache.',
+      'Neu: Einstellungen → Hinweise. Du legst fest, wann dich die App auf einen Wert hinweisen soll, etwa „Schmerz ≥ 7 an 3 Tagen in Folge“. Der Hinweis erscheint auf der Startseite und, wenn erlaubt, als Benachrichtigung. Er beschreibt nur, was in deinen Einträgen steht.',
+    ],
+  },
+  {
     version: '3.5.0-alpha.1',
     date: '2026-11-16',
     points: [
