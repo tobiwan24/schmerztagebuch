@@ -87,4 +87,24 @@ describe('Crypto-Session', () => {
   it('CRY-12: ohne Entsperren kein „Entsperrt bleiben"', async () => {
     await expect(createCryptoSession(db, clock).stayUnlocked()).rejects.toThrow();
   });
+
+  it('SHR-13: zwei Epochen je Tagebuch — aktuelle und vorherige lesbar, unbekannte nicht; Sperren verwirft beide', async () => {
+    const s = createCryptoSession(db, clock);
+    s.unlock(await generateUmk());
+    const [old, next] = [await generateDiaryKey(), await generateDiaryKey()];
+    s.setDiaryKey('d1', old, 1);
+    s.setDiaryKey('d1', next, 2, { key: old, keyEpoch: 1 });
+    expect(await s.keys.get('d1')).toEqual({ key: next, keyEpoch: 2 });
+    expect(await s.keys.forEpoch('d1', 2)).toBe(next);
+    expect(await s.keys.forEpoch('d1', 1)).toBe(old);
+    expect(await s.keys.forEpoch('d1', 3)).toBeUndefined();
+    // Wrap derselben Epoche erneut gesetzt (ohne Vorgänger): Vorgänger bleibt
+    s.setDiaryKey('d1', next, 2);
+    expect(await s.keys.forEpoch('d1', 1)).toBe(old);
+    // neue Epoche ohne Vorgänger: der alte Vorgänger entfällt
+    s.setDiaryKey('d1', await generateDiaryKey(), 3);
+    expect(await s.keys.forEpoch('d1', 1)).toBeUndefined();
+    s.lock();
+    await expect(s.keys.forEpoch('d1', 2)).rejects.toThrow();
+  });
 });

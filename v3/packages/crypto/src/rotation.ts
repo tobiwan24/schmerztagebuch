@@ -184,3 +184,60 @@ export async function runReencrypt(input: {
     done: conflicts === 0 && failed.size === 0,
   };
 }
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// Anhänge (Blobs): gleiche Regeln wie bei Records. Die Blob-ID ist die Record-ID der Anhang-Metadaten (`attachmentMeta`).
+
+const BLOB_KIND = 'blob';
+
+export interface BlobTransport {
+  /** Chiffretext laden; `null`, wenn der Server den Anhang (noch) nicht hat. */
+  get(id: string): Promise<string | null>;
+  /** Auf die neue Epoche ersetzen (Owner während der Rotation). */
+  put(id: string, ciphertext: string): Promise<void>;
+}
+
+export interface BlobReencryptSummary {
+  reencrypted: number;
+  alreadyCurrent: number;
+  /** Der Server hat den Anhang nicht (nie hochgeladen) — nichts zu tun. */
+  missing: number;
+  failed: { id: string; reason: string }[];
+  done: boolean;
+}
+
+/** Stellt Anhänge auf die neue Epoche um. Zustandslos und idempotent; Transportfehler werden an den Aufrufer gereicht. */
+export async function reencryptBlobs(input: { keys: EpochKeys; ids: Iterable<string>; transport: BlobTransport; signal?: AbortSignal; onProgress?: (n: number) => void }): Promise<BlobReencryptSummary> {
+  const { keys, transport, signal } = input;
+  if (keys.to.epoch !== keys.from.epoch + 1) throw new CryptoError('invalid-rotation', 'Neue Epoche muss genau eine größer sein');
+  const out: BlobReencryptSummary = { reencrypted: 0, alreadyCurrent: 0, missing: 0, failed: [], done: false };
+  for (const id of new Set(input.ids)) {
+    if (signal?.aborted) throw new CryptoError('invalid-rotation', 'Abgebrochen');
+    const ct = await transport.get(id);
+    if (ct === null) {
+      out.missing++;
+      continue;
+    }
+    try {
+      const epoch = parseEnvelope(ct).keyEpoch;
+      if (epoch === keys.to.epoch) {
+        out.alreadyCurrent++;
+        continue;
+      }
+      if (epoch !== keys.from.epoch) throw new CryptoError('decrypt-failed', `Anhang ${id}: unbekannte Epoche ${epoch}`);
+      const aad = { diaryId: keys.diaryId, kind: BLOB_KIND, recordId: id };
+      const plain = await decryptRecord(keys.from.key, { ...aad, keyEpoch: epoch }, ct);
+      const next = await encryptRecord(keys.to.key, { ...aad, keyEpoch: keys.to.epoch }, plain);
+      if (!sameBytes(plain, await decryptRecord(keys.to.key, { ...aad, keyEpoch: keys.to.epoch }, next))) throw new CryptoError('decrypt-failed', `Anhang ${id}: Gegenprobe fehlgeschlagen`);
+      await transport.put(id, next);
+      out.reencrypted++;
+      input.onProgress?.(out.reencrypted);
+    } catch (e) {
+      // Fehler beim Entschlüsseln/Prüfen: Anhang bleibt unverändert; Transportfehler (put) müssen den Lauf abbrechen
+      if (e instanceof CryptoError) out.failed.push({ id, reason: e.message });
+      else throw e;
+    }
+  }
+  out.done = out.failed.length === 0;
+  return out;
+}

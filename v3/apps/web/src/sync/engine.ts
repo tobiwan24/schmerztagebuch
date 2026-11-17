@@ -5,7 +5,7 @@ import { deepEqual, type HlcClock } from '@stb/core';
 import { PULL_LIMIT_MAX, PUSH_OPS_MAX, type PulledRecord, type PushOp, type PushResult } from '@stb/sync-protocol';
 import type { StbDb, OutboxOp, LocalRecord } from '../data/db.js';
 import type { CodecRegistry } from '../data/codec/registry.js';
-import type { SyncTransport } from './transport.js';
+import { TransportError, type SyncTransport } from './transport.js';
 import { createSingleFlight, type SingleFlight } from './single-flight.js';
 import { resolveConflict, type Side } from './resolve.js';
 import { renumberCollidedVersion } from './renumber.js';
@@ -14,7 +14,21 @@ import { KIND_ORDER, kindRank } from './order.js';
 /** Liefert den aktuellen Diary Key eines Tagebuchs (gehalten von `data/crypto-session.ts`, Spec 01). */
 export interface DiaryKeyProvider {
   get(diaryId: string): Promise<{ key: CryptoKey; keyEpoch: number }>;
+  /** Schlüssel einer bestimmten Epoche (aktuell oder, während einer Rotation, die vorherige). */
+  forEpoch?(diaryId: string, keyEpoch: number): Promise<CryptoKey | undefined>;
+  /** Schlüssel (neuer Wrap, ggf. vorherige Epoche) vom Server neu laden und in die Sitzung setzen (M22, SHR-13). */
+  refresh?(diaryId: string): Promise<void>;
 }
+
+/** Ein Record/Anhang trägt eine Epoche, für die kein Schlüssel vorliegt (auch nach dem Neuladen). Der Lauf bricht ab, statt zu verwerfen. */
+export class EpochKeyError extends Error {
+  constructor(readonly diaryId: string, readonly keyEpoch: number) {
+    super(`Kein Schlüssel für Epoche ${keyEpoch} von Tagebuch ${diaryId}`);
+    this.name = 'EpochKeyError';
+  }
+}
+
+const isStaleEpoch = (e: unknown): boolean => e instanceof TransportError && e.status === 409 && e.code === 'stale-epoch';
 
 export interface SyncEngineDeps {
   db: StbDb;
@@ -81,9 +95,45 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
     return { recordId: op.recordId, kind: op.kind, baseRev: op.baseRev, deleted: rec.deleted === 1, ciphertext };
   }
 
+  /** Schlüssel für alle genannten Epochen bereitstellen: fehlt einer, einmal vom Server neu laden, sonst `EpochKeyError`. */
+  async function ensureEpochs(diaryId: string, epochs: Iterable<number>): Promise<void> {
+    const missing = async (): Promise<number | undefined> => {
+      const cur = await keys.get(diaryId);
+      for (const epoch of epochs) if (epoch !== cur.keyEpoch && !(await keys.forEpoch?.(diaryId, epoch))) return epoch;
+      return undefined;
+    };
+    if ((await missing()) === undefined) return;
+    await keys.refresh?.(diaryId);
+    const still = await missing();
+    if (still !== undefined) throw new EpochKeyError(diaryId, still);
+  }
+
+  async function keyFor(diaryId: string, keyEpoch: number): Promise<CryptoKey> {
+    const cur = await keys.get(diaryId);
+    if (cur.keyEpoch === keyEpoch) return cur.key;
+    const k = await keys.forEpoch?.(diaryId, keyEpoch);
+    if (!k) throw new EpochKeyError(diaryId, keyEpoch);
+    return k;
+  }
+
+  /** Bei `409 stale-epoch` (Rotation lief): neuen Wrap holen und die Aktion mit dem neuen Schlüssel wiederholen (neu verschlüsselt). */
+  async function withEpochRetry<T>(diaryId: string, fn: () => Promise<T>): Promise<T> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await fn();
+      } catch (e) {
+        if (attempt >= 2 || !isStaleEpoch(e) || !keys.refresh) throw e;
+        const before = (await keys.get(diaryId)).keyEpoch;
+        await keys.refresh(diaryId);
+        if ((await keys.get(diaryId)).keyEpoch <= before) throw e;
+      }
+    }
+  }
+
   async function decryptServer(diaryId: string, kind: string, recordId: string, ciphertext: string): Promise<unknown> {
-    const { key } = await keys.get(diaryId);
     const { keyEpoch } = parseEnvelope(ciphertext);
+    await ensureEpochs(diaryId, [keyEpoch]);
+    const key = await keyFor(diaryId, keyEpoch);
     return JSON.parse(decoder.decode(await decryptRecord(key, { diaryId, kind, recordId, keyEpoch }, ciphertext))) as unknown;
   }
 
@@ -163,7 +213,7 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
   async function pushDiary(diaryId: string): Promise<PushSummary> {
     const summary: PushSummary = { applied: 0, resolved: 0, unresolved: [] };
     for (let round = 0; round < MAX_PUSH_ROUNDS; round++) {
-      const conflicts = await pushOnce(diaryId, summary);
+      const conflicts = await withEpochRetry(diaryId, () => pushOnce(diaryId, summary));
       if (!conflicts.length) break;
       for (const { op, result } of conflicts) await handleConflict(op, result, summary);
     }
@@ -239,12 +289,21 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
     let cursor = (await db.sync_state.get(diaryId))?.cursor ?? 0;
     for (;;) {
       const page = await transport.pull({ diaryId, since: cursor, limit });
-      const { key } = await keys.get(diaryId);
+      // Epochen der Seite bereitstellen (Rotation): ohne Schlüssel abbrechen, nie in die Quarantäne schieben (Cursor bleibt stehen)
+      const epochs = new Set<number>();
+      for (const r of page.records) {
+        try {
+          epochs.add(parseEnvelope(r.ciphertext).keyEpoch);
+        } catch {
+          // kaputtes Envelope: unten in die Quarantäne wie bisher
+        }
+      }
+      await ensureEpochs(diaryId, epochs);
       type Decoded = { r: PulledRecord; payload: unknown; encoded: unknown } | { r: PulledRecord; error: string; encoded: unknown };
       const decoded: Decoded[] = await Promise.all(page.records.map(async (r: PulledRecord): Promise<Decoded> => {
         try {
           const { keyEpoch } = parseEnvelope(r.ciphertext);
-          const plain = await decryptRecord(key, { diaryId, kind: r.kind, recordId: r.recordId, keyEpoch }, r.ciphertext);
+          const plain = await decryptRecord(await keyFor(diaryId, keyEpoch), { diaryId, kind: r.kind, recordId: r.recordId, keyEpoch }, r.ciphertext);
           const payload = JSON.parse(decoder.decode(plain)) as unknown;
           const encoded = await codec.encode(payload, { diaryId, kind: r.kind, recordId: r.recordId });
           return { r, payload, encoded };
@@ -303,14 +362,16 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
     if (!transport.putBlob) return 0;
     const queued = await db.blob_outbox.where('diaryId').equals(diaryId).toArray();
     if (!queued.length) return 0;
-    const { key, keyEpoch } = await keys.get(diaryId);
     let n = 0;
     for (const row of queued) {
       const blob = await db.blobs.get(row.id);
       if (blob) {
         const bytes = blob.data instanceof Uint8Array ? (blob.data as Uint8Array<ArrayBuffer>) : new Uint8Array(await blob.data.arrayBuffer());
-        const ct = await encryptRecord(key, { diaryId, kind: BLOB_KIND, recordId: row.id, keyEpoch }, bytes);
-        await transport.putBlob(diaryId, row.id, ct);
+        // Schlüssel je Anhang neu lesen: nach `stale-epoch` (Rotation) wird mit dem neuen Schlüssel erneut verschlüsselt
+        await withEpochRetry(diaryId, async () => {
+          const { key, keyEpoch } = await keys.get(diaryId);
+          await transport.putBlob!(diaryId, row.id, await encryptRecord(key, { diaryId, kind: BLOB_KIND, recordId: row.id, keyEpoch }, bytes));
+        });
         n++;
       }
       await db.blob_outbox.delete(row.id);
@@ -323,7 +384,8 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
     const ct = await transport.getBlob(id);
     if (ct === null) return undefined;
     const { keyEpoch } = parseEnvelope(ct);
-    const { key } = await keys.get(diaryId);
+    await ensureEpochs(diaryId, [keyEpoch]);
+    const key = await keyFor(diaryId, keyEpoch);
     return decryptRecord(key, { diaryId, kind: BLOB_KIND, recordId: id, keyEpoch }, ct);
   }
 

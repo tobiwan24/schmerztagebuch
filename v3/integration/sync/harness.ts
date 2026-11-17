@@ -19,7 +19,8 @@ import { createRecordRepository } from '../../apps/web/src/data/repositories/rec
 import { createDiaryRepository } from '../../apps/web/src/data/repositories/diary.js';
 import { createAttachmentRepository } from '../../apps/web/src/data/repositories/attachments.js';
 import { createSyncEngine } from '../../apps/web/src/sync/engine.js';
-import type { SyncTransport } from '../../apps/web/src/sync/transport.js';
+import type { DiaryKeyProvider } from '../../apps/web/src/sync/engine.js';
+import { TransportError, type SyncTransport } from '../../apps/web/src/sync/transport.js';
 
 const serverConfig = { rpId: 'localhost', allowedOrigins: ['http://localhost:5173'], databasePath: ':memory:', blobDir: '.', port: 0, host: '127.0.0.1' };
 
@@ -55,7 +56,7 @@ export function injectTransport(app: FastifyInstance, user: string, wire: Wire):
       if (wire.offline) throw new TypeError('Failed to fetch');
       wire.pushes.push(JSON.parse(JSON.stringify(req)) as PushRequest);
       const res = await app.inject({ method: 'POST', url: '/api/v1/sync/push', headers: { [TEST_AUTH_HEADER]: user }, payload: req });
-      if (res.statusCode !== 200) throw new Error(`push HTTP ${res.statusCode}`);
+      if (res.statusCode !== 200) throw new TransportError(res.statusCode, `push HTTP ${res.statusCode}`, (res.json() as { error?: string }).error);
       return res.json();
     },
     async pull(q) {
@@ -64,13 +65,13 @@ export function injectTransport(app: FastifyInstance, user: string, wire: Wire):
       await wire.beforePull?.();
       if (wire.failPullFrom !== undefined && wire.pulls.length >= wire.failPullFrom) throw new TypeError('Netzwerkfehler');
       const res = await app.inject({ method: 'GET', url: `/api/v1/sync/pull?diaryId=${q.diaryId}&since=${q.since}&limit=${q.limit}`, headers: { [TEST_AUTH_HEADER]: user } });
-      if (res.statusCode !== 200) throw new Error(`pull HTTP ${res.statusCode}`);
+      if (res.statusCode !== 200) throw new TransportError(res.statusCode, `pull HTTP ${res.statusCode}`, (res.json() as { error?: string }).error);
       return res.json();
     },
     async putBlob(diaryId, id, ciphertext) {
       if (wire.offline) throw new TypeError('Failed to fetch');
       const res = await app.inject({ method: 'PUT', url: `/api/v1/blobs/${id}?diaryId=${diaryId}`, headers: { [TEST_AUTH_HEADER]: user, 'content-type': 'text/plain' }, payload: ciphertext });
-      if (res.statusCode !== 200 && res.statusCode !== 201) throw new Error(`blob PUT HTTP ${res.statusCode}`);
+      if (res.statusCode !== 200 && res.statusCode !== 201) throw new TransportError(res.statusCode, `blob PUT HTTP ${res.statusCode}`, (res.json() as { error?: string }).error);
     },
     async getBlob(id) {
       if (wire.offline) throw new TypeError('Failed to fetch');
@@ -85,7 +86,7 @@ export function injectTransport(app: FastifyInstance, user: string, wire: Wire):
 let dbCounter = 0;
 
 /** Ein Gerät: eigene lokale DB, Repositories, Engine; alle Geräte eines Tests teilen DK und Server. */
-export async function createDevice(opts: { app: FastifyInstance; user: string; diaryId: string; dk: CryptoKey; clock: Clock; pullLimit?: number; diaryIds?: string[] }) {
+export async function createDevice(opts: { app: FastifyInstance; user: string; diaryId: string; dk: CryptoKey; clock: Clock; pullLimit?: number; diaryIds?: string[]; keys?: DiaryKeyProvider }) {
   const wire: Wire = { pushes: [], pulls: [], offline: false };
   const db = new StbDb(`stb-v3-int-${++dbCounter}`);
   await db.open();
@@ -95,7 +96,7 @@ export async function createDevice(opts: { app: FastifyInstance; user: string; d
   const repo = createDiaryRepository(records);
   const engine = createSyncEngine({
     db, registry, writeCodec: 'plain', transport: injectTransport(opts.app, opts.user, wire), pullLimit: opts.pullLimit,
-    keys: {
+    keys: opts.keys ?? {
       get: async () => {
         await wire.onKeyGet?.();
         return { key: opts.dk, keyEpoch: 1 };

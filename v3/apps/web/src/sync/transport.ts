@@ -12,17 +12,23 @@ export interface SyncTransport {
 }
 
 export class TransportError extends Error {
-  constructor(readonly status: number, message: string) {
+  constructor(readonly status: number, message: string, readonly code?: string) {
     super(message);
     this.name = 'TransportError';
   }
+}
+
+/** Fehlercode aus dem Antwortkörper (`{ error }`), z. B. `stale-epoch`. */
+async function errorCode(res: Response): Promise<string | undefined> {
+  const body = (await res.json().catch(() => undefined)) as { error?: unknown } | undefined;
+  return typeof body?.error === 'string' ? body.error : undefined;
 }
 
 /** HTTP-Transport über `fetch` (Cookie-Sitzung, gleicher Origin). */
 export function createFetchTransport(baseUrl: string, fetchFn: typeof fetch = globalThis.fetch.bind(globalThis)): SyncTransport {
   async function call(path: string, init: RequestInit): Promise<unknown> {
     const res = await fetchFn(`${baseUrl}${path}`, { credentials: 'include', cache: 'no-store', ...init });
-    if (!res.ok) throw new TransportError(res.status, `Sync-Anfrage fehlgeschlagen: HTTP ${res.status}`);
+    if (!res.ok) throw new TransportError(res.status, `Sync-Anfrage fehlgeschlagen: HTTP ${res.status}`, await errorCode(res));
     return res.json();
   }
   return {

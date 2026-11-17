@@ -13,6 +13,9 @@ import { createFetchAccountApi } from '@/auth/account-api';
 import { isCloudAccount, syncMemberships } from '@/auth/cloud-account';
 import { loadAccount } from '@/auth/local-account';
 import { createSharingApi } from '@/sharing/api';
+import { createRotationApi } from '@/sharing/rotation-api';
+import type { RotationProgress } from '@/sharing/rotate';
+import { markRotation, markedRotations, type RotationReason } from '@/sharing/rotation-marker';
 import { confirmAcceptances } from '@/sharing/invitations';
 import { invitationSecretFor } from '@/sharing/flow';
 import { isSyncDetached } from './sync-detached';
@@ -20,6 +23,15 @@ import { saveMembers } from './members-cache';
 import { useData } from './DataContext';
 
 export type SyncState = 'disabled' | 'syncing' | 'synced' | 'pending' | 'offline' | 'error';
+
+/** Fortschritt/Ergebnis einer DK-Rotation (Spec 09, SHR-13). */
+export interface RotationStatus {
+  diaryId: string;
+  status: 'running' | 'done' | 'failed';
+  phase: RotationProgress['phase'];
+  done: number;
+  total: number;
+}
 
 export interface SyncApi {
   state: SyncState;
@@ -35,9 +47,18 @@ export interface SyncApi {
   detach(): Promise<{ ok: true } | { ok: false; reason: 'outbox-not-empty' | 'server-unreachable'; pending: number }>;
   /** Anhang-Inhalt vom Server laden (nur Cloud-Tagebücher); `undefined`, wenn nicht verfügbar. */
   fetchBlob(diaryId: string, id: string): Promise<Uint8Array<ArrayBuffer> | undefined>;
+  /** Laufende oder zuletzt beendete Schlüsselrotation (nur Besitzer). */
+  rotation: RotationStatus | null;
+  /**
+   * Schlüssel eines Tagebuchs rotieren (Mitglied entfernt): Vormerkung, Neuverschlüsselung im Hintergrund mit Fortschritt,
+   * Abschluss. Eine unterbrochene Rotation setzt beim nächsten Sync fort.
+   */
+  rotateDiary(diaryId: string, reason: RotationReason): Promise<void>;
+  /** Alle eigenen Tagebücher rotieren (Gerät gesperrt); `between` läuft nach der Vormerkung (z. B. das Sperren selbst). */
+  rotateOwned(reason: RotationReason, between?: () => Promise<void>): Promise<void>;
 }
 
-const DISABLED: SyncApi = { state: 'disabled', pending: 0, ready: true, syncNow: async () => undefined, detach: async () => ({ ok: false, reason: 'server-unreachable', pending: 0 }), fetchBlob: async () => undefined };
+const DISABLED: SyncApi = { state: 'disabled', pending: 0, ready: true, syncNow: async () => undefined, detach: async () => ({ ok: false, reason: 'server-unreachable', pending: 0 }), fetchBlob: async () => undefined, rotation: null, rotateDiary: async () => undefined, rotateOwned: async (_r, between) => between?.() };
 const SyncContext = createContext<SyncApi>(DISABLED);
 
 const WRITE_DEBOUNCE_MS = 300;
@@ -53,6 +74,19 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const { db, session } = auth;
   const { registry, newId, now, stamper, writes, bumpRevision, records, diary } = data;
   const hlcRef = useRef<HlcClock | null>(null);
+  const [rotation, setRotation] = useState<RotationStatus | null>(null);
+  const rotating = useRef(false);
+
+  /** Schlüssel eines Tagebuchs vom Server neu laden (nach Rotation oder `409 stale-epoch`). */
+  const refreshKey = useCallback(
+    async (diaryId: string) => {
+      const account: unknown = await loadAccount(db);
+      if (!isCloudAccount(account) || !session.isUnlocked()) return;
+      const { refreshDiaryKey } = await import('@/auth/refresh-key'); // erst bei Bedarf laden (Bundle-Budget)
+      await refreshDiaryKey(db, createFetchAccountApi(''), createRotationApi(''), account, session.umk(), diaryId, (id, key, epoch, previous) => session.setDiaryKey(id, key, epoch, previous));
+    },
+    [db, session],
+  );
 
   useEffect(() => {
     if (!enabled) {
@@ -65,7 +99,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       hlcRef.current = hlc;
       setEngine(
         createSyncEngine({
-          db, registry, writeCodec: 'plain', transport: createFetchTransport(''), keys: session.keys, newId, clock: { now }, hlc,
+          db, registry, writeCodec: 'plain', transport: createFetchTransport(''), keys: { ...session.keys, refresh: refreshKey }, newId, clock: { now }, hlc,
           diaryIds: async () => (await db.sync_state.toArray()).filter((s) => s.mode === 'cloud-primary').map((s) => s.diaryId),
         }),
       );
@@ -73,7 +107,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [enabled, db, session, registry, newId, now, stamper]);
+  }, [enabled, db, session, registry, newId, now, stamper, refreshKey]);
 
   const countPending = useCallback(async () => {
     const n = await db.outbox.count();
@@ -85,8 +119,36 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const membershipsBefore = useCallback(async () => {
     const account: unknown = await loadAccount(db);
     if (!isCloudAccount(account) || !session.isUnlocked()) return;
-    await syncMemberships(db, createFetchAccountApi(''), account, session.umk(), (id, key, epoch) => session.setDiaryKey(id, key, epoch)).catch(() => []);
+    await syncMemberships(db, createFetchAccountApi(''), account, session.umk(), (id, key, epoch, previous) => session.setDiaryKey(id, key, epoch, previous), createRotationApi('')).catch(() => []);
   }, [db, session]);
+
+  /** Eine Rotation ausführen (Vormerkung bleibt bis zum Abschluss). Nie parallel. */
+  const runRotation = useCallback(
+    async (diaryId: string) => {
+      if (rotating.current || !session.isUnlocked()) return;
+      rotating.current = true;
+      const show = (p: Partial<RotationStatus>) => setRotation((cur) => ({ diaryId, status: 'running', phase: 'start', done: 0, total: 0, ...(cur?.diaryId === diaryId ? cur : {}), ...p }));
+      show({ status: 'running', phase: 'start', done: 0, total: 0 });
+      try {
+        const { executeRotation } = await import('@/sharing/rotation-runner'); // erst bei einer Rotation laden (Bundle-Budget)
+        await executeRotation({ db, session, refreshKey, report: (u) => {
+          if (u.status === 'gone') setRotation(null);
+          else if (u.status === 'running') show(u.progress ? { status: 'running', phase: u.progress.phase, done: u.progress.done, total: u.progress.total } : { status: 'running' });
+          else show({ status: u.status, ...(u.status === 'done' ? { phase: 'complete' as const } : {}) });
+        } }, diaryId);
+      } catch {
+        show({ status: 'failed' });
+      } finally {
+        rotating.current = false;
+      }
+    },
+    [db, session, refreshKey],
+  );
+
+  /** Unterbrochene Rotationen fortsetzen (Vormerkung vorhanden), vor dem Sync, damit anschließend mit dem neuen Schlüssel gepusht wird. */
+  const resumeRotations = useCallback(async () => {
+    for (const id of await markedRotations(db)) await runRotation(id);
+  }, [db, runRotation]);
 
   /** Nach dem Sync: angenommene Einladungen prüfen und bestätigen (Owner), Mitgliederlisten für „Erfasst von" merken. */
   const sharingAfter = useCallback(async () => {
@@ -134,6 +196,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     const before = await lastChange();
     try {
       await membershipsBefore();
+      await resumeRotations();
       await engine.sync();
       // Währenddessen auf „nur dieses Gerät“ zurückgestellt (UI-20)? Dann keine weiteren Server-Anfragen.
       if (!(await isSyncDetached(db))) {
@@ -151,7 +214,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       const after = await lastChange();
       if (after !== before) bumpRevision();
     }
-  }, [engine, db, countPending, bumpRevision, pickupAll, membershipsBefore, sharingAfter]);
+  }, [engine, db, countPending, bumpRevision, pickupAll, membershipsBefore, sharingAfter, resumeRotations]);
 
   const syncNow = useCallback(() => {
     running.current = run();
@@ -207,7 +270,32 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     [engine, db],
   );
 
-  const api = useMemo<SyncApi>(() => (enabled ? { state, pending, ready, syncNow, detach, fetchBlob } : DISABLED), [enabled, state, pending, ready, syncNow, detach, fetchBlob]);
+  const rotateDiaryNow = useCallback<SyncApi['rotateDiary']>(
+    async (diaryId, reason) => {
+      await markRotation(db, diaryId, reason, now());
+      await running.current?.catch(() => undefined);
+      await runRotation(diaryId);
+      void syncNow();
+    },
+    [db, now, runRotation, syncNow],
+  );
+
+  const rotateOwned = useCallback<SyncApi['rotateOwned']>(
+    async (reason, between) => {
+      const owned = (await createFetchAccountApi('').listDiaries()).filter((m) => m.role === 'owner').map((m) => m.diaryId);
+      for (const id of owned) await markRotation(db, id, reason, now());
+      await between?.();
+      await running.current?.catch(() => undefined);
+      for (const id of owned) await runRotation(id);
+      void syncNow();
+    },
+    [db, now, runRotation, syncNow],
+  );
+
+  const api = useMemo<SyncApi>(
+    () => (enabled ? { state, pending, ready, syncNow, detach, fetchBlob, rotation, rotateDiary: rotateDiaryNow, rotateOwned } : DISABLED),
+    [enabled, state, pending, ready, syncNow, detach, fetchBlob, rotation, rotateDiaryNow, rotateOwned],
+  );
   return <SyncContext.Provider value={api}>{children}</SyncContext.Provider>;
 }
 

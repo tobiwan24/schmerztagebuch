@@ -11,6 +11,8 @@ import { adoptUserId } from '../data/identity.js';
 import { switchToCloudPrimary } from '../sync/mode.js';
 import { decodeDkWrap, encodeDkWrap, type AccountApi, type CredentialJson, type NewDevice, type UserKey } from './account-api.js';
 import { loadAccount, type PendingAccount } from './local-account.js';
+import type { SetDiaryKey } from './refresh-key.js';
+import type { RotationApi } from '../sharing/rotation-api.js';
 
 const ACCOUNT_ID = 'account';
 const randomNode = () => globalThis.crypto.randomUUID();
@@ -256,13 +258,23 @@ export async function syncMemberships(
   api: Pick<AccountApi, 'listDiaries'>,
   account: CloudAccount,
   umk: CryptoKey,
-  setKey: (diaryId: string, key: CryptoKey, keyEpoch: number) => void,
+  setKey: SetDiaryKey,
+  /** Mit Rotations-API werden auch Tagebücher mit neuerer Epoche (DK-Rotation, M22) neu geladen. */
+  rotation?: Pick<RotationApi, 'state'>,
 ): Promise<{ diaryId: string; role: string }[]> {
   const memberships = await api.listDiaries();
   const fresh = [];
   let identity: CryptoKeyPair | null = null;
   for (const m of memberships) {
-    if (await db.keys.get(dkRowId(m.diaryId))) continue;
+    const row = await db.keys.get(dkRowId(m.diaryId));
+    if (row) {
+      // Eine Rotation hat die Epoche erhöht: neuen Wrap (und während der Rotation den alten DK) laden
+      if (rotation && (row.value as DkRow).keyEpoch < m.keyEpoch) {
+        // erst bei einer Rotation laden (Bundle-Budget)
+        await (await import('./refresh-key.js')).refreshDiaryKey(db, { listDiaries: async () => memberships }, rotation, account, umk, m.diaryId, setKey);
+      }
+      continue;
+    }
     identity ??= await openIdentityKey(umk, account.cloud.identityPublicKey, account.cloud.identitySealed);
     const key = await unwrapDkForMember(decodeDkWrap(m.wrappedDk), identity, { diaryId: m.diaryId, keyEpoch: m.keyEpoch });
     await db.keys.put({ id: dkRowId(m.diaryId), value: { diaryId: m.diaryId, keyEpoch: m.keyEpoch, wrappedDk: m.wrappedDk } satisfies DkRow });

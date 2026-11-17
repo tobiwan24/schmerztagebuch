@@ -21,9 +21,14 @@ export interface CryptoSession {
   /** Sperren: alle Schlüssel aus dem Speicher verwerfen (der Device-Wrap bleibt, falls aktiv). */
   lock(): void;
   umk(): CryptoKey;
-  setDiaryKey(diaryId: string, key: CryptoKey, keyEpoch: number): void;
+  /** Setzt den aktuellen DK; während einer Rotation zusätzlich den vorherigen (Lesen in beiden Epochen, M22). */
+  setDiaryKey(diaryId: string, key: CryptoKey, keyEpoch: number, previous?: { key: CryptoKey; keyEpoch: number }): void;
   /** Für die Sync-Engine (`DiaryKeyProvider`). */
-  readonly keys: { get(diaryId: string): Promise<{ key: CryptoKey; keyEpoch: number }> };
+  readonly keys: {
+    get(diaryId: string): Promise<{ key: CryptoKey; keyEpoch: number }>;
+    /** Schlüssel einer bestimmten Epoche (aktuell oder vorherige); `undefined`, wenn unbekannt. */
+    forEpoch(diaryId: string, keyEpoch: number): Promise<CryptoKey | undefined>;
+  };
   stayUnlocked(days?: number): Promise<void>;
   /** Beim App-Start: entsperrt aus dem Device-Wrap, falls gültig. Abgelaufen → Wrap löschen, gesperrt bleiben. */
   restore(): Promise<boolean>;
@@ -34,7 +39,7 @@ export interface CryptoSession {
 
 export function createCryptoSession(db: StbDb, clock: { now(): number }): CryptoSession {
   let umk: CryptoKey | null = null;
-  const dks = new Map<string, { key: CryptoKey; keyEpoch: number }>();
+  const dks = new Map<string, { key: CryptoKey; keyEpoch: number; previous?: { key: CryptoKey; keyEpoch: number } }>();
   const subtle = () => globalThis.crypto.subtle;
 
   const requireUmk = (): CryptoKey => {
@@ -52,16 +57,24 @@ export function createCryptoSession(db: StbDb, clock: { now(): number }): Crypto
       dks.clear();
     },
     umk: requireUmk,
-    setDiaryKey(diaryId, key, keyEpoch) {
+    setDiaryKey(diaryId, key, keyEpoch, previous) {
       requireUmk();
-      dks.set(diaryId, { key, keyEpoch });
+      // Gleiche Epoche erneut gesetzt (z. B. Wrap neu geladen): bisher bekannten Vorgänger behalten
+      const kept = previous ?? (dks.get(diaryId)?.keyEpoch === keyEpoch ? dks.get(diaryId)?.previous : undefined);
+      dks.set(diaryId, { key, keyEpoch, ...(kept ? { previous: kept } : {}) });
     },
     keys: {
       async get(diaryId) {
         requireUmk();
         const k = dks.get(diaryId);
         if (!k) throw new Error(`Kein Schlüssel für Tagebuch ${diaryId}`);
-        return k;
+        return { key: k.key, keyEpoch: k.keyEpoch };
+      },
+      async forEpoch(diaryId, keyEpoch) {
+        requireUmk();
+        const k = dks.get(diaryId);
+        if (k?.keyEpoch === keyEpoch) return k.key;
+        return k?.previous?.keyEpoch === keyEpoch ? k.previous.key : undefined;
       },
     },
 

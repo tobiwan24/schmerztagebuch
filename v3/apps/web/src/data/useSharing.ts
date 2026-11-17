@@ -7,6 +7,7 @@ import { loadAccount } from '@/auth/local-account';
 import { createSharingApi, type Member } from '@/sharing/api';
 import { acceptInvitationWith, createInvitationLink, INVITATION_SECRET_KIND, openInvitation, type InvitationSecretRecord } from '@/sharing/flow';
 import { leaveDiary } from '@/sharing/leave';
+import { markRotation } from '@/sharing/rotation-marker';
 import { isSyncDetached } from './sync-detached';
 import { useData } from './DataContext';
 import { loadMembers, saveMembers } from './members-cache';
@@ -79,9 +80,12 @@ export function useMembers(diaryId: string) {
   }, [api, diaryId, query]);
 
   const remove = useCallback(async (principalId: string) => {
+    // Vormerken VOR dem Entfernen: bricht die App danach ab, setzt die Schlüsselrotation beim nächsten Sync fort (SHR-13)
+    await markRotation(db, diaryId, 'member-removed', now());
     await (await api()).removeMember(diaryId, principalId);
     query.retry();
-  }, [api, diaryId, query]);
+    void sync.rotateDiary(diaryId, 'member-removed').then(() => query.retry());
+  }, [db, now, api, diaryId, query, sync]);
 
   const leave = useCallback(async () => {
     await leaveDiary(await api(), db, diaryId);

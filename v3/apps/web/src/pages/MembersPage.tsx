@@ -8,6 +8,8 @@ import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/componen
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PageHeader } from '@/components/PageHeader';
 import { ErrorState } from '@/components/StateView';
+import { Progress } from '@/components/ui/progress';
+import { useSync } from '@/data/SyncContext';
 import { useMembers, type MemberView } from '@/data/useSharing';
 import { de } from '@/i18n/de';
 
@@ -16,6 +18,7 @@ const t = de.members;
 export function MembersPage() {
   const { id = '' } = useParams();
   const m = useMembers(id);
+  const rotation = useSync().rotation;
   const q = m.query;
   const [role, setRole] = useState<'editor' | 'viewer'>('editor');
   const [link, setLink] = useState<string | null>(null);
@@ -40,6 +43,20 @@ export function MembersPage() {
       {q.status === 'ok' && q.data.cloud ? (
         <>
           <p className="text-sm text-muted-foreground">{q.data.diaryName}</p>
+          {rotation && rotation.diaryId === id ? (
+            <Card data-testid="rotation-status" data-status={rotation.status}>
+              <CardHeader>
+                <CardTitle className="text-base">{t.rotation.title}</CardTitle>
+                <CardDescription>{rotation.status === 'running' ? t.rotation.running : rotation.status === 'done' ? t.rotation.done : t.rotation.failed}</CardDescription>
+              </CardHeader>
+              {rotation.status === 'running' ? (
+                <CardContent className="flex flex-col gap-2">
+                  <Progress value={rotation.done} max={Math.max(rotation.total, 1)} aria-label={t.rotation.title} />
+                  <span data-testid="rotation-progress" className="text-xs text-muted-foreground">{t.rotation.progress(rotation.done, rotation.total)}</span>
+                </CardContent>
+              ) : null}
+            </Card>
+          ) : null}
           <Card data-testid="members-card" className="gap-0 py-0">
             {q.data.members.map((mem) => (
               <div key={mem.principalId} data-testid="member" className="flex flex-col gap-2 border-b px-4 py-3 last:border-b-0">

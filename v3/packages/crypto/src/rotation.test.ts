@@ -3,7 +3,7 @@ import { CryptoError } from './errors.js';
 import { decryptRecord, encryptRecord, generateDiaryKey, parseEnvelope } from './envelope.js';
 import { exportPublicKey, generateIdentityEcdhKeyPair, unwrapDkForMember } from './share.js';
 import {
-  openPreviousDk, planDkRotation, reencryptRecord, runReencrypt,
+  openPreviousDk, planDkRotation, reencryptBlobs, reencryptRecord, runReencrypt, type BlobTransport,
   type EpochKeys, type ReencryptOp, type ReencryptResult, type ReencryptTransport, type RotationRecord,
 } from './rotation.js';
 
@@ -262,5 +262,71 @@ describe('DK-Rotation: Re-Verschlüsselung', () => {
     const ac = new AbortController();
     ac.abort();
     expect(await code(runReencrypt({ keys, transport: transportFor(server).transport, signal: ac.signal }))).toBe('invalid-rotation');
+  });
+});
+
+describe('DK-Rotation: Anhänge', () => {
+  const blobCt = (dk: CryptoKey, epoch: number, id: string, text: string) => encryptRecord(dk, { diaryId: DIARY, kind: 'blob', recordId: id, keyEpoch: epoch }, enc(text));
+
+  async function blobSetup() {
+    const oldDk = await generateDiaryKey();
+    const newDk = await generateDiaryKey();
+    const keys: EpochKeys = { diaryId: DIARY, from: { epoch: 1, key: oldDk }, to: { epoch: 2, key: newDk } };
+    const store = new Map<string, string>();
+    for (const id of ['b1', 'b2', 'b3']) store.set(id, await blobCt(oldDk, 1, id, `Bild ${id}`));
+    return { keys, store };
+  }
+  const transport = (store: Map<string, string>, fault?: { at: number; when: 'before' | 'after' }) => {
+    let calls = 0;
+    const hit = async <T>(run: () => T): Promise<T> => {
+      calls++;
+      const f = fault?.at === calls;
+      if (f && fault.when === 'before') throw new Error('Absturz');
+      const out = run();
+      if (f && fault.when === 'after') throw new Error('Absturz');
+      return out;
+    };
+    const t: BlobTransport = { get: (id) => hit(() => store.get(id) ?? null), put: (id, ct) => hit(() => void store.set(id, ct)) };
+    return t;
+  };
+
+  it('CRY-21: Anhänge landen in der neuen Epoche, idempotent, fehlende werden übersprungen', async () => {
+    const { keys, store } = await blobSetup();
+    const r = await reencryptBlobs({ keys, ids: ['b1', 'b2', 'b3', 'nie-hochgeladen'], transport: transport(store) });
+    expect(r).toMatchObject({ reencrypted: 3, missing: 1, done: true });
+    for (const [id, ct] of store) {
+      expect(parseEnvelope(ct).keyEpoch).toBe(2);
+      expect(dec(await decryptRecord(keys.to.key, { diaryId: DIARY, kind: 'blob', recordId: id, keyEpoch: 2 }, ct))).toBe(`Bild ${id}`);
+    }
+    const again = await reencryptBlobs({ keys, ids: ['b1', 'b2', 'b3'], transport: transport(store) });
+    expect(again).toMatchObject({ reencrypted: 0, alreadyCurrent: 3, done: true });
+  });
+
+  it('CRY-21: Fehlerinjektion bei Anhängen — nach jedem Abbruch bleibt alles lesbar, Fortsetzen stellt den Rest um', async () => {
+    for (let at = 1; at <= 8; at++) {
+      for (const when of ['before', 'after'] as const) {
+        const { keys, store } = await blobSetup();
+        await reencryptBlobs({ keys, ids: ['b1', 'b2', 'b3'], transport: transport(store, { at, when }) }).catch(() => undefined);
+        for (const [id, ct] of store) {
+          const epoch = parseEnvelope(ct).keyEpoch;
+          const key = epoch === 2 ? keys.to.key : keys.from.key;
+          expect(dec(await decryptRecord(key, { diaryId: DIARY, kind: 'blob', recordId: id, keyEpoch: epoch }, ct)), `${at}/${when}/${id}`).toBe(`Bild ${id}`);
+        }
+        const r = await reencryptBlobs({ keys, ids: ['b1', 'b2', 'b3'], transport: transport(store) });
+        expect(r.done).toBe(true);
+        expect([...store.values()].every((ct) => parseEnvelope(ct).keyEpoch === 2)).toBe(true);
+      }
+    }
+  });
+
+  it('CRY-21: unlesbarer Anhang wird nie überschrieben und als fehlgeschlagen gemeldet', async () => {
+    const { keys, store } = await blobSetup();
+    const stranger = await blobCt(await generateDiaryKey(), 1, 'b2', 'fremd');
+    store.set('b2', stranger);
+    const r = await reencryptBlobs({ keys, ids: ['b1', 'b2', 'b3'], transport: transport(store) });
+    expect(r.done).toBe(false);
+    expect(r.failed.map((f) => f.id)).toEqual(['b2']);
+    expect(store.get('b2')).toBe(stranger);
+    expect(r.reencrypted).toBe(2);
   });
 });

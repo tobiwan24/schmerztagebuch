@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/auth/AuthContext';
+import { useSync } from '@/data/SyncContext';
 import type { DeviceView } from '@/auth/devices';
 import { de } from '@/i18n/de';
 
@@ -13,6 +14,7 @@ const day = (ms: number) => new Date(ms).toLocaleDateString('de-DE');
 
 export function DevicesSection() {
   const auth = useAuth();
+  const sync = useSync();
   const [devices, setDevices] = useState<DeviceView[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [confirm, setConfirm] = useState<string | 'self' | null>(null);
@@ -49,6 +51,7 @@ export function DevicesSection() {
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">{t.hint}</p>
+        {sync.rotation?.status === 'running' ? <p data-testid="devices-rotation" className="text-sm text-muted-foreground">{t.rotating}</p> : null}
         {failed ? <p role="alert" className="text-sm text-destructive">{t.failed}</p> : null}
         <ul className="flex flex-col gap-2">
           {(devices ?? []).map((d) => (
@@ -65,7 +68,7 @@ export function DevicesSection() {
                   <div className="flex flex-col gap-2">
                     <p className="text-xs text-muted-foreground">{t.revokeHint}</p>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="destructive" disabled={busy} onClick={() => void act(async () => { await auth.cloud.revokeDevice(d.id); await reload(); })}>
+                      <Button size="sm" variant="destructive" disabled={busy} onClick={() => void act(async () => { await sync.rotateOwned('device-revoked', () => auth.cloud.revokeDevice(d.id)); await reload(); })}>
                         {t.revokeConfirm}
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => setConfirm(null)}>{de.lock.cancel}</Button>
