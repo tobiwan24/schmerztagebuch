@@ -4,6 +4,7 @@
 import type { Clock } from '@stb/core';
 import type { StbDb, LocalRecord, OutboxOp } from '../db.js';
 import type { CodecRegistry } from '../codec/registry.js';
+import { indexOccurredAt } from '../codec/index-fields.js';
 
 export interface RecordInput {
   id: string;
@@ -47,7 +48,36 @@ export interface RecordRepositoryOptions {
   outbox: boolean;
 }
 
+/** Vorab (außerhalb der Transaktion) neu kodiertes `base`, falls sich der Codec eines Records ändert. */
+interface Rebased {
+  fromCodec: string;
+  source: unknown;
+  value: unknown;
+}
+
 export function createRecordRepository(db: StbDb, o: RecordRepositoryOptions): RecordRepository {
+  /**
+   * `base` und `payload` müssen denselben Codec haben (Engine liest beide mit `record.codec`). Wechselt ein Schreibvorgang
+   * den Codec (lokale Verschlüsselung), wird `base` vorab mit dem neuen Codec kodiert. Ist das nicht möglich, entfällt
+   * `base` (der 3-Wege-Merge arbeitet dann ohne Basis) — nie ein Wert mit falschem Codec.
+   */
+  async function rebase(existing: LocalRecord | undefined, toCodec: string): Promise<Rebased | undefined> {
+    if (!existing || existing.base === undefined || existing.codec === toCodec) return undefined;
+    const ctx = { diaryId: existing.diaryId, kind: existing.kind, recordId: existing.id };
+    try {
+      const value = await o.registry.get(toCodec).encode(await o.registry.get(existing.codec).decode(existing.base, ctx), ctx);
+      return { fromCodec: existing.codec, source: existing.base, value };
+    } catch {
+      return undefined;
+    }
+  }
+
+  function baseFor(existing: LocalRecord | undefined, toCodec: string, pre: Rebased | undefined): { base?: unknown } {
+    if (!existing || existing.base === undefined) return {};
+    if (existing.codec === toCodec) return { base: existing.base };
+    return pre && pre.fromCodec === existing.codec && pre.source === existing.base ? { base: pre.value } : {};
+  }
+
   async function enqueue(rec: LocalRecord, op: OutboxOp['op']): Promise<void> {
     if (!o.outbox) return;
     const pending = await db.outbox.where('recordId').equals(rec.id).first();
@@ -77,6 +107,9 @@ export function createRecordRepository(db: StbDb, o: RecordRepositoryOptions): R
     const encoded = await Promise.all(
       inputs.map((i) => codec.encode(i.payload, { diaryId: i.diaryId, kind: i.kind, recordId: i.id })),
     );
+    // Nur nötig, wenn der Schreib-Codec ein anderer als `plain` sein kann (Umkodieren von `base`); `plain` bleibt ohne Vorab-Lesen.
+    const before = o.writeCodec === 'plain' ? inputs.map(() => undefined) : await db.records.bulkGet(inputs.map((i) => i.id));
+    const rebased = await Promise.all(before.map((b) => rebase(b, codec.id)));
     await db.transaction('rw', db.records, db.outbox, async () => {
       for (const [n, input] of inputs.entries()) {
         const existing = await db.records.get(input.id);
@@ -91,9 +124,9 @@ export function createRecordRepository(db: StbDb, o: RecordRepositoryOptions): R
           deleted: 0,
           codec: codec.id,
           payload: encoded[n],
-          ...(existing?.base === undefined ? {} : { base: existing.base }),
+          ...baseFor(existing, codec.id, rebased[n]),
           localUpdatedAt: o.clock.now(),
-          ...(input.occurredAt === undefined ? {} : { occurredAt: input.occurredAt }),
+          ...(input.occurredAt === undefined ? {} : { occurredAt: indexOccurredAt(codec.id, input.occurredAt) }),
         };
         await db.records.put(rec);
         await enqueue(rec, 'upsert');
@@ -112,13 +145,15 @@ export function createRecordRepository(db: StbDb, o: RecordRepositoryOptions): R
     async remove(id, payload) {
       const before = payload === undefined ? undefined : await db.records.get(id);
       const encoded = before ? await o.registry.get(o.writeCodec).encode(payload, { diaryId: before.diaryId, kind: before.kind, recordId: id }) : undefined;
+      const pre = encoded === undefined ? undefined : await rebase(before, o.writeCodec);
       await db.transaction('rw', db.records, db.outbox, async () => {
         const existing = await db.records.get(id);
         if (!existing) return;
-        const rec: LocalRecord = {
-          ...existing, deleted: 1, localUpdatedAt: o.clock.now(),
-          ...(encoded === undefined ? {} : { payload: encoded, codec: o.writeCodec }),
-        };
+        const rec: LocalRecord = { ...existing, deleted: 1, localUpdatedAt: o.clock.now() };
+        if (encoded !== undefined) {
+          delete rec.base;
+          Object.assign(rec, { payload: encoded, codec: o.writeCodec }, baseFor(existing, o.writeCodec, pre));
+        }
         await db.records.put(rec);
         await enqueue(rec, 'delete');
       });

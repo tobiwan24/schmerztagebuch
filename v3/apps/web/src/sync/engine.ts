@@ -5,6 +5,7 @@ import { deepEqual, type HlcClock } from '@stb/core';
 import { PULL_LIMIT_MAX, PUSH_OPS_MAX, type PulledRecord, type PushOp, type PushResult } from '@stb/sync-protocol';
 import type { StbDb, OutboxOp, LocalRecord } from '../data/db.js';
 import type { CodecRegistry } from '../data/codec/registry.js';
+import { indexOccurredAt } from '../data/codec/index-fields.js';
 import { TransportError, type SyncTransport } from './transport.js';
 import { createSingleFlight, type SingleFlight } from './single-flight.js';
 import { resolveConflict, type Side } from './resolve.js';
@@ -262,7 +263,8 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
           summary.applied++;
           // `base` = genau der gepushte Stand (3-Wege-Merge, Spec 04); `rev` vom Server.
           const current = await db.records.get(op.recordId);
-          if (current) await db.records.update(op.recordId, { rev: result.rev, base: snapshot.payload });
+          // Wurde der Record zwischenzeitlich umkodiert (lokale Verschlüsselung), passt `snapshot.payload` nicht mehr zum Codec: kein `base`.
+          if (current) await db.records.update(op.recordId, { rev: result.rev, base: current.codec === snapshot.codec ? snapshot.payload : undefined });
           const stillPending = op.seq === undefined ? undefined : await db.outbox.get(op.seq);
           if (stillPending && stillPending.createdAt === op.createdAt) {
             await db.outbox.delete(op.seq!);
@@ -343,7 +345,7 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
           await db.records.put({
             id: r.recordId, diaryId, kind: r.kind, rev: r.rev, deleted: r.deleted ? 1 : 0, codec: codec.id,
             payload: encoded, base: encoded, localUpdatedAt: deps.clock.now(),
-            ...(occurredAt === undefined ? {} : { occurredAt }),
+            ...(occurredAt === undefined ? {} : { occurredAt: indexOccurredAt(codec.id, occurredAt) }),
           });
           applied++;
         }

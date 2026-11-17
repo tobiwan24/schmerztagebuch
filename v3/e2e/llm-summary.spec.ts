@@ -73,6 +73,8 @@ test.describe('Zusammenfassung für den Arzt', () => {
     await expect(text).toHaveValue('Die Schmerzstärke lag im Mittel bei 6.');
     expect(requests).toHaveLength(2);
     expect(requests[1]!.notes?.some((n) => n.includes(NOTE))).toBe(true);
+    // Antwort abwarten (Dialog schließt erst danach), sonst überschreibt sie das gleich bearbeitete Feld
+    await expect(page.getByRole('dialog')).toBeHidden();
 
     // Bearbeiten und als PDF-Abschnitt exportieren
     await text.fill('Bearbeitet: im Mittel 6 von 10.');
