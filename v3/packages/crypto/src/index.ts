@@ -19,3 +19,17 @@ export { sealIdentityKey, openIdentityKey, type SealedIdentity } from './identit
 export { sealForIntake, unsealIntake, type IntakeSeal } from './intake.js';
 export { createInvitationSecret, encryptInvitation, decryptInvitation, invitationMac, verifyInvitationMac, safetyNumber, updateVerification, type InvitationDetails, type VerificationState } from './invitation.js';
 export { generateShareId, generateShareKey, encryptReport, decryptReport, buildReportLink, parseReportKey } from './report-share.js';
+export {
+  planDkRotation,
+  openPreviousDk,
+  reencryptRecord,
+  runReencrypt,
+  type RotationMember,
+  type DkRotationPlan,
+  type RotationRecord,
+  type ReencryptOp,
+  type ReencryptResult,
+  type ReencryptTransport,
+  type EpochKeys,
+  type ReencryptSummary,
+} from './rotation.js';
