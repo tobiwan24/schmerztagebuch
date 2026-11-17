@@ -89,7 +89,7 @@ Server-Schnittstelle (A-127): Der Owner legt je Tagebuch bis zu 10 Integrationen
 
 Nur lesende API (Chiffretext + Wrap, Tokens siehe 03); `packages/client-sdk` entschlüsselt; `packages/client-sdk` (A-128): `connectIntegration({ accessString, baseUrl?, fetch? })` prüft den Zugangsstring (Prüfsumme), `sync()` pullt seitenweise (Cursor erst nach dem Anwenden), entpackt den DK mit dem Integrationsschlüssel und entschlüsselt; `snapshot()` liefert Tagebuch, Vorlagen, Versionen und Einträge typisiert (Schemas aus `core`), nicht lesbare Records unter `skipped` mit Grund. Fehler sind unterscheidbar (`unauthenticated`, `rate-limited` mit Wartezeit, `forbidden`, `network`, …). Abhängigkeiten: nur `core`, `crypto`, `sync-protocol`.
 
-`apps/mcp` (stdio, lokal beim Nutzer, kein gehosteter Server) bietet die Tools `list_diaries`, `search_entries`, `get_entry`, `stats`.
+`apps/mcp` (stdio, lokal beim Nutzer, kein gehosteter Server) bietet die Tools `list_diaries`, `search_entries`, `get_entry`, `stats`. Konfiguration über `STB_ACCESS_STRING` (und optional `STB_BASE_URL`); alle Tools sind nur lesend (A-129), Auswertung und Suche kommen aus `analysis`. Einrichtung: `apps/mcp/README.md`.
 
 ### Medikamenten-Block im Export (M16)
 

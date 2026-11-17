@@ -7,7 +7,7 @@ const UI_AND_RUNTIME = ['react', 'react-dom', 'dexie', 'fastify', 'better-sqlite
 const pkgImport = (name) => ({ group: [name, `${name}/*`], message: `packages/* dürfen ${name} nicht importieren (Spec 01).` });
 const internal = (pkg) => ({ group: [`@stb/${pkg}`, `@stb/${pkg}/*`], message: `Abhängigkeit auf @stb/${pkg} ist hier nicht erlaubt (Spec 01).` });
 const runtimeBans = UI_AND_RUNTIME.map(pkgImport);
-const APPS = ['web', 'server'];
+const APPS = ['web', 'server', 'mcp'];
 const appBans = APPS.map((a) => ({ group: [`@stb/${a}`, `@stb/${a}/*`, `**/apps/${a}/**`], message: 'apps/* importieren nie einander (Spec 01).' }));
 const PACKAGES = ['core', 'crypto', 'sync-protocol', 'analysis', 'export', 'llm', 'client-sdk'];
 
