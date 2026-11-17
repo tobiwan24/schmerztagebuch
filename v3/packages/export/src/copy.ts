@@ -30,6 +30,7 @@ export function copyWithNewIds(doc: ExportV1, newId: () => string): ExportV1 {
     }
     for (const e of d.entries) fresh(e.id);
     for (const f of d.savedFilters) fresh(f.id);
+    for (const r of d.notificationRules) fresh(r.id);
     for (const a of d.attachments) fresh(a.id);
   }
 
@@ -80,6 +81,7 @@ export function copyWithNewIds(doc: ExportV1, newId: () => string): ExportV1 {
       values: Object.fromEntries(Object.entries(e.values).map(([k, v]) => [m(k), value(v)])),
     })),
     savedFilters: d.savedFilters.map((f) => ({ ...f, id: m(f.id), diaryId: m(f.diaryId), filter: filter(f.filter) })),
+    notificationRules: d.notificationRules.map((r) => ({ ...r, id: m(r.id), diaryId: m(r.diaryId), blockId: m(r.blockId) })),
     bodymapImages: d.bodymapImages.map((i) => ({ ...i, id: m(i.id), diaryId: m(i.diaryId) })),
     attachments: d.attachments.map((a) => ({ ...a, id: m(a.id), diaryId: m(a.diaryId), entryId: m(a.entryId) })),
   });

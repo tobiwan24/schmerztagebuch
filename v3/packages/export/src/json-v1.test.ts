@@ -95,4 +95,26 @@ describe('JSON v1', () => {
     }
     expect(JSON.stringify(copy)).not.toContain(a.diary.id);
   });
+  it('Hinweis-Regeln sind im Export enthalten, übersteht Prüfung und Kopie; ältere Dateien ohne Feld bleiben lesbar', () => {
+    const diaryId = src.diaries[0]!.id;
+    const blockId = src.entries[0]!.values ? Object.keys(src.entries[0]!.values)[0]! : 'b';
+    const rule = { id: 'rule-1', diaryId, blockId, op: '>=' as const, value: 7, consecutiveDays: 3, cooldownHours: 24, hlc: '0000000000001:0000:dev1', updatedAt: '2026-02-01T08:00:00.000Z' };
+    const withRule = buildExport({ ...src, notificationRules: [rule, { ...rule, id: 'fremd', diaryId: 'anderes' }] }, { appVersion: 't', now: FIXTURE_EXPORT_NOW });
+    expect(withRule.diaries[0]!.notificationRules).toEqual([rule]);
+    const ajv = new Ajv2020({ strict: false, validateFormats: false, allErrors: true });
+    expect(ajv.compile(schemaFile)(JSON.parse(JSON.stringify(withRule)))).toBe(true);
+    const back = parseExport(JSON.stringify(withRule));
+    expect(exportRecords(back.diaries[0]!).notificationRules).toEqual([rule]);
+    // ältere Datei ohne Feld
+    const old = JSON.parse(JSON.stringify(doc)) as { diaries: Record<string, unknown>[] };
+    delete old.diaries[0]!.notificationRules;
+    expect(parseExport(JSON.stringify(old)).diaries[0]!.notificationRules).toEqual([]);
+    // Kopie: neue IDs, Verweis auf den Block mitgeführt
+    let t = 0;
+    const { newId } = createIdGenerator({ now: () => (t += 1) + 1_800_000_000_000 });
+    const copy = copyWithNewIds(withRule, newId);
+    const r = copy.diaries[0]!.notificationRules[0]!;
+    expect(r.id).not.toBe(rule.id);
+    expect(r.diaryId).toBe(copy.diaries[0]!.diary.id);
+  });
 });

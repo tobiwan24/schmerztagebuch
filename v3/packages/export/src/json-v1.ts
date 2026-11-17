@@ -4,8 +4,8 @@
 // eigene Body-Map-Bilder sowie Anhänge (Metadaten + Inhalt als Data-URL, A-032). Das Glossar erklärt jedes Feld auf Deutsch (auch für KI-Werkzeuge).
 import { z } from 'zod';
 import {
-  attachmentMetaSchema, bodymapImageSchema, diarySchema, entrySchema, templateSchema, templateVersionSchema,
-  type AttachmentMeta, type BodymapImage, type Diary, type Entry, type Template, type TemplateVersion,
+  attachmentMetaSchema, bodymapImageSchema, diarySchema, entrySchema, notificationRuleSchema, templateSchema, templateVersionSchema,
+  type AttachmentMeta, type BodymapImage, type Diary, type Entry, type NotificationRule, type Template, type TemplateVersion,
 } from '@stb/core';
 import { applyFilter, buildWorkingSet, filterSpecSchema, savedFilterSchema, type FilterSpec, type SavedFilter } from '@stb/analysis';
 
@@ -20,6 +20,8 @@ export const exportDiarySchema = z.strictObject({
   entries: z.array(entrySchema),
   savedFilters: z.array(savedFilterSchema),
   bodymapImages: z.array(bodymapImageSchema),
+  /** Hinweis-Regeln (M20, `notificationRule`); fehlt in älteren Dateien → leer. */
+  notificationRules: z.array(notificationRuleSchema).default([]),
   /** Fehlt in Dateien vor A-032 → leer. */
   attachments: z.array(attachmentMetaSchema.extend({ dataUrl: z.string().regex(/^data:[a-z]+\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/]*=*$/i) })).default([]),
 });
@@ -78,6 +80,8 @@ export interface ExportSource {
   entries: Entry[];
   savedFilters: SavedFilter[];
   bodymapImages: BodymapImage[];
+  /** Hinweis-Regeln; fehlt bei Quellen ohne Regeln. */
+  notificationRules?: NotificationRule[];
   /** Anhänge mit Inhalt (A-032); fehlt bei Quellen ohne Anhänge. */
   attachments?: ExportAttachment[];
 }
@@ -114,6 +118,7 @@ export function buildExport(src: ExportSource, opts: { appVersion: string; now: 
       entries: entries.filter((e) => e.diaryId === diary.id).sort((a, b) => (a.occurredAt < b.occurredAt ? -1 : a.occurredAt > b.occurredAt ? 1 : 0)),
       savedFilters: src.savedFilters.filter((f) => f.diaryId === diary.id),
       bodymapImages: src.bodymapImages.filter((i) => i.diaryId === diary.id),
+      notificationRules: (src.notificationRules ?? []).filter((r) => r.diaryId === diary.id),
       attachments: (src.attachments ?? []).filter((a) => a.diaryId === diary.id && entries.some((e) => e.id === a.entryId)),
     })),
     glossary: GLOSSARY,
@@ -160,6 +165,7 @@ function checkReferences(doc: ExportV1): string[] {
       if (e.diaryId !== d.diary.id) out.push(`Eintrag ${e.id}: gehört nicht zu Tagebuch ${d.diary.id}`);
       if (!versions.has(`${e.templateId}#${e.templateVersion}`)) out.push(`Eintrag ${e.id}: Vorlagenversion fehlt`);
     }
+    for (const r of d.notificationRules) if (r.diaryId !== d.diary.id) out.push(`Hinweis-Regel ${r.id}: gehört nicht zu Tagebuch ${d.diary.id}`);
     const entryIds = new Set(d.entries.map((e) => e.id));
     for (const a of d.attachments) {
       if (a.diaryId !== d.diary.id || !entryIds.has(a.entryId)) out.push(`Anhang ${a.id}: Eintrag fehlt`);
@@ -169,7 +175,7 @@ function checkReferences(doc: ExportV1): string[] {
 }
 
 /** Zurück zu Datensätzen (Import): Vorlagenversionen bekommen ihre `templateId` wieder. */
-export function exportRecords(d: ExportDiary): { diary: Diary; templates: Template[]; versions: TemplateVersion[]; entries: Entry[]; savedFilters: SavedFilter[]; bodymapImages: BodymapImage[]; attachments: ExportAttachment[] } {
+export function exportRecords(d: ExportDiary): { diary: Diary; templates: Template[]; versions: TemplateVersion[]; entries: Entry[]; savedFilters: SavedFilter[]; bodymapImages: BodymapImage[]; notificationRules: NotificationRule[]; attachments: ExportAttachment[] } {
   return {
     diary: d.diary,
     templates: d.templates.map((t) => templateSchema.parse(Object.fromEntries(Object.entries(t).filter(([k]) => k !== 'versions')))),
@@ -177,6 +183,7 @@ export function exportRecords(d: ExportDiary): { diary: Diary; templates: Templa
     entries: d.entries,
     savedFilters: d.savedFilters,
     bodymapImages: d.bodymapImages,
+    notificationRules: d.notificationRules,
     attachments: d.attachments,
   };
 }

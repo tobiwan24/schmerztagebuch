@@ -25,6 +25,7 @@ Jeder Export kann **vollständig** oder **gefiltert** (`FilterSpec`, 06) erstell
                                                            options?: [{ id, label }] }] }] }],
     entries:   [{ id, templateId, templateVersion, occurredAt, recordedAt, updatedAt, author?, tags,
                   values: { [blockId]: BlockValue }, meta: { source, timezone, weather?, location? } }]
+    // außerdem je Tagebuch: savedFilters, bodymapImages, attachments, notificationRules (Hinweis-Regeln, A-115; fehlt in älteren Dateien → leer)
   }],
   glossary: { blockTypes: {...}, roles: {...}, weatherFields: {...} }   // deutsche Kurzbeschreibung jedes Feldes
 }
