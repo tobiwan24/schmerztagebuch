@@ -1,10 +1,10 @@
 // Analyse-Dienst (Spec 06 „Arbeitsset"): hält Arbeitsset und Suchindex im Speicher des Web Workers. Rein und ohne DOM,
 // damit er in Tests direkt (und im Worker über `attachAnalysisService`) läuft. Die Logik selbst liegt in `@stb/analysis`.
 import {
-  applyFilter, bodymapOverview, buildWorkingSet, comparePeriods, correlate, createSearchIndex, dailySeries, entrySeries, eventMarks, medicationDaysByMonth, optionDays, trainingStats, triggerLift,
+  applyFilter, bodymapOverview, buildWorkingSet, comparePeriods, correlate, createSearchIndex, dailySeries, entrySeries, evaluateRules, eventMarks, medicationDaysByMonth, optionDays, trainingStats, triggerLift,
   type DailyMode, type DayRange, type FilterSpec, type NumericTarget, type SearchIndex, type WorkingSet, type WorkingSetInput,
 } from '@stb/analysis';
-import type { Role } from '@stb/core';
+import type { NotificationRule, Role } from '@stb/core';
 
 export function createAnalysisService() {
   let ws: WorkingSet | null = null;
@@ -63,6 +63,11 @@ export function createAnalysisService() {
     /** Auslöser-Analyse (ANA-27/28): Vierfeldertafel und Lift je Ereignis, erst ab 10 Fällen. */
     triggers(opts: { outcome: NumericTarget; threshold: number; lag: 0 | 1; trigger: { blockId: string } | { role: Role }; spec?: FilterSpec; now: number }) {
       return triggerLift(scope(opts.spec, opts.now), { outcome: opts.outcome, threshold: opts.threshold, lag: opts.lag, trigger: opts.trigger });
+    },
+    /** Hinweis-Regeln prüfen (ANA-29/30): `lastFired` = Regel-ID → ISO-Zeitpunkt der letzten Auslösung. */
+    rules(rules: NotificationRule[], lastFired: Record<string, string>, now: number) {
+      const { ws: w } = need();
+      return evaluateRules(w.entries, rules, lastFired, now, w.timezones);
     },
     /** Numerische und Auswahl-Blöcke im Arbeitsset (für die Auswahl in den Ansichten). */
     blocks() {
@@ -124,6 +129,6 @@ export function createAnalysisClient(port: Port): AnalysisClient {
       pending.set(id, { resolve, reject });
       port.postMessage({ id, method, args } satisfies Request);
     });
-  const methods: AnalysisMethod[] = ['load', 'filter', 'search', 'dailySeries', 'entrySeries', 'compare', 'optionDays', 'medicationDays', 'events', 'bodymap', 'training', 'correlation', 'triggers', 'blocks'];
+  const methods: AnalysisMethod[] = ['load', 'filter', 'search', 'dailySeries', 'entrySeries', 'compare', 'optionDays', 'medicationDays', 'events', 'bodymap', 'training', 'correlation', 'triggers', 'rules', 'blocks'];
   return Object.fromEntries(methods.map((m) => [m, call(m)])) as AnalysisClient;
 }

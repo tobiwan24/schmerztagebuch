@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { V2DataCard } from '@/components/V2DataCard';
 import { ReminderCard } from '@/components/ReminderCard';
+import { RulesCard } from '@/components/RulesCard';
 import { useAuth } from '@/auth/AuthContext';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -82,6 +83,7 @@ export function SettingsPage() {
       <TourRestartCard />
       <ReminderCard />
       <ReminderCard kind="training" />
+      <RulesCard />
       <LlmSettingsCard />
       <V2DataCard />
       <Button asChild variant="outline">

@@ -23,6 +23,10 @@ describe('Analyse-Worker-Protokoll', () => {
     const lifts = await client.triggers({ outcome: { blockId: FIX.back }, threshold: 5, lag: 0, trigger: { role: 'trigger' }, now: FIXTURE_NOW });
     expect(lifts.length).toBeGreaterThan(0);
     expect(lifts.every((l) => !l.enough && l.lift === null)).toBe(true);
+    // Hinweis-Regeln (ANA-29): Fixture-Schmerz am letzten Tag unter der Grenze → kein Treffer; Cooldown-Argument wird durchgereicht
+    const rule = { id: 'r1', diaryId: FIX.diary, blockId: FIX.pain, op: '>=' as const, value: 1, consecutiveDays: 1, cooldownHours: 24, hlc: '1:0000:x', updatedAt: '2026-03-01T00:00:00.000Z' };
+    expect(await client.rules([rule], {}, Date.parse('2026-12-01T10:00:00.000Z'))).toEqual([]);
+    expect(await client.rules([{ ...rule, value: 1000 }], {}, FIXTURE_NOW)).toEqual([]);
     port1.close();
     port2.close();
   });

@@ -7,8 +7,8 @@
 - **Meilenstein:** M14, M14b und M14c erledigt (Gesamt-Akzeptanz 211/211 automatisiert, QA-08 erfüllt: `verify:docker` 2026-11-16 grün; manuell 6/10). **v3.x (M15–M24) geplant**, Beginn mit M15.1. **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md) (aktualisiert 2026-11-16). Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M20.5 (ANA-30), M20.6 Abschluss M20 (Aufgabenliste „v3.x“ unten). Plan v3.x: Entscheidungen A-080 bis A-1xx. G4-Abnahme (PDF mit echten Daten) bleibt beim User.
-- **Erledigt in M20:** M20.1 (ANA-26), M20.2 (ANA-27), M20.3 (ANA-28), M20.4 (ANA-29).
+- **Nächste Aufgabe:** M20.6 Abschluss M20 (Aufgabenliste „v3.x“ unten). Plan v3.x: Entscheidungen A-080 bis A-1xx. G4-Abnahme (PDF mit echten Daten) bleibt beim User.
+- **Erledigt in M20:** M20.1 (ANA-26), M20.2 (ANA-27), M20.3 (ANA-28), M20.4 (ANA-29), M20.5 (ANA-30).
 - **Erledigt in M19 (abgeschlossen, Version 3.5.0-alpha.1; `verify:docker` durch den Koordinator; VOI-17 manuell offen):** M19.1 (ARC-07), M19.2 (VOI-12), M19.3 (VOI-13), M19.4 (VOI-16 Einstellungen), M19.5 (VOI-14; Knopf-Sichtbarkeit VOI-16 für „Aus Text ausfüllen“ per E2E), M19.6 (BLK-53; Sichtbarkeit des Rollenknopfs per E2E), M19.7 (VOI-15; Sichtbarkeit des Zusammenfassungs-Panels per E2E, damit VOI-16 für alle drei KI-Knöpfe belegt), M19.8 (Abschluss).
 - **Erledigt in M14:** (Doku M14.0), M14.2 (BLK-22), M14.3 (BLK-23), M14.4a (Grundlage BLK-24), M14.4b (BLK-24), M14.5 (BLK-25), M14.6 (BLK-26, BLK-27), M14.7 (SYN-17, SYN-18), M14.8 (DM-14, UI-14), M14.9 (UI-15), M14.10 (BLK-37), M14.11 (BLK-38), M14.12 (BLK-39), M14.13 (BLK-32, BLK-33), M14.14 (BLK-34), M14.15 (BLK-28, BLK-29), M14.16 (BLK-30), M14.17 (BLK-31), M14.18 (BLK-35, BLK-36), M14.19 (UI-16, UI-19), M14.1 (BLK-40), M14.20 (UI-17), M14.21 (UI-18)
 - **Erledigt in M14b:** (Doku M14b.0), M14.4c (BLK-43), M14.4d (MIG-17), M14.15b (BLK-41), M14.15c (BLK-42), M14.23 (UI-24), M14.24 (ANA-19), M14.25 (ANA-18), M14.26 (ANA-20), M14.27 (ANA-17), M14.28 (ANA-21), M14.29 (EXP-14), M14.30 (EXP-15), M14.31 (EXP-17), M14.32 (EXP-16), M14.33 (CRY-18), M14.34 (CRY-19), M14.35 (CRY-20), M14.36 (UI-20), M14.37 (UI-21), M14.38 (UI-22), M14.39 (UI-23), M14.15d (BLK-44)
@@ -114,7 +114,7 @@ Abkürzungen: W = `apps/web/src`, S = `apps/server/src`, P = `packages`. Reihenf
 | M20.2 | `P/analysis/src/lift.ts` — erledigt | ANA-27 |
 | M20.3 | Tab „Zusammenhänge“ in `AnalysisPage` — erledigt | ANA-28 |
 | M20.4 | `P/core/src/notification-rule.ts`, `P/analysis/src/rules.ts` — erledigt | ANA-29 |
-| M20.5 | Einstellungen → Hinweise, Start-Banner, `sw-client` | ANA-30 |
+| M20.5 | Einstellungen → Hinweise, Start-Banner, `sw-client` — erledigt | ANA-30 |
 | M20.6 | Abschluss M20 | — |
 | M21.1 | `P/core/src/dashboard.ts`, Export-Schema | DM-15 |
 | M21.2 | Sync von `dashboard` | SYN-19 |
@@ -424,3 +424,4 @@ Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19,
 | 2026-11-17 | M20.3 | ANA-28 | Auswertung → „Zusammenh.“: `CorrelationView` (lazy; Initiales JS 240,5 KB gzip) mit Karte „Zusammenhang zweier Felder“ (Feld A/B, Versatz 0–7, ρ mit Stärke in Worten, Richtung, n) und Karte „Mögliche Auslöser“ (Ergebnisfeld, Schwelle, Auslöser-Feld, Zeitpunkt selber Tag/Vortag, Zeilen mit Fallzahl, Anteilen und Lift). Immer „Zusammenhang ist keine Ursache.“; unter der Mindestzahl (14 Tage bzw. 10 Fälle) nur Hinweis mit Fallzahl, keine Zahl. Worker-Methoden `correlation`/`triggers`; `useWorker`/`BlockPicker` in `components/AnalysisShared.tsx` ausgelagert (BlockPicker mit `label`). E2E `correlations.spec.ts` mit gesteuerten Seed-Daten (ρ ≈ −0,99, Lift ≈ 2,0, 7-Tage-Zeitraum nur Hinweise). Erkenntnis: `grep -c $''` zählte 0 obwohl `de.ts`/`AnalysisPage.tsx` CRLF haben — in Python mit `newline=''` lesen und Mehrzeiler vorher auf `
 ` normalisieren. |
 | 2026-11-17 | M20.4 | ANA-29 | `notificationRule`-Schema (`@stb/core`) und `evaluateRules` (`@stb/analysis`): Tageswert max/min in Tagebuch-Zeitzone, Folgetage, Serie endet heute/gestern, Cooldown, Text „Schmerz ≥ 7 an 3 Tagen in Folge“. A-113. Export/Import der Regeln bewusst nicht Teil (Einstellungen, nicht Tagebuchinhalt). |
+| 2026-11-17 | M20.5 | ANA-30 | Einstellungen → Hinweise (`RulesCard`): Regel aus Schieberegler-Feld, Bedingung, Wert, Tage, Cooldown; Repository `notificationRule`; Worker-Methode `rules`; `useRuleEvaluation` (AppShell) → `RuleBanner` auf Start + `showNotification`; Cooldown je Gerät in `keys`. E2E `rules.spec.ts` (Chromium + WebKit) mit simulierter Berechtigung. A-114. Erkenntnis: headless Chromium liefert trotz `grantPermissions` `Notification.permission === 'denied'` — Berechtigung per `addInitScript` simulieren. |

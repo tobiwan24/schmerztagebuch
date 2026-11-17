@@ -213,6 +213,21 @@ describe('Eigene Body-Map-Bilder', () => {
   });
 });
 
+describe('Hinweis-Regeln', () => {
+  it('speichern, auflisten, löschen (Tombstone); ungültige Regel wird abgelehnt', async () => {
+    const repo = createDiaryRepository(
+      createRecordRepository(db, { registry: createCodecRegistry([plainCodec]), writeCodec: 'plain', clock, outbox: false }),
+    );
+    const diaryId = newId();
+    const r = { id: newId(), diaryId, blockId: 'b1', op: '>=' as const, value: 7, consecutiveDays: 3, cooldownHours: 24, hlc: '0000000000001:0000:dev1', updatedAt: iso() };
+    await repo.saveNotificationRule(r);
+    expect(await repo.listNotificationRules(diaryId)).toEqual([r]);
+    await expect(repo.saveNotificationRule({ ...r, id: newId(), op: '>' as never })).rejects.toThrow();
+    await repo.deleteNotificationRule(r.id, { hlc: '0000000000002:0000:dev1', updatedAt: iso() });
+    expect(await repo.listNotificationRules(diaryId)).toEqual([]);
+  });
+});
+
 describe('Gespeicherte Filter', () => {
   it('speichern, auflisten (nach Name), löschen; ungültige FilterSpec wird abgelehnt', async () => {
     const repo = createDiaryRepository(

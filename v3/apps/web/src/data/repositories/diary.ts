@@ -17,6 +17,7 @@ import {
   type TemplateVersion,
 } from '@stb/core';
 import { savedFilterSchema, type SavedFilter } from '@stb/analysis';
+import { notificationRuleSchema, type NotificationRule } from '@stb/core';
 import type { RecordInput, RecordRepository } from './records.js';
 
 /**
@@ -44,6 +45,10 @@ export interface DiaryRepository {
   listSavedFilters(diaryId: string): Promise<SavedFilter[]>;
   saveSavedFilter(filter: SavedFilter): Promise<void>;
   deleteSavedFilter(filterId: string, stamp: { hlc: string; updatedAt: string }): Promise<void>;
+  /** Hinweis-Regeln eines Tagebuchs (M20, `notificationRule`). */
+  listNotificationRules(diaryId: string): Promise<NotificationRule[]>;
+  saveNotificationRule(rule: NotificationRule): Promise<void>;
+  deleteNotificationRule(ruleId: string, stamp: { hlc: string; updatedAt: string }): Promise<void>;
   saveBodymapImage(image: BodymapImage): Promise<void>;
   deleteBodymapImage(imageId: string): Promise<void>;
   /** Speichert Vorlage und aktuelle Version gemeinsam (eine Transaktion). */
@@ -176,6 +181,21 @@ export function createDiaryRepository(records: RecordRepository): DiaryRepositor
       const rec = await records.get(filterId);
       if (!rec || rec.deleted || rec.kind !== 'savedFilter') return;
       await records.remove(filterId, { ...(rec.payload as SavedFilter), hlc: stamp.hlc, updatedAt: stamp.updatedAt });
+    },
+
+    async listNotificationRules(diaryId) {
+      return (await records.list(diaryId, 'notificationRule')).map((rec) => notificationRuleSchema.parse(rec.payload)).sort((a, b) => (a.updatedAt < b.updatedAt ? -1 : 1));
+    },
+
+    async saveNotificationRule(rule) {
+      const r = notificationRuleSchema.parse(rule);
+      await records.put({ id: r.id, diaryId: r.diaryId, kind: 'notificationRule', payload: r });
+    },
+
+    async deleteNotificationRule(ruleId, stamp) {
+      const rec = await records.get(ruleId);
+      if (!rec || rec.deleted || rec.kind !== 'notificationRule') return;
+      await records.remove(ruleId, { ...(rec.payload as NotificationRule), hlc: stamp.hlc, updatedAt: stamp.updatedAt });
     },
 
     async listBodymapImages(diaryId) {

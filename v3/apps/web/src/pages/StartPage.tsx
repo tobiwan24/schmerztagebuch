@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { EntryListState } from '@/components/EntryListState';
 import { BackupReminder } from '@/components/BackupReminder';
 import { ConflictBanner } from '@/components/ConflictBanner';
+import { RuleBanner } from '@/components/RuleBanner';
 import { TemplateTiles } from '@/components/TemplateTiles';
 import { InboxCard } from '@/components/InboxCard';
 import { useWritableDiaries } from '@/data/useSharing';
@@ -27,6 +28,7 @@ export function StartPage() {
     <>
       <PageHeader title={de.start.title} />
       <ConflictBanner />
+      <RuleBanner />
       <Suspense fallback={null}>
         <InstallBanner />
         <V2Banner />
