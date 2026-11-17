@@ -14,6 +14,7 @@ import { LockSettingsCard } from '@/components/LockSettingsCard';
 import { LocalEncryptionCard } from '@/components/LocalEncryptionCard';
 import { CloudAccountCard } from '@/components/CloudAccountCard';
 import { DevicesSection } from '@/components/DevicesSection';
+import { IntegrationsCard } from '@/components/IntegrationsCard';
 import { TourRestartCard } from '@/tour/TourRestartCard';
 import { LlmSettingsCard } from '@/components/LlmSettingsCard';
 import { UpdateSettingsCard } from '@/components/UpdateSettings';
@@ -62,6 +63,7 @@ export function SettingsPage() {
       {auth.status === 'unlocked' && auth.accountMode === 'local-only' ? <UpgradeToCloud /> : null}
       {auth.accountMode === 'cloud-primary' ? <CloudAccountCard /> : null}
       {auth.status === 'unlocked' && auth.syncAttached ? <DevicesSection /> : null}
+      {auth.status === 'unlocked' && auth.accountMode === 'cloud-primary' && auth.syncAttached ? <IntegrationsCard /> : null}
       <Card>
         <CardHeader>
           <CardTitle>{deSettings.appearance}</CardTitle>
