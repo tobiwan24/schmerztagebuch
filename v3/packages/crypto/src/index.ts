@@ -37,3 +37,12 @@ export {
   type EpochKeys,
   type ReencryptSummary,
 } from './rotation.js';
+export {
+  generateIntegrationToken,
+  hashIntegrationToken,
+  encodeAccessString,
+  parseAccessString,
+  createIntegrationCredentials,
+  type IntegrationAccess,
+  type IntegrationCredentials,
+} from './integration.js';

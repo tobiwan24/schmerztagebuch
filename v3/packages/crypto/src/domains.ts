@@ -13,5 +13,6 @@ export const DOMAINS = {
   backupFile: 'stb/v3/backup-file',
   autoBackupKey: 'stb/v3/auto-backup-key',
   localDk: 'stb/v3/dk',
+  integrationAccess: 'stb/v3/integration-access',
   searchIndex: 'stb/v3/search-index',
 } as const;

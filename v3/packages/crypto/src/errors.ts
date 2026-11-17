@@ -10,7 +10,8 @@ export type CryptoErrorCode =
   | 'unwrap-failed'
   | 'wrong-backup-code'
   | 'wrong-password'
-  | 'invalid-rotation';
+  | 'invalid-rotation'
+  | 'invalid-access-string';
 
 export class CryptoError extends Error {
   constructor(
