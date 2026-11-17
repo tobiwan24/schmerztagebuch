@@ -202,17 +202,57 @@ const MIGRATIONS: readonly string[] = [
   `
   ALTER TABLE memberships ADD COLUMN can_edit_templates INTEGER NOT NULL DEFAULT 0;
   `,
+  // 13 (M24.2, CRY-24): Integrationen (Spec 03/07, A-127). `devices.kind` um 'integration' erweitern — SQLite kann CHECK nicht ändern,
+  // daher Tabelle neu aufbauen. `sessions` verweist auf `devices`: `migrate` schaltet für diese Migration die
+  // Fremdschlüssel aus (SQLite-Vorgehen zum Tabellenumbau; nicht innerhalb einer Transaktion möglich) und prüft vor dem Commit
+  // mit `foreign_key_check`, dass nichts verletzt ist. (`defer_foreign_keys` genügt nicht: das DROP zählt die Sitzungen als verletzt.)
+  `
+  CREATE TABLE devices_new (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    kind TEXT NOT NULL DEFAULT 'device' CHECK (kind IN ('device', 'integration')),
+    name_ct TEXT NOT NULL,
+    public_key TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    revoked_at INTEGER
+  );
+  INSERT INTO devices_new SELECT id, user_id, kind, name_ct, public_key, created_at, revoked_at FROM devices;
+  DROP TABLE devices;
+  ALTER TABLE devices_new RENAME TO devices;
+  CREATE TABLE IF NOT EXISTS integrations (
+    id TEXT PRIMARY KEY REFERENCES devices(id),
+    diary_id TEXT NOT NULL REFERENCES diaries(id),
+    token_hash TEXT NOT NULL UNIQUE,
+    created_at INTEGER NOT NULL,
+    last_used_at INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS integrations_diary ON integrations (diary_id);
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;
 
-export function migrate(db: Db): void {
+/** Migrationen, die eine Tabelle ersetzen, auf die andere Tabellen verweisen (1-basiert wie `user_version`). */
+const REBUILDS_REFERENCED_TABLE: ReadonlySet<number> = new Set([13]);
+
+/** `target` nur für Tests (Migration gegen einen älteren Stand). */
+export function migrate(db: Db, target: number = SCHEMA_VERSION): void {
   const current = db.pragma('user_version', { simple: true }) as number;
   if (current > SCHEMA_VERSION) throw new Error(`Datenbank-Schema ${current} ist neuer als der Server (${SCHEMA_VERSION})`);
-  for (let v = current; v < SCHEMA_VERSION; v++) {
-    db.transaction(() => {
-      db.exec(MIGRATIONS[v]!);
-      db.pragma(`user_version = ${v + 1}`);
-    })();
+  for (let v = current; v < target; v++) {
+    const rebuild = REBUILDS_REFERENCED_TABLE.has(v + 1);
+    if (rebuild) db.pragma('foreign_keys = OFF');
+    try {
+      db.transaction(() => {
+        db.exec(MIGRATIONS[v]!);
+        if (rebuild) {
+          const broken = db.pragma('foreign_key_check') as unknown[];
+          if (broken.length > 0) throw new Error(`Migration ${v + 1}: ${broken.length} Fremdschlüssel verletzt`);
+        }
+        db.pragma(`user_version = ${v + 1}`);
+      })();
+    } finally {
+      if (rebuild) db.pragma('foreign_keys = ON');
+    }
   }
 }

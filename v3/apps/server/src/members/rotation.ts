@@ -7,6 +7,7 @@
 // Lesen bleibt in beiden Epochen möglich (Pull ist epochenneutral); `prevDkWrap` (alter DK unter dem neuen) liegt bis zum Abschluss bereit.
 import type { Db } from '../db.js';
 import { findActiveRole } from './service.js';
+import { revokeDiaryIntegrations } from '../integrations/routes.js';
 
 export interface RotationState {
   keyEpoch: number;
@@ -57,7 +58,7 @@ export type RotateResult =
   | { status: 'forbidden' | 'not-found' | 'rotation-running' | 'wraps-mismatch' }
   | { status: 'epoch-mismatch'; keyEpoch: number };
 
-export function startRotation(db: Db, diaryId: string, actor: string, input: RotateInput): RotateResult {
+export function startRotation(db: Db, diaryId: string, actor: string, input: RotateInput, now: number = Date.now()): RotateResult {
   return db.transaction((): RotateResult => {
     if (findActiveRole(db, diaryId, actor) !== 'owner') return { status: 'forbidden' };
     const d = db.prepare('SELECT key_epoch, rotation_from FROM diaries WHERE id = ?').get(diaryId) as DiaryRow | undefined;
@@ -65,9 +66,11 @@ export function startRotation(db: Db, diaryId: string, actor: string, input: Rot
     if (d.rotation_from !== null) return { status: 'rotation-running' };
     if (input.fromEpoch !== d.key_epoch) return { status: 'epoch-mismatch', keyEpoch: d.key_epoch };
     // Wraps genau für die aktiven Mitglieder: ein entferntes Mitglied bekommt keinen, ein aktives darf nicht fehlen
-    const active = (db.prepare('SELECT principal_id FROM memberships WHERE diary_id = ? AND revoked_at IS NULL').all(diaryId) as { principal_id: string }[]).map((r) => r.principal_id);
+    const active = (db.prepare('SELECT principal_id FROM memberships WHERE diary_id = ? AND revoked_at IS NULL AND principal_id NOT IN (SELECT id FROM integrations WHERE diary_id = memberships.diary_id)').all(diaryId) as { principal_id: string }[]).map((r) => r.principal_id);
     const given = input.wraps.map((w) => w.principalId);
     if (new Set(given).size !== given.length || given.length !== active.length || !active.every((p) => given.includes(p))) return { status: 'wraps-mismatch' };
+    // Integrationen bekommen keinen neuen Wrap: ihr Zugang wird widerrufen und muss neu angelegt werden (A-127)
+    revokeDiaryIntegrations(db, diaryId, now);
     const next = d.key_epoch + 1;
     const set = db.prepare('UPDATE memberships SET key_epoch = ?, wrapped_dk = ? WHERE diary_id = ? AND principal_id = ? AND revoked_at IS NULL');
     for (const w of input.wraps) set.run(next, w.wrappedDk, diaryId, w.principalId);

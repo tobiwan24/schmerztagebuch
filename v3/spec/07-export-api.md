@@ -85,6 +85,8 @@ Das Gerät erzeugt einen Zufallsschlüssel K (256 Bit) und verschlüsselt das Be
 
 ### Integrationen, client-sdk, MCP (M24)
 
+Server-Schnittstelle (A-127): Der Owner legt je Tagebuch bis zu 10 Integrationen an (`POST/GET /api/v1/diaries/:id/integrations`, `DELETE …/:integrationId`; Body: verschlüsselter Name, öffentlicher Schlüssel, Token-Hash, DK-Wrap, Epoche). Die Integration liest mit `Authorization: Bearer stbi_…` über `GET /api/v1/integration/records?since=&limit=` (Chiffretext aller Record-Arten, ihr Wrap und die Epoche; 120 Anfragen/min je Integration). Jede andere Anfrage mit einem Integrations-Token (Push, Pull, Blobs, Konto) → 403 `integration-read-only`. Eine DK-Rotation widerruft die Integrationen des Tagebuchs.
+
 Nur lesende API (Chiffretext + Wrap, Tokens siehe 03); `packages/client-sdk` entschlüsselt; `apps/mcp` (stdio, lokal beim Nutzer, kein gehosteter Server) bietet die Tools `list_diaries`, `search_entries`, `get_entry`, `stats`.
 
 ### Medikamenten-Block im Export (M16)

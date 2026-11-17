@@ -42,6 +42,11 @@ function activeOwnerCount(db: Db, diaryId: string): number {
   return (db.prepare("SELECT COUNT(*) AS n FROM memberships WHERE diary_id = ? AND role = 'owner' AND revoked_at IS NULL").get(diaryId) as { n: number }).n;
 }
 
+/** Integrationen sind Principals, aber keine Mitglieder: Rollen und Austreten gelten für sie nicht (eigene Verwaltung, A-127). */
+function isIntegration(db: Db, principalId: string): boolean {
+  return db.prepare("SELECT 1 FROM devices WHERE id = ? AND kind = 'integration'").get(principalId) !== undefined;
+}
+
 export type MemberChangeResult = 'ok' | 'forbidden' | 'not-found' | 'last-owner' | 'not-editor';
 
 /**
@@ -52,7 +57,7 @@ export function changeRole(db: Db, diaryId: string, actor: string, target: strin
   return db.transaction((): MemberChangeResult => {
     if (findActiveRole(db, diaryId, actor) !== 'owner') return 'forbidden';
     const current = findActiveRole(db, diaryId, target);
-    if (!current) return 'not-found';
+    if (!current || isIntegration(db, target)) return 'not-found';
     const role = change.role ?? current;
     if (current === 'owner' && role !== 'owner' && activeOwnerCount(db, diaryId) <= 1) return 'last-owner';
     if (change.canEditTemplates === true && role !== 'editor') return 'not-editor';
@@ -70,7 +75,7 @@ export function revokeMember(db: Db, diaryId: string, actor: string, target: str
     if (!actorRole) return 'forbidden';
     if (actor !== target && actorRole !== 'owner') return 'forbidden';
     const current = findActiveRole(db, diaryId, target);
-    if (!current) return 'not-found';
+    if (!current || isIntegration(db, target)) return 'not-found';
     if (current === 'owner' && activeOwnerCount(db, diaryId) <= 1) return 'last-owner';
     db.prepare('UPDATE memberships SET revoked_at = ? WHERE diary_id = ? AND principal_id = ?').run(now, diaryId, target);
     return 'ok';

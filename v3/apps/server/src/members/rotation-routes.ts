@@ -32,7 +32,7 @@ export function registerRotationRoutes(app: FastifyInstance, deps: { db: Db; aut
     const p = params.safeParse(req.params);
     const b = rotateBody.safeParse(req.body);
     if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid-request' });
-    const r = startRotation(deps.db, p.data.id, principal.userId, b.data);
+    const r = startRotation(deps.db, p.data.id, principal.userId, b.data, deps.now());
     switch (r.status) {
       case 'ok': return { keyEpoch: r.keyEpoch };
       case 'forbidden': return reply.code(403).send({ error: 'forbidden' });

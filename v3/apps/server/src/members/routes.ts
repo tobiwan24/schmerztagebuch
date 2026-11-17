@@ -36,9 +36,10 @@ export function registerMemberRoutes(app: FastifyInstance, deps: { db: Db; auth:
     const rows = deps.db
       .prepare(
         `SELECT m.principal_id, m.role, m.can_edit_templates, u.username, k.blob AS identity_pub FROM memberships m
+         LEFT JOIN devices dv ON dv.id = m.principal_id
          LEFT JOIN users u ON u.id = m.principal_id
          LEFT JOIN user_keys k ON k.user_id = m.principal_id AND k.kind = 'identity-pub'
-         WHERE m.diary_id = ? AND m.revoked_at IS NULL
+         WHERE m.diary_id = ? AND m.revoked_at IS NULL AND dv.kind IS NOT 'integration'
          ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'editor' THEN 1 ELSE 2 END, m.created_at, m.principal_id`,
       )
       .all(p.data.id) as { principal_id: string; role: string; can_edit_templates: number; username: string | null; identity_pub: string | null }[];

@@ -12,6 +12,7 @@ import { registerDeviceRoutes } from './auth/routes.js';
 import { registerIntakeRoutes } from './intake/routes.js';
 import { registerAccountRoutes } from './auth/account-routes.js';
 import { registerBlobRoutes } from './blobs/routes.js';
+import { registerIntegrationRoutes } from './integrations/routes.js';
 import { registerShareRoutes } from './shares/routes.js';
 import { registerLlmRoutes } from './llm/routes.js';
 import { createLlmProvider } from './llm/provider.js';
@@ -34,6 +35,8 @@ export function buildApp({ config, db, auth = noAuth, now = () => Date.now(), lo
   const app = Fastify({ logger: logStream ? { level: 'info', stream: logStream } : false, bodyLimit: 8 * 1024 * 1024 });
 
   app.get('/api/v1/health', async () => ({ version: SERVER_VERSION, db: isDatabaseReachable(db) }));
+  // zuerst: sein Hook sperrt Integrations-Tokens für alle danach registrierten Routen (CRY-24)
+  registerIntegrationRoutes(app, { db, auth, now });
   registerSyncRoutes(app, { db, auth, now });
   registerMemberRoutes(app, { db, auth, now });
   registerRotationRoutes(app, { db, auth, now });

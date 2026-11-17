@@ -131,5 +131,40 @@ export type ShareInfo = z.infer<typeof shareInfoSchema>;
 export const sharesListResponseSchema = z.strictObject({ shares: z.array(shareInfoSchema) });
 export const shareFetchResponseSchema = z.strictObject({ ciphertext: z.string(), expiresAt: z.number().int(), viewsLeft: z.number().int() });
 export type ShareFetchResponse = z.infer<typeof shareFetchResponseSchema>;
+// Integrationen (Spec 03/07, M24, A-127): nur lesend. Der Client erzeugt Token und Hash; der Server speichert Hash, öffentlichen
+// Schlüssel, DK-Wrap und den verschlüsselten Namen — nie den Token selbst.
+export const INTEGRATION_TOKEN_PREFIX = 'stbi_';
+export const INTEGRATIONS_PER_DIARY_MAX = 10;
+export const integrationIdSchema = z.string().min(1).max(64);
+export const createIntegrationRequestSchema = z.strictObject({
+  nameCt: z.string().min(1).max(16_384),
+  /** ECDH-P-256, roh, base64url (65 Byte). */
+  publicKey: z.string().regex(/^[A-Za-z0-9_-]{87}$/),
+  /** SHA-256 des Tokens, base64url (43 Zeichen). */
+  tokenHash: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+  wrappedDk: z.string().min(1).max(16_384),
+  keyEpoch: z.number().int().min(1),
+});
+export type CreateIntegrationRequest = z.infer<typeof createIntegrationRequestSchema>;
+export const integrationInfoSchema = z.strictObject({
+  id: integrationIdSchema,
+  nameCt: z.string(),
+  createdAt: z.number().int(),
+  lastUsedAt: z.number().int().nullable(),
+  revokedAt: z.number().int().nullable(),
+});
+export type IntegrationInfo = z.infer<typeof integrationInfoSchema>;
+export const integrationRecordsQuerySchema = z.strictObject({
+  since: z.coerce.number().int().min(0).default(0),
+  limit: z.coerce.number().int().min(1).max(PULL_LIMIT_MAX).default(PULL_LIMIT_MAX),
+});
+export type IntegrationRecordsQuery = z.infer<typeof integrationRecordsQuerySchema>;
+/** Records (nur Chiffretext) plus der DK-Wrap der Integration und die Epoche, für die er gilt. */
+export const integrationRecordsResponseSchema = pullResponseSchema.extend({
+  diaryId: z.string(),
+  keyEpoch: z.number().int().min(1),
+  wrappedDk: z.string(),
+});
+export type IntegrationRecordsResponse = z.infer<typeof integrationRecordsResponseSchema>;
 export { planVersionRenumber, type RenumberInput, type RenumberPlan } from './renumber.js';
 export * from './llm.js';
