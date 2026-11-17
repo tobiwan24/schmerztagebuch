@@ -4,6 +4,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { createIdGenerator } from '@stb/core';
 import { useAuth } from '@/auth/AuthContext';
+import { createDiaryAesCodec } from './codec/aes';
 import { plainCodec } from './codec/plain';
 import { createCodecRegistry, type CodecRegistry } from './codec/registry';
 import { createRecordRepository, type RecordRepository } from './repositories/records';
@@ -28,6 +29,8 @@ export interface DataApi {
   /** Wetter (Open-Meteo, Geolocation): nach dem Speichern im Hintergrund (BLK-33). */
   weather: ReturnType<typeof createWeatherService>;
   registry: CodecRegistry;
+  /** Codec für neue Schreibvorgänge: `aes`, sobald „Daten auf dem Gerät verschlüsseln“ eingeschaltet ist (A-125), sonst `plain`. */
+  writeCodec: 'plain' | 'aes';
   /** Ereignis `write` nach jeder erfolgreichen lokalen Änderung. */
   writes: EventTarget;
   /** Steigt, wenn sich Daten von außen geändert haben (Pull) — in `useQuery`-Abhängigkeiten aufnehmen. */
@@ -38,13 +41,14 @@ export interface DataApi {
 const DataContext = createContext<DataApi | null>(null);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const { db, now, syncAttached } = useAuth();
+  const { db, now, syncAttached, session, localEncryption } = useAuth();
+  const writeCodec: 'plain' | 'aes' = localEncryption ? 'aes' : 'plain';
   const [revision, setRevision] = useState(0);
   const bumpRevision = useCallback(() => setRevision((r) => r + 1), []);
   const base = useMemo(() => {
-    const registry = createCodecRegistry([plainCodec]);
+    const registry = createCodecRegistry([plainCodec, createDiaryAesCodec(session.keys)]);
     const writes = new EventTarget();
-    const raw = createRecordRepository(db, { registry, writeCodec: 'plain', clock: { now }, outbox: syncAttached });
+    const raw = createRecordRepository(db, { registry, writeCodec, clock: { now }, outbox: syncAttached });
     const notify = <T,>(p: Promise<T>) => p.then((v) => (writes.dispatchEvent(new Event('write')), v));
     const records: RecordRepository = {
       ...raw,
@@ -53,9 +57,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       remove: (id, payload) => notify(raw.remove(id, payload)),
     };
     const { newId } = createIdGenerator({ now });
-    return { records, diary: createDiaryRepository(records), attachments: createAttachmentRepository(db, records, { now }), conflicts: createConflictRepository(db, registry, 'plain'), newId, stamper: createStamper(db, { now }, newId), now, registry, writes,
+    return { records, diary: createDiaryRepository(records), attachments: createAttachmentRepository(db, records, { now }), conflicts: createConflictRepository(db, registry, writeCodec), newId, stamper: createStamper(db, { now }, newId), now, registry, writeCodec, writes,
       weather: createWeatherService({ fetchFn: (input, init) => fetch(input, init), geolocation: navigator.geolocation, now }) };
-  }, [db, now, syncAttached]);
+  }, [db, now, syncAttached, session, writeCodec]);
   const api = useMemo<DataApi>(() => ({ ...base, revision, bumpRevision }), [base, revision, bumpRevision]);
   return <DataContext.Provider value={api}>{children}</DataContext.Provider>;
 }

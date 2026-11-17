@@ -4,7 +4,7 @@
 // (`credentials.create/get`, synchron im Klick) liegen in der UI, damit iOS die Nutzergeste nicht verliert.
 import {
   CryptoError, deriveBackupAuth, exportPublicKey, generateBackupCode, generateDiaryKey, generateIdentityEcdhKeyPair, generateUmk, importPublicKey,
-  openIdentityKey, sealIdentityKey, toBase64Url, unwrapDkForMember, unwrapUmk, wrapDkForMember, wrapUmk, type SealedIdentity, type UmkWrap,
+  deriveLocalDiaryKey, openIdentityKey, sealIdentityKey, toBase64Url, unwrapDkForMember, unwrapUmk, wrapDkForMember, wrapUmk, type SealedIdentity, type UmkWrap,
 } from '@stb/crypto';
 import type { StbDb } from '../data/db.js';
 import { adoptUserId } from '../data/identity.js';
@@ -161,7 +161,9 @@ export async function prepareUpgradeToCloud(
       await adoptUserId(db, r.userId, randomNode);
       const diaryIds = (await db.records.toArray()).filter((rec) => rec.kind === 'diary' && !rec.deleted).map((rec) => rec.id);
       for (const diaryId of diaryIds) {
-        created.push({ diaryId, key: await createCloudDiary(db, api, account, diaryId) });
+        // Der DK des lokalen Tagebuchs (aus der UMK abgeleitet, A-125) bleibt erhalten: lokal verschlüsselte Records
+        // (Codec `aes`) bleiben so nach dem Wechsel lesbar.
+        created.push({ diaryId, key: await createCloudDiary(db, api, account, diaryId, await deriveLocalDiaryKey(umk, diaryId)) });
         await switchToCloudPrimary(db, diaryId, { now: input.now });
       }
     },
@@ -229,9 +231,9 @@ export async function prepareCloudRecovery(
   };
 }
 
-/** Tagebuch auf dem Server anlegen: neuer DK, für die eigene Identity verpackt (Owner, `key_epoch` 1). */
-export async function createCloudDiary(db: StbDb, api: AccountApi, account: CloudAccount, diaryId: string): Promise<CryptoKey> {
-  const dk = await generateDiaryKey();
+/** Tagebuch auf dem Server anlegen: DK (neu oder der bestehende eines lokalen Tagebuchs), für die eigene Identity verpackt (Owner, `key_epoch` 1). */
+export async function createCloudDiary(db: StbDb, api: AccountApi, account: CloudAccount, diaryId: string, existingDk?: CryptoKey): Promise<CryptoKey> {
+  const dk = existingDk ?? (await generateDiaryKey());
   const wrap = await wrapDkForMember(dk, await importPublicKey(account.cloud.identityPublicKey), { diaryId, keyEpoch: 1 });
   const wrappedDk = encodeDkWrap(wrap);
   await api.createDiary({ diaryId, wrappedDk });

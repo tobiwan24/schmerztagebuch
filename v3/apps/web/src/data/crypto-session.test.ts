@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { generateUmk, generateDiaryKey } from '@stb/crypto';
+import { generateUmk, generateDiaryKey, deriveLocalDiaryKey } from '@stb/crypto';
 import { StbDb } from './db.js';
 import { createCryptoSession, STAY_UNLOCKED_DEFAULT_DAYS } from './crypto-session.js';
 
@@ -34,6 +34,32 @@ describe('Crypto-Session', () => {
     s.lock();
     expect(s.isUnlocked()).toBe(false);
     await expect(s.keys.get('d1')).rejects.toThrow();
+  });
+
+  it('A-125: Tagebuch ohne Konto-DK bekommt den aus der UMK abgeleiteten DK (Epoche 1); Cloud-Tagebuch ohne DK nie', async () => {
+    const s = createCryptoSession(db, clock);
+    const umk = await generateUmk();
+    await expect(s.keys.get('d-local')).rejects.toThrow('Gesperrt');
+    s.unlock(umk);
+    const local = await s.keys.get('d-local');
+    expect(local.keyEpoch).toBe(1);
+    expect(await raw(local.key)).toEqual(await raw(await deriveLocalDiaryKey(umk, 'd-local')));
+    expect(await s.keys.forEpoch('d-local', 1)).toBeDefined();
+    expect(await s.keys.forEpoch('d-local', 2)).toBeUndefined();
+    // gleiche UMK, neue Sitzung (Neustart) → gleicher Schlüssel
+    const again = createCryptoSession(db, clock);
+    again.unlock(umk);
+    expect(await raw((await again.keys.get('d-local')).key)).toEqual(await raw(local.key));
+    // Cloud-Tagebuch: ohne geladenen DK kein Schlüssel (kein Ableiten), mit DK der Konto-DK
+    await db.sync_state.put({ diaryId: 'd-cloud', cursor: 0, mode: 'cloud-primary' });
+    await expect(s.keys.get('d-cloud')).rejects.toThrow('Kein Schlüssel');
+    expect(await s.keys.forEpoch('d-cloud', 1)).toBeUndefined();
+    const dk = await generateDiaryKey();
+    s.setDiaryKey('d-cloud', dk, 1);
+    expect((await s.keys.get('d-cloud')).key).toBe(dk);
+    // Sperren verwirft auch abgeleitete Schlüssel
+    s.lock();
+    await expect(s.keys.get('d-local')).rejects.toThrow();
   });
 
   it('CRY-12: „Entsperrt bleiben": nach Reload ohne Passkey entsperrt', async () => {

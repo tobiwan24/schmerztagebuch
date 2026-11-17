@@ -12,4 +12,5 @@ export const DOMAINS = {
   backupAuth: 'stb/v3/backup-auth',
   backupFile: 'stb/v3/backup-file',
   autoBackupKey: 'stb/v3/auto-backup-key',
+  localDk: 'stb/v3/dk',
 } as const;

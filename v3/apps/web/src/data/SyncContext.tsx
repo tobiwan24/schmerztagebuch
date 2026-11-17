@@ -72,7 +72,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const [pending, setPending] = useState(0);
   const [ready, setReady] = useState(false);
   const { db, session } = auth;
-  const { registry, newId, now, stamper, writes, bumpRevision, records, diary } = data;
+  const { registry, writeCodec, newId, now, stamper, writes, bumpRevision, records, diary } = data;
   const hlcRef = useRef<HlcClock | null>(null);
   const [rotation, setRotation] = useState<RotationStatus | null>(null);
   const rotating = useRef(false);
@@ -99,7 +99,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       hlcRef.current = hlc;
       setEngine(
         createSyncEngine({
-          db, registry, writeCodec: 'plain', transport: createFetchTransport(''), keys: { ...session.keys, refresh: refreshKey }, newId, clock: { now }, hlc,
+          db, registry, writeCodec, transport: createFetchTransport(''), keys: { ...session.keys, refresh: refreshKey }, newId, clock: { now }, hlc,
           diaryIds: async () => (await db.sync_state.toArray()).filter((s) => s.mode === 'cloud-primary').map((s) => s.diaryId),
         }),
       );
@@ -107,7 +107,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [enabled, db, session, registry, newId, now, stamper, refreshKey]);
+  }, [enabled, db, session, registry, writeCodec, newId, now, stamper, refreshKey]);
 
   const countPending = useCallback(async () => {
     const n = await db.outbox.count();

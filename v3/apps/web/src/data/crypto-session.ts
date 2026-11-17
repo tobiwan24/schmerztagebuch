@@ -1,8 +1,9 @@
 // Einziges Modul, das entschlüsselte Schlüssel hält (Spec 01). Sitzung: UMK + DKs nur im Speicher (Spec 03 „Sitzung").
 // „Auf diesem Gerät entsperrt bleiben": UMK wird mit einem **nicht-extrahierbaren** Device-Key (in IndexedDB) per AES-KW
 // verpackt; Ablauf nach einstellbarer Dauer (Standard 7 Tage), sofort widerrufbar (CRY-12).
-// Hinweis: Das ist Bequemlichkeit, kein Schutz gegen Zugriff auf den Gerätespeicher (lokale Daten sind in v3.0 unverschlüsselt).
-import { fromBase64Url, toBase64Url } from '@stb/crypto';
+// Hinweis: Das ist Bequemlichkeit, kein Schutz gegen Zugriff auf den Gerätespeicher (lokale Daten sind ohne die Einstellung
+// „Daten auf dem Gerät verschlüsseln“ unverschlüsselt).
+import { LOCAL_DK_EPOCH, deriveLocalDiaryKey, fromBase64Url, toBase64Url } from '@stb/crypto';
 import type { StbDb } from './db.js';
 
 export const STAY_UNLOCKED_DEFAULT_DAYS = 7;
@@ -26,7 +27,10 @@ export interface CryptoSession {
   /** Für die Sync-Engine (`DiaryKeyProvider`). */
   readonly keys: {
     get(diaryId: string): Promise<{ key: CryptoKey; keyEpoch: number }>;
-    /** Schlüssel einer bestimmten Epoche (aktuell oder vorherige); `undefined`, wenn unbekannt. */
+    /**
+     * Schlüssel einer bestimmten Epoche (aktuell oder vorherige); `undefined`, wenn unbekannt. Tagebücher ohne Konto-DK
+     * (nur auf diesem Gerät) nutzen den aus der UMK abgeleiteten DK (Epoche 1, A-125).
+     */
     forEpoch(diaryId: string, keyEpoch: number): Promise<CryptoKey | undefined>;
   };
   stayUnlocked(days?: number): Promise<void>;
@@ -39,12 +43,28 @@ export interface CryptoSession {
 
 export function createCryptoSession(db: StbDb, clock: { now(): number }): CryptoSession {
   let umk: CryptoKey | null = null;
-  const dks = new Map<string, { key: CryptoKey; keyEpoch: number; previous?: { key: CryptoKey; keyEpoch: number } }>();
+  type DiaryKeyEntry = { key: CryptoKey; keyEpoch: number; previous?: { key: CryptoKey; keyEpoch: number } };
+  const dks = new Map<string, DiaryKeyEntry>();
   const subtle = () => globalThis.crypto.subtle;
 
   const requireUmk = (): CryptoKey => {
     if (!umk) throw new Error('Gesperrt — bitte entsperren');
     return umk;
+  };
+
+  /**
+   * Bekannter DK; sonst für Tagebücher, die nicht mit dem Konto synchronisiert werden (kein `cloud-primary`), der aus der
+   * UMK abgeleitete lokale DK (A-125). Cloud-Tagebuch ohne geladenen DK → `undefined` (nie ein falscher Schlüssel).
+   */
+  const resolve = async (diaryId: string): Promise<DiaryKeyEntry | undefined> => {
+    const current = requireUmk();
+    const known = dks.get(diaryId);
+    if (known) return known;
+    if ((await db.sync_state.get(diaryId))?.mode === 'cloud-primary') return undefined;
+    if (umk !== current) return undefined; // zwischenzeitlich gesperrt/gewechselt
+    const derived: DiaryKeyEntry = { key: await deriveLocalDiaryKey(current, diaryId), keyEpoch: LOCAL_DK_EPOCH };
+    // Während des Ableitens kann ein Konto-DK gesetzt worden sein: der hat Vorrang.
+    return dks.get(diaryId) ?? (dks.set(diaryId, derived), derived);
   };
 
   const session: CryptoSession = {
@@ -65,14 +85,12 @@ export function createCryptoSession(db: StbDb, clock: { now(): number }): Crypto
     },
     keys: {
       async get(diaryId) {
-        requireUmk();
-        const k = dks.get(diaryId);
+        const k = await resolve(diaryId);
         if (!k) throw new Error(`Kein Schlüssel für Tagebuch ${diaryId}`);
         return { key: k.key, keyEpoch: k.keyEpoch };
       },
       async forEpoch(diaryId, keyEpoch) {
-        requireUmk();
-        const k = dks.get(diaryId);
+        const k = await resolve(diaryId);
         if (k?.keyEpoch === keyEpoch) return k.key;
         return k?.previous?.keyEpoch === keyEpoch ? k.previous.key : undefined;
       },

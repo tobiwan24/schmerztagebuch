@@ -5,6 +5,7 @@ import type { UmkFactor } from '@stb/crypto';
 import { StbDb } from '@/data/db';
 import { createCryptoSession, type CryptoSession } from '@/data/crypto-session';
 import { SYNC_DETACHED_ID, isSyncDetached } from '@/data/sync-detached';
+import { enableLocalEncryption, loadLocalEncryption } from '@/data/local-encryption';
 import { createIdleMonitor, loadLockSettings } from '@/data/lock-settings';
 import { discardLocalKeys, loadDevices, type DeviceView } from './devices';
 import { hasAccount, loadAccount, unlockLocal, type PendingAccount, type PendingBackupCode } from './local-account';
@@ -27,6 +28,10 @@ export interface AuthApi {
   syncAttached: boolean;
   /** Setzt den Gerätemerker „Sync zurückgestellt“ (nach `switchToLocalOnly` für alle Tagebücher). */
   setSyncAttached(attached: boolean): Promise<void>;
+  /** „Daten auf dem Gerät verschlüsseln“ ist eingeschaltet (Codec `aes` für neue Schreibvorgänge, A-125). */
+  localEncryption: boolean;
+  /** Schaltet die lokale Verschlüsselung ein (fest, kein Abschalten); die Migration läuft im `LocalEncryptionProvider`. */
+  enableLocalEncryption(): Promise<void>;
   db: StbDb;
   session: CryptoSession;
   credentials: CredentialsLike;
@@ -88,6 +93,7 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
   const [accountMode, setAccountMode] = useState<AuthApi['accountMode']>(null);
   const [accountVersion, setAccountVersion] = useState(0);
   const [detached, setDetached] = useState(false);
+  const [localEncryption, setLocalEncryption] = useState(false);
 
   // Nach jedem Statuswechsel (Konto angelegt, Login auf neuem Gerät, …) die Kontoart neu lesen.
   useEffect(() => {
@@ -107,8 +113,15 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
     let cancelled = false;
     async function init() {
       const exists = await hasAccount(db);
+      // Vor dem ersten Rendern der Ansichten bekannt, damit nichts mit dem falschen Codec geschrieben wird (A-125).
+      const enc = await loadLocalEncryption(db);
       const next: AuthStatus = !exists ? 'no-account' : (await session.restore()) ? 'unlocked' : 'locked';
-      if (!cancelled) setStatus(next);
+      // „Entsperrt bleiben“: auch hier die Konto-DKs öffnen (sonst wären aes-Records eines Konto-Tagebuchs unlesbar).
+      if (next === 'unlocked') await loadDiaryKeysInto(db, session, session.umk()).catch(() => undefined);
+      if (!cancelled) {
+        setLocalEncryption(enc.enabled);
+        setStatus(next);
+      }
     }
     void init();
     return () => {
@@ -149,6 +162,11 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
       if (attached) await db.device.delete(SYNC_DETACHED_ID);
       else await db.device.put({ id: SYNC_DETACHED_ID, value: true });
       setDetached(!attached);
+    },
+    localEncryption,
+    async enableLocalEncryption() {
+      await enableLocalEncryption(db, now);
+      setLocalEncryption(true);
     },
     db,
     session,
@@ -247,15 +265,20 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
         session.setDiaryKey(diaryId, await createCloudDiary(db, server, account, diaryId), 1);
       },
     },
-  }), [status, accountMode, detached, db, session, now, server]);
+  }), [status, accountMode, detached, localEncryption, db, session, now, server]);
 
   /** Cloud-Konto: lokal bekannte DKs öffnen (offline möglich), damit die Sync-Engine ver-/entschlüsseln kann. */
-  async function loadDiaryKeys(umk: CryptoKey) {
-    const account = (await loadAccount(db)) as CloudAccount | undefined;
-    if (!isCloudAccount(account)) return;
-    for (const k of await openDiaryKeys(db, account, umk)) session.setDiaryKey(k.diaryId, k.key, k.keyEpoch);
+  function loadDiaryKeys(umk: CryptoKey) {
+    return loadDiaryKeysInto(db, session, umk);
   }
   return <AuthContext.Provider value={api}>{children}</AuthContext.Provider>;
+}
+
+/** Cloud-Konto: lokal bekannte DKs öffnen (offline möglich), damit Sync-Engine und Codec `aes` ver-/entschlüsseln können. */
+async function loadDiaryKeysInto(db: StbDb, session: CryptoSession, umk: CryptoKey): Promise<void> {
+  const account = (await loadAccount(db)) as CloudAccount | undefined;
+  if (!isCloudAccount(account)) return;
+  for (const k of await openDiaryKeys(db, account, umk)) session.setDiaryKey(k.diaryId, k.key, k.keyEpoch);
 }
 
 export function useAuth(): AuthApi {

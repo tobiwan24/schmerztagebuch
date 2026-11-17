@@ -11,6 +11,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { CloudRegister } from '@/components/CloudSetup';
 import { BackupCodeStep } from '@/components/BackupCodeStep';
 import { LockSettingsCard } from '@/components/LockSettingsCard';
+import { LocalEncryptionCard } from '@/components/LocalEncryptionCard';
 import { CloudAccountCard } from '@/components/CloudAccountCard';
 import { DevicesSection } from '@/components/DevicesSection';
 import { TourRestartCard } from '@/tour/TourRestartCard';
@@ -57,6 +58,7 @@ export function SettingsPage() {
         </CardContent>
       </Card>
       {auth.status === 'unlocked' ? <LockSettingsCard /> : null}
+      {auth.status === 'unlocked' ? <LocalEncryptionCard /> : null}
       {auth.status === 'unlocked' && auth.accountMode === 'local-only' ? <UpgradeToCloud /> : null}
       {auth.accountMode === 'cloud-primary' ? <CloudAccountCard /> : null}
       {auth.status === 'unlocked' && auth.syncAttached ? <DevicesSection /> : null}
