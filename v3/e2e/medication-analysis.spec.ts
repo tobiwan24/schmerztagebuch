@@ -50,6 +50,10 @@ test.describe('Auswertung: Medikamente', () => {
     await page.getByRole('button', { name: /Schmerztagebuch mit Medikamenten/ }).click();
     await expect(page.getByTestId('template-row')).toHaveCount(2);
     await seedMedication(page);
+    // Die Analyse lädt nur bei Schreib-Ereignissen der App neu (entprellt). Roh geschriebene Einträge kennt sie nicht:
+    // ein App-Schreibvorgang NACH dem Seed (weitere Katalog-Vorlage) löst das Neuladen deterministisch aus.
+    await page.getByRole('button', { name: /Migräne-Tracking/ }).click();
+    await expect(page.getByTestId('template-row')).toHaveCount(3);
     await go(page, '/analysis');
     await page.getByRole('button', { name: 'Häufig.' }).click();
 
