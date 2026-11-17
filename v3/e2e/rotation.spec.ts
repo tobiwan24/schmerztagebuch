@@ -1,9 +1,7 @@
 // SHR-13: Mitglied entfernen → Rotation des Tagebuchschlüssels mit Fortschritt; das verbleibende Mitglied synchronisiert weiter,
 // das entfernte bekommt 403 und keine neuen Daten. Drei Konten (Chromium, virtueller Authenticator).
-import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { addVirtualAuthenticator, go, onboardWithCloud, uniqueUser } from './helpers';
-
-const foreground = (page: Page) => page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+import { test, expect, type Page } from '@playwright/test';
+import { addVirtualAuthenticator, foreground, go, inviteMember, onboardWithCloud, openMembers, uniqueUser } from './helpers';
 
 async function addEntry(page: Page, pain: string, note: string) {
   await go(page, '/entry/new');
@@ -21,38 +19,6 @@ async function hits(page: Page, text: string): Promise<number> {
   return page.getByTestId('entry-row').count();
 }
 
-async function openMembers(page: Page) {
-  await go(page, '/more/diaries');
-  await page.getByTestId('diary-card').getByRole('link', { name: 'Mitglieder & Einladungen' }).click();
-  await page.getByTestId('members-card').waitFor();
-}
-
-/** Lädt eine neue Person ein (Rolle „Darf eintragen“) und lässt sie annehmen; wartet, bis der Owner sie bestätigt hat. */
-async function invite(owner: Page, browser: Browser, name: string, expectedMembers: number): Promise<{ ctx: BrowserContext; page: Page }> {
-  await openMembers(owner);
-  await owner.getByRole('button', { name: 'Darf eintragen' }).click();
-  await owner.getByRole('button', { name: 'Einladungslink erzeugen' }).click();
-  const hash = new URL((await owner.getByTestId('invite-link').textContent())!).hash;
-  const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, locale: 'de-DE' });
-  const page = await ctx.newPage();
-  await addVirtualAuthenticator(page);
-  await onboardWithCloud(page, name);
-  await go(page, `/invite${hash}`);
-  await page.getByRole('button', { name: 'Einladung annehmen' }).click();
-  await expect(page.getByTestId('invite-accepted')).toBeVisible();
-  await expect
-    .poll(
-      async () => {
-        await foreground(owner);
-        await openMembers(owner);
-        return owner.getByTestId('member').count();
-      },
-      { timeout: 45_000, intervals: [1000, 2000] },
-    )
-    .toBe(expectedMembers);
-  return { ctx, page };
-}
-
 test.describe('DK-Rotation', () => {
   test.describe.configure({ timeout: 240_000 });
   test.beforeEach(({ browserName }) => {
@@ -67,8 +33,8 @@ test.describe('DK-Rotation', () => {
     await onboardWithCloud(a, owner);
     await addEntry(a, '4', 'STB-ROT-VORHER');
 
-    const b = await invite(a, browser, stays, 2);
-    const c = await invite(a, browser, leaves, 3);
+    const b = await inviteMember(a, browser, stays, 2);
+    const c = await inviteMember(a, browser, leaves, 3);
     const statuses: number[] = [];
     c.page.on('response', (r) => {
       if (r.url().includes('/api/v1/sync/pull')) statuses.push(r.status());

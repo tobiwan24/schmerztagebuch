@@ -19,7 +19,7 @@ import { markRotation, markedRotations, type RotationReason } from '@/sharing/ro
 import { confirmAcceptances } from '@/sharing/invitations';
 import { invitationSecretFor } from '@/sharing/flow';
 import { isSyncDetached } from './sync-detached';
-import { saveMembers } from './members-cache';
+import { loadMembers, saveMembers } from './members-cache';
 import { useData } from './DataContext';
 
 export type SyncState = 'disabled' | 'syncing' | 'synced' | 'pending' | 'offline' | 'error';
@@ -151,9 +151,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   }, [db, runRotation]);
 
   /** Nach dem Sync: angenommene Einladungen prüfen und bestätigen (Owner), Mitgliederlisten für „Erfasst von" merken. */
-  const sharingAfter = useCallback(async () => {
+  const sharingAfter = useCallback(async (): Promise<boolean> => {
+    let membersChanged = false;
     const account: unknown = await loadAccount(db);
-    if (!isCloudAccount(account)) return;
+    if (!isCloudAccount(account)) return false;
     const api = createSharingApi('');
     for (const m of await createFetchAccountApi('').listDiaries().catch(() => [])) {
       if (m.role === 'owner') {
@@ -165,8 +166,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         }
       }
       const members = await api.listMembers(m.diaryId).catch(() => null);
-      if (members) await saveMembers(db, m.diaryId, members);
+      if (members) {
+        // Rollen/Rechte geändert (z. B. „Vorlagen bearbeiten“)? Dann Ansichten neu laden lassen.
+        if (JSON.stringify(await loadMembers(db, m.diaryId)) !== JSON.stringify(members)) membersChanged = true;
+        await saveMembers(db, m.diaryId, members);
+      }
     }
+    return membersChanged;
   }, [db, session, records]);
 
   /** Kurzbefehl-Items abholen (Spec 08, Schritt 4) — für Cloud-Tagebücher mit eingerichtetem Intake. */
@@ -194,13 +200,14 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     setState('syncing');
     const lastChange = () => db.records.orderBy('localUpdatedAt').last().then((r) => r?.localUpdatedAt ?? 0);
     const before = await lastChange();
+    let membersChanged = false;
     try {
       await membershipsBefore();
       await resumeRotations();
       await engine.sync();
       // Währenddessen auf „nur dieses Gerät“ zurückgestellt (UI-20)? Dann keine weiteren Server-Anfragen.
       if (!(await isSyncDetached(db))) {
-        await sharingAfter();
+        membersChanged = await sharingAfter();
         await pickupAll();
       }
       const n = await countPending();
@@ -212,7 +219,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       setReady(true);
       // Fremde Änderungen übernommen? (Pull schreibt Records) → Ansichten neu laden.
       const after = await lastChange();
-      if (after !== before) bumpRevision();
+      if (after !== before || membersChanged) bumpRevision();
     }
   }, [engine, db, countPending, bumpRevision, pickupAll, membershipsBefore, sharingAfter, resumeRotations]);
 

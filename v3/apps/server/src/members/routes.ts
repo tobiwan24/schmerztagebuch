@@ -6,7 +6,7 @@ import { requirePrincipal } from '../auth/require.js';
 import { changeRole, findActiveRole, revokeMember, ROLES, type MemberChangeResult } from './service.js';
 
 const params = z.object({ id: z.string().min(1).max(128), principalId: z.string().min(1).max(128) });
-const patchBody = z.strictObject({ role: z.enum(ROLES) });
+const patchBody = z.strictObject({ role: z.enum(ROLES).optional(), canEditTemplates: z.boolean().optional() }).refine((b) => b.role !== undefined || b.canEditTemplates !== undefined);
 
 function send(reply: FastifyReply, r: MemberChangeResult, okStatus: number): FastifyReply {
   switch (r) {
@@ -18,6 +18,8 @@ function send(reply: FastifyReply, r: MemberChangeResult, okStatus: number): Fas
       return reply.code(404).send({ error: 'not-found' });
     case 'last-owner':
       return reply.code(409).send({ error: 'last-owner' });
+    case 'not-editor':
+      return reply.code(409).send({ error: 'not-editor' });
   }
 }
 
@@ -33,14 +35,14 @@ export function registerMemberRoutes(app: FastifyInstance, deps: { db: Db; auth:
     if (!findActiveRole(deps.db, p.data.id, principal.userId)) return reply.code(403).send({ error: 'forbidden' });
     const rows = deps.db
       .prepare(
-        `SELECT m.principal_id, m.role, u.username, k.blob AS identity_pub FROM memberships m
+        `SELECT m.principal_id, m.role, m.can_edit_templates, u.username, k.blob AS identity_pub FROM memberships m
          LEFT JOIN users u ON u.id = m.principal_id
          LEFT JOIN user_keys k ON k.user_id = m.principal_id AND k.kind = 'identity-pub'
          WHERE m.diary_id = ? AND m.revoked_at IS NULL
          ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'editor' THEN 1 ELSE 2 END, m.created_at, m.principal_id`,
       )
-      .all(p.data.id) as { principal_id: string; role: string; username: string | null; identity_pub: string | null }[];
-    return rows.map((r) => ({ principalId: r.principal_id, role: r.role, username: r.username ?? r.principal_id, identityPub: r.identity_pub }));
+      .all(p.data.id) as { principal_id: string; role: string; can_edit_templates: number; username: string | null; identity_pub: string | null }[];
+    return rows.map((r) => ({ principalId: r.principal_id, role: r.role, canEditTemplates: r.can_edit_templates === 1, username: r.username ?? r.principal_id, identityPub: r.identity_pub }));
   });
 
   app.patch('/api/v1/diaries/:id/members/:principalId', async (req, reply) => {
@@ -49,7 +51,7 @@ export function registerMemberRoutes(app: FastifyInstance, deps: { db: Db; auth:
     const p = params.safeParse(req.params);
     const b = patchBody.safeParse(req.body);
     if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid-request' });
-    return send(reply, changeRole(deps.db, p.data.id, principal.userId, p.data.principalId, b.data.role), 200);
+    return send(reply, changeRole(deps.db, p.data.id, principal.userId, p.data.principalId, { ...(b.data.role === undefined ? {} : { role: b.data.role }), ...(b.data.canEditTemplates === undefined ? {} : { canEditTemplates: b.data.canEditTemplates }) }), 200);
   });
 
   app.delete('/api/v1/diaries/:id/members/:principalId', async (req, reply) => {

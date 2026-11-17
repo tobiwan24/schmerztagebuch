@@ -20,7 +20,7 @@ import { DEFAULT_TEMPLATE_COLOR, DEFAULT_TEMPLATE_ICON } from '@/components/Temp
 import { TemplateStylePicker } from '@/components/TemplateStylePicker';
 import { useData } from '@/data/DataContext';
 import { useDiaryScope } from '@/data/diary-scope';
-import { useIsOwner } from '@/data/useSharing';
+import { useCanEditTemplates } from '@/data/useSharing';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 
@@ -47,7 +47,7 @@ export function TemplateEditorPage() {
     const after = state ? orders.filter((o) => o > state.template.order)[0] ?? null : null;
     return { diaryId: diary.id, state, nextOrder: after, lastOrder: orders.at(-1) ?? null };
   }, [data.diary, id, scope.diaryId]);
-  const owner = useIsOwner(query.status === 'ok' && query.data ? query.data.diaryId : null);
+  const owner = useCanEditTemplates(query.status === 'ok' && query.data ? query.data.diaryId : null);
 
   return (
     <>

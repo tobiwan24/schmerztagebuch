@@ -37,6 +37,8 @@ const push = (user: string, ops: PushOp[]) => app.inject({ method: 'POST', url: 
 const pull = (user: string) => app.inject({ method: 'GET', url: `/api/v1/sync/pull?diaryId=${D}`, headers: as(user) });
 const patchRole = (user: string, principal: string, role: string) =>
   app.inject({ method: 'PATCH', url: `/api/v1/diaries/${D}/members/${principal}`, headers: as(user), payload: { role } });
+const patchFlag = (user: string, principal: string, canEditTemplates: boolean) =>
+  app.inject({ method: 'PATCH', url: `/api/v1/diaries/${D}/members/${principal}`, headers: as(user), payload: { canEditTemplates } });
 const remove = (user: string, principal: string) => app.inject({ method: 'DELETE', url: `/api/v1/diaries/${D}/members/${principal}`, headers: as(user) });
 
 describe('Rollen beim Push', () => {
@@ -130,12 +132,65 @@ describe('Mitgliederliste', () => {
     expect(list.statusCode).toBe(200);
     expect(list.headers['cache-control']).toBe('no-store');
     expect(list.json()).toEqual([
-      { principalId: 'olga', role: 'owner', username: 'olga-name', identityPub: 'pub-olga' },
-      { principalId: 'ed', role: 'editor', username: 'ed', identityPub: null },
-      { principalId: 'vic', role: 'viewer', username: 'vic', identityPub: null },
+      { principalId: 'olga', role: 'owner', canEditTemplates: false, username: 'olga-name', identityPub: 'pub-olga' },
+      { principalId: 'ed', role: 'editor', canEditTemplates: false, username: 'ed', identityPub: null },
+      { principalId: 'vic', role: 'viewer', canEditTemplates: false, username: 'vic', identityPub: null },
     ]);
     expect((await app.inject({ method: 'GET', url: `/api/v1/diaries/${D}/members`, headers: as('mallory') })).statusCode).toBe(403);
     expect((await remove('olga', 'ed')).statusCode).toBe(204);
     expect((await app.inject({ method: 'GET', url: `/api/v1/diaries/${D}/members`, headers: as('ed') })).statusCode).toBe(403);
+  });
+});
+
+describe('Flag canEditTemplates (SHR-14)', () => {
+  it('SHR-14: ohne Flag 403, mit Flag darf der Editor template/templateVersion pushen, nicht diary/savedFilter/dashboard', async () => {
+    expect((await push('ed', [op('t1', 'template')])).statusCode).toBe(403);
+    expect((await patchFlag('olga', 'ed', true)).statusCode).toBe(200);
+    const ok = await push('ed', [op('t1', 'template'), op('v1', 'templateVersion'), op('e1', 'entry')]);
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json().results.map((x: { status: string }) => x.status)).toEqual(['applied', 'applied', 'applied']);
+    for (const kind of ['diary', 'savedFilter', 'dashboard', 'notificationRule']) {
+      expect((await push('ed', [op(`x-${kind}`, kind)])).statusCode, kind).toBe(403);
+    }
+    // Entzug wirkt sofort
+    expect((await patchFlag('olga', 'ed', false)).statusCode).toBe(200);
+    expect((await push('ed', [op('t2', 'template')])).statusCode).toBe(403);
+  });
+
+  it('SHR-14: nur der Owner setzt das Flag, nur für Editoren; Viewer und Fremde bekommen es nie', async () => {
+    expect((await patchFlag('ed', 'ed', true)).statusCode).toBe(403);
+    expect((await patchFlag('vic', 'ed', true)).statusCode).toBe(403);
+    expect((await patchFlag('olga', 'vic', true)).statusCode).toBe(409);
+    expect((await patchFlag('olga', 'olga', true)).statusCode).toBe(409);
+    expect((await patchFlag('olga', 'nobody', true)).statusCode).toBe(404);
+    expect((await app.inject({ method: 'PATCH', url: `/api/v1/diaries/${D}/members/ed`, headers: as('olga'), payload: {} })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'PATCH', url: `/api/v1/diaries/${D}/members/ed`, headers: as('olga'), payload: { canEditTemplates: 'ja' } })).statusCode).toBe(400);
+    expect(db.prepare("SELECT can_edit_templates AS f FROM memberships WHERE principal_id IN ('ed','vic','olga')").all()).toEqual([{ f: 0 }, { f: 0 }, { f: 0 }]);
+  });
+
+  it('SHR-14: Rollenwechsel setzt das Flag zurück; Flag erscheint in der Mitgliederliste', async () => {
+    await patchFlag('olga', 'ed', true);
+    const list = async () => (await app.inject({ method: 'GET', url: `/api/v1/diaries/${D}/members`, headers: as('olga') })).json() as { principalId: string; canEditTemplates: boolean }[];
+    expect((await list()).find((m) => m.principalId === 'ed')?.canEditTemplates).toBe(true);
+    // gleiche Rolle erneut setzen lässt das Flag unberührt
+    expect((await patchRole('olga', 'ed', 'editor')).statusCode).toBe(200);
+    expect((await list()).find((m) => m.principalId === 'ed')?.canEditTemplates).toBe(true);
+    // Herabstufen und wieder zum Editor machen: Flag ist weg (Owner muss es neu erteilen)
+    await patchRole('olga', 'ed', 'viewer');
+    await patchRole('olga', 'ed', 'editor');
+    expect((await list()).find((m) => m.principalId === 'ed')?.canEditTemplates).toBe(false);
+    expect((await push('ed', [op('t3', 'template')])).statusCode).toBe(403);
+  });
+
+  it('SHR-14: Migration auf einer alten Datenbank (Schema 11) ergänzt die Spalte mit Standard 0', () => {
+    const old = openDatabase(':memory:');
+    migrate(old);
+    old.exec('ALTER TABLE memberships DROP COLUMN can_edit_templates');
+    old.pragma('user_version = 11');
+    old.prepare('INSERT INTO diaries (id, created_at) VALUES (?, 0)').run('x');
+    old.prepare("INSERT INTO memberships (diary_id, principal_id, role, key_epoch, wrapped_dk, created_at) VALUES ('x', 'ed', 'editor', 1, 'w', 0)").run();
+    migrate(old);
+    expect(old.prepare("SELECT can_edit_templates AS f FROM memberships WHERE principal_id = 'ed'").get()).toEqual({ f: 0 });
+    old.close();
   });
 });

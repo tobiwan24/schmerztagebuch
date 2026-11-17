@@ -198,6 +198,10 @@ const MIGRATIONS: readonly string[] = [
   ALTER TABLE records ADD COLUMN key_epoch INTEGER NOT NULL DEFAULT 1;
   ALTER TABLE blobs ADD COLUMN key_epoch INTEGER NOT NULL DEFAULT 1;
   `,
+  // 12 (M22.4, SHR-14): Flag je Mitgliedschaft — ein Editor darf Vorlagen (template/templateVersion) bearbeiten
+  `
+  ALTER TABLE memberships ADD COLUMN can_edit_templates INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

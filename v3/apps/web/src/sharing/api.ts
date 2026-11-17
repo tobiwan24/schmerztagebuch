@@ -7,6 +7,8 @@ export interface Member {
   role: 'owner' | 'editor' | 'viewer';
   username: string;
   identityPub: string | null;
+  /** Editor darf Vorlagen bearbeiten (SHR-14); fehlt bei älteren Server-/Cache-Ständen. */
+  canEditTemplates?: boolean;
 }
 
 export class SharingError extends Error {
@@ -23,6 +25,7 @@ export interface SharingApi extends InvitationApi, MembershipApi {
   revokeInvitation(id: string): Promise<void>;
   listMembers(diaryId: string): Promise<Member[]>;
   changeRole(diaryId: string, principalId: string, role: Member['role']): Promise<void>;
+  setCanEditTemplates(diaryId: string, principalId: string, canEditTemplates: boolean): Promise<void>;
   removeMember(diaryId: string, principalId: string): Promise<void>;
 }
 
@@ -48,6 +51,7 @@ export function createSharingApi(baseUrl = '', fetchFn: typeof fetch = globalThi
     confirm: (diaryId, invitationId, wrappedDk) => call('POST', `/api/v1/diaries/${enc(diaryId)}/members`, { invitationId, wrappedDk }),
     listMembers: (diaryId) => call('GET', `/api/v1/diaries/${enc(diaryId)}/members`),
     changeRole: (diaryId, principalId, role) => call('PATCH', `/api/v1/diaries/${enc(diaryId)}/members/${enc(principalId)}`, { role }),
+    setCanEditTemplates: (diaryId, principalId, canEditTemplates) => call('PATCH', `/api/v1/diaries/${enc(diaryId)}/members/${enc(principalId)}`, { canEditTemplates }),
     removeMember: (diaryId, principalId) => call('DELETE', `/api/v1/diaries/${enc(diaryId)}/members/${enc(principalId)}`),
     async leave(diaryId) {
       if (!self) throw new Error('Austreten braucht die eigene User-ID');

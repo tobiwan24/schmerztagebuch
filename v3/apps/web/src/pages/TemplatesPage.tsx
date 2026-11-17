@@ -15,7 +15,7 @@ import { TemplateIcon } from '@/components/TemplateIcon';
 import { EmptyState, ErrorState } from '@/components/StateView';
 import { useData } from '@/data/DataContext';
 import { useDiaryScope } from '@/data/diary-scope';
-import { useIsOwner } from '@/data/useSharing';
+import { useCanEditTemplates } from '@/data/useSharing';
 import { useQuery } from '@/data/useQuery';
 import { cn } from '@/lib/utils';
 import { de } from '@/i18n/de';
@@ -36,7 +36,7 @@ export function TemplatesPage() {
     const rows = await Promise.all(templates.map(async (t) => ({ template: t, entries: await data.diary.countTemplateEntries(t.id) })));
     return { diaryId: diary.id, rows: rows.sort((a, b) => (a.template.order < b.template.order ? -1 : a.template.order > b.template.order ? 1 : 0)) };
   }, [data.diary, scope.diaryId]);
-  const canEdit = useIsOwner(query.status === 'ok' ? query.data.diaryId : null) !== false;
+  const canEdit = useCanEditTemplates(query.status === 'ok' ? query.data.diaryId : null) !== false;
   const [deleting, setDeleting] = useState<Row | null>(null);
 
   // Änderungen nacheinander speichern: schnelles Ziehen + Pfeiltaste dürfen sich nicht überholen (letzte Aktion gewinnt).

@@ -62,7 +62,7 @@ export function MembersPage() {
               <div key={mem.principalId} data-testid="member" className="flex flex-col gap-2 border-b px-4 py-3 last:border-b-0">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium">{mem.username}{mem.me ? ` (${t.you})` : ''}</span>
-                  <span className="text-sm text-muted-foreground">{t.roles[mem.role]}</span>
+                  <span className="text-sm text-muted-foreground">{t.roles[mem.role]}{mem.role === 'editor' && mem.canEditTemplates ? ` · ${t.canEditTemplates}` : ''}</span>
                 </div>
                 {mem.safety ? (
                   <div className="flex flex-col gap-1">
@@ -74,6 +74,11 @@ export function MembersPage() {
                   <div className="flex flex-wrap gap-2">
                     {mem.role !== 'editor' ? <Button size="sm" variant="outline" onClick={() => void run(() => m.changeRole(mem.principalId, 'editor'))}>{t.makeEditor}</Button> : null}
                     {mem.role !== 'viewer' ? <Button size="sm" variant="outline" onClick={() => void run(() => m.changeRole(mem.principalId, 'viewer'))}>{t.makeViewer}</Button> : null}
+                    {mem.role === 'editor' ? (
+                      <Button size="sm" variant="outline" onClick={() => void run(() => m.setTemplateRight(mem.principalId, !mem.canEditTemplates))}>
+                        {mem.canEditTemplates ? t.revokeTemplates : t.allowTemplates}
+                      </Button>
+                    ) : null}
                     <Button size="sm" variant="destructive" onClick={() => setRemoving(mem)}>{t.remove}</Button>
                   </div>
                 ) : null}

@@ -1,4 +1,4 @@
-import { expect, type Browser, type Page } from '@playwright/test';
+import { expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { buildV2Dump } from '../packages/core/src/migration-v2/fixture';
 
 export const PASSWORD = 'sicheres-passwort-123';
@@ -149,4 +149,43 @@ export async function createV2Db(page: Page) {
       req.onerror = () => reject(req.error);
     });
   }, dump);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// Geteilte Tagebücher: mehrere Konten (Chromium, virtueller Authenticator)
+
+/** Löst einen Sync-Lauf aus (Rückkehr in den Vordergrund). */
+export const foreground = (page: Page) => page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+
+/** Mitglieder-Seite des (ersten) eigenen Tagebuchs öffnen. */
+export async function openMembers(page: Page) {
+  await go(page, '/more/diaries');
+  await page.getByTestId('diary-card').getByRole('link', { name: 'Mitglieder & Einladungen' }).click();
+  await page.getByTestId('members-card').waitFor();
+}
+
+/** Lädt eine neue Person ein (Rolle „Darf eintragen“) und lässt sie annehmen; wartet, bis der Owner sie bestätigt hat. */
+export async function inviteMember(owner: Page, browser: Browser, name: string, expectedMembers: number): Promise<{ ctx: BrowserContext; page: Page }> {
+  await openMembers(owner);
+  await owner.getByRole('button', { name: 'Darf eintragen' }).click();
+  await owner.getByRole('button', { name: 'Einladungslink erzeugen' }).click();
+  const hash = new URL((await owner.getByTestId('invite-link').textContent())!).hash;
+  const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, locale: 'de-DE' });
+  const page = await ctx.newPage();
+  await addVirtualAuthenticator(page);
+  await onboardWithCloud(page, name);
+  await go(page, `/invite${hash}`);
+  await page.getByRole('button', { name: 'Einladung annehmen' }).click();
+  await expect(page.getByTestId('invite-accepted')).toBeVisible();
+  await expect
+    .poll(
+      async () => {
+        await foreground(owner);
+        await openMembers(owner);
+        return owner.getByTestId('member').count();
+      },
+      { timeout: 45_000, intervals: [1000, 2000] },
+    )
+    .toBe(expectedMembers);
+  return { ctx, page };
 }

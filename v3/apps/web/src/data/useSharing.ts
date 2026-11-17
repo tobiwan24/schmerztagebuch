@@ -79,6 +79,11 @@ export function useMembers(diaryId: string) {
     query.retry();
   }, [api, diaryId, query]);
 
+  const setTemplateRight = useCallback(async (principalId: string, allowed: boolean) => {
+    await (await api()).setCanEditTemplates(diaryId, principalId, allowed);
+    query.retry();
+  }, [api, diaryId, query]);
+
   const remove = useCallback(async (principalId: string) => {
     // Vormerken VOR dem Entfernen: bricht die App danach ab, setzt die Schlüsselrotation beim nächsten Sync fort (SHR-13)
     await markRotation(db, diaryId, 'member-removed', now());
@@ -92,17 +97,18 @@ export function useMembers(diaryId: string) {
     void sync.syncNow();
   }, [api, db, diaryId, sync]);
 
-  return { query, invite, revokeInvitation, changeRole, remove, leave, refresh: query.retry };
+  return { query, invite, revokeInvitation, changeRole, setTemplateRight, remove, leave, refresh: query.retry };
 }
 
-/** Darf dieses Gerät Vorlagen des Tagebuchs ändern (A-002: nur Besitzer bzw. local-only)? `null` = noch unbekannt. */
-export function useIsOwner(diaryId: string | null): boolean | null {
+/** Darf dieses Gerät Vorlagen des Tagebuchs ändern (A-002: Besitzer bzw. local-only; A-121: Editor mit dem Flag „Vorlagen bearbeiten“)? `null` = noch unbekannt. */
+export function useCanEditTemplates(diaryId: string | null): boolean | null {
   const { db } = useAuth();
   const q = useQuery(async () => {
     if (!diaryId) return null;
     const me = await self(db);
     if (!me) return true;
-    return ((await loadMembers(db, diaryId)).find((m) => m.principalId === me.userId)?.role ?? 'owner') === 'owner';
+    const mine = (await loadMembers(db, diaryId)).find((m) => m.principalId === me.userId);
+    return !mine || mine.role === 'owner' || (mine.role === 'editor' && mine.canEditTemplates === true);
   }, [db, diaryId]);
   return q.status === 'ok' ? q.data : null;
 }
