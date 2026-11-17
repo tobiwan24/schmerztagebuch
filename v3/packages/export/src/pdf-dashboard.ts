@@ -46,12 +46,17 @@ export async function renderDashboardPdf(report: Report, opts: PdfOptions): Prom
   doc.setLineWidth(0.2);
   y += 6;
 
-  // Diagramm des Zeitraums
-  const img = report.chart && opts.renderChart ? await safeImage(() => opts.renderChart!(report.chart!)) : null;
+  // Dashboard-Bild (EXP-26) bzw. Diagramm des Zeitraums
+  const img = opts.dashboardImage ?? (report.chart && opts.renderChart ? await safeImage(() => opts.renderChart!(report.chart!)) : null);
   if (img) {
-    const h = Math.min(contentW * (img.height / img.width), 90);
-    doc.addImage(img.dataUrl, img.dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG', MARGIN, y, h * (img.width / img.height), h);
-    y += h + 6;
+    const maxH = opts.dashboardImage ? 150 : 90;
+    const h = Math.min(contentW * (img.height / img.width), maxH);
+    try {
+      doc.addImage(img.dataUrl, img.dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG', MARGIN, y, h * (img.width / img.height), h);
+      y += h + 6;
+    } catch {
+      // defektes Bild: nur dieses entfällt, das PDF entsteht trotzdem (EXP-19)
+    }
   }
 
   // Kennzahlen der outcome-Blöcke

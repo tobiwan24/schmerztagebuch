@@ -112,14 +112,93 @@ async function drawBodymap(container: HTMLElement, title: string, root: Element)
   return canvas;
 }
 
-/** Rendert die Ansicht in `root` als PNG. */
-export async function renderViewAsPng(root: HTMLElement, title: string): Promise<Blob> {
+/** Canvas einer einzelnen Ansicht (Diagramm, Kalender oder Körperkarte); sonst nur die Texte (Kennzahl, Zusammenhang). */
+async function drawView(root: HTMLElement, title: string, textFallback: boolean): Promise<HTMLCanvasElement | null> {
   const svg = root.querySelector<SVGSVGElement>('svg.recharts-surface');
   const grid = root.querySelector<HTMLElement>('[data-testid="calendar-grid"]');
   const body = root.querySelector<HTMLElement>('[data-testid="bodymap-overview"]');
-  const canvas = svg ? await drawChart(svg, title, root) : grid ? drawCalendar(grid, title, root) : body ? await drawBodymap(body, title, root) : null;
+  if (svg) return drawChart(svg, title, root);
+  if (grid) return drawCalendar(grid, title, root);
+  if (body) return drawBodymap(body, title, root);
+  return textFallback ? drawText(root, title) : null;
+}
+
+/** Reine Textansicht (Kennzahl, Zusammenhang): sichtbare Zeilen untereinander, Zeilenumbruch nach Breite. */
+function drawText(root: HTMLElement, title: string): HTMLCanvasElement {
+  const lines = Array.from(root.querySelectorAll<HTMLElement>('p, h3')).map((p) => p.textContent?.trim() ?? '').filter(Boolean);
+  const width = Math.max(240, Math.round(root.getBoundingClientRect().width));
+  const cs = getComputedStyle(root);
+  const font = `14px ${cs.fontFamily}`;
+  const probe = document.createElement('canvas').getContext('2d');
+  if (!probe) throw new Error('Canvas nicht verfügbar');
+  probe.font = font;
+  const wrapped: string[] = [];
+  for (const line of lines) {
+    let cur = '';
+    for (const word of line.split(' ')) {
+      const next = cur ? `${cur} ${word}` : word;
+      if (cur && probe.measureText(next).width > width) {
+        wrapped.push(cur);
+        cur = word;
+      } else cur = next;
+    }
+    if (cur) wrapped.push(cur);
+  }
+  const lineH = 20;
+  const { canvas, ctx } = canvasFor(width, Math.max(1, wrapped.length) * lineH, title, root);
+  ctx.font = font;
+  ctx.textBaseline = 'top';
+  wrapped.forEach((l, i) => ctx.fillText(l, 0, i * lineH + 2));
+  return canvas;
+}
+
+/** Eigenes Dashboard (EXP-26): jedes Widget einzeln rendern und untereinander zu einem Bild stapeln. */
+async function drawDashboard(root: HTMLElement, title: string): Promise<HTMLCanvasElement> {
+  const parts: HTMLCanvasElement[] = [];
+  for (const w of Array.from(root.querySelectorAll<HTMLElement>('[data-testid="dashboard-widget"]'))) {
+    const name = w.querySelector<HTMLElement>('[data-widget-name]')?.textContent ?? '';
+    const c = await drawView(w, name, true);
+    if (c) parts.push(c);
+  }
+  if (!parts.length) throw new Error('Nichts zu exportieren');
+  const GAP = 8 * SCALE;
+  const head = TITLE_H * SCALE;
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(...parts.map((p) => p.width));
+  canvas.height = head + parts.reduce((h, p) => h + p.height + GAP, 0);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas nicht verfügbar');
+  const cs = getComputedStyle(root);
+  ctx.fillStyle = getComputedStyle(document.body).backgroundColor || '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = cs.color || '#000000';
+  ctx.font = `600 ${18 * SCALE}px ${cs.fontFamily}`;
+  ctx.textBaseline = 'middle';
+  ctx.fillText(title, PAD * SCALE, head / 2);
+  let y = head;
+  for (const p of parts) {
+    ctx.drawImage(p, 0, y);
+    y += p.height + GAP;
+  }
+  return canvas;
+}
+
+async function renderCanvas(root: HTMLElement, title: string): Promise<HTMLCanvasElement> {
+  const canvas = root.querySelector('[data-testid="dashboard-widget"]') ? await drawDashboard(root, title) : await drawView(root, title, false);
   if (!canvas) throw new Error('Nichts zu exportieren');
+  return canvas;
+}
+
+/** Rendert die Ansicht in `root` als PNG. */
+export async function renderViewAsPng(root: HTMLElement, title: string): Promise<Blob> {
+  const canvas = await renderCanvas(root, title);
   return new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG konnte nicht erzeugt werden'))), 'image/png'));
+}
+
+/** Rendert die Ansicht als Bild für das PDF (Data-URL + Maße). */
+export async function renderViewAsImage(root: HTMLElement, title: string): Promise<{ dataUrl: string; width: number; height: number }> {
+  const canvas = await renderCanvas(root, title);
+  return { dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height };
 }
 
 /** Rendert die Ansicht in `root` als PNG und löst den Download aus. */

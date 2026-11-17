@@ -156,6 +156,7 @@ export const de = {
       kinds: { timeseries: 'Verlauf', heatmap: 'Kalender', medicationDays: 'Medikamententage', frequency: 'Häufigkeiten', bodymap: 'Körperkarte', correlation: 'Zusammenhang', kpi: 'Kennzahl' },
       stats: { mean: 'Mittelwert', median: 'Median', max: 'Maximum', min: 'Minimum' },
       statFor: 'Kennzahl',
+      exportPdf: 'Als PDF (Layout Dashboard)', exportPdfFailed: 'Das PDF konnte nicht erstellt werden.',
       daysFor: (name: string) => `Zeitraum von ${name}`,
       dayOption: (n: number) => `${n} Tage`,
       wider: (name: string) => `${name}: Breite wechseln`,

@@ -2,7 +2,7 @@
 import { useCallback } from 'react';
 import type { BackupSecret } from '@stb/crypto';
 import type { FilterSpec } from '@stb/analysis';
-import { buildReport, buildSummaryInput, exportCsvLong, exportCsvWide, renderReportPdf, type CsvProfile, type ExportV1, type PdfImageSize, type PdfLayout } from '@stb/export';
+import { buildReport, buildSummaryInput, exportCsvLong, exportCsvWide, renderReportPdf, type CsvProfile, type ExportV1, type PdfImageSize, type PdfLayout, type RenderedImage } from '@stb/export';
 import { createBodymapRenderer } from '@/lib/pdf-bodymap';
 import { renderChartImage } from '@/lib/pdf-chart';
 import { useAuth } from '@/auth/AuthContext';
@@ -25,11 +25,11 @@ export function useBackup() {
 
   /** Berichtsmodell und PDF (gleiche Optionen wie der PDF-Export); Grundlage für Download und Arzt-Link. */
   const buildPdf = useCallback(
-    async (opts: { filter?: FilterSpec; imageSize?: PdfImageSize; layout?: PdfLayout; multiselectBlockIds?: string[]; password?: string; summary?: string }) => {
+    async (opts: { filter?: FilterSpec; imageSize?: PdfImageSize; layout?: PdfLayout; multiselectBlockIds?: string[]; password?: string; summary?: string; dashboardImage?: RenderedImage }) => {
       const src = await collectExportSource(data.diary);
       const report = buildReport(src, { now: now(), ...(opts.filter ? { filter: opts.filter } : {}) });
       const renderBodymap = createBodymapRenderer(new Map(src.bodymapImages.map((i) => [i.id, i.dataUrl])));
-      const bytes = await renderReportPdf(report, { imageSize: opts.imageSize ?? 'a5', layout: opts.layout ?? 'table', renderBodymap, renderChart: renderChartImage, multiselectBlockIds: opts.multiselectBlockIds ?? [], ...(opts.password ? { password: opts.password } : {}), ...(opts.summary?.trim() ? { summary: opts.summary } : {}) });
+      const bytes = await renderReportPdf(report, { imageSize: opts.imageSize ?? 'a5', layout: opts.layout ?? 'table', renderBodymap, renderChart: renderChartImage, ...(opts.dashboardImage ? { dashboardImage: opts.dashboardImage } : {}), multiselectBlockIds: opts.multiselectBlockIds ?? [], ...(opts.password ? { password: opts.password } : {}), ...(opts.summary?.trim() ? { summary: opts.summary } : {}) });
       return { report, bytes };
     },
     [data.diary, now],
@@ -46,7 +46,7 @@ export function useBackup() {
   );
 
   const exportFile = useCallback(
-    async (format: ExportFormat, opts: { profile?: CsvProfile; filter?: FilterSpec; imageSize?: PdfImageSize; layout?: PdfLayout; multiselectBlockIds?: string[]; password?: string; summary?: string }): Promise<{ name: string; text: string | Uint8Array; mime: string }> => {
+    async (format: ExportFormat, opts: { profile?: CsvProfile; filter?: FilterSpec; imageSize?: PdfImageSize; layout?: PdfLayout; multiselectBlockIds?: string[]; password?: string; summary?: string; dashboardImage?: RenderedImage }): Promise<{ name: string; text: string | Uint8Array; mime: string }> => {
       const stamp = new Date(now()).toISOString().slice(0, 10);
       if (format === 'pdf') {
         const { bytes } = await buildPdf(opts);

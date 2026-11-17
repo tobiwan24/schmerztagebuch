@@ -2,6 +2,7 @@
 // die Standard-Ansichten wiederverwenden. Anlegen, Umbenennen, Widgets hinzufügen/verschieben/entfernen; Zustand als
 // `dashboard`-Record (synchronisiert, nur der Owner schreibt). Rein beschreibend wie die Standard-Ansichten.
 import { useRef, useState } from 'react';
+import { FileText } from 'lucide-react';
 import { MIN_CORRELATION_DAYS, addDays, type FilterSpec } from '@stb/analysis';
 import {
   DASHBOARD_MAX_WIDGETS, KPI_STATS, WIDGET_KINDS, addWidget, createDashboard, defaultWidgetConfig, moveWidget, removeWidget, renameDashboard, updateWidget,
@@ -14,6 +15,8 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { useWorker } from '@/components/AnalysisShared';
 import { BodyView, CalendarView, FreqView, MedsView, TrendView } from '@/pages/AnalysisPage';
+import { downloadText, useBackup } from '@/data/useBackup';
+import { renderViewAsImage } from '@/lib/export-png';
 import { useData } from '@/data/DataContext';
 import { useDiaryScope } from '@/data/diary-scope';
 import { useMembers } from '@/data/useSharing';
@@ -25,7 +28,7 @@ const DAYS = [7, 30, 90, 182, 365] as const;
 const num = (n: number, digits = 1) => n.toLocaleString('de-DE', { maximumFractionDigits: digits });
 
 export function DashboardsView() {
-  const { diary, stamper, newId } = useData();
+  const { diary, stamper, newId, now } = useData();
   const scope = useDiaryScope(false);
   // Bei nur einem Tagebuch liefert der Umschalter `null` — dann gilt dieses eine.
   const diaryId = scope.diaryId ?? scope.diaries[0]?.id ?? '';
@@ -40,6 +43,9 @@ export function DashboardsView() {
   const [error, setError] = useState<string>();
   /** Änderungen laufen nacheinander und gehen vom gespeicherten Stand aus (schnelle Folgeklicks gehen nicht verloren). */
   const queue = useRef<Promise<void>>(Promise.resolve());
+  const rootRef = useRef<HTMLDivElement>(null);
+  const { exportFile } = useBackup();
+  const [pdfBusy, setPdfBusy] = useState(false);
   if (list.status !== 'ok') return <p className="text-muted-foreground">{de.app.loading}</p>;
   const all = list.data;
   const current = all.find((d) => d.id === pickedId) ?? all[0];
@@ -87,8 +93,28 @@ export function DashboardsView() {
     list.retry();
   }
 
+  /** PDF-Layout „Dashboard“ (EXP-26): das gerenderte Dashboard ersetzt das Standard-Diagramm auf Seite 1. */
+  async function exportPdf() {
+    if (!current || !rootRef.current) return;
+    const widgets = rootRef.current.querySelector<HTMLElement>('[data-testid="dashboard-widgets"]');
+    if (!widgets) return;
+    setPdfBusy(true);
+    try {
+      const dashboardImage = await renderViewAsImage(widgets, current.name);
+      const to = new Date(now()).toLocaleDateString('en-CA');
+      const days = Math.max(...current.widgets.map((w) => w.config.days));
+      const f = await exportFile('pdf', { layout: 'dashboard', imageSize: 'a5', dashboardImage, filter: { diaryIds: [current.diaryId], range: { from: addDays(to, -(days - 1)), to } } });
+      downloadText(f.name, f.text, f.mime);
+      setError(undefined);
+    } catch {
+      setError(t.exportPdfFailed);
+    } finally {
+      setPdfBusy(false);
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-3" data-testid="dashboards-view">
+    <div ref={rootRef} className="flex flex-col gap-3" data-testid="dashboards-view">
       {all.length === 0 ? <p className="text-sm text-muted-foreground">{t.empty}</p> : null}
       {all.length > 0 ? (
         <div role="group" aria-label={t.list} className="flex flex-wrap gap-2">
@@ -129,11 +155,11 @@ export function DashboardsView() {
             </div>
           ) : null}
           {current.widgets.length === 0 ? <p className="text-sm text-muted-foreground">{t.noWidgets}</p> : null}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2" data-testid="dashboard-widgets">
             {current.widgets.map((w, i) => (
               <section key={w.id} data-testid="dashboard-widget" data-kind={w.kind} className={w.span === 2 ? 'flex flex-col gap-2 md:col-span-2' : 'flex flex-col gap-2'}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm font-medium">{t.kinds[w.kind]}</span>
+                  <span className="text-sm font-medium" data-widget-name>{t.kinds[w.kind]}</span>
                   {!readOnly ? (
                     <div className="flex flex-wrap items-center gap-1">
                       <Select
@@ -161,6 +187,14 @@ export function DashboardsView() {
               </section>
             ))}
           </div>
+          {current.widgets.length > 0 ? (
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" disabled={pdfBusy} onClick={() => void exportPdf()}>
+                <FileText aria-hidden />
+                {t.exportPdf}
+              </Button>
+            </div>
+          ) : null}
           {!readOnly ? (
             <Card>
               <CardContent className="flex flex-col gap-2 pt-6">

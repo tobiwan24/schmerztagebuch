@@ -28,6 +28,8 @@ export interface PdfOptions {
   renderBodymap: (value: BodymapValue) => Promise<RenderedImage | null>;
   /** Dashboard-Layout: Diagrammbild des Zeitraums (Browser: Canvas); ohne Bild bleibt der Platz leer. */
   renderChart?: (chart: ReportChart) => Promise<RenderedImage | null>;
+  /** Dashboard-Layout (EXP-26): Bild eines eigenen Dashboards (Auswertung → Meine Dashboards); ersetzt das Diagrammbild des Zeitraums. */
+  dashboardImage?: RenderedImage;
   /** Dashboard-Layout: Multiselect-Blöcke (Block-IDs), deren Häufigkeiten gezeigt werden. */
   multiselectBlockIds?: string[];
   /** Zusammenfassung für den Arzt (VOI-15): bearbeiteter Text, erscheint als eigener Abschnitt am Ende. */
