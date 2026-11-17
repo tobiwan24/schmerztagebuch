@@ -65,4 +65,14 @@ describe('ESLint-Abhängigkeitsregeln', () => {
     expect(await rulesFor('imports-llm.ts', 'apps/web/src/components/Fixture.tsx')).toContain('no-restricted-imports');
     expect(await rulesFor('imports-llm.ts', 'apps/server/src/fixture.ts')).toEqual([]);
   });
+
+  it('ARC-08: client-sdk darf core, crypto und sync-protocol importieren, sonst nichts; andere Pakete dürfen es nicht importieren', async () => {
+    expect(await rulesFor('imports-crypto.ts', 'packages/client-sdk/src/fixture.ts')).toEqual([]);
+    expect(await rulesFor('clean.ts', 'packages/client-sdk/src/fixture.ts')).toEqual([]);
+    expect(await rulesFor('crypto-imports-analysis.ts', 'packages/client-sdk/src/fixture.ts')).toContain('no-restricted-imports');
+    expect(await rulesFor('imports-llm.ts', 'packages/client-sdk/src/fixture.ts')).toContain('no-restricted-imports');
+    expect(await rulesFor('imports-react.ts', 'packages/client-sdk/src/fixture.ts')).toContain('no-restricted-imports');
+    expect(await rulesFor('imports-client-sdk.ts', 'packages/core/src/fixture.ts')).toContain('no-restricted-imports');
+    expect(await rulesFor('imports-client-sdk.ts', 'packages/crypto/src/fixture.ts')).toContain('no-restricted-imports');
+  });
 });

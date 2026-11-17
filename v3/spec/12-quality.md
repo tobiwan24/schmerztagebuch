@@ -20,7 +20,7 @@
 ## Abdeckung
 
 - `packages/core`, `packages/crypto`, `packages/sync-protocol`: Zeilen-/Zweigabdeckung ≥ 90 %.
-- `packages/analysis`, `packages/export`: ≥ 85 %. `apps/*`: keine Quote, aber jede Akzeptanz-ID abgedeckt.
+- `packages/analysis`, `packages/export`, `packages/llm`, `packages/client-sdk`: ≥ 85 %. `apps/*`: keine Quote, aber jede Akzeptanz-ID abgedeckt.
 
 ## Budgets
 

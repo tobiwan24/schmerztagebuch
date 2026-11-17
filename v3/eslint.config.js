@@ -9,7 +9,7 @@ const internal = (pkg) => ({ group: [`@stb/${pkg}`, `@stb/${pkg}/*`], message: `
 const runtimeBans = UI_AND_RUNTIME.map(pkgImport);
 const APPS = ['web', 'server'];
 const appBans = APPS.map((a) => ({ group: [`@stb/${a}`, `@stb/${a}/*`, `**/apps/${a}/**`], message: 'apps/* importieren nie einander (Spec 01).' }));
-const PACKAGES = ['core', 'crypto', 'sync-protocol', 'analysis', 'export', 'llm'];
+const PACKAGES = ['core', 'crypto', 'sync-protocol', 'analysis', 'export', 'llm', 'client-sdk'];
 
 /** Erlaubte interne Abhängigkeiten je Paket (Spec 01). */
 const ALLOWED = {
@@ -19,6 +19,7 @@ const ALLOWED = {
   analysis: ['core'],
   export: ['core', 'analysis'],
   llm: ['core'],
+  'client-sdk': ['core', 'crypto', 'sync-protocol'],
 };
 
 /** ARC-07: Das Anthropic-SDK nur in packages/llm und im Server; die Web-App kennt weder SDK noch @stb/llm. */

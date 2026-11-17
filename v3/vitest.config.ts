@@ -11,6 +11,7 @@ export const COVERAGE_THRESHOLDS = {
   'packages/analysis/src/**': { lines: 85, branches: 85 },
   'packages/export/src/**': { lines: 85, branches: 85 },
   'packages/llm/src/**': { lines: 85, branches: 85 },
+  'packages/client-sdk/src/**': { lines: 85, branches: 85 },
 };
 
 export default defineConfig({
@@ -23,6 +24,7 @@ export default defineConfig({
       '@stb/analysis': src('analysis'),
       '@stb/export': src('export'),
       '@stb/llm': src('llm'),
+      '@stb/client-sdk': src('client-sdk'),
       '@': fileURLToPath(new URL('./apps/web/src', import.meta.url)),
     },
   },

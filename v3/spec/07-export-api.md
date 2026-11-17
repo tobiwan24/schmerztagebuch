@@ -87,7 +87,9 @@ Das Gerät erzeugt einen Zufallsschlüssel K (256 Bit) und verschlüsselt das Be
 
 Server-Schnittstelle (A-127): Der Owner legt je Tagebuch bis zu 10 Integrationen an (`POST/GET /api/v1/diaries/:id/integrations`, `DELETE …/:integrationId`; Body: verschlüsselter Name, öffentlicher Schlüssel, Token-Hash, DK-Wrap, Epoche). Die Integration liest mit `Authorization: Bearer stbi_…` über `GET /api/v1/integration/records?since=&limit=` (Chiffretext aller Record-Arten, ihr Wrap und die Epoche; 120 Anfragen/min je Integration). Jede andere Anfrage mit einem Integrations-Token (Push, Pull, Blobs, Konto) → 403 `integration-read-only`. Eine DK-Rotation widerruft die Integrationen des Tagebuchs.
 
-Nur lesende API (Chiffretext + Wrap, Tokens siehe 03); `packages/client-sdk` entschlüsselt; `apps/mcp` (stdio, lokal beim Nutzer, kein gehosteter Server) bietet die Tools `list_diaries`, `search_entries`, `get_entry`, `stats`.
+Nur lesende API (Chiffretext + Wrap, Tokens siehe 03); `packages/client-sdk` entschlüsselt; `packages/client-sdk` (A-128): `connectIntegration({ accessString, baseUrl?, fetch? })` prüft den Zugangsstring (Prüfsumme), `sync()` pullt seitenweise (Cursor erst nach dem Anwenden), entpackt den DK mit dem Integrationsschlüssel und entschlüsselt; `snapshot()` liefert Tagebuch, Vorlagen, Versionen und Einträge typisiert (Schemas aus `core`), nicht lesbare Records unter `skipped` mit Grund. Fehler sind unterscheidbar (`unauthenticated`, `rate-limited` mit Wartezeit, `forbidden`, `network`, …). Abhängigkeiten: nur `core`, `crypto`, `sync-protocol`.
+
+`apps/mcp` (stdio, lokal beim Nutzer, kein gehosteter Server) bietet die Tools `list_diaries`, `search_entries`, `get_entry`, `stats`.
 
 ### Medikamenten-Block im Export (M16)
 
