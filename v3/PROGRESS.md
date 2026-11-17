@@ -7,7 +7,7 @@
 - **Meilenstein:** M14, M14b und M14c erledigt (Gesamt-Akzeptanz 211/211 automatisiert, QA-08 erfüllt: `verify:docker` 2026-11-16 grün; manuell 6/10). **v3.x (M15–M24) geplant**, Beginn mit M15.1. **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md) (aktualisiert 2026-11-16). Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M23.1 (DM-16 Codec `aes`: Roundtrip, falscher Schlüssel/AAD → Fehler, gemischte Bestände; `web/src/data/codec/aes.ts` existiert bereits — vorher prüfen, was fehlt), danach M23.2–M23.5. (Aufgabenliste „v3.x“ unten). Plan v3.x: Entscheidungen A-080 bis A-1xx. G4-Abnahme (PDF mit echten Daten) bleibt beim User.
+- **Nächste Aufgabe:** M23.2 (DM-17 Migration plain→aes), danach M23.3–M23.5. (Aufgabenliste „v3.x“ unten). Plan v3.x: Entscheidungen A-080 bis A-1xx. G4-Abnahme (PDF mit echten Daten) bleibt beim User.
 - **Erledigt in M22 (abgeschlossen, Version 3.8.0-alpha.1; `verify:docker` durch den Koordinator; SHR-16 manuell offen):** M22.1 (CRY-21), M22.2 (CRY-22), M22.3 (SHR-13), M22.4 (SHR-14), M22.5 (SHR-15), M22.6 Abschluss.
 - **Erledigt in M21 (abgeschlossen, Version 3.7.0-alpha.1):** M21.1 (DM-15), M21.2 (SYN-19), M21.3 (ANA-32), M21.4 (EXP-26), M21.5 Abschluss.
 - **Erledigt in M20 (abgeschlossen, Version 3.6.0-alpha.1; ANA-31 manuell offen):** M20.1 (ANA-26), M20.2 (ANA-27), M20.3 (ANA-28), M20.4 (ANA-29), M20.5 (ANA-30), M20.6 Abschluss.
@@ -129,7 +129,7 @@ Abkürzungen: W = `apps/web/src`, S = `apps/server/src`, P = `packages`. Reihenf
 | M22.4 | Flag `canEditTemplates` (Server und Editor) — erledigt | SHR-14 |
 | M22.5 | Hinweis „n neue Einträge von X“ — erledigt | SHR-15 |
 | M22.6 | Abschluss M22 (`verify:docker` durch den Koordinator) — erledigt | — |
-| M23.1 | Codec `aes` | DM-16 |
+| M23.1 | Codec `aes` — erledigt | DM-16 |
 | M23.2 | Migration plain→aes (Dexie-Version) | DM-17 |
 | M23.3 | Einstellung und E2E | DM-18 |
 | M23.4 | Persistierter Suchindex | ANA-33 |
@@ -441,3 +441,4 @@ Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19,
 | 2026-11-17 | M22.5 | SHR-15 | Start-Hinweis „n neue Einträge von X“ (`NewEntriesNotice`, `useNewEntries`, `data/new-entries.ts`): Einträge anderer Autoren, die seit der letzten Bestätigung lokal ankamen (`RecordRepository.listUpdatedSince`), je Tagebuch und Autor; Tippen wählt das Tagebuch und öffnet den Verlauf mit Autor-Filter (`FilterState.authorId` → `meta/author`, Chip „Von X“), „Ausblenden" bestätigt. Tests: `data/new-entries.test.ts`, `HistoryFilters.test.ts`, E2E `new-entries.spec.ts` (Owner schreibt, Mitglied sieht „2 neue Einträge von …“, Filter, weg nach Bestätigen, „1 neuer Eintrag“, Ausblenden; Owner sieht eigene nie). A-122. |
 | 2026-11-17 | M22.6 | — | Abschluss M22: Version 3.8.0-alpha.1 + Changelog, verify grün (Initiales JS 244,7 KB gzip), voller E2E 292 grün (41 übersprungen, Chromium + WebKit inkl. Server-Scans), acceptance M22 5/5 (SHR-16 manuell). `verify:docker` durch den Koordinator (Server berührt: Migration 12, Rotations- und Flag-Routen). Erkenntnis: der M22.1-Test „Fehlerinjektion“ (CRY-21) überschritt unter Last das 5-s-Standardlimit — Limit auf 60 s. |
 | 2026-11-17 | perf | — | Bundle-Luft: `i18n/de.ts` auf die Bereiche des Start-Chunks gekürzt, 26 Bereiche (analysis, settings, templates, … reportViewer) als `i18n/lazy/<bereich>.ts` (`de<Bereich>`) ausgelagert und nur von lazy Seiten importiert (A-123). Initiales JS 244,7 → 232,3 KB gzip (Ziel ≤ 236), keine Funktionsänderung. Sourcemap-Analyse (Skript über die Mappings je Quelle): react-dom 211 KB, dexie 102, zod 95, react-router 94, `de.ts` 54 (minifiziert, vorher). Voller E2E: 288 grün, 1 rot (`llm-summary` VOI-15, während eines parallelen Vitest-Laufs; einzeln 3× grün — Zeitfenster-Flake, kein Zusammenhang mit der Änderung). |
+| 2026-11-17 | M23.1 | DM-16 | Codec `aes` existierte schon (`createAesCodec`, nur für Tests DM-09/DM-12); neu: `createDiaryAesCodec(keys)` (Schlüssel je Tagebuch und Epoche aus `CryptoSession.keys`, gesperrt → Fehler, nie Klartext) und `aes.test.ts` (Roundtrip ohne Klartext im Chiffretext, falscher Schlüssel, falsche AAD je Feld, manipulierter Chiffretext, Epochen/Vorgänger-Schlüssel, gemischter plain+aes-Bestand über das Repository). |
