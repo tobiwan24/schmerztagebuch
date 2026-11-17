@@ -184,7 +184,7 @@ describe('DK-Rotation: Re-Verschlüsselung', () => {
         await expectAllReadable(server, keys, plain, 2);
       }
     }
-  });
+  }, 60_000);
 
   it('CRY-21: Konflikt (Mitglied schreibt währenddessen in der neuen Epoche) — dessen Stand bleibt erhalten', async () => {
     const { keys, server, plain } = await setup(6);

@@ -34,6 +34,8 @@ export interface RecordRepository {
   list(diaryId: string, kind: string): Promise<DecodedRecord[]>;
   /** Nicht gelöschte Records einer Art über alle Tagebücher (Ansicht „Alle", Spec 10). */
   listKind(kind: string): Promise<DecodedRecord[]>;
+  /** Nicht gelöschte Records einer Art eines Tagebuchs, die lokal nach `since` (ms) angekommen oder geändert wurden (SHR-15). */
+  listUpdatedSince(diaryId: string, kind: string, since: number): Promise<(DecodedRecord & { localUpdatedAt: number })[]>;
 }
 
 export interface RecordRepositoryOptions {
@@ -130,6 +132,11 @@ export function createRecordRepository(db: StbDb, o: RecordRepositoryOptions): R
     async list(diaryId, kind) {
       const rows = await db.records.where('[diaryId+kind]').equals([diaryId, kind]).toArray();
       return Promise.all(rows.filter((r) => r.deleted === 0).map(decode));
+    },
+
+    async listUpdatedSince(diaryId, kind, since) {
+      const rows = await db.records.where('localUpdatedAt').above(since).filter((r) => r.diaryId === diaryId && r.kind === kind && r.deleted === 0).toArray();
+      return Promise.all(rows.map(async (r) => ({ ...(await decode(r)), localUpdatedAt: r.localUpdatedAt })));
     },
 
     async listKind(kind) {

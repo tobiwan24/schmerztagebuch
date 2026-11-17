@@ -1,6 +1,6 @@
 // Verlauf mit Filtern und Sortierung (M14b). Eigene Datei, damit die Seite per `lazy` nachgeladen wird (QA-02).
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { SORT_ORDERS, type FilterSpec, type SortOrder } from '@stb/analysis';
 import { EMPTY_FILTER, HistoryFilters, isActive, toSpec, type FilterState } from '@/components/HistoryFilters';
 import { useAnalysis } from '@/data/AnalysisContext';
@@ -19,7 +19,9 @@ import { de } from '@/i18n/de';
 export function HistoryPage() {
   const { diary, now } = useData();
   const { client, version } = useAnalysis();
-  const [filter, setFilter] = useState<FilterState>(EMPTY_FILTER);
+  // Vom Start-Hinweis „n neue Einträge von X“ (SHR-15): Verlauf nach diesem Autor vorfiltern
+  const fromNotice = (useLocation().state as { authorId?: unknown } | null)?.authorId;
+  const [filter, setFilter] = useState<FilterState>(() => ({ ...EMPTY_FILTER, authorId: typeof fromNotice === 'string' ? fromNotice : '' }));
   const [sort, setSort] = useHistorySort();
   const [ids, setIds] = useState<ReadonlySet<string> | null>(null);
   const meta = useQuery(async () => {

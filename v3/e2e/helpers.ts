@@ -189,3 +189,12 @@ export async function inviteMember(owner: Page, browser: Browser, name: string, 
     .toBe(expectedMembers);
   return { ctx, page };
 }
+
+/** Eintrag mit Schmerzstärke und Notiz anlegen (Allgemeines Schmerz-Tagebuch). */
+export async function addEntry(page: Page, pain: string, note: string) {
+  await go(page, '/entry/new');
+  await page.getByLabel(/Schmerzstärke/).fill(pain);
+  await page.getByLabel('Notizen').fill(note);
+  await page.getByRole('button', { name: 'Speichern' }).click();
+  await expect(page.getByTestId('entry-time')).toBeVisible();
+}

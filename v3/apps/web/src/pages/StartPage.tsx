@@ -18,6 +18,7 @@ import { de } from '@/i18n/de';
 const InstallBanner = lazy(() => import('@/components/InstallBanner').then((m) => ({ default: m.InstallBanner })));
 const CloudSyncBanner = lazy(() => import('@/components/CloudSyncBanner').then((m) => ({ default: m.CloudSyncBanner })));
 const V2Banner = lazy(() => import('@/components/V2DataCard').then((m) => ({ default: m.V2Banner })));
+const NewEntriesNotice = lazy(() => import('@/components/NewEntriesNotice').then((m) => ({ default: m.NewEntriesNotice })));
 const RestoreBackupBanner = lazy(() => import('@/components/RestoreBackupBanner').then((m) => ({ default: m.RestoreBackupBanner })));
 
 export function StartPage() {
@@ -29,6 +30,9 @@ export function StartPage() {
       <PageHeader title={de.start.title} />
       <ConflictBanner />
       <RuleBanner />
+      <Suspense fallback={null}>
+        <NewEntriesNotice />
+      </Suspense>
       <Suspense fallback={null}>
         <InstallBanner />
         <V2Banner />

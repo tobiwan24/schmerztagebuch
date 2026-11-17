@@ -1,15 +1,7 @@
 // SHR-13: Mitglied entfernen → Rotation des Tagebuchschlüssels mit Fortschritt; das verbleibende Mitglied synchronisiert weiter,
 // das entfernte bekommt 403 und keine neuen Daten. Drei Konten (Chromium, virtueller Authenticator).
 import { test, expect, type Page } from '@playwright/test';
-import { addVirtualAuthenticator, foreground, go, inviteMember, onboardWithCloud, openMembers, uniqueUser } from './helpers';
-
-async function addEntry(page: Page, pain: string, note: string) {
-  await go(page, '/entry/new');
-  await page.getByLabel(/Schmerzstärke/).fill(pain);
-  await page.getByLabel('Notizen').fill(note);
-  await page.getByRole('button', { name: 'Speichern' }).click();
-  await expect(page.getByTestId('entry-time')).toBeVisible();
-}
+import { addEntry, addVirtualAuthenticator, foreground, go, inviteMember, onboardWithCloud, openMembers, uniqueUser } from './helpers';
 
 /** Anzahl Treffer der Verlaufssuche nach Text (nach einem Sync-Auslöser). */
 async function hits(page: Page, text: string): Promise<number> {

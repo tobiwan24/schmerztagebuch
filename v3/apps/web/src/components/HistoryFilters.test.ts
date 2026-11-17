@@ -4,10 +4,18 @@ import { EMPTY_FILTER, fromSpec, isActive, toSpec, type FilterState } from './Hi
 
 const full: FilterState = {
   text: 'übelkeit', range: 'all', from: '2026-03-01', to: '2026-03-31', templateIds: ['t1', 't2'],
-  outcome: true, meds: false, events: true, content: ['doctor', 'bodymap', 'image', 'pdf'],
+  outcome: true, meds: false, events: true, content: ['doctor', 'bodymap', 'image', 'pdf'], authorId: 'u-2',
 };
 
 describe('Verlauf-Filterzustand', () => {
+  it('SHR-15: Autor-Filter wird zur Bedingung `meta/author`, bleibt über die Spec erhalten und macht den Filter aktiv', () => {
+    const f = { ...EMPTY_FILTER, authorId: 'u-2' };
+    const spec = toSpec(f, ['d1'], []);
+    expect(filterSpecSchema.parse(spec).conditions).toEqual([{ kind: 'meta', field: 'author', value: 'u-2' }]);
+    expect(fromSpec(spec)).toEqual(f);
+    expect(isActive(f)).toBe(true);
+  });
+
   it('erzeugt eine gültige FilterSpec und stellt den Zustand daraus wieder her (gespeicherter Filter)', () => {
     const spec = toSpec(full, ['d1'], []);
     expect(filterSpecSchema.parse(spec)).toEqual(spec);

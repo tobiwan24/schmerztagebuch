@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useData } from '@/data/DataContext';
+import { useAuthorName } from '@/data/useSharing';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 
@@ -30,14 +31,16 @@ export interface FilterState {
   events: boolean;
   /** Inhalt (UND): Arztbesuch, Body-Map, Foto, PDF. */
   content: ContentKind[];
+  /** Nur Einträge dieses Autors (Benutzer-ID, SHR-15); leer = alle. */
+  authorId: string;
 }
-export const EMPTY_FILTER: FilterState = { text: '', range: 'all', from: '', to: '', templateIds: [], outcome: false, meds: false, events: false, content: [] };
+export const EMPTY_FILTER: FilterState = { text: '', range: 'all', from: '', to: '', templateIds: [], outcome: false, meds: false, events: false, content: [], authorId: '' };
 export const OUTCOME_THRESHOLD = 6;
 const OPEN_FROM = '1970-01-01';
 const OPEN_TO = '9999-12-31';
 
 export const isActive = (s: FilterState) =>
-  s.text.trim() !== '' || s.range !== 'all' || s.from !== '' || s.to !== '' || s.templateIds.length > 0 || s.outcome || s.meds || s.events || s.content.length > 0;
+  s.text.trim() !== '' || s.range !== 'all' || s.from !== '' || s.to !== '' || s.templateIds.length > 0 || s.outcome || s.meds || s.events || s.content.length > 0 || s.authorId !== '';
 
 type Cond = NonNullable<FilterSpec['conditions']>[number];
 const CONTENT_CONDITIONS: Record<ContentKind, Cond> = {
@@ -54,6 +57,7 @@ export function toSpec(s: FilterState, diaryIds: string[], medOptionIds: string[
   if (s.meds && medOptionIds.length) conditions.push({ kind: 'option', role: 'medication', optionIds: medOptionIds, mode: 'any' });
   if (s.events) conditions.push({ kind: 'event' });
   for (const k of CONTENT_KINDS) if (s.content.includes(k)) conditions.push(CONTENT_CONDITIONS[k]);
+  if (s.authorId) conditions.push({ kind: 'meta', field: 'author', value: s.authorId });
   const free = s.from !== '' || s.to !== '';
   const from = s.from || OPEN_FROM;
   const to = s.to || OPEN_TO;
@@ -81,6 +85,7 @@ export function fromSpec(spec: FilterSpec): FilterState {
     meds: c.some((x) => x.kind === 'option' && 'role' in x && x.role === 'medication'),
     events: c.some((x) => x.kind === 'event' && !x.category),
     content: CONTENT_KINDS.filter((k) => c.some((x) => JSON.stringify(x) === JSON.stringify(CONTENT_CONDITIONS[k]))),
+    authorId: c.flatMap((x) => (x.kind === 'meta' && x.field === 'author' ? [x.value] : []))[0] ?? '',
   };
 }
 
@@ -92,6 +97,7 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
   const saved = useQuery(async () => (ownerDiary ? data.diary.listSavedFilters(ownerDiary) : []), [data.diary, ownerDiary]);
   const [text, setText] = useState(state.text);
   const freeRange = state.from !== '' || state.to !== '';
+  const authorName = useAuthorName(ownerDiary, state.authorId || undefined);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
 
@@ -180,6 +186,11 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
         <Button size="sm" variant={state.events ? 'default' : 'outline'} aria-pressed={state.events} onClick={() => toggle('events')}>
           {de.history.chipEvents}
         </Button>
+        {state.authorId ? (
+          <Button size="sm" variant="default" aria-pressed onClick={() => onChange({ ...state, authorId: '' })}>
+            {de.history.chipAuthor(authorName.status === 'ok' && authorName.data ? authorName.data : de.history.unknownAuthor)}
+          </Button>
+        ) : null}
         {CONTENT_KINDS.map((k) => (
           <Button key={k} size="sm" variant={state.content.includes(k) ? 'default' : 'outline'} aria-pressed={state.content.includes(k)} onClick={() => onChange({ ...state, content: state.content.includes(k) ? state.content.filter((x) => x !== k) : [...state.content, k] })}>
             {de.history.content[k]}
