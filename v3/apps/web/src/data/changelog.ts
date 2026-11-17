@@ -4,6 +4,15 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.9.0-alpha.1',
+    date: '2026-11-17',
+    points: [
+      'Neu: Einstellungen → „Daten auf dem Gerät verschlüsseln“. Danach liegen deine Einträge auch auf diesem Gerät verschlüsselt und sind ohne Entsperren nicht lesbar. Vorhandene Einträge werden im Hintergrund umgestellt, die App bleibt dabei benutzbar. Die Einstellung lässt sich später nicht wieder ausschalten.',
+      'Die Suche startet mit verschlüsselten Daten schneller: Der Suchindex wird (ebenfalls verschlüsselt) auf dem Gerät gespeichert und beim Start nur aktualisiert.',
+      'Wenn du später auf „Mit Konto synchronisieren“ wechselst, bleiben lokal verschlüsselte Einträge lesbar.',
+    ],
+  },
+  {
     version: '3.8.0-alpha.1',
     date: '2026-11-17',
     points: [
