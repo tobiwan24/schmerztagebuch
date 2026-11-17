@@ -61,6 +61,16 @@ describe('Rollen beim Push', () => {
     expect(db.prepare('SELECT COUNT(*) AS n FROM records').get()).toEqual({ n: 0 });
   });
 
+  it('SYN-19: ein Editor darf kein `dashboard` pushen (403, nichts geschrieben), der Owner schon', async () => {
+    expect((await push('ed', [op('dash-1', 'dashboard')])).statusCode).toBe(403);
+    expect((await push('vic', [op('dash-1', 'dashboard')])).statusCode).toBe(403);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM records').get()).toEqual({ n: 0 });
+    const r = await push('olga', [op('dash-1', 'dashboard')]);
+    expect(r.statusCode).toBe(200);
+    expect(r.json().results[0].status).toBe('applied');
+    expect((await pull('ed')).json().records.map((x: { recordId: string }) => x.recordId)).toContain('dash-1');
+  });
+
   it('SHR-05: owner darf alle Arten pushen', async () => {
     const r = await push('olga', [op('t1', 'template'), op('v1', 'templateVersion'), op('e1', 'entry'), op('d1', 'diary')]);
     expect(r.statusCode).toBe(200);

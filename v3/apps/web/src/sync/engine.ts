@@ -9,6 +9,7 @@ import type { SyncTransport } from './transport.js';
 import { createSingleFlight, type SingleFlight } from './single-flight.js';
 import { resolveConflict, type Side } from './resolve.js';
 import { renumberCollidedVersion } from './renumber.js';
+import { KIND_ORDER, kindRank } from './order.js';
 
 /** Liefert den aktuellen Diary Key eines Tagebuchs (gehalten von `data/crypto-session.ts`, Spec 01). */
 export interface DiaryKeyProvider {
@@ -41,13 +42,6 @@ const hlcOf = (payload: unknown): string | undefined =>
 
 /** Höchstens so viele Push-Runden je Lauf (Konflikt → zusammenführen → erneut pushen). */
 const MAX_PUSH_ROUNDS = 3;
-
-/** Vorlagen (und Tagebuch-Metadaten) vor Einträgen, damit Einträge nie vor ihrer Vorlagenversion ankommen. */
-const KIND_ORDER = ['diary', 'template', 'templateVersion'];
-const kindRank = (kind: string) => {
-  const i = KIND_ORDER.indexOf(kind);
-  return i < 0 ? KIND_ORDER.length : i;
-};
 
 export interface PushSummary {
   applied: number;
