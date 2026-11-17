@@ -24,11 +24,12 @@ import { cn } from '@/lib/utils';
 import { exportViewAsPng, renderViewAsPng } from '@/lib/export-png';
 import { de } from '@/i18n/de';
 
-type View = 'trend' | 'calendar' | 'meds' | 'freq' | 'body' | 'corr' | 'training';
+type View = 'trend' | 'calendar' | 'meds' | 'freq' | 'body' | 'corr' | 'training' | 'dashboards';
 type Range = 'day' | '7d' | '30d' | '90d' | '6m' | '1y';
-const VIEWS: View[] = ['trend', 'calendar', 'meds', 'freq', 'body', 'corr'];
+const VIEWS: View[] = ['trend', 'calendar', 'meds', 'freq', 'body', 'corr', 'dashboards'];
 /** „Übungen“ erscheint nur, wenn es erledigte Übungen gibt (ANA-25). */
 const VIEWS_WITH_TRAINING: View[] = [...VIEWS, 'training'];
+const DashboardsView = lazy(() => import('@/components/DashboardsView').then((m) => ({ default: m.DashboardsView })));
 const CorrelationView = lazy(() => import('@/components/CorrelationView').then((m) => ({ default: m.CorrelationView })));
 const RANGES: Range[] = ['day', '7d', '30d', '90d', '6m', '1y'];
 const RANGE_DAYS: Record<Range, number> = { day: 1, '7d': 7, '30d': 30, '90d': 90, '6m': 182, '1y': 365 };
@@ -68,7 +69,9 @@ export function AnalysisPage() {
   const diaryIds = scope.diaryId ? [scope.diaryId] : entries.data.diaryIds;
   const spec: FilterSpec = { diaryIds, range: { from, to } };
 
-  const period = view === 'calendar' ? '' : range === 'day' ? ` · ${longDay(to)}` : ` · ${shortDay(from)}–${shortDay(to)}${to.slice(0, 4)}`;
+  // Kalender und Dashboards haben eigene Zeiträume (Monat bzw. je Widget)
+  const ownRange = view === 'calendar' || view === 'dashboards';
+  const period = ownRange ? '' : range === 'day' ? ` · ${longDay(to)}` : ` · ${shortDay(from)}–${shortDay(to)}${to.slice(0, 4)}`;
   const viewTitle = `${de.analysis.viewNames[view]}${period}`;
 
   async function exportPng() {
@@ -91,7 +94,7 @@ export function AnalysisPage() {
           </ToggleGroupItem>
         ))}
       </ToggleGroup>
-      {view !== 'calendar' ? (
+      {!ownRange ? (
         <ToggleGroup aria-label={de.history.range} data-tour="analysis-range" className={TOUR_RING}>
           {RANGES.map((r) => (
             <ToggleGroupItem key={r} pressed={range === r} onClick={() => (setRange(r), setShift(0))}>
@@ -100,7 +103,7 @@ export function AnalysisPage() {
           ))}
         </ToggleGroup>
       ) : null}
-      {view !== 'calendar' ? (
+      {!ownRange ? (
         <div className="flex items-center justify-between gap-2">
           <Button size="sm" variant="ghost" aria-label={de.analysis.olderPeriod} onClick={older}>‹</Button>
           <span data-testid="analysis-period" className="text-sm tabular-nums">{range === 'day' ? longDay(to) : `${longDay(from)} – ${longDay(to)}`}</span>
@@ -130,7 +133,7 @@ export function AnalysisPage() {
         onPointerUp={(e) => {
           const s = swipe.current;
           swipe.current = null;
-          if (!s || view === 'calendar') return;
+          if (!s || ownRange) return;
           const dx = e.clientX - s.x;
           if (Math.abs(dx) >= SWIPE_PX && Math.abs(dx) > Math.abs(e.clientY - s.y) * 2) (dx > 0 ? older : newer)();
         }}
@@ -143,18 +146,19 @@ export function AnalysisPage() {
         {view === 'body' ? <BodyView spec={spec} /> : null}
         {view === 'corr' ? <Suspense fallback={<p className="text-muted-foreground">{de.app.loading}</p>}><CorrelationView spec={spec} /></Suspense> : null}
         {view === 'training' ? <TrainingView spec={spec} /> : null}
+        {view === 'dashboards' ? <Suspense fallback={<p className="text-muted-foreground">{de.app.loading}</p>}><DashboardsView /></Suspense> : null}
       </section>
-      {view !== 'calendar' ? <CompareCard diaryIds={diaryIds} from={from} to={to} /> : null}
+      {!ownRange ? <CompareCard diaryIds={diaryIds} from={from} to={to} /> : null}
     </>
   );
 }
 
-function TrendView({ spec, intraday }: { spec: FilterSpec; intraday: boolean }) {
+export function TrendView({ spec, intraday, blockId: initialBlockId }: { spec: FilterSpec; intraday: boolean; blockId?: string }) {
   const { now } = useData();
   const key = JSON.stringify(spec);
   const blocks = useWorker((c) => c.blocks(), []);
   const numeric = (blocks ?? []).filter((b) => b.type === 'slider');
-  const [picked, setPicked] = useState<string>();
+  const [picked, setPicked] = useState<string | undefined>(initialBlockId);
   const blockId = picked ?? numeric.find((b) => b.role === 'outcome')?.blockId ?? numeric[0]?.blockId;
   const series = useWorker((c) => (blockId ? c.dailySeries({ blockId }, { spec, now: now() }) : Promise.resolve([])), [key, blockId]);
   const points = useWorker((c) => (intraday && blockId ? c.entrySeries({ blockId }, { spec, now: now() }) : Promise.resolve([])), [key, blockId, intraday]);
@@ -242,7 +246,7 @@ function IntradayCard({ label, points, numeric, blockId, onPick, events }: { lab
   );
 }
 
-function CalendarView({ diaryIds }: { diaryIds: string[] }) {
+export function CalendarView({ diaryIds }: { diaryIds: string[] }) {
   const { now } = useData();
   const [offset, setOffset] = useState(0);
   const base = new Date(now());
@@ -294,7 +298,7 @@ function CalendarView({ diaryIds }: { diaryIds: string[] }) {
   );
 }
 
-function MedsView({ spec }: { spec: FilterSpec }) {
+export function MedsView({ spec }: { spec: FilterSpec }) {
   const { now } = useData();
   const meds = useWorker((c) => c.medicationDays({ spec, now: now() }), [JSON.stringify(spec)]);
   const [marker, setMarker] = useState('');
@@ -347,7 +351,7 @@ function MedsView({ spec }: { spec: FilterSpec }) {
   );
 }
 
-function FreqView({ spec, from, to }: { spec: FilterSpec; from: string; to: string }) {
+export function FreqView({ spec, from, to }: { spec: FilterSpec; from: string; to: string }) {
   const { now } = useData();
   const blocks = useWorker((c) => c.blocks(), []);
   const choice = (blocks ?? []).filter((b) => b.type === 'multiselect' || b.type === 'checkbox');
@@ -477,7 +481,7 @@ function TrainingView({ spec }: { spec: FilterSpec }) {
   );
 }
 
-function BodyView({ spec }: { spec: FilterSpec }) {
+export function BodyView({ spec }: { spec: FilterSpec }) {
   const { now, diary } = useData();
   const overview = useWorker((c) => c.bodymap({ spec, now: now() }), [JSON.stringify(spec)]);
   const own = useQuery(async () => (await Promise.all(spec.diaryIds.map((d) => diary.listBodymapImages(d)))).flat(), [diary, spec.diaryIds.join()]);
