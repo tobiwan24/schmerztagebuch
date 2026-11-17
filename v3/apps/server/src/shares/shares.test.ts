@@ -129,6 +129,8 @@ describe('Arzt-Link Server', () => {
     const old = openDatabase(':memory:');
     migrate(old);
     old.exec('DROP TABLE shares');
+    // Migration 11 (Schlüsselepoche) rückgängig, damit sie auf der alten Datenbank erneut läuft
+    old.exec('ALTER TABLE diaries DROP COLUMN key_epoch; ALTER TABLE diaries DROP COLUMN rotation_from; ALTER TABLE diaries DROP COLUMN prev_dk_wrap; ALTER TABLE records DROP COLUMN key_epoch; ALTER TABLE blobs DROP COLUMN key_epoch');
     old.pragma('user_version = 9');
     old.prepare("INSERT INTO users (id, username, created_at) VALUES ('u1', 'alt', 1)").run();
     migrate(old);

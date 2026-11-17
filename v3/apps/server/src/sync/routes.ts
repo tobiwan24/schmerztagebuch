@@ -4,6 +4,8 @@ import type { Db } from '../db.js';
 import type { AuthProvider } from '../auth/types.js';
 import { requirePrincipal } from '../auth/require.js';
 import { findActiveRole, mayPushKind } from '../members/service.js';
+import { getDiaryEpoch } from '../members/rotation.js';
+import { envelopeEpoch } from '../epoch.js';
 import { applyPush, pull } from './service.js';
 
 export interface SyncRouteDeps {
@@ -22,6 +24,10 @@ export function registerSyncRoutes(app: FastifyInstance, { db, auth, now }: Sync
     const role = findActiveRole(db, body.data.diaryId, principal.userId);
     // Rolle je Op prüfen (Spec 09); eine verbotene Op lehnt den ganzen Push ab, nichts wird geschrieben.
     if (!role || !body.data.ops.every((op) => mayPushKind(role, op.kind))) return reply.code(403).send({ error: 'forbidden' });
+    // Nur mit der aktuellen Schlüsselepoche schreiben (M22, CRY-22): nach einer Rotation -> 409, nichts wird geschrieben.
+    // Der Client holt dann den neuen Wrap, stellt seine Änderungen auf die neue Epoche um und sendet erneut.
+    const epoch = getDiaryEpoch(db, body.data.diaryId)?.keyEpoch ?? 1;
+    if (body.data.ops.some((op) => envelopeEpoch(op.ciphertext) !== epoch)) return reply.code(409).send({ error: 'stale-epoch', keyEpoch: epoch });
     return { results: applyPush(db, body.data, now()) };
   });
 

@@ -9,6 +9,8 @@ import type { Db } from '../db.js';
 import type { AuthProvider } from '../auth/types.js';
 import { requirePrincipal } from '../auth/require.js';
 import { findActiveRole, mayPushKind } from '../members/service.js';
+import { getDiaryEpoch } from '../members/rotation.js';
+import { envelopeEpoch } from '../epoch.js';
 
 export interface BlobRouteDeps {
   db: Db;
@@ -32,16 +34,29 @@ export function registerBlobRoutes(app: FastifyInstance, { db, auth, now, blobDi
     }
     const role = findActiveRole(db, q.data.diaryId, principal.userId);
     if (!role || !mayPushKind(role, 'attachmentMeta')) return reply.code(403).send({ error: 'forbidden' });
-    const existing = db.prepare('SELECT diary_id FROM blobs WHERE id = ?').get(id.data) as { diary_id: string } | undefined;
-    if (existing) return existing.diary_id === q.data.diaryId ? reply.code(200).send({ status: 'exists' }) : reply.code(409).send({ error: 'conflict' });
+    // Nur mit der aktuellen Schlüsselepoche (M22, CRY-22)
+    const state = getDiaryEpoch(db, q.data.diaryId);
+    const epoch = envelopeEpoch(body);
+    if (epoch !== (state?.keyEpoch ?? 1)) return reply.code(409).send({ error: 'stale-epoch', keyEpoch: state?.keyEpoch ?? 1 });
+    const existing = db.prepare('SELECT diary_id, path, key_epoch FROM blobs WHERE id = ?').get(id.data) as { diary_id: string; path: string; key_epoch: number } | undefined;
+    if (existing && existing.diary_id !== q.data.diaryId) return reply.code(409).send({ error: 'conflict' });
+    if (existing) {
+      // Blobs sind unveränderlich - außer der Owner stellt sie während einer Rotation auf die neue Epoche um (Datei wird atomar ersetzt)
+      if (role !== 'owner' || state?.rotationFrom == null || existing.key_epoch >= epoch) return reply.code(200).send({ status: 'exists' });
+      const target = join(blobDir, existing.path);
+      writeFileSync(`${target}.tmp`, body, 'utf8');
+      renameSync(`${target}.tmp`, target);
+      db.prepare('UPDATE blobs SET size = ?, key_epoch = ? WHERE id = ?').run(body.length, epoch, id.data);
+      return reply.code(200).send({ status: 'replaced' });
+    }
 
     const rel = `${q.data.diaryId.replace(/[^A-Za-z0-9-]/g, '_')}/${id.data}`;
     const path = join(blobDir, rel);
     mkdirSync(dirname(path), { recursive: true });
-    // erst vollständig schreiben, dann umbenennen — ein Abbruch hinterlässt keine halbe Datei unter dem Zielnamen
+    // erst vollständig schreiben, dann umbenennen - ein Abbruch hinterlässt keine halbe Datei unter dem Zielnamen
     writeFileSync(`${path}.tmp`, body, 'utf8');
     renameSync(`${path}.tmp`, path);
-    db.prepare('INSERT INTO blobs (id, diary_id, size, path, created_at) VALUES (?, ?, ?, ?, ?)').run(id.data, q.data.diaryId, body.length, rel, now());
+    db.prepare('INSERT INTO blobs (id, diary_id, size, path, created_at, key_epoch) VALUES (?, ?, ?, ?, ?, ?)').run(id.data, q.data.diaryId, body.length, rel, now(), epoch);
     return reply.code(201).send({ status: 'stored' });
   });
 

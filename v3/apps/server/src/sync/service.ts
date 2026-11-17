@@ -2,6 +2,7 @@
 // Der Server sieht nur Chiffretext und kann nicht mergen — Konflikte löst der Client.
 import type { PullQuery, PullResponse, PushRequest, PushResult } from '@stb/sync-protocol';
 import type { Db } from '../db.js';
+import { envelopeEpoch } from '../epoch.js';
 
 interface RecordRow {
   id: string;
@@ -18,10 +19,10 @@ export function applyPush(db: Db, req: PushRequest, now: number): PushResult[] {
   const get = db.prepare('SELECT id, diary_id, kind, rev, seq, deleted, ciphertext FROM records WHERE diary_id = ? AND id = ?');
   const nextSeq = db.prepare('UPDATE sync_counter SET seq = seq + 1 WHERE id = 1 RETURNING seq');
   const upsert = db.prepare(`
-    INSERT INTO records (id, diary_id, kind, rev, seq, deleted, ciphertext, size, updated_at)
-    VALUES (@id, @diaryId, @kind, @rev, @seq, @deleted, @ciphertext, @size, @now)
+    INSERT INTO records (id, diary_id, kind, rev, seq, deleted, ciphertext, size, updated_at, key_epoch)
+    VALUES (@id, @diaryId, @kind, @rev, @seq, @deleted, @ciphertext, @size, @now, @epoch)
     ON CONFLICT(diary_id, id) DO UPDATE SET rev = @rev, seq = @seq, deleted = @deleted, ciphertext = @ciphertext,
-      size = @size, updated_at = @now
+      size = @size, updated_at = @now, key_epoch = @epoch
   `);
 
   return db.transaction(() =>
@@ -41,7 +42,7 @@ export function applyPush(db: Db, req: PushRequest, now: number): PushResult[] {
       const rev = op.baseRev + 1;
       upsert.run({
         id: op.recordId, diaryId: req.diaryId, kind: op.kind, rev, seq, deleted: op.deleted ? 1 : 0,
-        ciphertext: op.ciphertext, size: op.ciphertext.length, now,
+        ciphertext: op.ciphertext, size: op.ciphertext.length, now, epoch: envelopeEpoch(op.ciphertext),
       });
       return { recordId: op.recordId, status: 'applied', rev, seq };
     }),

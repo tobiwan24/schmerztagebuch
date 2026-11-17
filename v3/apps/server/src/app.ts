@@ -6,6 +6,7 @@ import { SERVER_VERSION } from './version.js';
 import { noAuth, type AuthProvider } from './auth/types.js';
 import { registerSyncRoutes } from './sync/routes.js';
 import { registerMemberRoutes } from './members/routes.js';
+import { registerRotationRoutes } from './members/rotation-routes.js';
 import { registerInvitationRoutes } from './invitations/routes.js';
 import { registerDeviceRoutes } from './auth/routes.js';
 import { registerIntakeRoutes } from './intake/routes.js';
@@ -35,6 +36,7 @@ export function buildApp({ config, db, auth = noAuth, now = () => Date.now(), lo
   app.get('/api/v1/health', async () => ({ version: SERVER_VERSION, db: isDatabaseReachable(db) }));
   registerSyncRoutes(app, { db, auth, now });
   registerMemberRoutes(app, { db, auth, now });
+  registerRotationRoutes(app, { db, auth, now });
   registerInvitationRoutes(app, { db, auth, now });
   registerDeviceRoutes(app, { db, auth, now });
   registerIntakeRoutes(app, { db, auth, now });

@@ -189,6 +189,15 @@ const MIGRATIONS: readonly string[] = [
   );
   CREATE INDEX shares_creator ON shares (created_by);
   `,
+  // 11: DK-Rotation (Spec 03, M22.2): Epoche je Tagebuch, Zustand "Rotation läuft" (alte Epoche, alter DK unter dem neuen) und die
+  // Epoche je Record/Blob (aus dem Envelope beim Schreiben); Bestand ist Epoche 1, weil es vorher keine Rotation gab.
+  `
+  ALTER TABLE diaries ADD COLUMN key_epoch INTEGER NOT NULL DEFAULT 1;
+  ALTER TABLE diaries ADD COLUMN rotation_from INTEGER;
+  ALTER TABLE diaries ADD COLUMN prev_dk_wrap TEXT;
+  ALTER TABLE records ADD COLUMN key_epoch INTEGER NOT NULL DEFAULT 1;
+  ALTER TABLE blobs ADD COLUMN key_epoch INTEGER NOT NULL DEFAULT 1;
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

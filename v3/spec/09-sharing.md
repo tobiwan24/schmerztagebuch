@@ -66,6 +66,7 @@ Owner                                Server                         Eingeladene 
 ## Erweiterungen v3.x (M22)
 
 - **DK-Rotation:** Beim Entfernen eines Mitglieds oder Sperren eines Geräts rotiert der Owner-Client den DK (`key_epoch` + 1, Details in 03), mit Fortschrittsanzeige; das verbleibende Mitglied synchronisiert weiter, das entfernte bekommt 403 und keine neuen Daten.
+  **Protokoll (A-119):** `POST /api/v1/diaries/:id/rotate` (Owner, atomar; Body `fromEpoch`, `wraps[]` genau für die aktiven Mitglieder, `prevDkWrap` = alter DK unter dem neuen) setzt `key_epoch` + 1, ersetzt die Wraps und startet den Zustand „Rotation läuft“. Ab dann gilt: Push und Blob-Upload nur mit der aktuellen Epoche (aus dem Envelope), sonst `409 stale-epoch`; Pull liefert beide Epochen. `GET /api/v1/diaries/:id/rotation` (Mitglieder) liefert Epoche, `prevDkWrap` und die Zahl offener Records/Blobs (Fortschritt, Fortsetzen). Der Owner-Client stellt Records per Push (baseRev) und Blobs per `PUT` (nur Owner, nur während der Rotation ersetzbar) um; `POST /api/v1/diaries/:id/rotate/complete` beendet die Rotation erst, wenn nichts mehr in einer alten Epoche liegt (sonst `409 rotation-incomplete`), und ist idempotent.
 - **Feinere Rechte:** Flag `canEditTemplates` je Mitgliedschaft (Owner erteilt einem Editor „Vorlagen bearbeiten“; der Server erlaubt dann den Push von `template`/`templateVersion`, A-013 je Flag).
 - **Hinweis auf neue Einträge:** „n neue Einträge von X“ seit dem letzten Besuch (lokal, kein Push); Tippen führt zum gefilterten Verlauf.
 
