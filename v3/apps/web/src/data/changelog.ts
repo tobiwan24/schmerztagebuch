@@ -4,6 +4,15 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.8.0-alpha.1',
+    date: '2026-11-17',
+    points: [
+      'Wenn du jemanden aus einem geteilten Tagebuch entfernst oder ein Gerät sperrst, wird das Tagebuch jetzt mit einem neuen Schlüssel neu verschlüsselt. Die Mitgliederseite zeigt den Fortschritt. Die App darf dabei geöffnet bleiben; wird sie geschlossen, geht es beim nächsten Mal weiter. Die übrigen Mitglieder synchronisieren ohne Unterbrechung weiter.',
+      'Neu: Als Besitzer erlaubst du einem Mitglied mit „Darf eintragen“ zusätzlich, Vorlagen zu bearbeiten. Du kannst das Recht jederzeit wieder entziehen.',
+      'Neu: Auf der Startseite steht, wie viele neue Einträge andere Mitglieder seit deinem letzten Besuch geschrieben haben. Ein Tipp öffnet den Verlauf, gefiltert auf diese Person.',
+    ],
+  },
+  {
     version: '3.7.0-alpha.1',
     date: '2026-11-17',
     points: [
