@@ -31,6 +31,10 @@ export function copyWithNewIds(doc: ExportV1, newId: () => string): ExportV1 {
     for (const e of d.entries) fresh(e.id);
     for (const f of d.savedFilters) fresh(f.id);
     for (const r of d.notificationRules) fresh(r.id);
+    for (const x of d.dashboards) {
+      fresh(x.id);
+      for (const w of x.widgets) fresh(w.id);
+    }
     for (const a of d.attachments) fresh(a.id);
   }
 
@@ -51,6 +55,9 @@ export function copyWithNewIds(doc: ExportV1, newId: () => string): ExportV1 {
     if (raw && typeof raw === 'object' && 'attachmentIds' in raw) return { ...(raw as object), attachmentIds: (raw as { attachmentIds: string[] }).attachmentIds.map(m) };
     return raw;
   };
+  // Widget-Konfiguration: Verweise auf Blöcke umschreiben (`blockId`, `blockIdA`, `blockIdB`)
+  const widgetConfig = (c: object): object =>
+    Object.fromEntries(Object.entries(c).map(([k, v]) => [k, (k === 'blockId' || k === 'blockIdA' || k === 'blockIdB') && typeof v === 'string' ? m(v) : v]));
   const condition = (c: Condition): Condition => {
     const out = { ...c } as Condition & { blockId?: string; optionIds?: string[] };
     if ('blockId' in c && c.blockId) out.blockId = m(c.blockId);
@@ -82,6 +89,10 @@ export function copyWithNewIds(doc: ExportV1, newId: () => string): ExportV1 {
     })),
     savedFilters: d.savedFilters.map((f) => ({ ...f, id: m(f.id), diaryId: m(f.diaryId), filter: filter(f.filter) })),
     notificationRules: d.notificationRules.map((r) => ({ ...r, id: m(r.id), diaryId: m(r.diaryId), blockId: m(r.blockId) })),
+    dashboards: d.dashboards.map((x) => ({
+      ...x, id: m(x.id), diaryId: m(x.diaryId),
+      widgets: x.widgets.map((w) => ({ ...w, id: m(w.id), config: widgetConfig(w.config) }) as typeof w),
+    })),
     bodymapImages: d.bodymapImages.map((i) => ({ ...i, id: m(i.id), diaryId: m(i.diaryId) })),
     attachments: d.attachments.map((a) => ({ ...a, id: m(a.id), diaryId: m(a.diaryId), entryId: m(a.entryId) })),
   });

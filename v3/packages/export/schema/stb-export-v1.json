@@ -3536,6 +3536,411 @@
               "additionalProperties": false
             }
           },
+          "dashboards": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "diaryId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "order": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "widgets": {
+                  "maxItems": 24,
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "const": "timeseries"
+                          },
+                          "config": {
+                            "type": "object",
+                            "properties": {
+                              "blockId": {
+                                "type": "string"
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3650
+                              }
+                            },
+                            "required": [
+                              "days"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "span": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "const": 1
+                              },
+                              {
+                                "type": "number",
+                                "const": 2
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "config",
+                          "span"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "const": "heatmap"
+                          },
+                          "config": {
+                            "type": "object",
+                            "properties": {
+                              "blockId": {
+                                "type": "string"
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3650
+                              }
+                            },
+                            "required": [
+                              "days"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "span": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "const": 1
+                              },
+                              {
+                                "type": "number",
+                                "const": 2
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "config",
+                          "span"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "const": "medicationDays"
+                          },
+                          "config": {
+                            "type": "object",
+                            "properties": {
+                              "days": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3650
+                              }
+                            },
+                            "required": [
+                              "days"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "span": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "const": 1
+                              },
+                              {
+                                "type": "number",
+                                "const": 2
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "config",
+                          "span"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "const": "frequency"
+                          },
+                          "config": {
+                            "type": "object",
+                            "properties": {
+                              "blockId": {
+                                "type": "string"
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3650
+                              }
+                            },
+                            "required": [
+                              "days"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "span": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "const": 1
+                              },
+                              {
+                                "type": "number",
+                                "const": 2
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "config",
+                          "span"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "const": "bodymap"
+                          },
+                          "config": {
+                            "type": "object",
+                            "properties": {
+                              "blockId": {
+                                "type": "string"
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3650
+                              }
+                            },
+                            "required": [
+                              "days"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "span": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "const": 1
+                              },
+                              {
+                                "type": "number",
+                                "const": 2
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "config",
+                          "span"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "const": "correlation"
+                          },
+                          "config": {
+                            "type": "object",
+                            "properties": {
+                              "blockIdA": {
+                                "type": "string"
+                              },
+                              "blockIdB": {
+                                "type": "string"
+                              },
+                              "lag": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 7
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3650
+                              }
+                            },
+                            "required": [
+                              "blockIdA",
+                              "blockIdB",
+                              "lag",
+                              "days"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "span": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "const": 1
+                              },
+                              {
+                                "type": "number",
+                                "const": 2
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "config",
+                          "span"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "const": "kpi"
+                          },
+                          "config": {
+                            "type": "object",
+                            "properties": {
+                              "blockId": {
+                                "type": "string"
+                              },
+                              "stat": {
+                                "type": "string",
+                                "enum": [
+                                  "mean",
+                                  "median",
+                                  "max",
+                                  "min"
+                                ]
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3650
+                              }
+                            },
+                            "required": [
+                              "stat",
+                              "days"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "span": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "const": 1
+                              },
+                              {
+                                "type": "number",
+                                "const": 2
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "config",
+                          "span"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                },
+                "hlc": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                }
+              },
+              "required": [
+                "id",
+                "diaryId",
+                "name",
+                "order",
+                "widgets",
+                "hlc",
+                "updatedAt"
+              ],
+              "additionalProperties": false
+            }
+          },
           "attachments": {
             "default": [],
             "type": "array",

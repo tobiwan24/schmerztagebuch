@@ -4,8 +4,8 @@
 // eigene Body-Map-Bilder sowie Anhänge (Metadaten + Inhalt als Data-URL, A-032). Das Glossar erklärt jedes Feld auf Deutsch (auch für KI-Werkzeuge).
 import { z } from 'zod';
 import {
-  attachmentMetaSchema, bodymapImageSchema, diarySchema, entrySchema, notificationRuleSchema, templateSchema, templateVersionSchema,
-  type AttachmentMeta, type BodymapImage, type Diary, type Entry, type NotificationRule, type Template, type TemplateVersion,
+  attachmentMetaSchema, bodymapImageSchema, dashboardSchema, diarySchema, entrySchema, notificationRuleSchema, templateSchema, templateVersionSchema,
+  type AttachmentMeta, type BodymapImage, type Dashboard, type Diary, type Entry, type NotificationRule, type Template, type TemplateVersion,
 } from '@stb/core';
 import { applyFilter, buildWorkingSet, filterSpecSchema, savedFilterSchema, type FilterSpec, type SavedFilter } from '@stb/analysis';
 
@@ -22,6 +22,8 @@ export const exportDiarySchema = z.strictObject({
   bodymapImages: z.array(bodymapImageSchema),
   /** Hinweis-Regeln (M20, `notificationRule`); fehlt in älteren Dateien → leer. */
   notificationRules: z.array(notificationRuleSchema).default([]),
+  /** Eigene Dashboards (M21, `dashboard`); fehlt in älteren Dateien → leer. */
+  dashboards: z.array(dashboardSchema).default([]),
   /** Fehlt in Dateien vor A-032 → leer. */
   attachments: z.array(attachmentMetaSchema.extend({ dataUrl: z.string().regex(/^data:[a-z]+\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/]*=*$/i) })).default([]),
 });
@@ -82,6 +84,8 @@ export interface ExportSource {
   bodymapImages: BodymapImage[];
   /** Hinweis-Regeln; fehlt bei Quellen ohne Regeln. */
   notificationRules?: NotificationRule[];
+  /** Eigene Dashboards; fehlt bei Quellen ohne Dashboards. */
+  dashboards?: Dashboard[];
   /** Anhänge mit Inhalt (A-032); fehlt bei Quellen ohne Anhänge. */
   attachments?: ExportAttachment[];
 }
@@ -119,6 +123,7 @@ export function buildExport(src: ExportSource, opts: { appVersion: string; now: 
       savedFilters: src.savedFilters.filter((f) => f.diaryId === diary.id),
       bodymapImages: src.bodymapImages.filter((i) => i.diaryId === diary.id),
       notificationRules: (src.notificationRules ?? []).filter((r) => r.diaryId === diary.id),
+      dashboards: (src.dashboards ?? []).filter((x) => x.diaryId === diary.id).sort(byOrder),
       attachments: (src.attachments ?? []).filter((a) => a.diaryId === diary.id && entries.some((e) => e.id === a.entryId)),
     })),
     glossary: GLOSSARY,
@@ -166,6 +171,7 @@ function checkReferences(doc: ExportV1): string[] {
       if (!versions.has(`${e.templateId}#${e.templateVersion}`)) out.push(`Eintrag ${e.id}: Vorlagenversion fehlt`);
     }
     for (const r of d.notificationRules) if (r.diaryId !== d.diary.id) out.push(`Hinweis-Regel ${r.id}: gehört nicht zu Tagebuch ${d.diary.id}`);
+    for (const x of d.dashboards) if (x.diaryId !== d.diary.id) out.push(`Dashboard ${x.id}: gehört nicht zu Tagebuch ${d.diary.id}`);
     const entryIds = new Set(d.entries.map((e) => e.id));
     for (const a of d.attachments) {
       if (a.diaryId !== d.diary.id || !entryIds.has(a.entryId)) out.push(`Anhang ${a.id}: Eintrag fehlt`);
@@ -175,7 +181,7 @@ function checkReferences(doc: ExportV1): string[] {
 }
 
 /** Zurück zu Datensätzen (Import): Vorlagenversionen bekommen ihre `templateId` wieder. */
-export function exportRecords(d: ExportDiary): { diary: Diary; templates: Template[]; versions: TemplateVersion[]; entries: Entry[]; savedFilters: SavedFilter[]; bodymapImages: BodymapImage[]; notificationRules: NotificationRule[]; attachments: ExportAttachment[] } {
+export function exportRecords(d: ExportDiary): { diary: Diary; templates: Template[]; versions: TemplateVersion[]; entries: Entry[]; savedFilters: SavedFilter[]; bodymapImages: BodymapImage[]; notificationRules: NotificationRule[]; dashboards: Dashboard[]; attachments: ExportAttachment[] } {
   return {
     diary: d.diary,
     templates: d.templates.map((t) => templateSchema.parse(Object.fromEntries(Object.entries(t).filter(([k]) => k !== 'versions')))),
@@ -184,6 +190,7 @@ export function exportRecords(d: ExportDiary): { diary: Diary; templates: Templa
     savedFilters: d.savedFilters,
     bodymapImages: d.bodymapImages,
     notificationRules: d.notificationRules,
+    dashboards: d.dashboards,
     attachments: d.attachments,
   };
 }

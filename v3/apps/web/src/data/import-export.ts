@@ -14,6 +14,7 @@ export async function collectExportSource(diary: DiaryRepository, attachments?: 
   const [templates, versions, entries] = await Promise.all([diary.listAllTemplates(), diary.listAllTemplateVersions(), diary.listAllEntries()]);
   const savedFilters = (await Promise.all(diaries.map((d) => diary.listSavedFilters(d.id)))).flat();
   const bodymapImages = (await Promise.all(diaries.map((d) => diary.listBodymapImages(d.id)))).flat();
+  const dashboards = (await Promise.all(diaries.map((d) => diary.listDashboards(d.id)))).flat();
   const notificationRules = (await Promise.all(diaries.map((d) => diary.listNotificationRules(d.id)))).flat();
   // Anhänge nur mit lokal vorhandenem Inhalt (auf anderen Geräten ggf. noch nicht geladen)
   const withData = attachments
@@ -22,7 +23,7 @@ export async function collectExportSource(diary: DiaryRepository, attachments?: 
         return bytes ? { ...m, dataUrl: encodeDataUrl(m.mime, bytes) } : undefined;
       }))).filter((a): a is NonNullable<typeof a> => !!a)
     : [];
-  return { diaries, templates, versions, entries, savedFilters, bodymapImages, notificationRules, attachments: withData };
+  return { diaries, templates, versions, entries, savedFilters, bodymapImages, notificationRules, dashboards, attachments: withData };
 }
 
 export async function createExport(diary: DiaryRepository, opts: { appVersion: string; now: number; filter?: FilterSpec }, attachments?: AttachmentRepository): Promise<ExportV1> {
@@ -114,6 +115,7 @@ export async function planImport(records: RecordRepository, input: ExportV1, opt
     for (const e of r.entries) inputs.push({ id: e.id, diaryId: r.diary.id, kind: 'entry', payload: e, occurredAt: e.occurredAt });
     for (const f of r.savedFilters) inputs.push({ id: f.id, diaryId: r.diary.id, kind: 'savedFilter', payload: f });
     for (const i of r.bodymapImages) inputs.push({ id: i.id, diaryId: r.diary.id, kind: 'bodymapImage', payload: i });
+    for (const x of r.dashboards) inputs.push({ id: x.id, diaryId: r.diary.id, kind: 'dashboard', payload: x });
     for (const n of r.notificationRules) inputs.push({ id: n.id, diaryId: r.diary.id, kind: 'notificationRule', payload: n });
     for (const a of r.attachments) {
       const { dataUrl, ...meta } = a;

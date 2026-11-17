@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import Ajv2020 from 'ajv/dist/2020.js';
-import { BLOCK_TYPES, ROLES, createIdGenerator, entrySchemaFor } from '@stb/core';
+import { BLOCK_TYPES, ROLES, createIdGenerator, entrySchemaFor, type Dashboard } from '@stb/core';
 import { WEATHER_FIELD_NAMES } from '@stb/analysis';
 import { GLOSSARY, ImportError, buildExport, exportJsonSchema, exportRecords, parseExport } from './json-v1.js';
 import { copyWithNewIds } from './copy.js';
@@ -116,5 +116,45 @@ describe('JSON v1', () => {
     const r = copy.diaries[0]!.notificationRules[0]!;
     expect(r.id).not.toBe(rule.id);
     expect(r.diaryId).toBe(copy.diaries[0]!.diary.id);
+  });
+  it('DM-15: Dashboards stehen im Export und im veröffentlichten Schema, übersteht Prüfung und Kopie; ältere Dateien ohne Feld bleiben lesbar', () => {
+    const diaryId = src.diaries[0]!.id;
+    const blockId = Object.keys(src.entries[0]!.values)[0]!;
+    let seq = 0;
+    const gen = createIdGenerator({ now: () => (seq += 1) + 1_800_000_100_000 });
+    const mk = (order: string, d = diaryId): Dashboard => ({
+      id: gen.newId(), diaryId: d, name: `Dash ${order}`, order, hlc: '0000000000001:0000:dev1', updatedAt: '2026-02-01T08:00:00.000Z',
+      widgets: [
+        { id: gen.newId(), kind: 'kpi', config: { blockId, stat: 'max', days: 30 }, span: 2 },
+        { id: gen.newId(), kind: 'correlation', config: { blockIdA: blockId, blockIdB: blockId, lag: 1, days: 90 }, span: 1 },
+      ],
+    });
+    const a = mk('a1');
+    const b = mk('a0');
+    const withDash = buildExport({ ...src, dashboards: [a, b, mk('a2', gen.newId())] }, { appVersion: 't', now: FIXTURE_EXPORT_NOW });
+    expect(withDash.diaries[0]!.dashboards).toEqual([b, a]); // nach order, nur dieses Tagebuch
+    const ajv = new Ajv2020({ strict: false, validateFormats: false, allErrors: true });
+    const validate = ajv.compile(schemaFile);
+    expect(validate(JSON.parse(JSON.stringify(withDash)))).toBe(true);
+    const bad = JSON.parse(JSON.stringify(withDash)) as { diaries: { dashboards: { widgets: { kind: string }[] }[] }[] };
+    bad.diaries[0]!.dashboards[0]!.widgets[0]!.kind = 'piechart';
+    expect(validate(bad)).toBe(false);
+    const back = parseExport(JSON.stringify(withDash));
+    expect(exportRecords(back.diaries[0]!).dashboards).toEqual([b, a]);
+    const old = JSON.parse(JSON.stringify(doc)) as { diaries: Record<string, unknown>[] };
+    delete old.diaries[0]!.dashboards;
+    expect(parseExport(JSON.stringify(old)).diaries[0]!.dashboards).toEqual([]);
+    // Kopie: neue IDs für Dashboard und Widgets, Block-Verweise mitgeführt
+    let t = 0;
+    const { newId } = createIdGenerator({ now: () => (t += 1) + 1_800_000_000_000 });
+    const copy = copyWithNewIds(withDash, newId);
+    const c = copy.diaries[0]!.dashboards;
+    expect(c).toHaveLength(2);
+    expect(c.every((x) => x.diaryId === copy.diaries[0]!.diary.id && x.id !== a.id && x.id !== b.id)).toBe(true);
+    const kpi = c[1]!.widgets[0]!; // c ist nach order sortiert: [b, a]; c[1] = Kopie von a
+    expect(kpi.id).not.toBe(a.widgets[0]!.id);
+    expect(kpi.kind === 'kpi' && kpi.config.blockId).not.toBe(blockId);
+    const ids = new Set(copy.diaries[0]!.templates.flatMap((t) => t.versions.flatMap((v) => v.blocks.map((x) => x.id))));
+    expect(kpi.kind === 'kpi' && ids.has(kpi.config.blockId!)).toBe(true);
   });
 });

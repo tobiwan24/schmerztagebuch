@@ -17,7 +17,7 @@ import {
   type TemplateVersion,
 } from '@stb/core';
 import { savedFilterSchema, type SavedFilter } from '@stb/analysis';
-import { notificationRuleSchema, type NotificationRule } from '@stb/core';
+import { dashboardSchema, notificationRuleSchema, type Dashboard, type NotificationRule } from '@stb/core';
 import type { RecordInput, RecordRepository } from './records.js';
 
 /**
@@ -49,6 +49,10 @@ export interface DiaryRepository {
   listNotificationRules(diaryId: string): Promise<NotificationRule[]>;
   saveNotificationRule(rule: NotificationRule): Promise<void>;
   deleteNotificationRule(ruleId: string, stamp: { hlc: string; updatedAt: string }): Promise<void>;
+  /** Eigene Dashboards eines Tagebuchs (M21, `dashboard`), nach `order`. */
+  listDashboards(diaryId: string): Promise<Dashboard[]>;
+  saveDashboard(dashboard: Dashboard): Promise<void>;
+  deleteDashboard(dashboardId: string, stamp: { hlc: string; updatedAt: string }): Promise<void>;
   saveBodymapImage(image: BodymapImage): Promise<void>;
   deleteBodymapImage(imageId: string): Promise<void>;
   /** Speichert Vorlage und aktuelle Version gemeinsam (eine Transaktion). */
@@ -196,6 +200,21 @@ export function createDiaryRepository(records: RecordRepository): DiaryRepositor
       const rec = await records.get(ruleId);
       if (!rec || rec.deleted || rec.kind !== 'notificationRule') return;
       await records.remove(ruleId, { ...(rec.payload as NotificationRule), hlc: stamp.hlc, updatedAt: stamp.updatedAt });
+    },
+
+    async listDashboards(diaryId) {
+      return (await records.list(diaryId, 'dashboard')).map((rec) => dashboardSchema.parse(rec.payload)).sort(compareByOrder);
+    },
+
+    async saveDashboard(dashboard) {
+      const d = dashboardSchema.parse(dashboard);
+      await records.put({ id: d.id, diaryId: d.diaryId, kind: 'dashboard', payload: d });
+    },
+
+    async deleteDashboard(dashboardId, stamp) {
+      const rec = await records.get(dashboardId);
+      if (!rec || rec.deleted || rec.kind !== 'dashboard') return;
+      await records.remove(dashboardId, { ...(rec.payload as Dashboard), hlc: stamp.hlc, updatedAt: stamp.updatedAt });
     },
 
     async listBodymapImages(diaryId) {

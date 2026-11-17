@@ -46,7 +46,7 @@ Weather      { provider: 'open-meteo', fetchedAt, observedAt /* volle Stunde */,
 
 Attachment   { id, diaryId, entryId, kind: 'image' | 'pdf', mime, sizeBytes, createdAt }   // Inhalt als separater verschlüsselter Blob
 
-Dashboard    { id, diaryId, name, order: string, widgets: Widget[] }     // v3.x, siehe 06
+Dashboard    { id, diaryId, name, order: string, widgets: Widget[], hlc, updatedAt }   // v3.x (M21), siehe 06
 SavedFilter  { id, diaryId, name, filter: FilterSpec }                    // siehe 06
 ConflictLog  { id, recordId, kind, losingPayload, resolvedAt, seenByUser: boolean }
 ```
