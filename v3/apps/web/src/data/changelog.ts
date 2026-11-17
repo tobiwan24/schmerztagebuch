@@ -4,6 +4,15 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.10.0-alpha.1',
+    date: '2026-11-17',
+    points: [
+      'Neu: Einstellungen → Integrationen. Du legst einen Zugang an, mit dem ein Programm dein Tagebuch nur lesen darf. Der Zugangsstring erscheint genau einmal; kopiere ihn sofort. Du siehst, wann ein Zugang zuletzt genutzt wurde, und kannst ihn jederzeit widerrufen.',
+      'Neu: ein lokaler MCP-Server (Ordner apps/mcp, Anleitung in der README). Damit kann ein KI-Assistent wie Claude auf deinem Rechner Einträge suchen, lesen und Kennzahlen abfragen. Er kann nichts ändern. Was er liest, sieht der Assistent, richte ihn also nur ein, wenn du das möchtest.',
+      'Wichtig: Eine Schlüsselrotation (nach dem Entfernen eines Mitglieds oder dem Sperren eines Geräts) widerruft alle Integrationen. Lege danach einen neuen Zugang an.',
+    ],
+  },
+  {
     version: '3.9.0-alpha.1',
     date: '2026-11-17',
     points: [

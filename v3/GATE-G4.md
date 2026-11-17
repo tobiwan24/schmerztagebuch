@@ -4,17 +4,31 @@ Material für die Freigabe UI-13 (Spec 10 „Human-Gates", Spec 11 „Ablösung"
 **Alle Schritte führt der User aus** — der Loop stellt nichts um, pusht nichts und fasst das Deployment nicht an.
 Abhaken in [PROGRESS.md](PROGRESS.md) → „G4 — Ablösung" und „Ablösungs-Checkliste".
 
-## Stand vor dem Gate (2026-11-16)
+## Stand vor dem Gate (2026-11-17)
 
-- M14 (Nacharbeiten v2-Parität), M14b (Rest der Parität) und M14c (Gate-Feedback) sind erledigt.
-- `npm run verify` grün; voller E2E-Lauf (Chromium + WebKit) 232 bestanden / 0 fehlgeschlagen (25 übersprungen: Passkey-Tests in WebKit, Lighthouse).
-- `npm run acceptance`: 210 automatisierte IDs erfüllt, 0 fehlgeschlagen. Offen:
-  - **QA-08** (`docker compose up` startet Web + Server, Health antwortet) — Test existiert, wird ohne Docker übersprungen.
-    Vor Schritt 4 einmal mit laufendem Docker Desktop: `npm run verify:docker` (Server wurde in M14b berührt: CRY-18/19).
-- Manuell offen: CRY-17, MIG-16, VOI-11, SHR-12, UI-13.
+- Alle Meilensteine sind erledigt: M0–M14c (v2-Parität) und v3.x M15–M24. **Version 3.10.0-alpha.1.**
+- `npm run verify` grün (779 Tests, Initiales JS 233,5 KB gzip, Budget 250 KB); voller E2E-Lauf (Chromium + WebKit) 297 bestanden / 0 fehlgeschlagen (42 übersprungen: Passkey-Tests in WebKit, Lighthouse u. a.).
+- `npm run acceptance`: 261 automatisierte IDs erfüllt, 0 fehlgeschlagen. Offen:
+  - **QA-08** (`docker compose up` startet Web + Server, Health antwortet) — wird ohne Docker übersprungen. Vor Schritt 4 einmal mit
+    laufendem Docker Desktop: `npm run verify:docker` (der Server wurde seit der letzten grünen Prüfung weiter berührt: Schema 13, Integrationen).
+- Manuell offen: CRY-17, MIG-16, VOI-11, SHR-12, UI-13 (Gate G4) sowie v3.x: EXP-25, VOI-17, ANA-31, SHR-16, DM-19 (nicht blockierend).
 - Stellvertretend durch den Loop geprüft (ADR-012): G3 (UI-12, ANA-16, EXP-13) und der M14-Rundgang im iPhone-Viewport
-  (390×844, Chromium + WebKit gegen die Produktions-Vorschau, `e2e/m14-walkthrough.spec.ts`; Befunde in PROGRESS „M14-1…")
-  mit synthetischen Daten.
+  (390×844, Chromium + WebKit gegen die Produktions-Vorschau, `e2e/m14-walkthrough.spec.ts`) mit synthetischen Daten.
+
+### Neue Funktionen seit dem Stand vom 2026-11-16 (M15–M24)
+
+- **Neuigkeiten und Tutorial (M15):** Dialog „Neu in Version x“ nach einem Update, Liste unter Einstellungen → Über; geführte Tour je Seite (überspringen, erneut zeigen).
+- **Medikamenten-Block (M16):** Medikamente mit Dosis, Einheit, Uhrzeit und Wirkung; Kreisdiagramm in der Auswertung; Katalog-Vorlage; Export (CSV, JSON, PDF).
+- **Training (M17):** Trainingsvorlagen und Übungsblock, Durchgang Schritt für Schritt mit Timer, Funktionsphasen, eigene Erinnerung „Übungen“, Auswertung der Übungen.
+- **Arzt-Link (M18):** befristeter, verschlüsselter Bericht per Link (Schlüssel nur im Link), Ansicht ohne Anmeldung, Liste und Widerruf.
+- **KI-Funktionen (M19):** „Aus Text ausfüllen“, Rollenvorschlag im Editor, Zusammenfassung für den Arzt; Freigabe pro Vorgang, Standard aus, Anbieter Ollama oder Anthropic nur über den Server (`LLM_PROVIDER`, Standard `off`).
+- **Zusammenhänge und Hinweise (M20):** Korrelationen mit Zeitversatz, mögliche Auslöser (immer mit Fallzahl), Schwellwert-Hinweise als Banner und lokale Benachrichtigung.
+- **Dashboard-Baukasten (M21):** eigene Dashboards aus Widgets, Export als PNG und PDF-Layout „Dashboard“.
+- **Teilen+ (M22):** Schlüsselrotation beim Entfernen eines Mitglieds oder Sperren eines Geräts (fortsetzbar), Recht „Vorlagen bearbeiten“, Hinweis auf neue Einträge anderer.
+- **Lokale Verschlüsselung (M23):** Opt-in „Daten auf dem Gerät verschlüsseln“ (nicht wieder abschaltbar), verschlüsselter persistierter Suchindex.
+- **Integrationen (M24):** Einstellungen → Integrationen (nur lesende Zugänge, Zugangsstring einmal sichtbar, Widerruf), Paket `client-sdk`, lokaler MCP-Server `apps/mcp` (README). Eine Schlüsselrotation widerruft Integrationen.
+- Neue Serverteile seit M14b: Schlüsselrotation, Rechte, Arzt-Link (`shares`), KI-Routen, Integrationen; Schema-Version 13.
+  Neue optionale Server-Variablen siehe `apps/server/.env.example` (u. a. `LLM_PROVIDER`, `LLM_DAILY_TOKENS`).
 
 ## Bekannte Lücken
 

@@ -4,11 +4,33 @@
 
 ## Aktuell
 
-- **Meilenstein:** M14, M14b und M14c erledigt (Gesamt-Akzeptanz 211/211 automatisiert, QA-08 erfüllt: `verify:docker` 2026-11-16 grün; manuell 6/10). **v3.x (M15–M24) geplant**, Beginn mit M15.1. **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md) (aktualisiert 2026-11-16). Umstellung macht nur der User.
+- **Meilenstein:** **Alle Meilensteine erledigt (M0–M14c und v3.x M15–M24).** Gesamt-Akzeptanz 2026-11-17: 261 automatisierte IDs erfüllt, 0 fehlgeschlagen; offen nur QA-08 (ohne Docker im Lauf, `verify:docker` macht der Koordinator) und die manuellen IDs (siehe „Beim User offen“). Version 3.10.0-alpha.1. **Gate G4 offen** — Material: [GATE-G4.md](GATE-G4.md) (aktualisiert 2026-11-16). Umstellung macht nur der User.
 - **Auftrag (2026-11-15/16):** Loop ohne User zu Ende bringen, Gates selbst im Browser prüfen. Beim User bleiben: CRY-17, MIG-16,
   VOI-11, SHR-12 (echte Geräte/echte Daten) und UI-13 (Umstellung des Deployments).
-- **Nächste Aufgabe:** M24.6 (Abschluss M24 und v3.x). (Aufgabenliste „v3.x“ unten). Plan v3.x: Entscheidungen A-080 bis A-1xx. G4-Abnahme (PDF mit echten Daten) bleibt beim User.
-- **Erledigt in M24 (läuft):** M24.1 (CRY-23; A-127), M24.2 (CRY-24), M24.3 (ARC-08; A-128), M24.4 (EXP-27), M24.5 (EXP-28; A-129).
+- **Nächste Aufgabe:** keine automatisierbare Aufgabe offen. Weiter beim User: siehe „Beim User offen“ (Gate G4 und die manuellen v3.x-IDs).
+- **Erledigt in M24 (abgeschlossen, Version 3.10.0-alpha.1; `verify:docker` durch den Koordinator; keine manuelle ID):** M24.1 (CRY-23; A-127), M24.2 (CRY-24), M24.3 (ARC-08; A-128), M24.4 (EXP-27), M24.5 (EXP-28; A-129), M24.6 Abschluss.
+
+### Beim User offen
+
+Gate G4 (Umstellung des Deployments, siehe [GATE-G4.md](GATE-G4.md)):
+
+- **CRY-17** Passkey-Login auf echtem iPhone (Face ID, iCloud-Schlüsselbund)
+- **MIG-16** Migration der echten Daten auf dem Hauptgerät, Stichprobe
+- **VOI-11** Echter Kurzbefehl auf dem iPhone
+- **SHR-12** Einladung an ein zweites iPhone, beide tragen ein
+- **UI-13** Freigabe zur Umstellung des Deployments
+
+v3.x (nicht blockierend):
+
+- **EXP-25** Arzt-Link auf einem fremden Gerät öffnen und Darstellung prüfen
+- **VOI-17** Echte KI-Anbieter (Ollama auf der Server-Hardware und/oder Anthropic mit eigenem Schlüssel), Antwortzeit und Qualität auf Deutsch, am iPhone
+- **ANA-31** Hinweis-Benachrichtigung auf dem iPhone (installierte PWA, iOS ab 16.4)
+- **SHR-16** Schlüsselrotation mit zwei echten Geräten/Konten
+- **DM-19** Leistung und Akku mit lokaler Verschlüsselung auf dem iPhone mit echtem Datenbestand
+
+Weitere Punkte: Ollama installieren und Modell laden, Anthropic-Konto/Schlüssel und `LLM_PROVIDER` im Deployment setzen (nur wenn KI gewünscht); `npm run verify:docker` einmal mit laufendem Docker (der Koordinator hat es nach M24.2 grün gemeldet, der Stand nach M24.5 ist durch ihn zu bestätigen).
+
+**PDF-Prüfung bei der Abnahme:** Der PDF-Fehler aus dem Gate-Feedback (kein funktionsfähiges PDF) ließ sich nicht reproduzieren; alle drei Layouts öffnen in pdfjs. Bitte bei der Abnahme mit den echten Daten prüfen: Mehr → Export und Verlauf → Exportieren, alle Layouts (Tabelle, Karten, Dashboard), mit und ohne Passwort.
 - **Erledigt in M23 (abgeschlossen, Version 3.9.0-alpha.1; DM-19 manuell offen):** M23.1 (DM-16), M23.2 (DM-17), M23.3 (DM-18; A-125: DK aus der UMK, fester Schalter, `writeCodec` in `DataContext`), M23.4 (ANA-33; A-126: persistierter, verschlüsselter Suchindex), M23.5 Abschluss.
 - **Erledigt in M22 (abgeschlossen, Version 3.8.0-alpha.1; `verify:docker` durch den Koordinator; SHR-16 manuell offen):** M22.1 (CRY-21), M22.2 (CRY-22), M22.3 (SHR-13), M22.4 (SHR-14), M22.5 (SHR-15), M22.6 Abschluss.
 - **Erledigt in M21 (abgeschlossen, Version 3.7.0-alpha.1):** M21.1 (DM-15), M21.2 (SYN-19), M21.3 (ANA-32), M21.4 (EXP-26), M21.5 Abschluss.
@@ -141,7 +163,7 @@ Abkürzungen: W = `apps/web/src`, S = `apps/server/src`, P = `packages`. Reihenf
 | M24.3 | `P/client-sdk` — erledigt | ARC-08 |
 | M24.4 | Einstellungen → Integrationen — erledigt | EXP-27 |
 | M24.5 | `apps/mcp` (DECISIONS: `@modelcontextprotocol/sdk`) — erledigt | EXP-28 |
-| M24.6 | Abschluss M24 inkl. `verify:docker` | — |
+| M24.6 | Abschluss M24 und v3.x (`verify:docker` durch den Koordinator) — erledigt | — |
 
 Manuell und nicht blockierend (vom User): EXP-25, VOI-17, ANA-31, SHR-16, DM-19. Risiken: Neuigkeiten-Dialog und Tour dürfen E2E nicht blocken (`addInitScript` im selben Commit); Bundle 250 KB (neue Seiten per `lazy`); Export-Schema bei Blocktyp-/Schema-Änderung neu erzeugen; SQLite-Rebuild-Migrationen mit Test gegen alte DB; Krypto-Meilensteine fortsetzbar und mit Fault-Injection testen.
 
@@ -177,7 +199,7 @@ Manuell und nicht blockierend (vom User): EXP-25, VOI-17, ANA-31, SHR-16, DM-19.
 | M21 | erledigt | 4/4 IDs (Skript OK nach vollem E2E, 289 grün) — Dashboard-Baukasten, Version 3.7.0-alpha.1 |
 | M22 | erledigt | 5/5 IDs automatisiert (SHR-16 manuell) — Schlüsselrotation, Rechte, Version 3.8.0-alpha.1 |
 | M23 | erledigt | 4/4 IDs automatisiert (DM-19 manuell, offen) — Lokale Verschlüsselung und Suchindex, Version 3.9.0-alpha.1 |
-| M24 | offen | 0/5 IDs — Integrationen, client-sdk, MCP |
+| M24 | erledigt | 5/5 IDs (Skript OK nach vollem E2E, 297 grün) — Integrationen, client-sdk, MCP, Version 3.10.0-alpha.1; `verify:docker` durch den Koordinator |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
 
@@ -198,6 +220,13 @@ Manuell und nicht blockierend (vom User): EXP-25, VOI-17, ANA-31, SHR-16, DM-19.
 - [ ] MIG-16 Migration der echten Daten auf dem Hauptgerät, Stichprobe bestätigt
 - [ ] VOI-11 Echter Kurzbefehl auf dem iPhone erzeugt Eintrag
 - [ ] SHR-12 Einladung an zweites iPhone angenommen, beide tragen ein
+
+### v3.x (nicht blockierend, vom User abzuhaken)
+- [ ] EXP-25 Arzt-Link auf fremdem Gerät geöffnet, Darstellung geprüft
+- [ ] VOI-17 Echte KI-Anbieter geprüft (Ollama und/oder Anthropic, am iPhone)
+- [ ] ANA-31 Hinweis-Notification auf dem iPhone (installierte PWA)
+- [ ] SHR-16 Schlüsselrotation mit zwei echten Geräten/Konten
+- [ ] DM-19 Leistung und Akku mit lokaler Verschlüsselung auf dem iPhone
 
 ### Ablösungs-Checkliste (Spec 11)
 - [ ] Letzter v2-Sync auf jedem Gerät
@@ -454,3 +483,4 @@ Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19,
 | 2026-11-17 | M24.1–M24.3 | CRY-23 CRY-24 ARC-08 | Stand nach M24.3: `verify` grün (Initiales JS 233,5 KB gzip), voller E2E 296 grün (41 übersprungen; Lauf davor: einmal `lock-settings` CRY-20 WebKit rot unter Last, danach 3× einzeln grün — unabhängig von M24), Server-Scans CRY-15/QA-07 grün, `acceptance --milestone M24` 3/5 (offen: EXP-27, EXP-28). Task 1 des Batches: `medication-analysis.spec.ts` (ANA-23) wartete auf ein Schreib-Ereignis, das der Roh-IndexedDB-Seed nicht auslöst — jetzt löst ein App-Schreibvorgang (weitere Katalog-Vorlage) NACH dem Seed das Neuladen der Analyse aus; 10× (Chromium + WebKit) grün. `verify:docker` für den Server (Schema 13, Integrationen): Koordinator. |
 | 2026-11-17 | M24.4 | EXP-27 | Einstellungen → Integrationen (`IntegrationsCard`, nur Konto-Modus mit Sync): Name eingeben, anlegen → Dialog zeigt den Zugangsstring einmal (kopieren, danach nirgends mehr im DOM), Liste mit Name (UMK-verschlüsselt auf dem Server, nur der Owner liest ihn), Anlegedatum, „zuletzt genutzt“, Widerruf mit Rückfrage, Hinweis, dass eine Schlüsselrotation alle Integrationen widerruft. `sharing/integrations.ts` (Client: `createIntegrationCredentials` aus `crypto`, Fehlercodes `too-many-integrations` / `rotation-running` / `epoch-mismatch` / `forbidden` / `offline`), Hook `data/useIntegrations.ts` (Tagebuch aus dem Umschalter), Texte `i18n/lazy/integrations.ts` (lazy mit den Einstellungen). E2E `integrations.spec.ts` (Chromium): Token liest (200), Push 403, nach Widerruf 401. |
 | 2026-11-17 | M24.5 | EXP-28 | Neue App `apps/mcp` (`@stb/mcp`): `server.ts` (`createMcpServer({client, now, syncIntervalMs})`, Tools `list_diaries`, `search_entries`, `get_entry`, `stats`, alle `readOnlyHint`, Eingaben per zod, SDK-Fehler als `isError`-Text) und `main.ts` (stdio, `STB_ACCESS_STRING` / `STB_BASE_URL`, Meldungen nur nach stderr). Auswertung und Suche über `@stb/analysis`, Daten über `@stb/client-sdk`. Neue Abhängigkeit `@modelcontextprotocol/sdk` 1.32.2 fest (DECISIONS, MIT; 2026-10-23); zod als direkte Abhängigkeit der App. ESLint: `mcp` in der App-Liste (`apps/*` importieren einander nicht), Root-`tsconfig` verweist auf `apps/mcp`. Test `integration/mcp/mcp.test.ts` (6): In-Process-MCP-Client gegen den echten In-Process-Server und den Export-Fixture; Erwartungen direkt aus `analysis` über dem Fixture (Treffer, Statistik, Vorperiode), Fehlerfälle (Zeitraum unvollständig/verkehrt, `limit` > 100, unbekannte ID, nach Widerruf). README `apps/mcp/README.md` (Einrichtung Claude Code/Desktop, Datenschutzhinweis). A-129. **Hinweis:** Der Docker-Build des Servers kopiert `v3/` komplett und installiert die MCP-Abhängigkeiten mit `npm ci` (Lockfile, 84 neue Pakete); sie landen nicht im Server-Code — `verify:docker` macht der Koordinator. |
+| 2026-11-17 | M24.6 | — | Abschluss M24 und v3.x: Version 3.10.0-alpha.1 + Changelog (UI-26, A-081), `verify` grün (779 Tests, Initiales JS 233,5 KB gzip), voller `test:e2e` im Vordergrund 297 grün / 42 übersprungen / 0 rot (10,2 min, 2 Worker, Chromium + WebKit), `acceptance --milestone M24` 5/5, `acceptance` gesamt 261 erfüllt, 0 fehlgeschlagen, 1 fehlend (QA-08, ohne Docker), manuell offen: CRY-17 VOI-11 SHR-12 UI-13 (G4) und EXP-25 VOI-17 ANA-31 SHR-16 DM-19 (v3.x); MIG-16 steht als Checkbox offen. PROGRESS „Beim User offen“ und GATE-G4.md „Stand vor dem Gate“ aktualisiert. Keine docker-Befehle (Koordinator). Alle Meilensteine erledigt. |
