@@ -14,7 +14,10 @@ export interface MigrationPlan {
   unchanged: number;
   /** Intern: zu schreibende Datensätze und Anhang-Inhalte. */
   writes: RecordInput[];
+  /** Inhalte der neuen/geänderten Anhang-Datensätze. */
   blobs: AttachmentInput[];
+  /** Inhalte aller Anhänge der Quelle — `applyMigration` schreibt davon die lokal fehlenden nach. */
+  allBlobs: AttachmentInput[];
 }
 
 /** Schritt 5 — Trockenlauf: vergleicht mit dem Bestand, schreibt nichts (MIG-08). */
@@ -36,12 +39,16 @@ export async function planMigration(records: RecordRepository, result: Migration
   }
   const { writes, added, updated, unchanged } = await planRecordWrites(records, inputs);
   const blobs = writes.filter((w) => w.kind === ATTACHMENT_KIND).map((w) => blobOf.get(w.id)!);
-  return { result, added, updated, unchanged, writes, blobs };
+  return { result, added, updated, unchanged, writes, blobs, allBlobs: [...blobOf.values()] };
 }
 
-/** Schritt 6 — Schreiben: Anhang-Inhalte zuerst, dann alle Datensätze in einer Transaktion. */
+/** Schritt 6 — Schreiben: Anhang-Inhalte (auch lokal fehlende bereits bekannter Anhänge) zuerst, dann alle Datensätze in einer Transaktion. */
 export async function applyMigration(records: RecordRepository, attachments: AttachmentRepository, plan: MigrationPlan): Promise<void> {
-  await attachments.saveBlobs(plan.blobs);
+  // Beschreibungen können schon da sein (z. B. per Sync), die Dateien lokal aber fehlen — der Prüfschritt verlangt sie.
+  const changed = new Set(plan.blobs.map((b) => b.meta.id));
+  const missing: AttachmentInput[] = [];
+  for (const b of plan.allBlobs) if (!changed.has(b.meta.id) && !(await attachments.data(b.meta.id))) missing.push(b);
+  await attachments.saveBlobs([...plan.blobs, ...missing]);
   if (plan.writes.length) await records.putMany(plan.writes);
 }
 

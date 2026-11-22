@@ -109,4 +109,24 @@ describe('Migration schreiben und prüfen', () => {
     expect((await s.db.outbox.count()) - before).toBe(4 + 5 + 1 + 8 + 3);
     expect(await s.db.blob_outbox.count()).toBe(3);
   });
+
+  it('Migration schreibt lokal fehlende Anhang-Dateien bekannter Anhänge nach; der Trockenlauf schreibt weiter nichts', async () => {
+    const s = await setup();
+    const result = await s.transform();
+    await applyMigration(s.records, s.attachments, await planMigration(s.records, result));
+    // Beschreibungen vorhanden (z. B. per Sync), Dateien lokal nicht
+    const ids = result.attachments.map((a) => a.id);
+    for (const id of ids) await s.db.blobs.delete(id);
+    await s.db.blob_outbox.clear();
+    expect((await verifyMigration(s.diary, s.attachments, result)).ok).toBe(false);
+
+    const before = await snapshotOf(s.db);
+    const plan = await planMigration(s.records, result);
+    expect(plan).toMatchObject({ added: 0, updated: 0, writes: [], blobs: [] });
+    expect(await snapshotOf(s.db)).toEqual(before);
+
+    await applyMigration(s.records, s.attachments, plan);
+    for (const id of ids) expect(await s.attachments.data(id)).toBeDefined();
+    expect(await verifyMigration(s.diary, s.attachments, result)).toMatchObject({ ok: true, errors: [] });
+  });
 });
