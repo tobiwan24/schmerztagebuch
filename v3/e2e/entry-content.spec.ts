@@ -89,6 +89,40 @@ test.describe('Textarea: Ereignisse und Anhänge', () => {
     await expect(page.getByText('Befund.pdf')).toHaveCount(0);
   });
 
+  test('Anhänge öffnen im Dialog der App, ohne neues Fenster (iOS blockiert Pop-ups nach await)', async ({ page }) => {
+    const popups: string[] = [];
+    page.on('popup', (p) => popups.push(p.url()));
+    await go(page, '/entry/new');
+    await page.getByLabel('Notizen').fill('Mit Anhängen');
+    const file = page.getByLabel('Datei auswählen');
+    await file.setInputFiles(PNG);
+    await file.setInputFiles(pdf('Befund.pdf'));
+    await expect(page.getByTestId('attachment-item')).toHaveCount(2);
+    await save(page);
+    await expect(page.getByTestId('attachment')).toHaveCount(2);
+
+    // Bild: Dialog mit geladenem <img>
+    await page.getByTestId('attachment').filter({ hasText: 'fuss-dorsal.png' }).getByRole('button', { name: 'Öffnen' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    const img = dialog.getByRole('img', { name: 'fuss-dorsal.png' });
+    await expect(img).toBeVisible();
+    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+    await dialog.getByRole('button', { name: 'Schließen' }).click();
+    await expect(dialog).toBeHidden();
+
+    // PDF: Dialog mit echtem Link auf die Blob-URL
+    await page.getByTestId('attachment').filter({ hasText: 'Befund.pdf' }).getByRole('button', { name: 'Öffnen' }).click();
+    await expect(dialog).toBeVisible();
+    const link = dialog.getByRole('link', { name: 'PDF öffnen' });
+    await expect(link).toHaveAttribute('href', /^blob:/);
+    await expect(link).toHaveAttribute('target', '_blank');
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+
+    expect(popups).toEqual([]);
+  });
+
   test('BLK-31: zu große und unzulässige Dateien werden abgelehnt; Verwerfen schreibt nichts', async ({ page }) => {
     await go(page, '/entry/new');
     const file = page.getByLabel('Datei auswählen');
