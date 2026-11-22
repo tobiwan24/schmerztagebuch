@@ -1,0 +1,26 @@
+// UI-Texte „tour“ — eigenes Modul, wird nur mit den Seiten geladen, die es brauchen (Bundle-Budget QA-02).
+export const deTour = {
+  heading: 'Tutorial',
+  cardLabel: 'Kurzanleitung',
+  progress: (n: number, total: number) => `Schritt ${n} von ${total}`,
+  next: 'Weiter',
+  done: 'Fertig',
+  skip: 'Überspringen',
+  skipAll: 'Alle überspringen',
+  restart: 'Tutorial erneut zeigen',
+  restartHint: 'Zeigt die Kurzanleitungen auf Start, Eintrag, Verlauf, Auswertung und im Vorlagen-Editor wieder an.',
+  restarted: 'Das Tutorial wird beim nächsten Besuch der Seiten wieder angezeigt.',
+  steps: {
+    'start-quick': { title: 'Schnelleintrag', body: 'Mit einem Tipp erfasst du in Sekunden, wie es dir gerade geht.' },
+    'start-tiles': { title: 'Deine Vorlagen', body: 'Jede Kachel öffnet ein Formular für eine Art von Eintrag, zum Beispiel Kopfschmerz oder Medikamente.' },
+    'start-nav': { title: 'Navigation', body: 'Unten wechselst du zwischen Start, Verlauf, Auswertung und dem Menü „Mehr“ mit Vorlagen und Einstellungen.' },
+    'entry-fields': { title: 'Formular ausfüllen', body: 'Fülle nur aus, was zutrifft. Datum und Uhrzeit sind schon vorbelegt und lassen sich ändern.' },
+    'entry-save': { title: 'Speichern', body: 'Der Eintrag wird auf diesem Gerät gespeichert, auch ohne Internet. Mit Konto wird er danach synchronisiert.' },
+    'history-filters': { title: 'Filtern und sortieren', body: 'Grenze die Liste nach Zeitraum, Vorlage oder Stichwort ein.' },
+    'history-list': { title: 'Deine Einträge', body: 'Tippe einen Eintrag an, um ihn anzusehen oder zu bearbeiten.' },
+    'analysis-range': { title: 'Zeitraum wählen', body: 'Wähle den Zeitraum, den die Auswertung betrachten soll.' },
+    'analysis-charts': { title: 'Verläufe erkennen', body: 'Die Diagramme zeigen Schmerzverlauf und Häufigkeit. Ein Tipp auf einen Punkt öffnet den Eintrag.' },
+    'editor-blocks': { title: 'Bausteine', body: 'Eine Vorlage besteht aus Bausteinen wie Schieberegler, Auswahl oder Text. Sortiere und ergänze sie nach Bedarf.' },
+    'editor-save': { title: 'Vorlage speichern', body: 'Bestehende Einträge behalten ihre Felder, auch wenn du die Vorlage später änderst.' },
+  } as Record<string, { title: string; body: string }>,
+} as const;

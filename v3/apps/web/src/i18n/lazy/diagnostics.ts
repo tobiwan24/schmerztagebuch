@@ -1,0 +1,23 @@
+// UI-Texte „diagnostics“ — eigenes Modul, wird nur mit den Seiten geladen, die es brauchen (Bundle-Budget QA-02).
+export const deDiagnostics = {
+  title: 'Diagnose',
+  open: 'Über & Diagnose',
+  app: 'App und Speicher',
+  version: 'Version',
+  mode: 'Speichermodus',
+  modes: { 'local-only': 'Nur auf diesem Gerät', 'cloud-primary': 'Mit Konto', none: 'Kein Konto' },
+  sync: 'Sync-Status',
+  syncStates: { disabled: 'aus (nur auf diesem Gerät)', syncing: 'synchronisiert gerade', synced: 'synchronisiert', pending: 'ausstehend', offline: 'offline', error: 'Fehler' },
+  outbox: 'Ausstehende Änderungen (Outbox)',
+  outboxErrors: (n: number) => `${n} mit Fehler`,
+  blobOutbox: 'Ausstehende Anhänge',
+  storage: 'Speicher belegt',
+  persisted: 'Dauerhafter Speicher',
+  serviceWorker: 'Offline-Modus (Service Worker)',
+  swStates: { active: 'aktiv', none: 'nicht aktiv', unsupported: 'nicht unterstützt' },
+  records: (kind: string) => `Datensätze „${kind}"`,
+  unknown: 'unbekannt',
+  yes: 'ja',
+  no: 'nein',
+  refresh: 'Aktualisieren',
+} as const;

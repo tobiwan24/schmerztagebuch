@@ -1,0 +1,22 @@
+// UI-Texte „factors“ — eigenes Modul, wird nur mit den Seiten geladen, die es brauchen (Bundle-Budget QA-02).
+export const deFactors = {
+  title: 'Zugang verwalten',
+  currentPassword: 'Aktuelles Passwort',
+  confirm: 'Bestätigen',
+  passwordChange: 'Passwort ändern',
+  passwordSet: 'Passwort festlegen',
+  newPassword: 'Neues Passwort',
+  newPasswordRepeat: 'Neues Passwort wiederholen',
+  save: 'Speichern',
+  passwordDone: 'Passwort gespeichert. Das alte Passwort gilt nicht mehr.',
+  passkeyAdd: 'Passkey hinzufügen',
+  passkeyCreate: 'Passkey jetzt anlegen',
+  passkeyAdded: 'Passkey hinzugefügt.',
+  passkeyRemove: 'Passkey entfernen',
+  passkeyRemoveHint: 'Danach entsperrst du mit dem Passwort oder dem Backup-Code.',
+  passkeyRemoveConfirm: 'Passkey jetzt entfernen',
+  passkeyRemoved: 'Passkey entfernt.',
+  passkeyLastFactor: 'Der Passkey ist dein einziger Zugang. Lege zuerst ein Passwort fest, dann kannst du ihn entfernen.',
+  backupRenew: 'Backup-Code erneuern',
+  backupDone: 'Neuer Backup-Code gespeichert. Der alte Code gilt nicht mehr.',
+} as const;

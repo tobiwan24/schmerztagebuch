@@ -1,0 +1,64 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Fehlermeldungen > CRY-11: Snapshot für challenge-expired 1`] = `
+{
+  "action": "Starte die Anmeldung neu — sie gilt fünf Minuten.",
+  "title": "Die Anmeldung ist abgelaufen",
+}
+`;
+
+exports[`Fehlermeldungen > CRY-11: Snapshot für no-credential 1`] = `
+{
+  "action": "Melde dich mit deinem Backup-Code an und lege danach einen neuen Passkey an.",
+  "title": "Kein passender Passkey gefunden",
+}
+`;
+
+exports[`Fehlermeldungen > CRY-11: Snapshot für prf-unsupported 1`] = `
+{
+  "action": "Nutze einen aktuellen iPhone- oder Android-Passkey oder deinen Backup-Code.",
+  "title": "Dieser Passkey unterstützt keine Verschlüsselung",
+}
+`;
+
+exports[`Fehlermeldungen > CRY-11: Snapshot für server-unreachable 1`] = `
+{
+  "action": "Prüfe deine Verbindung und versuche es gleich noch einmal.",
+  "title": "Server nicht erreichbar",
+}
+`;
+
+exports[`Fehlermeldungen > CRY-11: Snapshot für unwrap-failed 1`] = `
+{
+  "action": "Entsperre mit einem anderen Faktor (Passkey oder Backup-Code).",
+  "title": "Schlüssel konnte nicht geöffnet werden",
+}
+`;
+
+exports[`Fehlermeldungen > CRY-11: Snapshot für webauthn-cancelled 1`] = `
+{
+  "action": "Tippe erneut auf „Entsperren“, wenn du bereit bist.",
+  "title": "Anmeldung abgebrochen",
+}
+`;
+
+exports[`Fehlermeldungen > CRY-11: Snapshot für webauthn-not-allowed 1`] = `
+{
+  "action": "Tippe direkt auf „Entsperren“ — die Anfrage muss aus einem Tipp kommen.",
+  "title": "Face ID wurde nicht gestartet",
+}
+`;
+
+exports[`Fehlermeldungen > CRY-11: Snapshot für wrong-backup-code 1`] = `
+{
+  "action": "Prüfe die Zeichen; Leerzeichen und Groß-/Kleinschreibung sind egal.",
+  "title": "Backup-Code stimmt nicht",
+}
+`;
+
+exports[`Fehlermeldungen > CRY-11: Snapshot für wrong-password 1`] = `
+{
+  "action": "Gib dein Passwort erneut ein oder nutze den Backup-Code.",
+  "title": "Passwort stimmt nicht",
+}
+`;

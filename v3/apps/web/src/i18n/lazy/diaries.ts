@@ -1,0 +1,20 @@
+// UI-Texte „diaries“ — eigenes Modul, wird nur mit den Seiten geladen, die es brauchen (Bundle-Budget QA-02).
+export const deDiaries = {
+  create: 'Tagebuch anlegen',
+  settings: 'Einstellungen',
+  settingsTitle: 'Tagebuch-Einstellungen',
+  notFound: 'Dieses Tagebuch wurde nicht gefunden.',
+  readOnly: 'Nur der Besitzer des Tagebuchs kann die Einstellungen ändern.',
+  name: 'Name',
+  nameRequired: 'Bitte gib einen Namen ein.',
+  timezone: 'Zeitzone',
+  weatherTitle: 'Wetter',
+  weatherEnabled: 'Wetter zu jedem Eintrag speichern',
+  weatherNoLocation: 'Ohne Ort kein Wetter.',
+  gpsDefault: 'Aktuellen Standort standardmäßig verwenden',
+  save: 'Speichern',
+  saving: 'Speichert …',
+  saved: 'Gespeichert.',
+  members: 'Mitglieder & Einladungen',
+  shortcut: 'Kurzbefehl (Siri)',
+} as const;
