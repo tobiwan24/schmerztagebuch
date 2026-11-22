@@ -19,5 +19,5 @@ test('QA-07: Server-Logs eines vollständigen E2E-Laufs enthalten keine Klartext
   const forbidden = ['body', 'payload', 'ciphertext', 'headers', 'cookie', 'authorization'];
   const keys = new Set(lines.flatMap((l) => [...Object.keys(l), ...Object.keys((l.req as object) ?? {}), ...Object.keys((l.res as object) ?? {})]).map((k) => k.toLowerCase()));
   expect(forbidden.filter((k) => keys.has(k))).toEqual([]);
-  expect(raw).not.toMatch(/stb_session=|Bearer /);
+  expect(raw).not.toMatch(/stb3?_session=|Bearer /);
 });

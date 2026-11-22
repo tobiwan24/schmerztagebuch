@@ -99,4 +99,13 @@ describe('Sitzungen und Gerätesperre', () => {
     expect(res.body).not.toContain('pk1');
     expect((await app.inject({ method: 'GET', url: '/api/v1/devices' })).statusCode).toBe(401);
   });
+
+  it('CRY-14: nur das Cookie stb3_session zählt; ein altes stb_session-Cookie (v2) wird ignoriert', async () => {
+    expect(SESSION_COOKIE).toBe('stb3_session');
+    const s = createSession(db, 'u1', 'd1', now);
+    expect(s.setCookie.startsWith('stb3_session=')).toBe(true);
+    const url = `/api/v1/sync/pull?diaryId=${D}`;
+    expect((await app.inject({ method: 'GET', url, headers: { cookie: `stb_session=${s.token}` } })).statusCode).toBe(401);
+    expect((await app.inject({ method: 'GET', url, headers: { cookie: `stb_session=v2wert; stb3_session=${s.token}` } })).statusCode).toBe(200);
+  });
 });

@@ -7,7 +7,7 @@ import type { Db } from '../db.js';
 import { createRateLimiter } from '../rate-limit.js';
 import type { AuthProvider } from './types.js';
 import { requirePrincipal } from './require.js';
-import { createSession, hashToken, SESSION_COOKIE } from './sessions.js';
+import { createSession, hashToken, readCookie, SESSION_COOKIE } from './sessions.js';
 import { recoveryFinish, recoveryStart } from './recovery.js';
 import {
   AuthFlowError,
@@ -165,7 +165,7 @@ export function registerAccountRoutes(
   });
 
   app.post('/api/v1/auth/logout', async (req, reply) => {
-    const token = /(?:^|;\s*)stb_session=([^;]+)/.exec(req.headers.cookie ?? '')?.[1];
+    const token = readCookie(req.headers.cookie, SESSION_COOKIE);
     if (token) db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(hashToken(token));
     return reply.header('set-cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`).code(204).send();
   });

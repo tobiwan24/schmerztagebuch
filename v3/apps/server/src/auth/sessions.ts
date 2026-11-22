@@ -4,7 +4,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import type { Db } from '../db.js';
 import type { AuthProvider } from './types.js';
 
-export const SESSION_COOKIE = 'stb_session';
+// Eigener Name: Cookies kennen keine Ports, v2 (`stb_session`) läuft am selben Host und überschrieb sonst die v3-Sitzung (A-130).
+export const SESSION_COOKIE = 'stb3_session';
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 export const hashToken = (token: string): string => createHash('sha256').update(token).digest('base64url');
@@ -20,7 +21,7 @@ export function createSession(db: Db, userId: string, deviceId: string, now: num
   };
 }
 
-function readCookie(header: string | undefined, name: string): string | undefined {
+export function readCookie(header: string | undefined, name: string): string | undefined {
   for (const part of (header ?? '').split(';')) {
     const eq = part.indexOf('=');
     if (eq > 0 && part.slice(0, eq).trim() === name) return part.slice(eq + 1).trim();

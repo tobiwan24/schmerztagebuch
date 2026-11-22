@@ -59,7 +59,7 @@ describe('Konto per Passkey', () => {
 
     const { res } = await register('berta');
     expect(res.statusCode).toBe(201);
-    expect(String(res.headers['set-cookie'])).toMatch(/stb_session=.+HttpOnly; Secure; SameSite=Strict/);
+    expect(String(res.headers['set-cookie'])).toMatch(/stb3_session=.+HttpOnly; Secure; SameSite=Strict/);
     const me = await app.inject({ method: 'GET', url: '/api/v1/auth/me', headers: { cookie: cookieOf(res) } });
     expect(me.json()).toMatchObject({ username: 'berta' });
     expect(me.json().keys.map((k: { kind: string }) => k.kind).sort()).toEqual(['identity-priv-enc', 'identity-pub', 'umk-wrap-backup', 'umk-wrap-passkey']);
