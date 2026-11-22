@@ -53,6 +53,13 @@ describe('Docker', () => {
       expect(body.version).toMatch(/^3\.0\.0/);
       const page = await fetch(`http://127.0.0.1:${PORT}/`);
       expect(page.status).toBe(200);
+      // nginx-Body-Grenze: ein ~3-MB-Anhang (und ein Arzt-Link-Body ~3 MB) erreicht den Server (401 ohne Anmeldung), nicht 413
+      const big = 'A'.repeat(3 * 1024 * 1024);
+      const id = '11111111-1111-4111-8111-111111111111';
+      const blob = await fetch(`http://127.0.0.1:${PORT}/api/v1/blobs/${id}?diaryId=${id}`, { method: 'PUT', headers: { 'content-type': 'text/plain' }, body: big });
+      expect(blob.status).toBe(401);
+      const share = await fetch(`http://127.0.0.1:${PORT}/api/v1/shares`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ciphertext: big }) });
+      expect(share.status).toBe(401);
     } finally {
       await compose('down', '-v');
     }

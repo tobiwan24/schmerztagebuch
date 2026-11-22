@@ -55,6 +55,7 @@ Abhaken in [PROGRESS.md](PROGRESS.md) → „G4 — Ablösung" und „Ablösungs
 - Stichprobe: einige Einträge im Verlauf öffnen, Auswertung eines Monats und PDF ansehen.
 
 ### 4. v3-Server im Homelab inkl. Backup
+- Schritt-für-Schritt-Anleitung, Caddy-Blöcke und Fehlerliste (nginx-Limit, Cookie-Kollision, Passkey/PRF, Migration): [DEPLOYMENT.md](DEPLOYMENT.md).
 - Images: `apps/server/Dockerfile` (Node, SQLite + Blobs unter `/data`) und `apps/web/Dockerfile` (nginx, leitet `/api/`
   an `server:3000` weiter). Vorlage: [docker-compose.yml](docker-compose.yml); Variablen: `apps/server/.env.example`.
 - Pflichtvariablen Server: `RP_ID` (= Domain von v2, gleicher Origin), `ALLOWED_ORIGINS` (= `https://<Domain>`),

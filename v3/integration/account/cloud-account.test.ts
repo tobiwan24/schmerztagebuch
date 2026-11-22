@@ -84,7 +84,7 @@ describe('Konto „Mit Konto"', () => {
     const pending = await prepareCloudRegistration(dbA, apiA, { challengeId, username: 'anna', credential, prf, now });
     expect(sdb.prepare('SELECT COUNT(*) AS n FROM users').get()).toEqual({ n: 0 }); // erst nach Bestätigung des Backup-Codes
     await pending.commit();
-    expect(apiA.cookie()).toMatch(/^stb_session=/);
+    expect(apiA.cookie()).toMatch(/^stb3_session=/);
     const diaryId = '0190a1b2-0000-7000-8000-00000000d001';
     const dkA = await createCloudDiary(dbA, apiA, pending.account, diaryId);
     const [openedA] = await openDiaryKeys(dbA, pending.account, pending.umk);

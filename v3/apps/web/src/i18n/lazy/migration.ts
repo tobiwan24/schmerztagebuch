@@ -65,4 +65,7 @@ export const deMigration = {
   removeConfirm: 'Endgültig entfernen',
   cancel: 'Abbrechen',
   error: 'Etwas ist schiefgelaufen. Bitte versuche es erneut.',
+  importLink: 'Von v2 übernehmen (Migration)',
+  importLinkHint: 'Ein v2-Backup oder die v2-Daten dieses Geräts übernimmst du über die Migration.',
+  importIsV2: 'Das ist ein v2-Backup — bitte die Migration verwenden.',
 } as const;
