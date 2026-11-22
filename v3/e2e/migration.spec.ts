@@ -84,4 +84,25 @@ test.describe('Migration v2 → v3', () => {
     await go(page, '/history');
     await expect(page.getByTestId('entry-row')).toHaveCount(8);
   });
+
+  test('Export → Importieren: „Von v2 übernehmen (Migration)“ ist immer sichtbar und führt zu /migrate', async ({ page }) => {
+    await onboardWithPassword(page);
+    expect(await v2DbExists(page)).toBe(false);
+    await go(page, '/more/export');
+    await page.getByRole('link', { name: 'Von v2 übernehmen (Migration)' }).click();
+    await expect(page.getByRole('heading', { name: 'v2-Daten übernehmen' })).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('data-route', '/migrate');
+  });
+
+  test('Export → Importieren: eine v2-Backup-Datei zeigt den Migrations-Hinweis mit Link statt „keine Export-Datei“', async ({ page }) => {
+    await onboardWithPassword(page);
+    await go(page, '/more/export');
+    const v2 = JSON.stringify({ version: 21, exportedAt: '2026-01-01T00:00:00.000Z', templates: [], entries: [], settings: [] });
+    await page.getByLabel('Datei auswählen').setInputFiles({ name: 'v2-backup.json', mimeType: 'application/json', buffer: Buffer.from(v2) });
+    const hint = page.getByTestId('import-v2-hint');
+    await expect(hint).toContainText('Das ist ein v2-Backup — bitte die Migration verwenden.');
+    await expect(page.getByText('Das ist keine Export-Datei dieser App.')).toHaveCount(0);
+    await hint.getByRole('link', { name: 'Von v2 übernehmen (Migration)' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-route', '/migrate');
+  });
 });

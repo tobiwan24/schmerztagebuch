@@ -1,7 +1,7 @@
 // Mehr → Export & Backup (Spec 07): Export (JSON v1, CSV long/wide, optional gefiltert), verschlüsseltes Backup,
 // Import mit Vorschau (neu / geändert / unverändert, „Als Kopie"). Alles entsteht und bleibt auf dem Gerät.
 import { useEffect, useState, type FormEvent } from 'react';
-import { useLocation } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { Download, FileUp, Link2, ShieldCheck } from 'lucide-react';
 import type { BackupSecret } from '@stb/crypto';
 import { parseExport, type CsvProfile, type ExportV1, type PdfImageSize, type PdfLayout } from '@stb/export';
@@ -23,8 +23,15 @@ import { downloadText, useBackup, type ExportFormat } from '@/data/useBackup';
 import type { ImportPlan } from '@/data/import-export';
 import { de } from '@/i18n/de';
 import { deOnboarding } from '@/i18n/lazy/onboarding';
+import { deMigration } from '@/i18n/lazy/migration';
 
 const t = de.exportPage;
+const tm = deMigration;
+/** Leichte Heuristik für das v2-Backup (`manualBackup`: version, exportedAt, templates, entries, settings), ohne ein `format`-Feld der v3-Dateien. */
+function looksLikeV2Backup(d: unknown): boolean {
+  const o = d as Record<string, unknown> | null;
+  return !!o && typeof o === 'object' && !('format' in o) && typeof o.version === 'number' && typeof o.exportedAt === 'string' && Array.isArray(o.templates) && Array.isArray(o.entries) && Array.isArray(o.settings);
+}
 const errorText = (e: unknown) => t.errors[(e as { code?: string }).code as keyof typeof t.errors] ?? t.errors.unknown;
 
 export function ExportPage() {
@@ -337,8 +344,10 @@ function ImportCard() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [v2File, setV2File] = useState(false);
 
   function reset() {
+    setV2File(false);
     setFile(null); setNeedsSecret(false); setDoc(null); setPreview(null); setError(null); setValue('');
   }
 
@@ -349,7 +358,9 @@ function ImportCard() {
     const text = await f.text();
     let format: unknown;
     try {
-      format = (JSON.parse(text) as { format?: unknown }).format;
+      const parsed = JSON.parse(text) as { format?: unknown };
+      if (looksLikeV2Backup(parsed)) return setV2File(true);
+      format = parsed.format;
     } catch {
       return setError(t.errors['not-json']);
     }
@@ -427,7 +438,17 @@ function ImportCard() {
           </div>
         ) : null}
         {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
+        {v2File ? (
+          <p role="alert" data-testid="import-v2-hint" className="text-sm text-destructive">
+            {tm.importIsV2}{' '}
+            <Link to="/migrate" className="underline">{tm.importLink}</Link>
+          </p>
+        ) : null}
         {done ? <p role="status" className="text-sm text-muted-foreground">{t.importDone}</p> : null}
+        <p className="text-xs text-muted-foreground">{tm.importLinkHint}</p>
+        <Button asChild variant="outline">
+          <Link to="/migrate">{tm.importLink}</Link>
+        </Button>
       </CardContent>
     </Card>
   );
