@@ -16,7 +16,7 @@ const MORE_LINKS = [
 export function MorePage() {
   return (
     <>
-      <PageHeader title={de.more.title} />
+      <PageHeader title={de.more.title} sync />
       <Card className="gap-0 py-0">
         {MORE_LINKS.map(({ to, label }) => (
           <Link key={to} to={to} className="flex min-h-12 items-center justify-between border-b px-4 last:border-b-0">

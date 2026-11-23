@@ -61,9 +61,9 @@ export function AnalysisPage() {
   const [exporting, setExporting] = useState(false);
   const [chartEntryOpen, setChartEntryOpen] = useState(false);
 
-  if (entries.status === 'error') return (<><PageHeader title={deAnalysis.title} /><ErrorState onRetry={entries.retry} /></>);
-  if (entries.status === 'loading') return (<><PageHeader title={deAnalysis.title} /><p className="text-muted-foreground">{de.app.loading}</p></>);
-  if (entries.data.count === 0) return (<><PageHeader title={deAnalysis.title} /><EmptyState title={deAnalysis.emptyTitle} hint={deAnalysis.emptyHint} /></>);
+  if (entries.status === 'error') return (<><PageHeader title={deAnalysis.title} sync /><ErrorState onRetry={entries.retry} /></>);
+  if (entries.status === 'loading') return (<><PageHeader title={deAnalysis.title} sync /><p className="text-muted-foreground">{de.app.loading}</p></>);
+  if (entries.data.count === 0) return (<><PageHeader title={deAnalysis.title} sync /><EmptyState title={deAnalysis.emptyTitle} hint={deAnalysis.emptyHint} /></>);
   const to = addDays(today(now()), -shift * RANGE_DAYS[range]);
   const from = addDays(to, -(RANGE_DAYS[range] - 1));
   const older = () => setShift((s) => s + 1);
@@ -88,7 +88,7 @@ export function AnalysisPage() {
 
   return (
     <>
-      <PageHeader title={deAnalysis.title} />
+      <PageHeader title={deAnalysis.title} sync />
       <ToggleGroup aria-label={deAnalysis.views}>
         {views.map((v) => (
           <ToggleGroupItem key={v} pressed={view === v} onClick={() => setView(v)} className="px-1 text-xs">

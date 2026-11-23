@@ -44,7 +44,9 @@ test.describe('Konto & Sync', () => {
     await page.unroute('**/api/v1/sync/push');
     await page.getByRole('button', { name: 'Abbrechen' }).click();
     await page.getByRole('button', { name: 'Jetzt synchronisieren' }).click();
+    await go(page, '/more');
     await expect(page.getByTestId('sync-status')).toHaveAttribute('data-state', 'synced', { timeout: 20_000 });
+    await go(page, '/more/settings');
     await page.getByRole('button', { name: 'Nur auf diesem Gerät weiterverwenden' }).click();
     await page.getByRole('button', { name: 'Jetzt zurückstellen' }).click();
     await expect(page.getByTestId('account-detached')).toBeVisible({ timeout: 20_000 });

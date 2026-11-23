@@ -27,7 +27,7 @@ export function StartPage() {
   const quick = writable.status === 'ok' && writable.data.length > 1 ? writable.data.map((d) => ({ to: `/quick?diary=${d.id}`, label: de.start.quickEntryFor(d.name) })) : [{ to: '/quick', label: de.start.quickEntry }];
   return (
     <>
-      <PageHeader title={de.start.title} />
+      <PageHeader title={de.start.title} sync />
       <ConflictBanner />
       <RuleBanner />
       <Suspense fallback={null}>

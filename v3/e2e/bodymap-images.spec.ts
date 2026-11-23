@@ -48,7 +48,9 @@ test.describe('Eigene Body-Map-Bilder', () => {
     await go(a, '/entry/new');
     await expect(field(a).getByRole('button', { name: 'Fuß rechts oben' })).toHaveAttribute('aria-pressed', 'true');
     expect((await imageSize(a)).src).toBe('data:image/jpeg;base64');
+    await go(a, '/');
     await expect(a.getByTestId('sync-status')).toHaveAttribute('data-state', 'synced', { timeout: 20_000 });
+    await go(a, '/entry/new');
 
     // Zweitgerät: Bild verfügbar und als Standard vorausgewählt; gespeicherter Eintrag zeigt es
     const b = await addDeviceWithBackupCode(browser, user, code);

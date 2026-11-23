@@ -3,7 +3,14 @@
 import { test, expect, type Page } from '@playwright/test';
 import { addDeviceWithBackupCode, addVirtualAuthenticator, go, onboardWithCloud, uniqueUser } from './helpers';
 
-const synced = (page: Page) => expect(page.getByTestId('sync-status')).toHaveAttribute('data-state', 'synced', { timeout: 20_000 });
+// Sync-Status steht nur in der Titelzeile der Tab-Hauptseiten (RDM-028 P1) → vorher auf Start wechseln.
+// Danach geht es auf der ursprünglichen Seite weiter.
+const synced = async (page: Page) => {
+  const here = new URL(page.url()).pathname;
+  await go(page, '/');
+  await expect(page.getByTestId('sync-status')).toHaveAttribute('data-state', 'synced', { timeout: 20_000 });
+  if (here !== '/') await go(page, here);
+};
 /** Sync-Auslöser „App wieder im Vordergrund" (Spec 04). */
 const foreground = (page: Page) => page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
 
@@ -54,6 +61,8 @@ test.describe('Zwei Geräte', () => {
     await b.getByLabel(/Schmerzstärke/).fill('8');
     await b.getByRole('button', { name: 'Speichern' }).click();
     await expect(b.getByTestId('entry-time')).toBeVisible();
+    await go(a, '/');
+    await go(b, '/');
     await expect(a.getByTestId('sync-status')).toHaveAttribute('data-state', 'offline');
     await expect(b.getByTestId('sync-status')).toHaveAttribute('data-state', 'offline');
 

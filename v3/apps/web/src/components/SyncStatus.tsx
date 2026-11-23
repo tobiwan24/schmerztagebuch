@@ -15,7 +15,7 @@ export function SyncStatus() {
     : de.sync.error;
   const Icon = state === 'syncing' ? Loader2 : state === 'synced' ? CheckCircle2 : state === 'offline' ? CloudOff : state === 'error' ? AlertTriangle : RefreshCw;
   return (
-    <div role="status" data-testid="sync-status" data-state={state} data-pending={pending} className="flex items-center justify-between gap-2 px-4 pt-2 text-xs text-muted-foreground">
+    <div role="status" data-testid="sync-status" data-state={state} data-pending={pending} className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
       <span className="flex items-center gap-1.5">
         <Icon className={state === 'syncing' ? 'size-3.5 animate-spin' : 'size-3.5'} aria-hidden />
         {text}

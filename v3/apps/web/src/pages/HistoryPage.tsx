@@ -49,7 +49,7 @@ export function HistoryPage() {
 
   return (
     <>
-      <PageHeader title={de.history.title} />
+      <PageHeader title={de.history.title} sync />
       {diaryIds.length ? <HistoryFilters state={filter} onChange={setFilter} diaryIds={diaryIds} medOptionIds={medOptionIds} templates={templates} /> : null}
       <div className="flex flex-col gap-1">
         <Label htmlFor="history-sort">{de.history.sort}</Label>
