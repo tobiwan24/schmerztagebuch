@@ -107,14 +107,34 @@ eine Adresse auf einem anderen Origin würde der Browser blockieren.
 - Auf der Migrationsseite den **v2-Backup-Code** nehmen, nicht den Passkey: Der v2-Server prüft beim Passkey den Origin und kennt nur `:8060`.
 - Für die 3 Einträge vom 26.02. (lokal verschlüsselt) das **v2-Passwort** im Feld „Passwort aus v2“ eingeben.
 
-## Umstellung auf Port 8060 (Skizze, Details in GATE-G4.md Schritt 5)
+## Umstellung auf Port 8060 (durchgeführt 2026-11-23, Details in GATE-G4.md Schritt 5)
 
-- v3 muss unter **demselben Origin** wie v2 laufen, damit es die lokale `PainDiaryDB` lesen kann.
-- Caddy-Block `:8060`: `/api/auth/*` und `/api/sync/*` weiter an v2 (der v2-Web-Container bleibt auf 18060), alles andere an v3 (18061).
-- `ALLOWED_ORIGINS` im v3-`.env` muss `https://ubuntu-docker.tail000296.ts.net:8060` enthalten (kommagetrennte Liste möglich).
-- Entscheidung offen: mit **leerem** v3-Daten-Volume starten (sauber) oder die Vorschau-Daten weiterverwenden.
-- Backup-Hook (`~/scripts/backup-hook.sh`) für v3 ergänzen (`node apps/server/dist/backup.js`), Speicherort der Produktivdaten klären (siehe NFS/WAL unten).
-- Rückweg: Caddy-Block zurück auf `localhost:18060`; die v2-Datenbank ändert v3 nie (MIG-02).
+- v3 läuft unter **demselben Origin** wie v2, damit es die lokale `PainDiaryDB` lesen kann.
+- Entscheidung D2: Das **bestehende v3-Volume** (`schmerztagebuch-v3_stb-data`) mit Konto, Passkeys und migrierten Daten wurde weiterverwendet.
+- `ALLOWED_ORIGINS` im v3-`.env` enthält beide Origins (`RP_ID` unverändert):
+  `ALLOWED_ORIGINS=https://ubuntu-docker.tail000296.ts.net:8060,https://ubuntu-docker.tail000296.ts.net:8061`,
+  danach `docker compose up -d` (Server-Container neu erstellt, Volume bleibt).
+- Caddy-Block `:8060`: `/api/auth/*` und `/api/sync/*` gehen weiter an v2 (`localhost:18060`, der v2-Stack bleibt laufen), alles andere an v3 (`localhost:18061`):
+
+  ```
+  ubuntu-docker.tail000296.ts.net:8060 {
+      import tailscale_tls
+      handle /api/auth/* {
+          reverse_proxy localhost:18060
+      }
+      handle /api/sync/* {
+          reverse_proxy localhost:18060
+      }
+      handle {
+          reverse_proxy localhost:18061
+      }
+  }
+  ```
+
+- Tests: `curl -sk https://ubuntu-docker.tail000296.ts.net:8060/api/v1/health` liefert das v3-JSON (`db: true`), `/api/auth/salt?username=__x__` antwortet mit der v2-Meldung `{"error":"not_found"}`, `/api/sync/pull` mit `401`.
+- **Stolperstein Caddy-Bind-Mount:** Das Caddyfile ist als **einzelne Datei** in den Container eingebunden. `sed -i` (und manche Editoren) ersetzen die Datei durch einen neuen Inode, der Container sieht dann weiter die alte Version, `caddy validate` und `caddy reload` prüfen und laden die **alte** Konfiguration. Erkennbar daran, dass `docker compose exec caddy sed -n '69,80p' /etc/caddy/Caddyfile` nicht den Host-Stand zeigt. Lösung: `cd ~/docker/caddy && docker compose up -d --force-recreate caddy` (wenige Sekunden Unterbrechung aller Dienste hinter Caddy, Daten und Zertifikate liegen auf dem Host).
+- Backup-Hook (`~/scripts/backup-hook.sh`) für v3: Eintrag vorhanden, der erste nächtliche Lauf nach dem Umzug und die Verankerung in Backrest sind zu prüfen. Speicherort der Produktivdaten: lokales Docker-Volume (siehe NFS/WAL unten).
+- Rückweg: Caddy-Block zurück auf `reverse_proxy localhost:18060` (Sicherung `/tmp/Caddyfile.bak-8060`), danach `--force-recreate` wie oben; die v2-Datenbank ändert v3 nie (MIG-02).
 
 ## Bekannte Probleme und Lösungen (aus der Einrichtung 2026-11-22)
 
