@@ -41,6 +41,9 @@ export function SettingsPage() {
   return (
     <>
       <PageHeader title={deSettings.title} back />
+      {auth.status === 'unlocked' && auth.accountMode === 'local-only' ? <UpgradeToCloud /> : null}
+      {auth.accountMode === 'cloud-primary' ? <CloudAccountCard /> : null}
+      <UpdateSettingsCard />
       <Card>
         <CardHeader>
           <CardTitle>{deSettings.security}</CardTitle>
@@ -55,13 +58,10 @@ export function SettingsPage() {
               {de.lock.lockNow}
             </Button>
           )}
-          {auth.status === 'unlocked' && auth.accountMode !== null ? <FactorsSection /> : null}
         </CardContent>
       </Card>
       {auth.status === 'unlocked' ? <LockSettingsCard /> : null}
       {auth.status === 'unlocked' ? <LocalEncryptionCard /> : null}
-      {auth.status === 'unlocked' && auth.accountMode === 'local-only' ? <UpgradeToCloud /> : null}
-      {auth.accountMode === 'cloud-primary' ? <CloudAccountCard /> : null}
       {auth.status === 'unlocked' && auth.syncAttached ? <DevicesSection /> : null}
       {auth.status === 'unlocked' && auth.accountMode === 'cloud-primary' && auth.syncAttached ? <IntegrationsCard /> : null}
       <Card>
@@ -86,7 +86,6 @@ export function SettingsPage() {
         </CardContent>
       </Card>
       <PersistCard />
-      <UpdateSettingsCard />
       <TourRestartCard />
       <ReminderCard />
       <ReminderCard kind="training" />
@@ -145,6 +144,7 @@ function UpgradeToCloud() {
         <Button variant="outline" onClick={() => setOpen(true)}>
           {deSettings.upgradeAction}
         </Button>
+        <FactorsSection />
       </CardContent>
     </Card>
   );

@@ -1,4 +1,4 @@
-// Einstellungen → Sicherheit: Zugang verwalten (Spec 03, CRY-18; local-only). Jede Änderung verlangt zuerst das aktuelle
+// Einstellungen → Konto & Sync (Ende der Card): Zugang verwalten (Spec 03, CRY-18; local-only, im Konto nur Backup-Code erneuern). Jede Änderung verlangt zuerst das aktuelle
 // Passwort (falls es einen Passwort-Faktor gibt); danach wird gewechselt. Der Passkey wird in einem eigenen Klick angelegt
 // (iOS: `credentials.create` muss aus der Nutzergeste kommen).
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
@@ -154,7 +154,7 @@ export function FactorsSection() {
 
   const gate = action !== null && !verified && info.hasPassword;
   return (
-    <div className="flex flex-col gap-3" data-testid="factors">
+    <div className="flex flex-col gap-3 border-t pt-4" data-testid="factors">
       <p className="text-sm font-medium">{t.title}</p>
       {done ? <p role="status" data-testid="factors-done" className="text-sm text-muted-foreground">{done}</p> : null}
       {error ? <AuthErrorNotice code={error} /> : null}

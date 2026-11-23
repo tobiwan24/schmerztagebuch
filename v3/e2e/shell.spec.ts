@@ -53,10 +53,10 @@ test.describe('App-Gerüst', () => {
     await expect(html).not.toHaveClass(/dark/);
   });
 
-  test('UI-06: „Automatisch" folgt der Systemeinstellung', async ({ page }) => {
+  test('UI-06: „Auto" folgt der Systemeinstellung', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await go(page, '/more/settings');
-    await page.getByRole('button', { name: 'Automatisch' }).click();
+    await page.getByRole('button', { name: 'Auto', exact: true }).click();
     await expect(page.locator('html')).toHaveClass(/dark/);
     await page.emulateMedia({ colorScheme: 'light' });
     await expect(page.locator('html')).not.toHaveClass(/dark/);
