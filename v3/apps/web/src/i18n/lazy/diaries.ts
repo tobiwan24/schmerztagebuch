@@ -12,6 +12,8 @@ export const deDiaries = {
   weatherEnabled: 'Wetter zu jedem Eintrag speichern',
   weatherNoLocation: 'Ohne Ort kein Wetter.',
   gpsDefault: 'Aktuellen Standort standardmäßig verwenden',
+  quickButtonsTitle: 'Schnell-Buttons auf Start',
+  quickButtonsHint: 'Ohne Auswahl gibt es einen Knopf „Schnell eintragen“.',
   save: 'Speichern',
   saving: 'Speichert …',
   saved: 'Gespeichert.',

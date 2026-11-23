@@ -35,4 +35,24 @@ test.describe('Tagebuch-Einstellungen', () => {
     await expect(page.getByLabel('Wetter zu jedem Eintrag speichern')).toBeChecked();
     await expect(page.getByLabel('Aktuellen Standort standardmäßig verwenden')).toBeChecked();
   });
+
+  test('RDM-028 P2: Tagebuch-Einstellungen speichern die Schnell-Buttons', async ({ page }) => {
+    await onboardWithPassword(page);
+    await go(page, '/more/diaries');
+    await page.getByTestId('diary-card').getByRole('link', { name: 'Einstellungen' }).click();
+    const box = page.getByLabel('Allgemeines Schmerz-Tagebuch');
+    await expect(page.getByText('Ohne Auswahl gibt es einen Knopf „Schnell eintragen“.')).toBeVisible();
+    await expect(box).not.toBeChecked();
+    await box.check();
+    await page.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByText('Gespeichert.')).toBeVisible();
+
+    await page.reload();
+    await page.getByTestId('lock-banner').getByRole('link', { name: 'Entsperren' }).click();
+    await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
+    await page.getByRole('button', { name: 'Mit Passwort entsperren' }).click();
+    await go(page, '/more/diaries');
+    await page.getByTestId('diary-card').getByRole('link', { name: 'Einstellungen' }).click();
+    await expect(page.getByLabel('Allgemeines Schmerz-Tagebuch')).toBeChecked();
+  });
 });

@@ -121,4 +121,23 @@ test.describe('Schnelleintrag im Vorlagen-Editor und Vorlagenwahl', () => {
     await expect(page.getByTestId('quick-template-choice').getByRole('button', { name: 'Zweite' })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByLabel(/Stimmung/)).toBeVisible();
   });
+  test('RDM-028 P2: /quick?template= wählt die Vorlage vor', async ({ page }) => {
+    await onboardWithPassword(page);
+    await go(page, '/more/templates/new');
+    await page.getByLabel('Name', { exact: true }).fill('Zweite');
+    await page.getByRole('group', { name: 'Feld hinzufügen' }).getByRole('button', { name: 'Slider', exact: true }).click();
+    await page.getByRole('region', { name: /^Feld 1:/ }).getByLabel('Bezeichnung', { exact: true }).fill('Stimmung');
+    await page.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    const second = (await records(page, 'template')).find((x) => x.name === 'Zweite')!;
+
+    await go(page, `/quick?template=${second.id}`);
+    const choice = page.getByTestId('quick-template-choice');
+    await expect(choice.getByRole('button', { name: 'Zweite' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByLabel(/Stimmung/)).toBeVisible();
+
+    // Unbekannte ID: bisheriger Fallback (erste Vorlage)
+    await go(page, '/quick?template=gibt-es-nicht');
+    await expect(page.getByTestId('quick-template-choice').getByRole('button', { name: 'Allgemeines Schmerz-Tagebuch' })).toHaveAttribute('aria-pressed', 'true');
+  });
 });

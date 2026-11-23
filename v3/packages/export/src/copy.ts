@@ -79,6 +79,7 @@ export function copyWithNewIds(doc: ExportV1, newId: () => string): ExportV1 {
       settings: {
         ...d.diary.settings,
         ...(d.diary.settings.quickEntryTemplateId ? { quickEntryTemplateId: m(d.diary.settings.quickEntryTemplateId) } : {}),
+        ...(d.diary.settings.quickTemplateIds ? { quickTemplateIds: d.diary.settings.quickTemplateIds.filter((id) => map.has(id)).map(m) } : {}),
         ...(d.diary.settings.quickEntryBlockIds ? { quickEntryBlockIds: d.diary.settings.quickEntryBlockIds.map(m) } : {}),
       },
     },
