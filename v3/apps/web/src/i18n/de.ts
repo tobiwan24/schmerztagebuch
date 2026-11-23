@@ -112,7 +112,6 @@ export const de = {
     deleteCancel: 'Abbrechen',
     deleteConfirm: 'Endgültig löschen',
     notFound: 'Dieser Eintrag existiert nicht (mehr).',
-    archivedField: 'archiviertes Feld',
     infoShow: 'Info anzeigen',
     infoHide: 'Info ausblenden',
     tags: 'Tags',

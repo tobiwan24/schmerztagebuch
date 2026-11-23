@@ -203,6 +203,8 @@ test.describe('Eintragsformular', () => {
     await page.getByLabel('Ende').fill('2026-03-04T08:00');
     await save(page);
     await expect(page.getByTestId('entry-time')).toContainText('Zeitraum');
+    await expect(h1).toHaveAccessibleName(/\d{2}:\d{2} Zeitraum$/);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
     const fits = await h1.evaluate((el) => ({ over: el.scrollWidth > el.clientWidth, ellipsis: getComputedStyle(el).textOverflow }));
     expect(fits.over).toBe(false);
     expect(fits.ellipsis).not.toBe('ellipsis');

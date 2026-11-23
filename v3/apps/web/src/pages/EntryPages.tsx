@@ -95,12 +95,15 @@ export function EntryDetailPage() {
           wrap
           back
           title={
-            <>
-              <span data-testid="entry-time" className="tabular-nums">
-                {formatEntryTime(query.data.entry)}
-                {query.data.entry.period ? <span className="ml-2 text-sm font-normal text-muted-foreground">{de.entry.period}</span> : null}
-              </span>
-            </>
+            <span data-testid="entry-time" className="tabular-nums">
+              {formatEntryTime(query.data.entry)}
+              {query.data.entry.period ? (
+                <>
+                  {' '}
+                  <span className="text-sm font-normal text-muted-foreground">{de.entry.period}</span>
+                </>
+              ) : null}
+            </span>
           }
           subtitle={query.data.templateName}
         />

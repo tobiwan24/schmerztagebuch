@@ -136,7 +136,7 @@ test.describe('Vorlagen-Editor', () => {
     await expect(field('Stärke')).toBeVisible();
   });
 
-  test('BLK-25: Felder per Tastatur und Ziehen umsortieren, entfernen (neue Version, Archiviertes Feld), Warnung beim Verlassen nur nach echter Änderung', async ({ page }) => {
+  test('BLK-25: Felder per Tastatur und Ziehen umsortieren, entfernen (neue Version, entferntes Feld bleibt sichtbar), Warnung beim Verlassen nur nach echter Änderung', async ({ page }) => {
     // Hohes Fenster: Ziehen mit der Maus braucht alle Karten im sichtbaren Bereich
     await page.setViewportSize({ width: 600, height: 2400 });
     await go(page, '/more/templates/new');
