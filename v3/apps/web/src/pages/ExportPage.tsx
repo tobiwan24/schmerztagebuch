@@ -159,16 +159,16 @@ function ExportCard() {
           </ToggleGroup>
         ) : null}
         <div role="group" aria-label={t.filter} className="flex flex-wrap gap-2">
-          <Button size="sm" variant={filter === null ? 'default' : 'outline'} aria-pressed={filter === null} onClick={() => setFilter(null)}>
+          <Button size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant={filter === null ? 'default' : 'outline'} aria-pressed={filter === null} onClick={() => setFilter(null)}>
             {t.allEntries}
           </Button>
           {historyChoice ? (
-            <Button size="sm" variant={filter?.id === 'history' ? 'default' : 'outline'} aria-pressed={filter?.id === 'history'} onClick={() => setFilter(historyChoice)}>
+            <Button size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant={filter?.id === 'history' ? 'default' : 'outline'} aria-pressed={filter?.id === 'history'} onClick={() => setFilter(historyChoice)}>
               {historyChoice.name}
             </Button>
           ) : null}
           {(saved.status === 'ok' ? saved.data : []).map((f) => (
-            <Button key={f.id} size="sm" variant={filter?.id === f.id ? 'default' : 'outline'} aria-pressed={filter?.id === f.id} onClick={() => setFilter(f)}>
+            <Button key={f.id} size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant={filter?.id === f.id ? 'default' : 'outline'} aria-pressed={filter?.id === f.id} onClick={() => setFilter(f)}>
               {f.name}
             </Button>
           ))}

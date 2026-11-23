@@ -68,8 +68,8 @@ test.describe('Auswertung: Zusammenhänge', () => {
 
     // Zwei Felder: Schmerzstärke im Allgemeinen Tagebuch gegen Schmerzstärke im Kopfschmerz-Tagebuch, selber Tag
     const pair = page.getByTestId('corr-pair');
-    await pair.getByRole('group', { name: 'Feld A' }).getByRole('button', { name: 'Schmerzstärke · Allgemeines Schmerz-Tagebuch' }).click();
-    await pair.getByRole('group', { name: 'Feld B' }).getByRole('button', { name: 'Schmerzstärke · Kopfschmerz-Tagebuch' }).click();
+    await pair.getByRole('group', { name: 'Wert A' }).getByRole('button', { name: 'Schmerzstärke · Allgemeines Schmerz-Tagebuch' }).click();
+    await pair.getByRole('group', { name: 'Wert B' }).getByRole('button', { name: 'Schmerzstärke · Kopfschmerz-Tagebuch' }).click();
     const result = page.getByTestId('corr-result');
     // Minuszeichen kann als „-“ oder „−“ formatiert sein
     await expect(result).toContainText(/Rangkorrelation ρ = [-−]0,9\d/, { timeout: 15_000 });

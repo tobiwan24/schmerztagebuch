@@ -47,8 +47,8 @@ function PairCard({ spec, numeric }: { spec: FilterSpec; numeric: Field[] }) {
         <CardTitle className="text-base">{t.pairTitle}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <BlockPicker blocks={numeric} value={a} onChange={setA} label={t.fieldA} />
-        <BlockPicker blocks={numeric} value={b} onChange={setB} label={t.fieldB} />
+        <BlockPicker blocks={numeric} value={a} onChange={setA} label={t.fieldA} showLabel />
+        <BlockPicker blocks={numeric} value={b} onChange={setB} label={t.fieldB} showLabel />
         <ToggleGroup aria-label={t.lag}>
           {LAGS.map((l) => (
             <ToggleGroupItem key={l} pressed={lag === l} onClick={() => setLag(l)}>{l}</ToggleGroupItem>

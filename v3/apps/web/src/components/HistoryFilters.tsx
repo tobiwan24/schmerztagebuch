@@ -217,7 +217,7 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
             {templates.map((t) => {
               const on = state.templateIds.includes(t.id);
               return (
-                <Button key={t.id} size="sm" className="h-auto whitespace-normal py-1 text-left" variant={on ? 'default' : 'outline'} aria-pressed={on} onClick={() => onChange({ ...state, templateIds: on ? state.templateIds.filter((x) => x !== t.id) : [...state.templateIds, t.id] })}>
+                <Button key={t.id} size="sm" className="h-auto max-w-full whitespace-normal py-1 text-left" variant={on ? 'default' : 'outline'} aria-pressed={on} onClick={() => onChange({ ...state, templateIds: on ? state.templateIds.filter((x) => x !== t.id) : [...state.templateIds, t.id] })}>
                   {t.name}
                 </Button>
               );
@@ -264,7 +264,7 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
             <span className="text-xs text-muted-foreground">{de.history.saved}</span>
             {saved.data.map((f) => (
               <span key={f.id} className="inline-flex items-center">
-                <Button size="sm" variant="secondary" onClick={() => onChange(fromSpec(f.filter))}>
+                <Button size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant="secondary" onClick={() => onChange(fromSpec(f.filter))}>
                   <Star aria-hidden />
                   {f.name}
                 </Button>

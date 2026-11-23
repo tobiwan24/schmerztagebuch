@@ -1,5 +1,5 @@
 // Gemeinsame Bausteine der Auswertungs-Ansichten: Abfrage an den Analyse-Worker und Feldauswahl.
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAnalysis } from '@/data/AnalysisContext';
 import { deAnalysis } from '@/i18n/lazy/analysis';
@@ -22,16 +22,24 @@ export function useWorker<T>(fn: (c: AnalysisClient) => Promise<T>, deps: readon
 }
 
 /** Feldauswahl; gleich benannte Felder verschiedener Vorlagen tragen den Vorlagennamen. */
-export function BlockPicker({ blocks, value, onChange, label = deAnalysis.block }: { blocks: { blockId: string; label: string; templateName: string }[]; value: string | undefined; onChange: (id: string) => void; label?: string }) {
+export function BlockPicker({ blocks, value, onChange, label = deAnalysis.block, showLabel = false }: { blocks: { blockId: string; label: string; templateName: string }[]; value: string | undefined; onChange: (id: string) => void; label?: string; showLabel?: boolean }) {
+  const labelId = useId();
   if (blocks.length < 2) return null;
   const dup = (l: string) => blocks.filter((b) => b.label === l).length > 1;
-  return (
-    <div role="group" aria-label={label} className="flex flex-wrap gap-2">
+  const group = (
+    <div role="group" {...(showLabel ? { 'aria-labelledby': labelId } : { 'aria-label': label })} className="flex flex-wrap gap-2">
       {blocks.map((b) => (
-        <Button key={b.blockId} size="sm" variant={b.blockId === value ? 'default' : 'outline'} aria-pressed={b.blockId === value} onClick={() => onChange(b.blockId)}>
+        <Button key={b.blockId} size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant={b.blockId === value ? 'default' : 'outline'} aria-pressed={b.blockId === value} onClick={() => onChange(b.blockId)}>
           {dup(b.label) ? deAnalysis.blockOf(b.label, b.templateName) : b.label}
         </Button>
       ))}
+    </div>
+  );
+  if (!showLabel) return group;
+  return (
+    <div className="flex flex-col gap-1">
+      <p id={labelId} className="text-sm font-medium">{label}</p>
+      {group}
     </div>
   );
 }
