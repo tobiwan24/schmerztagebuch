@@ -14,11 +14,11 @@
 
 Gate G4 (Umstellung des Deployments, siehe [GATE-G4.md](GATE-G4.md)):
 
-- **CRY-17** Passkey-Login auf echtem iPhone (Face ID, iCloud-Schlüsselbund)
-- **MIG-16** Migration der echten Daten auf dem Hauptgerät, Stichprobe
-- **VOI-11** Echter Kurzbefehl auf dem iPhone
-- **SHR-12** Einladung an ein zweites iPhone, beide tragen ein
-- **UI-13** Freigabe zur Umstellung des Deployments
+- ~~**CRY-17** Passkey-Login auf echtem iPhone (Face ID, iCloud-Schlüsselbund)~~ — erledigt 2026-11-23
+- ~~**MIG-16** Migration der echten Daten auf dem Hauptgerät, Stichprobe~~ — erledigt 2026-11-23
+- **VOI-11** Echter Kurzbefehl auf dem iPhone (nach dem Umzug)
+- **SHR-12** Einladung an ein zweites iPhone, beide tragen ein (nach dem Umzug)
+- ~~**UI-13** Freigabe zur Umstellung des Deployments~~ — erledigt 2026-11-23, `:8060` zeigt v3
 
 v3.x (nicht blockierend):
 
@@ -220,7 +220,7 @@ Umgebungs-Erkenntnis: Der Arbeitsbaum lag mit CRLF vor (`core.autocrlf=true`); S
 
 ### G2 — Kernablauf
 - [x] UI-11 Kernablauf auf dem iPhone durchgeklickt und freigegeben (User im Chat: „g2freigegeben“, 2026-11-13; Body-Map-Nacharbeiten → M8b)
-- [ ] CRY-17 Passkey-Login auf echtem iPhone (Face ID, iCloud-Schlüsselbund) inkl. App-Neustart — mit der G2-Freigabe nicht ausdrücklich bestätigt, beim User nachfragen
+- [x] CRY-17 Passkey-Login auf echtem iPhone (Face ID, iCloud-Schlüsselbund) inkl. App-Neustart — User bestätigt im Chat, 2026-11-23, auf `:8060` nach der Umstellung
 
 ### G3 — Auswertung & Export
 - [x] UI-12 Auswertung und Export freigegeben — **stellvertretend durch den Loop** (ADR-012, 2026-11-15) mit synthetischem v2-Monat (34 Einträge, März 2026) über den Assistenten migriert, im Browser (iPhone-Viewport 390×844) geprüft; Befunde G3-1…G3-5 behoben. Echte Daten: siehe MIG-16.
@@ -228,8 +228,8 @@ Umgebungs-Erkenntnis: Der Arbeitsbaum lag mit CRLF vor (`core.autocrlf=true`); S
 - [x] EXP-13 PDF eines Monats brauchbar — **stellvertretend** (ADR-012): PDF „März 2026“ gerendert und gesichtet (Deckblatt mit Zeitraum, Tage mit Eintrag, Kennzahlen, Medikamententage, Arztterminen; Tabelle je Vorlage; Körperkarten je Seite).
 
 ### G4 — Ablösung
-- [ ] UI-13 Freigabe zur Umstellung des Deployments
-- [ ] MIG-16 Migration der echten Daten auf dem Hauptgerät, Stichprobe bestätigt
+- [x] UI-13 Freigabe zur Umstellung des Deployments — User im Chat, Umstellung `:8060` auf v3 durchgeführt 2026-11-23 (siehe DEPLOYMENT.md „Umstellung“)
+- [x] MIG-16 Migration der echten Daten auf dem Hauptgerät, Stichprobe bestätigt — 2026-11-23: Cloud-Import auf `:8061` (alle Einträge außer den 3 vom 26.02., Bilder öffnen), Nachlese der lokalen v2-Datenbank auf `:8060` per Trockenlauf durchgeführt, Cloud-Sync danach angestoßen
 - [ ] VOI-11 Echter Kurzbefehl auf dem iPhone erzeugt Eintrag
 - [ ] SHR-12 Einladung an zweites iPhone angenommen, beide tragen ein
 
