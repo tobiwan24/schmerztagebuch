@@ -16,8 +16,12 @@ export const de = {
     label: 'Tagebuch',
     all: 'Alle Tagebücher',
   },
+  carousel: {
+    toPosition: (n: number) => `Zu Position ${n}`,
+  },
   start: {
     title: 'Start',
+    quickLabel: 'Schnell-Buttons',
     quickEntry: 'Schnell eintragen',
     quickEntryFor: (diary: string) => `Schnell eintragen · ${diary}`,
     quickTemplate: (template: string) => `Schnell: ${template}`,

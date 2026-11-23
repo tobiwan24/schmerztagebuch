@@ -54,4 +54,57 @@ test.describe('Start: Schnell-Buttons je Vorlage', () => {
     await expect(page.getByRole('link', { name: 'Schnell eintragen' })).toHaveCount(1);
     await expect(page.getByRole('link', { name: /^Schnell: / })).toHaveCount(0);
   });
+
+  test('RDM-028 P2: ein Schnell-Button ohne Carousel und Punkte', async ({ page }) => {
+    await onboardWithPassword(page);
+    await go(page, '/');
+    await expect(page.getByRole('link', { name: 'Schnell eintragen' })).toHaveCount(1);
+    await expect(page.getByRole('region', { name: 'Schnell-Buttons' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Zu Position/ })).toHaveCount(0);
+  });
+
+  test('RDM-028 P2: mehrere Schnell-Buttons als Carousel mit Peek und Punkten', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await onboardWithPassword(page);
+    await go(page, '/more/templates/new');
+    await page.getByLabel('Name', { exact: true }).fill('Zweite');
+    await page.getByRole('group', { name: 'Feld hinzufügen' }).getByRole('button', { name: 'Slider', exact: true }).click();
+    await page.getByRole('region', { name: /^Feld 1:/ }).getByLabel('Bezeichnung', { exact: true }).fill('Stimmung');
+    await page.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await go(page, '/more/diaries');
+    await page.getByTestId('diary-card').getByRole('link', { name: 'Einstellungen' }).click();
+    await page.getByLabel('Allgemeines Schmerz-Tagebuch', { exact: true }).check();
+    await page.getByLabel('Zweite', { exact: true }).check();
+    await page.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByText('Gespeichert.')).toBeVisible();
+    await go(page, '/');
+
+    const carousel = page.getByRole('region', { name: 'Schnell-Buttons' });
+    const first = carousel.getByRole('link', { name: 'Schnell: Allgemeines Schmerz-Tagebuch' });
+    const second = carousel.getByRole('link', { name: 'Schnell: Zweite' });
+    await expect(first).toBeVisible();
+    const vw = 375;
+    const b1 = (await first.boundingBox())!;
+    expect(b1.width / vw).toBeGreaterThan(0.75);
+    expect(b1.width / vw).toBeLessThan(0.9);
+    const b2 = (await second.boundingBox())!;
+    expect(b2.x).toBeLessThan(vw - 8); // Peek: zweiter Button lugt rechts hervor
+    expect(b2.x + b2.width).toBeGreaterThan(vw); // ... ist aber nicht ganz im Bild
+    const dots = page.getByRole('button', { name: /^Zu Position/ });
+    await expect(dots).toHaveCount(2);
+    await expect(dots.nth(0)).toHaveAttribute('aria-current', 'true');
+
+    await dots.nth(1).click();
+    await expect(dots.nth(1)).toHaveAttribute('aria-current', 'true');
+    await expect
+      .poll(async () => {
+        const b = (await second.boundingBox())!;
+        return b.x + b.width <= vw + 1;
+      })
+      .toBe(true);
+
+    await second.click();
+    await expect(page.getByTestId('quick-template-choice').getByRole('button', { name: 'Zweite' })).toHaveAttribute('aria-pressed', 'true');
+  });
 });
