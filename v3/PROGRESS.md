@@ -187,7 +187,7 @@ Pakete P1–P7 je mit Explore → v3-implementer (nacheinander) → code-reviewe
 |---|---|---|---|
 | P1 | Grundgerüst: Fußleiste fest, Sync-Status in Titelzeile (nur Tab-Hauptseiten) | erledigt | `2a523c6`, Review-Fix siehe Commit `fix(v3/web): Review-Befunde [RDM-028 P1]` (A-131) |
 | P2 | Start: Liste entfällt, Schnell-Buttons pro Vorlage (`quickTemplateIds`), Carousel | erledigt | `0747ca6` (A-132), `3662398` (A-133), Carousel: Commit `feat(v3/web): Schnell-Buttons als Carousel … [RDM-028 P2]` (A-134), Review-Fix: Commit `fix(v3/web): Review-Befunde [RDM-028 P2]` |
-| P3 | Verlauf-Cards wie v2 in v3-Optik, v2-Symbole/-Farben zuordnen | erledigt | `9c2837c` (A-135), Verlauf-Card: Commit `feat(v3/web): Verlauf-Card mit Symbol, Titel, Kennzeichen und Schmerzwert [RDM-028 P3]` (A-136) |
+| P3 | Verlauf-Cards wie v2 in v3-Optik, v2-Symbole/-Farben zuordnen | erledigt | `9c2837c` (A-135), Verlauf-Card: Commit `feat(v3/web): Verlauf-Card mit Symbol, Titel, Kennzeichen und Schmerzwert [RDM-028 P3]` (A-136), Review-Fix: Commit `fix(v3/web): Review-Befunde [RDM-028 P3]` |
 | P4 | Verlauf-Kopf: Suche + Filter ▾ / Sortieren ▾ / Export | offen | |
 | P5 | Detailansicht: Datum als Titel, „archiviertes Feld“ ausblenden | offen | |
 | P6 | Auswertung: Tab-Carousel, Chips umbrechen, Wert A/B, Button-Überläufe | offen | |
@@ -196,6 +196,7 @@ Pakete P1–P7 je mit Explore → v3-implementer (nacheinander) → code-reviewe
 Review-Restbefunde und Blocker:
 
 - P2: `diarySettingsSchema` ist `strictObject`; ein nicht aktualisiertes Gerät scheitert an Diary-Records mit `quickTemplateIds`. Vorwärtskompatibilität (lockeres Schema oder Versionssprung) bewusst entscheiden, nicht behoben.
+- P3 (nur dokumentiert, nicht behoben): Foto-Kennzeichen bei Anhang-IDs ohne Metadaten ist geraten (kann PDF sein); Kennzeichen-Logik doppelt in `analysis/filter.ts` und working-set (Worker-Grenze); `attachments.listAll()` mit zod-parse — ein defekter Datensatz kippt die ganze Liste in den Fehlerzustand; Zeitraum-Datum bricht bei 375 px innerhalb der Zeile um; Filter „Schmerz ≥ 7“ arbeitet je outcome, die Card zeigt den Mittelwert.
 - P2: Im Carousel-Fall bleibt beim Übergang Ladezustand → Carousel ein kleiner Sprung (Platzhalter 7,5 rem ist nur Annäherung; Einzelknopf-Standardfall ohne Sprung), dokumentiert in A-134.
 
 ## Meilensteine
@@ -525,3 +526,4 @@ Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19,
 | 2026-11-23 | RDM-028 P2 | — | Review-Befunde zu 0747ca6..2cd1743: Carousel nach shadcn-Muster (`-ml-3`/`pl-3`, Viewport `p-1 -m-1`, Fokus-Ring nicht mehr abgeschnitten), Punkte 44-px-Touch-Ziele, embla per `React.lazy` (`QuickCarousel`, Platzhalter 7,5 rem), initial 241,4 → 232,8 KB gzip; Auswahl-Liste mit `compareByOrder`, `mergeQuickIds` behält IDs archivierter Vorlagen; „Als Kopie“ lässt leeres `quickTemplateIds` weg; gemeinsames Prädikat `isEntryTemplate`; Spec 10 nachgezogen; A-132/A-133/A-134 ergänzt. E2E `RDM-028 P2: Punkte sind mindestens 44 px groß` plus Ring-Platz. |
 | 2026-11-23 | RDM-028 P3 (1/2) | — | `lib/template-style.ts` (v2-Icon/Hex-Farbe → v3-Symbol/-Token nur zur Anzeige), `TemplateIcon` mit aufgelösten `data-*`, `TemplateIconBadge`, Tönungen in `TEMPLATE_COLORS`, Editor mit aufgelösten Anfangswerten; reine `lib/entry-card-meta.ts` (Titel, Kennzeichen, Schmerz-Ampel). Vitest + E2E `RDM-028 P3:` in migration.spec.ts. Verlauf noch unverändert (Teil 2/2, A-135). |
 | 2026-11-23 | RDM-028 P3 (2/2) | — | `EntryListState` als Verlauf-Cards (Symbol-Badge, Titel, Datum/Uhrzeit, Kennzeichen-Badges nur mit Symbol, Schmerz-Ampel, Chevron), keine Tagesüberschriften (`pageGroups`: eine Gruppe `by: null`; bei Vorlagensortierung bleibt die Vorlagen-Überschrift), Daten: Versionen + Anhang-Metadaten, Meta nur für sichtbare Einträge. E2E ANA-20/BLK-19/SHR-13 angepasst, neu `RDM-028 P3: Verlauf-Card …` in history-list.spec.ts (A-136). |
+| 2026-11-23 | RDM-028 P3 | — | Review-Befunde zu 9c2837c..2d3410e: Kennzeichen-Badges `role="img"`, Schmerzwert `text-xl font-bold` (Kontrast), Fallback „Unbekannte Vorlage“, 1–10-Slider ohne Normierung (A-135), Specs 10/06 ohne Tagesgruppen, Icon-/Farb-Maps typisiert, a11y-E2E mit Kennzeichen und Schmerzwert im Verlauf. |

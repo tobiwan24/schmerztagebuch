@@ -39,7 +39,7 @@ Condition =
 - Vorlagenübergreifend: Bedingungen können sich statt auf `blockId` auf eine **Rolle** beziehen (`role: 'outcome'`)
   und gelten dann für alle Blöcke mit dieser Rolle.
 - Sortierung der Ergebnisliste: `newest | oldest | template_az | template_date` (stabil; pro Gerät gemerkt). Der Verlauf lädt
-  seitenweise je 50 Einträge („Weitere laden"), Tagesgruppen bleiben über Seitengrenzen korrekt (ANA-20).
+  seitenweise je 50 Einträge („Weitere laden"), Sortierung und Datum je Eintrag bleiben über Seitengrenzen korrekt, bei Vorlagensortierung auch die Gruppen (ANA-20).
 - Auswertungs-Zeiträume: `day | 7d | 30d | 90d | 6m | 1y`; „Tag" zeigt Einzelwerte mit Uhrzeit-Achse (ANA-17).
 - Gespeicherte Filter = `SavedFilter` (02), synchronisiert und per Tagebuch geteilt.
 - Suche ist umlaut- und groß/klein-tolerant (`ä`≙`ae`, Normalisierung NFKD).
@@ -116,7 +116,7 @@ Condition =
 | ANA-17 | Auswertung: zusätzliche Zeiträume „Tag" (Einzelwerte mit Uhrzeit-Achse, keine Tagesaggregation) und „6 Monate"; Vor/Zurück und Wischen verschieben um die Zeitraumlänge. | e2e |
 | ANA-18 | Verlauf-Filter: freier Zeitraum (von–bis, Tagebuch-Zeitzone), Vorlagen-Auswahl, Inhalt (Ereignis, Arztbesuch, Body-Map, Foto, PDF); Kombination UND; als gespeicherter Filter wiederherstellbar. | e2e |
 | ANA-19 | `applyFilter`: neue Bedingungen `bodymap` (nicht leer), `attachment` (Art `image`/`pdf`, aus `attachmentMeta` im Working-Set) und Ereignis-Kategorie liefern für die Fixture die erwarteten Einträge; `sortEntries` für `newest`, `oldest`, `template_az`, `template_date` stabil. | unit |
-| ANA-20 | Verlauf: Sortierung wählbar (4 Optionen, bleibt nach Reload); Liste lädt seitenweise (50 Einträge, „Weitere laden"), Tagesgruppen bleiben korrekt über Seitengrenzen. | e2e |
+| ANA-20 | Verlauf: Sortierung wählbar (4 Optionen, bleibt nach Reload); Liste lädt seitenweise (50 Einträge, „Weitere laden"), Sortierung und Datum je Eintrag bleiben korrekt über Seitengrenzen; bei Vorlagensortierung Gruppen korrekt. | e2e |
 | ANA-21 | „Diagramm als Eintrag speichern": PNG des aktuellen Verlaufsdiagramms wird Bild-Anhang eines neuen Eintrags einer gewählten Vorlage mit Textarea (Anhänge erlaubt), Text = Beschriftung; ohne passende Vorlage Hinweis statt Knopf. | e2e |
 | ANA-22 | Arbeitsset, Filter (Bedingung Medikamentenname) und Suche erfassen `medication`; Medikamententage und Häufigkeiten zählen je Name. Fixture liefert die erwarteten Werte. | unit |
 | ANA-23 | Auswertung → Häufigkeiten zeigt ein Kreisdiagramm „Medikamente“ (Anteil je Medikament im Zeitraum, Touch-Tooltip). | e2e |

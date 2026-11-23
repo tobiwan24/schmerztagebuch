@@ -28,6 +28,8 @@ describe('Verlauf-Card-Metadaten', () => {
     expect(entryCardMeta(e({ sl3: 9 }), blocks, cur, []).pain).toBe(9);
     const five: BlockDef[] = [{ ...base, id: 's', type: 'slider', label: 'x', role: 'outcome', order: 'a', config: { min: 0, max: 5, step: 1 } }];
     expect(entryCardMeta(e({ s: 5 }), five, undefined, []).pain).toBe(10);
+    const oneTen: BlockDef[] = [{ ...base, id: 's', type: 'slider', label: 'x', role: 'outcome', order: 'a', config: { min: 1, max: 10, step: 1 } }];
+    expect(entryCardMeta(e({ s: 5 }), oneTen, undefined, []).pain).toBe(5);
   });
   it('RDM-028 P3: Titel = erstes gefülltes Text-/Textfeld nach Reihenfolge, nach 80 Zeichen gekürzt, sonst keiner', () => {
     expect(entryCardMeta(e({ tx: '  Kopf  ', ta: { text: 'Notiz' } }), blocks, undefined, []).title).toBe('Kopf');

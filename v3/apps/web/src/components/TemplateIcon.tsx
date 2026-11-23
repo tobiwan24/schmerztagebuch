@@ -5,14 +5,14 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { resolveTemplateColor, resolveTemplateIcon } from '@/lib/template-style';
+import { resolveTemplateColor, resolveTemplateIcon, type TemplateColorToken, type TemplateIconName } from '@/lib/template-style';
 
-export const TEMPLATE_ICONS: Record<string, LucideIcon> = {
+export const TEMPLATE_ICONS: Record<TemplateIconName, LucideIcon> = {
   Activity, HeartPulse, Zap, Brain, Pill, Stethoscope, Moon, Sun, Thermometer, Droplets, Flame, Heart, Smile, BookOpen, Dumbbell, Coffee,
 };
 
 /** Token → Text-, Hintergrund- bzw. helle Tönungsklasse (statisch, damit Tailwind sie findet). */
-export const TEMPLATE_COLORS: Record<string, { text: string; bg: string; tint: string }> = {
+export const TEMPLATE_COLORS: Record<TemplateColorToken, { text: string; bg: string; tint: string }> = {
   red: { text: 'text-red-600', bg: 'bg-red-600', tint: 'bg-red-600/10' },
   orange: { text: 'text-orange-600', bg: 'bg-orange-600', tint: 'bg-orange-600/10' },
   amber: { text: 'text-amber-600', bg: 'bg-amber-600', tint: 'bg-amber-600/10' },
@@ -30,7 +30,7 @@ export function TemplateIcon({ icon, color, className }: { icon?: string | undef
   // v2-Namen/-Hex-Farben der migrierten Vorlagen werden nur zur Anzeige zugeordnet (RDM-028 P3, A-135).
   const name = resolveTemplateIcon(icon);
   const token = resolveTemplateColor(color);
-  const Icon = TEMPLATE_ICONS[name]!;
+  const Icon = TEMPLATE_ICONS[name];
   const tone = (token ? TEMPLATE_COLORS[token] : undefined)?.text ?? 'text-muted-foreground';
   return <Icon aria-hidden className={cn('size-4 shrink-0', tone, className)} data-testid="template-icon" data-icon={name} data-color={token ?? ''} />;
 }

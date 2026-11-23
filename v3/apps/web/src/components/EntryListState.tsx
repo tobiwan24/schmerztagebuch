@@ -51,7 +51,11 @@ export function EntryListState({ emptyTitle, emptyHint, onlyIds = null, allowAll
     const { templates, versions, metas } = data;
     const versionMap = new Map<string, TemplateVersion>(versions.map((v) => [`${v.templateId}#${v.version}`, v]));
     const byEntry = new Map<string, AttachmentMeta[]>();
-    for (const m of metas) byEntry.set(m.entryId, [...(byEntry.get(m.entryId) ?? []), m]);
+    for (const m of metas) {
+      const list = byEntry.get(m.entryId);
+      if (list) list.push(m);
+      else byEntry.set(m.entryId, [m]);
+    }
     return { templateMap: new Map(templates.map((t) => [t.id, t])), versionMap, byEntry };
   }, [data]);
   if (query.status === 'loading') return <p className="text-muted-foreground">{de.app.loading}</p>;
@@ -82,20 +86,20 @@ export function EntryListState({ emptyTitle, emptyHint, onlyIds = null, allowAll
                   <TemplateIconBadge icon={tpl?.icon} color={tpl?.color} />
                   <span className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="truncate font-medium" data-testid="entry-title" title={e.templateName || undefined}>
-                      {meta.title ?? e.templateName}
+                      {meta.title ?? (e.templateName || de.history.unknownTemplate)}
                       {meta.title && e.templateName ? <span className="sr-only"> ({e.templateName})</span> : null}
                     </span>
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                       <span className="tabular-nums">{rowTime(e)}</span>
                       {FLAG_BADGES.filter((f) => meta.flags[f.key]).map(({ key, icon: Icon, label }) => (
-                        <Badge key={key} variant="secondary" aria-label={label} title={label} data-testid={`entry-flag-${key}`}>
+                        <Badge key={key} variant="secondary" role="img" aria-label={label} title={label} data-testid={`entry-flag-${key}`}>
                           <Icon className="size-3" aria-hidden />
                         </Badge>
                       ))}
                     </span>
                   </span>
                   {meta.pain !== undefined && meta.painTone ? (
-                    <span className={cn('text-lg font-semibold tabular-nums', PAIN_CLASS[meta.painTone])} data-testid="entry-pain" aria-label={de.history.painLabel(meta.pain)} role="img">
+                    <span className={cn('text-xl font-bold tabular-nums', PAIN_CLASS[meta.painTone])} data-testid="entry-pain" aria-label={de.history.painLabel(meta.pain)} role="img">
                       {meta.pain}
                     </span>
                   ) : null}

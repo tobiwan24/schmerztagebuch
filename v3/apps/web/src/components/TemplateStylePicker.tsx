@@ -8,7 +8,7 @@ import { TEMPLATE_COLORS, TEMPLATE_ICONS } from './TemplateIcon';
 export function TemplateStylePicker({
   icon, color, onIcon, onColor,
 }: { icon: string; color: string; onIcon: (icon: string) => void; onColor: (color: string) => void }) {
-  const tone = TEMPLATE_COLORS[color]?.text ?? '';
+  const tone = (TEMPLATE_COLORS as Record<string, { text: string } | undefined>)[color]?.text ?? '';
   return (
     <>
       <fieldset className="flex flex-col gap-2">

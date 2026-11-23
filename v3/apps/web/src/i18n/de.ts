@@ -54,6 +54,7 @@ export const de = {
     chipOutcome: (n: number) => `Schmerz ≥ ${n}`,
     chipMeds: 'Medikament',
     chipEvents: 'Ereignis',
+    unknownTemplate: 'Unbekannte Vorlage',
     painLabel: (n: number) => `Schmerz ${n}`,
     chipAuthor: (name: string) => `Von ${name}`,
     unknownAuthor: 'einem Mitglied',

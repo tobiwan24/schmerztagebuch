@@ -54,8 +54,8 @@ export function entryCardMeta(
     }
     if (b.type === 'slider' && roleOf(b) === 'outcome' && typeof v === 'number' && Number.isFinite(v)) {
       const { min, max } = b.config;
-      // Auf Skala 0–10 normieren (bei 0–10 bleibt der Rohwert)
-      pains.push(min === 0 && max === 10 ? v : ((v - min) / (max - min)) * 10);
+      // Skala mit max 10 (0–10, 1–10): Rohwert; sonst auf 0–10 normieren
+      pains.push(max === 10 ? v : ((v - min) / (max - min)) * 10);
     }
   }
   const out: EntryCardMeta = { flags };
