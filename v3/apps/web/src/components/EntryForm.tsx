@@ -356,7 +356,7 @@ export function EntryForm({ templates, entry, prefill }: { templates: Template[]
         </p>
       ) : null}
 
-      <div data-tour="entry-save" className={cn('sticky bottom-20 z-10 bg-background/95 py-2 backdrop-blur', TOUR_RING)}>
+      <div data-tour="entry-save" className={cn('sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-10 bg-background/95 py-2 backdrop-blur', TOUR_RING)}>
         <Button type="submit" size="lg" className="w-full" disabled={saving}>
           {saving ? de.entry.saving : de.entry.save}
         </Button>

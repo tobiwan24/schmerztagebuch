@@ -8,13 +8,13 @@ import { de } from '@/i18n/de';
 export function PageHeader({ title, back = false, sync = false }: { title: string; back?: boolean; sync?: boolean }) {
   const navigate = useNavigate();
   return (
-    <header className="flex items-center gap-2">
+    <header className="flex min-w-0 items-center gap-2">
       {back ? (
         <Button variant="ghost" size="icon" aria-label={de.nav.back} onClick={() => void navigate(-1)}>
           <ChevronLeft aria-hidden />
         </Button>
       ) : null}
-      <h1 className="text-xl font-semibold">{title}</h1>
+      <h1 className="min-w-0 truncate text-xl font-semibold">{title}</h1>
       {sync ? <SyncStatus /> : null}
     </header>
   );

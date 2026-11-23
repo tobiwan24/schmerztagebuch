@@ -46,6 +46,22 @@ test.describe('Sync im UI', () => {
     await expect(status(page)).toHaveAttribute('data-state', 'synced', { timeout: 15_000 });
   });
 
+  test('RDM-028 P1: Sync-Fehler bricht die Titelzeile nicht um', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 700 });
+    await expect(status(page)).toHaveAttribute('data-state', 'synced', { timeout: 15_000 });
+    await page.route('**/api/v1/sync/push', (r) => r.fulfill({ status: 500, body: '{"error":"boom"}' }));
+    await quickEntry(page);
+    await expect(status(page)).toHaveAttribute('data-state', 'error', { timeout: 15_000 });
+    const header = page.locator('header').filter({ has: status(page) });
+    const h1 = header.getByRole('heading', { level: 1 });
+    const [hb, tb, sb] = await Promise.all([header.boundingBox(), h1.boundingBox(), status(page).boundingBox()]);
+    expect(hb!.height).toBeLessThanOrEqual(tb!.height + 8);
+    // Status in einer Zeile: Text und Knopf liegen auf gleicher Höhe, Status höchstens so hoch wie die Zeile
+    expect(sb!.height).toBeLessThanOrEqual(hb!.height);
+    const btn = await status(page).getByRole('button', { name: 'Erneut versuchen' }).boundingBox();
+    expect(btn!.y + btn!.height).toBeLessThanOrEqual(sb!.y + sb!.height + 1);
+  });
+
   test('SYN-09: Sync-Antworten tragen no-store; der Service Worker beantwortet keine /api-Anfrage aus dem Cache', async ({ page, context }) => {
     await expect(status(page)).toHaveAttribute('data-state', 'synced', { timeout: 15_000 });
     await swReady(page);
