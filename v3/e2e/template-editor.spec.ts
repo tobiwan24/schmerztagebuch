@@ -185,7 +185,7 @@ test.describe('Vorlagen-Editor', () => {
     await expect(page.getByTestId('block-field').locator('label').first()).toContainText('Beta');
     await expect(page.getByTestId('block-field')).toHaveCount(3);
 
-    // Entfernen: Gamma weg → neue Version; der ältere Eintrag zeigt den Wert als archiviertes Feld
+    // Entfernen: Gamma weg → neue Version; der ältere Eintrag zeigt den Wert weiter, ohne Hinweis (RDM-028 P5)
     await go(page, '/more/templates');
     await page.getByRole('link', { name: 'Reihe bearbeiten' }).click();
     await page.getByRole('button', { name: 'Feld Gamma entfernen' }).click();
@@ -194,7 +194,7 @@ test.describe('Vorlagen-Editor', () => {
     await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
     await go(page, new URL(entryUrl).pathname);
     await expect(page.getByTestId('entry-field').filter({ hasText: 'Gamma' })).toContainText('Wert-G');
-    await expect(page.getByTestId('entry-field').filter({ hasText: 'Gamma' })).toContainText('archiviertes Feld');
+    await expect(page.getByTestId('entry-field').filter({ hasText: 'Gamma' })).not.toContainText('archiviertes Feld');
 
     // Warnung: ohne echte Änderung keine Abfrage (auch nach Hinzufügen und Entfernen), nach Änderung schon
     await go(page, '/more/templates');

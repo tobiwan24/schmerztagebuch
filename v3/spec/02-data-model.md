@@ -135,7 +135,7 @@ Record-`kind`s in v3.0: `diary`, `template`, `templateVersion`, `entry`, `savedF
 | DM-05 | Gleiche Order-Strings werden deterministisch über die ID sortiert (gleiche Reihenfolge auf allen Geräten). | unit |
 | DM-06 | Block hinzufügen/entfernen/umbenennen erzeugt eine neue `TemplateVersion`; Name/Icon/Order ändern erzeugt keine. | unit |
 | DM-07 | Typwechsel eines bestehenden Blocks wird von der Domänenfunktion abgelehnt. | unit |
-| DM-08 | Ein Eintrag mit Version 1 wird nach Entfernen eines Blocks in Version 2 weiterhin vollständig angezeigt; der entfernte Wert erscheint als archiviertes Feld. | integration |
+| DM-08 | Ein Eintrag mit Version 1 wird nach Entfernen eines Blocks in Version 2 weiterhin vollständig angezeigt; der entfernte Wert erscheint am Ende als Feld (Wert bleibt sichtbar; in der Detailansicht ohne Hinweis, RDM-028 P5). | integration |
 | DM-09 | Außer `id, diaryId, kind, rev, deleted, codec, localUpdatedAt, occurredAt` steht kein fachliches Feld außerhalb von `payload`/`base`; alle Repository-Integrationstests laufen unverändert grün, wenn statt `plain` ein Test-`aes`-Codec konfiguriert ist, und der Roh-Store enthält dann keine Klartext-Marker. | integration |
 | DM-10 | Repository-Schreiboperation und Outbox-Eintrag sind atomar: wirft Codec oder Validierung, existiert weder Record noch Outbox-Eintrag. | integration |
 | DM-11 | Multiselect-Werte referenzieren Options-IDs; Umbenennen einer Option ändert historische Werte nicht. | unit |

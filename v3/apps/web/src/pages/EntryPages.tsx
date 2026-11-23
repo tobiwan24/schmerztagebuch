@@ -90,18 +90,29 @@ export function EntryDetailPage() {
 
   return (
     <>
-      <PageHeader title={de.entry.title} back />
+      {query.status === 'ok' && query.data ? (
+        <PageHeader
+          wrap
+          back
+          title={
+            <>
+              <span data-testid="entry-time" className="tabular-nums">
+                {formatEntryTime(query.data.entry)}
+                {query.data.entry.period ? <span className="ml-2 text-sm font-normal text-muted-foreground">{de.entry.period}</span> : null}
+              </span>
+            </>
+          }
+          subtitle={query.data.templateName}
+        />
+      ) : (
+        <PageHeader title={de.entry.title} back />
+      )}
       {query.status === 'loading' ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
       {query.status === 'error' ? <ErrorState onRetry={query.retry} /> : null}
       {query.status === 'ok' && !query.data ? <EmptyState title={de.entry.notFound} hint="" /> : null}
       {query.status === 'ok' && query.data ? (
         <>
           <div className="flex flex-col gap-1">
-            <p data-testid="entry-time" className="text-lg font-semibold tabular-nums">
-              {formatEntryTime(query.data.entry)}
-              {query.data.entry.period ? <span className="ml-2 text-sm font-normal text-muted-foreground">{de.entry.period}</span> : null}
-            </p>
-            <p className="text-sm text-muted-foreground">{query.data.templateName}</p>
             <AuthorLine diaryId={query.data.entry.diaryId} authorId={query.data.entry.authorId} />
           </div>
           <Card className="gap-0 py-0">
@@ -112,7 +123,6 @@ export function EntryDetailPage() {
                 <div key={f.block.id} data-testid="entry-field" className="flex items-start justify-between gap-4 border-b px-4 py-3 last:border-b-0">
                   <span className="text-sm text-muted-foreground">
                     {f.block.label}
-                    {f.archived ? <span className="ml-2 text-xs">{de.entry.archivedField}</span> : null}
                   </span>
                   <span className="text-right">{f.text}</span>
                 </div>

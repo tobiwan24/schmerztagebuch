@@ -181,4 +181,30 @@ test.describe('Eintragsformular', () => {
     await save(page);
     await expect(page.getByTestId('entry-time')).toHaveText('19.02.2026, 07:05');
   });
+  test('RDM-028 P5: Detailansicht zeigt Datum und Uhrzeit als Titel, darunter den Vorlagennamen', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await go(page, '/entry/new');
+    await page.getByLabel('Zeitpunkt', { exact: true }).fill('2026-02-20T21:30');
+    await page.getByLabel(/Schmerzstärke/).fill('3');
+    await save(page);
+    const h1 = page.getByRole('heading', { level: 1 });
+    await expect(h1).toContainText('20.02.2026, 21:30');
+    await expect(page.getByRole('heading', { name: 'Eintrag', exact: true })).toHaveCount(0);
+    const title = await h1.boundingBox();
+    const sub = await page.locator('header p').first().boundingBox();
+    await expect(page.locator('header p').first()).toBeVisible();
+    expect(sub!.y).toBeGreaterThanOrEqual(title!.y + title!.height - 1);
+
+    // Zeitraum über zwei Tage: bricht um statt abgeschnitten zu werden
+    await go(page, '/entry/new');
+    await page.getByRole('button', { name: 'Zeitraum' }).click();
+    await page.getByLabel('Mit Uhrzeit').check();
+    await page.getByLabel('Beginn').fill('2026-03-02T18:00');
+    await page.getByLabel('Ende').fill('2026-03-04T08:00');
+    await save(page);
+    await expect(page.getByTestId('entry-time')).toContainText('Zeitraum');
+    const fits = await h1.evaluate((el) => ({ over: el.scrollWidth > el.clientWidth, ellipsis: getComputedStyle(el).textOverflow }));
+    expect(fits.over).toBe(false);
+    expect(fits.ellipsis).not.toBe('ellipsis');
+  });
 });
