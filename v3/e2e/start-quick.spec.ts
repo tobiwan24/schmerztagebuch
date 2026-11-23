@@ -86,6 +86,7 @@ test.describe('Start: Schnell-Buttons je Vorlage', () => {
     await expect(first).toBeVisible();
     const vw = 375;
     const b1 = (await first.boundingBox())!;
+    expect(await first.evaluate((el) => el.scrollWidth <= el.clientWidth), 'RDM-028 P2: langes Label läuft nicht über').toBe(true);
     expect(b1.width / vw).toBeGreaterThan(0.75);
     expect(b1.width / vw).toBeLessThan(0.9);
     const b2 = (await second.boundingBox())!;

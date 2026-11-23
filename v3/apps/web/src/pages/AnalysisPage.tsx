@@ -101,7 +101,7 @@ export function AnalysisPage() {
   return (
     <>
       <PageHeader title={deAnalysis.title} sync />
-      <Carousel setApi={setTabsApi} aria-label={deAnalysis.views} opts={{ inViewThreshold: 1 }}>
+      <Carousel setApi={setTabsApi} aria-label={deAnalysis.viewsRegion} opts={{ inViewThreshold: 1 }}>
         <CarouselContent role="group" aria-label={deAnalysis.views} className="-ml-1">
           {views.map((v) => (
             <CarouselItem key={v} className="basis-auto pl-1">

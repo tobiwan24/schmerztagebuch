@@ -215,7 +215,7 @@ export async function openSort(page: Page) {
 
 /** Öffnet einen Tab der Auswertung; die Tab-Leiste ist ein Carousel, ein Tab kann außerhalb des Bildes liegen — dann Punkte antippen, bis er ganz sichtbar ist, und klicken. */
 export async function openAnalysisView(page: Page, name: string): Promise<void> {
-  const region = page.getByRole('region', { name: 'Ansicht' });
+  const region = page.getByRole('region', { name: 'Ansichten' });
   const group = page.getByRole('group', { name: 'Ansicht' });
   const tab = group.getByRole('button', { name, exact: true });
   const fits = async () => {
@@ -228,7 +228,7 @@ export async function openAnalysisView(page: Page, name: string): Promise<void> 
     const n = await dots.count();
     for (let i = 0; i < n && !(await fits()); i++) {
       await dots.nth(i).click();
-      await page.waitForTimeout(400);
+      await expect.poll(fits, { timeout: 3000 }).toBe(true).catch(() => undefined);
     }
   }
   await tab.click();

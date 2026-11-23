@@ -190,7 +190,7 @@ export function DashboardsView() {
           </div>
           {current.widgets.length > 0 ? (
             <div className="flex justify-end">
-              <Button size="sm" variant="outline" className="h-auto min-h-9 max-w-full whitespace-normal py-1" disabled={pdfBusy} onClick={() => void exportPdf()}>
+              <Button size="sm" variant="outline" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" disabled={pdfBusy} onClick={() => void exportPdf()}>
                 <FileText aria-hidden />
                 {t.exportPdf}
               </Button>

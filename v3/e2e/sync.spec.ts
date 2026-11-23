@@ -59,7 +59,9 @@ test.describe('Sync im UI', () => {
     // Status in einer Zeile: Text und Knopf liegen auf gleicher Höhe, Status höchstens so hoch wie die Zeile
     expect(sb!.height).toBeLessThanOrEqual(hb!.height);
     const btn = await status(page).getByRole('button', { name: 'Erneut versuchen' }).boundingBox();
-    expect(btn!.y + btn!.height).toBeLessThanOrEqual(sb!.y + sb!.height + 1);
+    expect(btn!.height, 'RDM-028 P1: Retry-Knopf ist mindestens 44 px hoch (Touch-Ziel)').toBeGreaterThanOrEqual(44);
+    // Knopf (mit negativem Rand) liegt mittig in der Statuszeile
+    expect(Math.abs(btn!.y + btn!.height / 2 - (sb!.y + sb!.height / 2))).toBeLessThanOrEqual(1);
   });
 
   test('SYN-09: Sync-Antworten tragen no-store; der Service Worker beantwortet keine /api-Anfrage aus dem Cache', async ({ page, context }) => {

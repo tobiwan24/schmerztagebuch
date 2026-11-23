@@ -7,7 +7,7 @@ import type { QuickButton } from '@/lib/quick-buttons';
 
 export function QuickLink({ q, first }: { q: QuickButton; first: boolean }) {
   return (
-    <Button asChild size="lg" data-tour={first ? 'start-quick' : undefined} className={cn('h-16 w-full text-base', TOUR_RING)}>
+    <Button asChild size="lg" data-tour={first ? 'start-quick' : undefined} className={cn('h-auto min-h-16 w-full whitespace-normal py-2 text-base', TOUR_RING)}>
       <Link to={q.to}>
         <Zap aria-hidden />
         {q.label}

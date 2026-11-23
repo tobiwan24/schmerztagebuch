@@ -16,7 +16,8 @@ Diary        { id, name, subject: 'human' | 'animal' | 'other', icon?, color?, c
                settings: { weather: { enabled: boolean,
                                       location?: { lat: number, lon: number, label: string } /* fester Ort, gerundet */,
                                       gpsDefault: boolean /* GPS pro Eintrag standardmäßig an? Standard false */ },
-                           quickEntryTemplateId?: string, quickEntryBlockIds?: string[], timezone: string } }
+                           quickEntryTemplateId?: string, quickEntryBlockIds?: string[],
+                           quickTemplateIds?: string[] /* Vorlagen mit eigenem Schnell-Button auf Start (RDM-028) */, timezone: string } }
 
 Template     { id, diaryId, name, icon?, color?, order: string /* Fractional Index */, currentVersion: number,
                archived: boolean, createdAt, updatedAt }

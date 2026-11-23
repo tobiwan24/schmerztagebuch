@@ -21,7 +21,7 @@ export function SyncStatus() {
         {text}
       </span>
       {state === 'error' ? (
-        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => void syncNow()}>
+        <Button size="sm" variant="ghost" className="-my-2 h-11 px-2 text-xs" onClick={() => void syncNow()}>
           {de.state.retry}
         </Button>
       ) : null}

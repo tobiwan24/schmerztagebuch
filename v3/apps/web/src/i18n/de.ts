@@ -153,8 +153,6 @@ export const de = {
     switchTitle: 'Vorlage wechseln?',
     switchHint: 'Deine Eingaben gehen beim Wechsel der Vorlage verloren.',
     switchConfirm: 'Vorlage wechseln',
-    today: 'Heute',
-    yesterday: 'Gestern',
   },
   state: {
     errorTitle: 'Das hat nicht geklappt',

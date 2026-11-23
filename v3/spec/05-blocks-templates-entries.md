@@ -56,6 +56,7 @@ Route `/more/templates/new` und `/more/templates/:id` (nur `owner` bzw. local-on
 - **Auswahl der Vorlage** im Schnelleintrag: alle aktiven Vorlagen des Tagebuchs (jede hat Schnelleintrag-Felder, notfalls per Standardregel) als Auswahl oberhalb der Felder; die zuletzt genutzte ist vorausgewählt (sonst die erste in Vorlagen-Reihenfolge).
 - Erreichbar mit **einem Tipp** von der Startseite; Speichern mit höchstens **drei Tipps** insgesamt (Vorauswahl der Vorlage = kein Tipp).
 - Weitere Felder können später im Eintrag ergänzt werden (`meta.source = 'quick'`).
+- **Schnell-Buttons je Vorlage:** Die Tagebuch-Einstellung `quickTemplateIds` wählt Vorlagen, die auf Start einen eigenen Knopf „Schnell: <Vorlage>“ bekommen (`/quick?template=<id>`, Vorlage vorausgewählt); ohne Auswahl bleibt der eine Knopf „Schnell eintragen“.
 - Mehrere beschreibbare Tagebücher: Start zeigt je Tagebuch einen Knopf (`/quick?diary=<id>`); `/quick` ohne Parameter zeigt dann eine Auswahl. Wetter wie im Formular (fester Ort / `gpsDefault`).
 
 ## Wetter als Metadaten
