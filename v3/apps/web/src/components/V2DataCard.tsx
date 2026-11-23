@@ -18,10 +18,10 @@ export function V2DataCard() {
   const [error, setError] = useState(false);
   if (status.status !== 'ok') return null;
   const { counts, state } = status.data;
-  if (!counts && !state) return null; // weder v2-Daten noch frühere Migration
+  if (!counts && !state?.v2RemovedAt) return null; // nur Geräte mit lokaler v2-Datenbank (oder nach Entfernen hier)
 
   const verified = !!state?.verify.ok && !!state.migratedFromV2At;
-  const removed = !!state?.v2RemovedAt || !counts;
+  const removed = !!state?.v2RemovedAt;
   async function doRemove() {
     setBusy(true);
     setError(false);

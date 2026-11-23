@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/auth/AuthContext';
 import { useSync } from '@/data/SyncContext';
 import type { DeviceView } from '@/auth/devices';
+import { deviceLabel } from '@/lib/device-name';
 import { de } from '@/i18n/de';
 import { deDevices } from '@/i18n/lazy/devices';
 
@@ -59,7 +60,7 @@ export function DevicesSection() {
             <li key={d.id} data-testid="device-row" data-current={d.current} className="flex flex-col gap-2 rounded-md border p-3">
               <div className="flex items-center gap-2">
                 <Smartphone aria-hidden className="size-4 shrink-0" />
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">{d.name ?? t.unnamed}</span>
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">{deviceLabel(d.name, t.unnamed)}</span>
                 {d.current ? <Badge>{t.thisDevice}</Badge> : null}
                 {d.revokedAt !== null ? <Badge variant="secondary">{t.revoked}</Badge> : null}
               </div>
