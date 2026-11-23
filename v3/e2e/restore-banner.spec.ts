@@ -26,7 +26,6 @@ test.describe('Backup wiederherstellen (leere DB)', () => {
     await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Mit Passwort entsperren' }).click();
     await expect(page.getByRole('heading', { name: 'Start' })).toBeVisible();
-    await expect(page.getByTestId('empty-state')).toBeVisible();
     await expect(banner).toHaveCount(0);
   });
 

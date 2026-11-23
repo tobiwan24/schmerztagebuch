@@ -111,6 +111,7 @@ test.describe('M14-Rundgang (iPhone-Viewport)', () => {
     await page.getByLabel(/Stärke/).fill('4');
     await page.getByRole('button', { name: 'Speichern' }).click();
     await expect(page.getByRole('heading', { name: 'Start' })).toBeVisible();
+    await go(page, '/history');
     await expect(page.getByTestId('entry-row')).toHaveCount(2);
 
     // Tagebuch-Einstellungen / Ort-Bereich

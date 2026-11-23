@@ -152,7 +152,7 @@ test.describe('Body-Map', () => {
           };
         }),
     );
-    await go(page, '/');
+    await go(page, '/history');
     await page.getByTestId('entry-row').click();
     await expect(view).toBeVisible();
     await expect(view.getByRole('img', { name: 'Körper Vorderseite' })).toBeVisible();

@@ -79,7 +79,7 @@ test.describe('Verlauf: Sortierung und Seiten', () => {
     await expect(days.first()).not.toContainText('Heute');
   });
 
-  test('UI-25: Verlauf hat keinen „Neuer Eintrag"-Knopf (leer und mit Einträgen); Start behält ihn', async ({ page }) => {
+  test('UI-25: weder Verlauf noch Start haben einen „Neuer Eintrag"-Knopf (neue Einträge über die Vorlagen-Kacheln, RDM-028 P2)', async ({ page }) => {
     await onboardWithPassword(page);
     await go(page, '/history');
     await expect(page.getByRole('heading', { name: 'Verlauf' })).toBeVisible();
@@ -90,6 +90,7 @@ test.describe('Verlauf: Sortierung und Seiten', () => {
     await expect(page.getByTestId('entry-row').first()).toBeVisible();
     await expect(page.getByRole('link', { name: 'Neuer Eintrag' })).toHaveCount(0);
     await go(page, '/');
-    await expect(page.getByRole('link', { name: 'Neuer Eintrag' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Neuer Eintrag' })).toHaveCount(0);
+    await expect(page.getByTestId('template-tile').first()).toBeVisible();
   });
 });

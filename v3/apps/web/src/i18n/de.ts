@@ -20,6 +20,8 @@ export const de = {
     title: 'Start',
     quickEntry: 'Schnell eintragen',
     quickEntryFor: (diary: string) => `Schnell eintragen · ${diary}`,
+    quickTemplate: (template: string) => `Schnell: ${template}`,
+    quickTemplateIn: (template: string, diary: string) => `Schnell: ${template} · ${diary}`,
     newEntry: 'Neuer Eintrag',
     tilesLabel: 'Vorlagen',
     trainingTile: 'Übungen',
@@ -27,8 +29,6 @@ export const de = {
     newEntriesFrom: (n: number, name: string) => `${n} ${n === 1 ? 'neuer Eintrag' : 'neue Einträge'} von ${name}`,
     newEntriesDismiss: 'Ausblenden',
     unknownMember: 'einem Mitglied',
-    emptyTitle: 'Noch keine Einträge',
-    emptyHint: 'Tippe auf „Schnell eintragen“ oder „Neuer Eintrag“, um deinen ersten Eintrag zu erfassen.',
   },
   history: {
     title: 'Verlauf',

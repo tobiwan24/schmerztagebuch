@@ -82,7 +82,7 @@ test.describe('Eintragsformular', () => {
   test('BLK-09: Warnung nur nach echter Änderung, nicht nach bloßem Öffnen oder Vorlagenwechsel ohne Eingabe', async ({ page }) => {
     // Navigation per Link (wie in der App) — nur Router-Navigationen lassen sich abfangen.
     const nav = page.getByRole('navigation', { name: 'Hauptnavigation' });
-    const openNew = () => page.getByRole('link', { name: 'Neuer Eintrag' }).click();
+    const openNew = () => page.getByTestId('template-tile').first().click();
 
     // bloßes Öffnen → keine Warnung
     await openNew();
@@ -108,7 +108,7 @@ test.describe('Eintragsformular', () => {
     await expect(page.getByRole('dialog')).toContainText('Änderungen verwerfen?');
     await page.getByRole('button', { name: 'Weiter bearbeiten' }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expect(page).toHaveURL(/\/entry\/new$/);
+    await expect(page).toHaveURL(/\/entry\/new(?:\?template=[^/]+)?$/);
     await expect(page.getByLabel('Notizen')).toHaveValue('nach dem Aufstehen');
 
     // Zeitangabe geändert → ebenfalls Warnung (auch über die untere Navigation)
@@ -126,7 +126,7 @@ test.describe('Eintragsformular', () => {
     await expect(page.getByRole('heading', { name: 'Verlauf' })).toBeVisible();
     await expect(page.getByRole('dialog')).toHaveCount(0);
 
-    // „Verwerfen" verlässt das Formular (Neuer Eintrag gibt es nur auf Start, UI-25)
+    // „Verwerfen" verlässt das Formular (neue Einträge starten über die Vorlagen-Kacheln auf Start, UI-25)
     await nav.getByRole('link', { name: 'Start' }).click();
     await openNew();
     await page.getByLabel('Notizen').fill('x');

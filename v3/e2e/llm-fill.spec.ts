@@ -122,6 +122,7 @@ test.describe('Aus Text ausfüllen', () => {
     await expect(page.getByTestId('llm-draft-notice')).toBeVisible();
     await page.getByRole('button', { name: 'Speichern' }).click();
     await expect(page.getByRole('heading', { name: 'Start' })).toBeVisible();
+    await go(page, '/history');
     await expect(page.getByTestId('entry-row')).toHaveCount(1);
     expect(await dumpIndexedDb(page)).not.toContain(MARKER);
   });

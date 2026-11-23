@@ -43,6 +43,7 @@ test.describe('Zwei Geräte', () => {
 
     const b = await addDeviceWithBackupCode(browser, user, code);
     await synced(b);
+    await go(b, '/history');
     await expect(b.getByTestId('entry-row')).toHaveCount(1);
 
     // beide offline bearbeiten: A die Notiz, B die Schmerzstärke
