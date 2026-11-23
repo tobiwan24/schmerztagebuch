@@ -23,7 +23,7 @@ export const OPTION_TONES: readonly Tone[] = [
   { hex: '#ec4899', idle: 'border-pink-500 bg-pink-50 text-pink-900 hover:bg-pink-100', selected: 'border-pink-700 bg-pink-700 text-white hover:bg-pink-700 hover:text-white' },
 ];
 
-function rgb(hex: string): [number, number, number] | null {
+export function rgb(hex: string): [number, number, number] | null {
   const v = hex.trim();
   const m = /^#?([0-9a-f]{6})$/i.exec(v) ?? /^#?([0-9a-f]{3})$/i.exec(v);
   if (!m) return null;

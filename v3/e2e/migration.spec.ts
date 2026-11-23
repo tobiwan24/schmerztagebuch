@@ -54,6 +54,27 @@ test.describe('Migration v2 → v3', () => {
     expect(text).toContain('Zuhause');
   });
 
+  test('RDM-028 P3: migrierte v2-Vorlage zeigt zugeordnetes Symbol und Farbe, Editor markiert die Wahl', async ({ page }) => {
+    await onboardWithPassword(page);
+    await createV2Db(page);
+    await go(page, '/history');
+    await go(page, '/');
+    await page.getByTestId('v2-banner').getByRole('link', { name: 'Übernehmen' }).click();
+    await page.getByRole('button', { name: 'Trockenlauf starten' }).click();
+    await page.getByTestId('migration-plan').getByRole('button', { name: 'Jetzt übernehmen' }).click();
+    await expect(page.getByTestId('migration-done')).toBeVisible();
+    await go(page, '/more/templates');
+    const row = (name: string) => page.getByTestId('template-row').filter({ has: page.getByRole('link', { name: `${name} bearbeiten`, exact: true }) });
+    // v2: Flame/#FF3B30 und Book/#007AFF
+    await expect(row('Schmerz').getByTestId('template-icon')).toHaveAttribute('data-icon', 'Flame');
+    await expect(row('Schmerz').getByTestId('template-icon')).toHaveAttribute('data-color', 'red');
+    await expect(row('Alt-Vorlage').getByTestId('template-icon')).toHaveAttribute('data-icon', 'BookOpen');
+    await expect(row('Alt-Vorlage').getByTestId('template-icon')).toHaveAttribute('data-color', 'blue');
+    await row('Alt-Vorlage').getByRole('link', { name: 'Alt-Vorlage bearbeiten' }).click();
+    await expect(page.getByRole('group', { name: 'Farbe', exact: true }).getByRole('button', { name: 'Blau' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'Symbol BookOpen' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   test('MIG-14: „v2-Daten entfernen" ist erst nach erfolgreicher Prüfung möglich und verlangt Bestätigung', async ({ page }) => {
     await onboardWithPassword(page);
     await createV2Db(page);

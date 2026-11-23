@@ -16,6 +16,7 @@ import { LlmRolesButton } from '@/components/LlmRolesButton';
 import { PageHeader } from '@/components/PageHeader';
 import { ErrorState } from '@/components/StateView';
 import { BlockEditor } from '@/components/template-editor/BlockEditor';
+import { resolveTemplateColor, resolveTemplateIcon } from '@/lib/template-style';
 import { DEFAULT_TEMPLATE_COLOR, DEFAULT_TEMPLATE_ICON } from '@/components/TemplateIcon';
 import { TemplateStylePicker } from '@/components/TemplateStylePicker';
 import { useData } from '@/data/DataContext';
@@ -67,8 +68,8 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
   const navigate = useNavigate();
   const { state } = loaded;
   const [name, setName] = useState(state?.template.name ?? '');
-  const [icon, setIcon] = useState(state?.template.icon ?? DEFAULT_TEMPLATE_ICON);
-  const [color, setColor] = useState(state?.template.color ?? DEFAULT_TEMPLATE_COLOR);
+  const [icon, setIcon] = useState<string>(() => resolveTemplateIcon(state?.template.icon ?? DEFAULT_TEMPLATE_ICON));
+  const [color, setColor] = useState<string>(() => resolveTemplateColor(state?.template.color) ?? DEFAULT_TEMPLATE_COLOR);
   const [blocks, setBlocks] = useState<BlockDef[]>(() => [...(state?.version.blocks ?? [])].sort(compareByOrder));
   const [quickIds, setQuickIds] = useState<string[]>(state?.template.quickBlockIds ?? []);
   const [training, setTraining] = useState(state?.template.purpose === 'training');
