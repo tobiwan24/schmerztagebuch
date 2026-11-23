@@ -37,7 +37,10 @@ export function CloudAccountCard() {
         <CardHeader>
           <CardTitle>{t.account}</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground" data-testid="account-detached">{t.detached}</CardContent>
+        <CardContent className="flex flex-col gap-3">
+          <p className="text-sm text-muted-foreground" data-testid="account-detached">{t.detached}</p>
+          {auth.status === 'unlocked' ? <FactorsSection /> : null}
+        </CardContent>
       </Card>
     );
   }

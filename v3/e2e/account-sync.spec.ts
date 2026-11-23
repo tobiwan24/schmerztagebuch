@@ -50,6 +50,8 @@ test.describe('Konto & Sync', () => {
     await page.getByRole('button', { name: 'Nur auf diesem Gerät weiterverwenden' }).click();
     await page.getByRole('button', { name: 'Jetzt zurückstellen' }).click();
     await expect(page.getByTestId('account-detached')).toBeVisible({ timeout: 20_000 });
+    // RDM-028 P7: auch abgekoppelt bleibt „Backup-Code erneuern“ erreichbar
+    await expect(page.getByTestId('account-card').getByRole('button', { name: 'Backup-Code erneuern' })).toBeVisible();
 
     // ab hier: keinerlei Request an /api/
     const api: string[] = [];

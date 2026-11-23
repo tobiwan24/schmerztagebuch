@@ -174,7 +174,7 @@ export const de = {
     cancel: 'Abbrechen',
     stayUnlocked: (days: number) => `Auf diesem Gerät entsperrt bleiben (${days} ${days === 1 ? 'Tag' : 'Tage'})`,
     settingsTitle: 'Sperre',
-    stayDaysLabel: 'Dauer für „Entsperrt bleiben“ (Tage, 1–30)',
+    stayDaysLabel: 'Dauer für ‚Entsperrt bleiben‘ (Tage, 1–30)',
     stayActive: (date: string) => `Dieses Gerät bleibt entsperrt bis ${date}.`,
     stayInactive: 'Entsperrt bleiben ist aus. Einschalten beim Entsperren mit „Auf diesem Gerät entsperrt bleiben“. Nach „Jetzt sperren“ oder einer Sperre durch Inaktivität ist es wieder aus.',
     stayRevoke: 'Entsperrt bleiben widerrufen',

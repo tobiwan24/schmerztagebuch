@@ -19,6 +19,7 @@ function browserOf(ua: string): string | null {
   if (/Firefox\/|FxiOS\//.test(ua)) return 'Firefox';
   if (/Chrome\/|CriOS\//.test(ua)) return 'Chrome';
   if (/Safari\//.test(ua)) return 'Safari';
+  if (/iPhone|iPad|iPod/.test(ua) && /AppleWebKit/.test(ua)) return 'Safari'; // Home-Bildschirm-PWA: iOS-UA ohne Browser-Token
   return null;
 }
 

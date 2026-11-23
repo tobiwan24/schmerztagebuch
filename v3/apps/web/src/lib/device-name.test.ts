@@ -12,6 +12,8 @@ const UA = {
   samsung: 'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/25.0 Chrome/121.0.0.0 Mobile Safari/537.36',
   linuxFirefox: 'Mozilla/5.0 (X11; Linux x86_64; rv:127.0) Gecko/20100101 Firefox/127.0',
   ipadFirefox: 'Mozilla/5.0 (iPad; CPU OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/127.0 Mobile/15E148 Safari/605.1.15',
+  iphonePwa: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+  macEdge: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0',
   opera: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 OPR/111.0.0.0',
 };
 
@@ -28,6 +30,15 @@ describe('deviceLabel', () => {
     expect(deviceLabel(UA.linuxFirefox)).toBe('Linux · Firefox');
     expect(deviceLabel(UA.ipadFirefox)).toBe('iPad · Firefox');
     expect(deviceLabel(UA.opera)).toBe('Windows · Opera');
+  });
+
+  it('RDM-028 P7: iOS-Home-Bildschirm-PWA ohne Browser-Token gilt als Safari', () => {
+    expect(deviceLabel(UA.iphonePwa)).toBe('iPhone · Safari');
+  });
+
+  it('RDM-028 P7: Mac-Edge nach slice(0,120) verliert Edg/ und erscheint als Chrome (dokumentierte Grenze, A-142)', () => {
+    expect(deviceLabel(UA.macEdge)).toBe('Mac · Edge');
+    expect(deviceLabel(UA.macEdge.slice(0, 120))).toBe('Mac · Chrome');
   });
 
   it('RDM-028 P7: Gerätenamen lesbar — freie Namen bleiben, null wird „unbenannt“', () => {
