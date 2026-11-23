@@ -55,7 +55,7 @@ test.describe('DK-Rotation', () => {
     await foreground(c.page);
     await go(c.page, '/history');
     await expect(c.page.getByTestId('entry-row')).toHaveCount(1); // nur der Eintrag von vorher
-    await expect(c.page.getByTestId('entry-row')).not.toContainText('STB-ROT-');
+    await expect(c.page.getByTestId('entry-row')).not.toContainText(/STB-ROT-(NACHHER|VON-B)/);
 
     await b.ctx.close();
     await c.ctx.close();

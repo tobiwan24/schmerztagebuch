@@ -164,19 +164,17 @@ test.describe('Eintragsformular', () => {
     await save(page);
     await expect(page.getByTestId('entry-time')).toContainText('10.03.2026, 18:00 – 22:15');
 
-    // Verlauf: nach Tagen gruppiert, neueste zuerst; Zeitraum unter seinem Beginn
+    // Verlauf: neueste zuerst, Datum in der Card (keine Tagesüberschriften, RDM-028 P3); Zeitraum unter seinem Beginn
     await go(page, '/history');
-    const days = page.getByTestId('entry-day');
-    await expect(days).toHaveCount(3);
-    await expect(days.nth(0)).toContainText('10. März 2026');
-    await expect(days.nth(0)).toContainText('10.03.2026, 18:00 – 22:15 · Zeitraum');
-    await expect(days.nth(1)).toContainText('2. März 2026');
-    await expect(days.nth(1)).toContainText('02.03.2026 – 04.03.2026 · Zeitraum');
-    await expect(days.nth(2)).toContainText('20. Februar 2026');
-    await expect(days.nth(2)).toContainText('21:30');
+    const rows = page.getByTestId('entry-row');
+    await expect(page.getByTestId('entry-day')).toHaveCount(0);
+    await expect(rows).toHaveCount(3);
+    await expect(rows.nth(0)).toContainText('10.03.2026, 18:00 – 22:15 · Zeitraum');
+    await expect(rows.nth(1)).toContainText('02.03.2026 – 04.03.2026 · Zeitraum');
+    await expect(rows.nth(2)).toContainText('20.02.2026, 21:30');
 
     // Bearbeiten behält die Zeitangabe
-    await days.nth(2).getByTestId('entry-row').click();
+    await rows.nth(2).click();
     await page.getByRole('link', { name: 'Bearbeiten' }).click();
     await expect(page.getByLabel('Zeitpunkt', { exact: true })).toHaveValue('2026-02-20T21:30');
     await page.getByLabel('Zeitpunkt', { exact: true }).fill('2026-02-19T07:05');
