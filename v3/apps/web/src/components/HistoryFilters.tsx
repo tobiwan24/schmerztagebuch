@@ -3,12 +3,15 @@
 import { cn } from '@/lib/utils';
 import { TOUR_RING } from '@/tour/anchor';
 import { useEffect, useRef, useState } from 'react';
-import { Star, X } from 'lucide-react';
-import type { FilterSpec, SavedFilter } from '@stb/analysis';
+import { ArrowUpDown, ChevronDown, Download, Filter, Star, X } from 'lucide-react';
+import { Link } from 'react-router';
+import { SORT_ORDERS, type FilterSpec, type SavedFilter, type SortOrder } from '@stb/analysis';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useData } from '@/data/DataContext';
 import { useAuthorName } from '@/data/useSharing';
@@ -41,6 +44,10 @@ const OPEN_TO = '9999-12-31';
 
 export const isActive = (s: FilterState) =>
   s.text.trim() !== '' || s.range !== 'all' || s.from !== '' || s.to !== '' || s.templateIds.length > 0 || s.outcome || s.meds || s.events || s.content.length > 0 || s.authorId !== '';
+
+/** Anzahl aktiver Filter für das Zähler-Badge (RDM-028 P4): je Vorlage 1, Zeitraum 1, je Inhalt/Kennzeichen 1, Autor 1; die offen sichtbare Suche zählt nicht. */
+export const activeFilterCount = (s: FilterState) =>
+  s.templateIds.length + (s.range !== 'all' || s.from !== '' || s.to !== '' ? 1 : 0) + s.content.length + [s.outcome, s.meds, s.events].filter(Boolean).length + (s.authorId !== '' ? 1 : 0);
 
 type Cond = NonNullable<FilterSpec['conditions']>[number];
 const CONTENT_CONDITIONS: Record<ContentKind, Cond> = {
@@ -91,7 +98,7 @@ export function fromSpec(spec: FilterSpec): FilterState {
 
 const RANGES: RangePreset[] = ['all', '7d', '30d', '90d'];
 
-export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templates }: { state: FilterState; onChange: (s: FilterState) => void; diaryIds: string[]; medOptionIds: string[]; templates: { id: string; name: string }[] }) {
+export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templates, sort, onSortChange }: { state: FilterState; onChange: (s: FilterState) => void; diaryIds: string[]; medOptionIds: string[]; templates: { id: string; name: string }[]; sort: SortOrder; onSortChange: (s: SortOrder) => void }) {
   const data = useData();
   const ownerDiary = diaryIds[0];
   const saved = useQuery(async () => (ownerDiary ? data.diary.listSavedFilters(ownerDiary) : []), [data.diary, ownerDiary]);
@@ -100,6 +107,10 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
   const authorName = useAuthorName(ownerDiary, state.authorId || undefined);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
+  // Nur ein Panel gleichzeitig; mit vorgewähltem Autor (SHR-15) startet das Filter-Panel offen, damit der Autor-Chip sichtbar ist.
+  const [panel, setPanel] = useState<'filter' | 'sort' | null>(state.authorId ? 'filter' : null);
+  const count = activeFilterCount(state);
+  const togglePanel = (p: 'filter' | 'sort') => setPanel(panel === p ? null : p);
 
   // Suche entprellt übernehmen
   useEffect(() => {
@@ -144,6 +155,33 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
         </Label>
         <Input id="history-search" type="search" placeholder={de.history.searchPlaceholder} value={text} onChange={(e) => setText(e.target.value)} />
       </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" variant="outline" aria-expanded={panel === 'filter'} aria-controls="history-filter-panel" onClick={() => togglePanel('filter')}>
+          <Filter aria-hidden />
+          {de.history.filter}
+          {count > 0 ? (
+            <Badge data-testid="filter-count">
+              {count}
+              <span className="sr-only">{de.history.activeFilters(count)}</span>
+            </Badge>
+          ) : null}
+          <ChevronDown aria-hidden className={cn('transition-transform', panel === 'filter' && 'rotate-180')} />
+        </Button>
+        <Button size="sm" variant="outline" aria-expanded={panel === 'sort'} aria-controls="history-sort-panel" onClick={() => togglePanel('sort')}>
+          <ArrowUpDown aria-hidden />
+          {de.history.sortButton}
+          <ChevronDown aria-hidden className={cn('transition-transform', panel === 'sort' && 'rotate-180')} />
+        </Button>
+        {/* Export mit den aktuell angewendeten Filtern (EXP-18, A-073): FilterSpec als Router-State an die Export-Seite. */}
+        <Button asChild size="sm" variant="outline" className="ml-auto">
+          <Link to="/more/export" state={{ filter: toSpec(state, diaryIds, medOptionIds) }}>
+            <Download aria-hidden />
+            {de.history.export}
+          </Link>
+        </Button>
+      </div>
+      {panel === 'filter' ? (
+        <div id="history-filter-panel" className="flex flex-col gap-3 rounded-lg border bg-card p-3">
       <ToggleGroup aria-label={de.history.range}>
         {RANGES.map((r) => (
           <ToggleGroupItem key={r} pressed={state.range === r && !freeRange} onClick={() => onChange({ ...state, range: r, from: '', to: '' })}>
@@ -167,7 +205,7 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
           {templates.map((t) => {
             const on = state.templateIds.includes(t.id);
             return (
-              <Button key={t.id} size="sm" variant={on ? 'default' : 'outline'} aria-pressed={on} onClick={() => onChange({ ...state, templateIds: on ? state.templateIds.filter((x) => x !== t.id) : [...state.templateIds, t.id] })}>
+              <Button key={t.id} size="sm" className="h-auto whitespace-normal py-1 text-left" variant={on ? 'default' : 'outline'} aria-pressed={on} onClick={() => onChange({ ...state, templateIds: on ? state.templateIds.filter((x) => x !== t.id) : [...state.templateIds, t.id] })}>
                 {t.name}
               </Button>
             );
@@ -223,6 +261,20 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
               </Button>
             </span>
           ))}
+        </div>
+      ) : null}
+        </div>
+      ) : null}
+      {panel === 'sort' ? (
+        <div id="history-sort-panel" className="flex flex-col gap-1 rounded-lg border bg-card p-3">
+          <Label htmlFor="history-sort">{de.history.sort}</Label>
+          <Select id="history-sort" value={sort} onChange={(e) => onSortChange(e.target.value as SortOrder)}>
+            {SORT_ORDERS.map((o) => (
+              <option key={o} value={o}>
+                {de.history.sorts[o]}
+              </option>
+            ))}
+          </Select>
         </div>
       ) : null}
       <Dialog open={saving} onClose={() => setSaving(false)} aria-labelledby="save-filter-title">

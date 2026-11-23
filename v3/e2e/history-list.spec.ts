@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { PASSWORD, go, onboardWithPassword } from './helpers';
+import { PASSWORD, go, onboardWithPassword, openSort } from './helpers';
 
 /** Nur im Test: 3 Tage × 40 synthetische Einträge (mittags, je 1 Minute Abstand) direkt in die lokale DB schreiben (Codec `plain`). */
 async function seed(page: Page): Promise<void> {
@@ -60,6 +60,7 @@ test.describe('Verlauf: Sortierung und Seiten', () => {
     await expect(page.getByRole('button', { name: /Weitere laden/ })).toHaveCount(0);
 
     // Sortierung: 4 Optionen; „Älteste zuerst" beginnt mit dem ältesten Tag und startet wieder bei einer Seite
+    await openSort(page);
     const sort = page.getByLabel('Sortierung');
     await expect(sort.locator('option')).toHaveText(['Neueste zuerst', 'Älteste zuerst', 'Vorlage A–Z', 'Vorlage und Datum']);
     await sort.selectOption({ label: 'Älteste zuerst' });
@@ -76,6 +77,7 @@ test.describe('Verlauf: Sortierung und Seiten', () => {
     await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Mit Passwort entsperren' }).click();
     await expect(page.getByRole('heading', { name: 'Verlauf' })).toBeVisible({ timeout: 30_000 });
+    await openSort(page);
     await expect(page.getByLabel('Sortierung')).toHaveValue('oldest');
     await expect(rows).toHaveCount(50);
     await expect(rows.first()).toContainText(dateOf(2));

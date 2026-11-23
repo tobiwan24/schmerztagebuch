@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { addVirtualAuthenticator, go, onboardWithCloud, onboardWithPassword, uniqueUser } from './helpers';
+import { addVirtualAuthenticator, go, onboardWithCloud, onboardWithPassword, openFilter, uniqueUser } from './helpers';
 
 test.use({ viewport: { width: 390, height: 844 } });
 test.describe.configure({ timeout: 180_000 });
@@ -84,6 +84,7 @@ test.describe('M14-Rundgang (iPhone-Viewport)', () => {
     await expect(page.getByTestId('entry-row')).toHaveCount(1);
 
     // Verlauf-Filter + Export daraus als PDF (Datei mit pdfjs öffnen)
+    await openFilter(page);
     await page.getByRole('button', { name: '7 Tage' }).click();
     await expect(page.getByTestId('entry-row')).toHaveCount(1);
     await page.getByLabel('Suchen').fill('rundgang');

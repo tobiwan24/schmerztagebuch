@@ -198,3 +198,17 @@ export async function addEntry(page: Page, pain: string, note: string) {
   await page.getByRole('button', { name: 'Speichern' }).click();
   await expect(page.getByTestId('entry-time')).toBeVisible();
 }
+
+/** Verlauf: Filter-Panel öffnen (RDM-028 P4), falls noch zu. */
+export async function openFilter(page: Page) {
+  const btn = page.locator('[aria-controls="history-filter-panel"]');
+  if ((await btn.getAttribute('aria-expanded')) !== 'true') await btn.click();
+  await expect(page.locator('#history-filter-panel')).toBeVisible();
+}
+
+/** Verlauf: Sortieren-Panel öffnen (RDM-028 P4), falls noch zu. */
+export async function openSort(page: Page) {
+  const btn = page.locator('[aria-controls="history-sort-panel"]');
+  if ((await btn.getAttribute('aria-expanded')) !== 'true') await btn.click();
+  await expect(page.locator('#history-sort-panel')).toBeVisible();
+}
