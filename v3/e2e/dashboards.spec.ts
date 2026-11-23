@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { PASSWORD, go, onboardWithPassword } from './helpers';
+import { PASSWORD, go, onboardWithPassword, openAnalysisView } from './helpers';
 
 /** Nur im Test: synthetische Einträge der letzten 20 Tage direkt in die lokale DB (Codec `plain`). */
 async function seedEntries(page: Page) {
@@ -39,7 +39,7 @@ async function seedEntries(page: Page) {
 
 async function openDashboards(page: Page) {
   await go(page, '/analysis');
-  await page.getByRole('button', { name: 'Dashboards', exact: true }).click();
+  await openAnalysisView(page, 'Dashboards');
   await expect(page.getByTestId('dashboards-view')).toBeVisible();
 }
 

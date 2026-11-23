@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { PASSWORD, go, onboardWithPassword } from './helpers';
+import { PASSWORD, go, onboardWithPassword, openAnalysisView } from './helpers';
 
 /**
  * Nur im Test: synthetische Einträge der letzten 25 Tage direkt in die lokale DB (Codec `plain`).
@@ -62,7 +62,7 @@ test.describe('Auswertung: Zusammenhänge', () => {
     await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible({ timeout: 30_000 });
     await go(page, '/analysis');
 
-    await page.getByRole('button', { name: 'Zusammenh.' }).click();
+    await openAnalysisView(page, 'Zusammenh.');
     const caveat = page.getByTestId('corr-caveat');
     await expect(caveat).toHaveText('Zusammenhang ist keine Ursache.');
 

@@ -2,7 +2,7 @@
 // Körperkarte — fest, nicht konfigurierbar. Dazu der Zeitraumvergleich. Rein beschreibend, jede Kennzahl mit n.
 // Daten aus dem Analyse-Worker (`useAnalysis`).
 import { TOUR_RING } from '@/tour/anchor';
-import { Suspense, lazy, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { FilePlus, ImageDown } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
 import { addDays, type FilterSpec } from '@stb/analysis';
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Carousel, CarouselContent, CarouselDots, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ChartEntryDialog } from '@/components/ChartEntryDialog';
 import { PageHeader } from '@/components/PageHeader';
@@ -53,6 +54,13 @@ export function AnalysisPage() {
   const trainingAny = useWorker((c) => c.training({ ...(scope.diaryId ? { spec: { diaryIds: [scope.diaryId], range: { preset: 'all' as const } } } : {}), now: now() }), [scope.diaryId]);
   const views = trainingAny && trainingAny.totalDays > 0 ? VIEWS_WITH_TRAINING : VIEWS;
   const view = views.includes(pickedView) ? pickedView : 'trend';
+  const [tabsApi, setTabsApi] = useState<CarouselApi>();
+  // Der aktive Tab scrollt ins Bild (P6): Schnappposition suchen, die ihn enthält.
+  useEffect(() => {
+    if (!tabsApi) return;
+    const snap = tabsApi.internalEngine().slideRegistry.findIndex((slides) => slides.includes(views.indexOf(view)));
+    if (snap >= 0 && snap !== tabsApi.selectedScrollSnap()) tabsApi.scrollTo(snap);
+  }, [tabsApi, view, views]);
   const [range, setRange] = useState<Range>('30d');
   /** Wie viele Zeiträume zurück (0 = bis heute); Wischen nach rechts = älter, nach links = neuer. */
   const [shift, setShift] = useState(0);
@@ -89,13 +97,18 @@ export function AnalysisPage() {
   return (
     <>
       <PageHeader title={deAnalysis.title} sync />
-      <ToggleGroup aria-label={deAnalysis.views}>
-        {views.map((v) => (
-          <ToggleGroupItem key={v} pressed={view === v} onClick={() => setView(v)} className="px-1 text-xs">
-            {deAnalysis.viewNames[v]}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
+      <Carousel setApi={setTabsApi} opts={{ dragFree: false }}>
+        <CarouselContent role="group" aria-label={deAnalysis.views} className="-ml-1">
+          {views.map((v) => (
+            <CarouselItem key={v} className="basis-auto pl-1">
+              <ToggleGroupItem pressed={view === v} onClick={() => setView(v)} className="h-11 w-24 flex-none border px-1 text-xs">
+                {deAnalysis.viewNames[v]}
+              </ToggleGroupItem>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <CarouselDots className="-mt-1" />
+      </Carousel>
       {!ownRange ? (
         <ToggleGroup aria-label={de.history.range} data-tour="analysis-range" className={TOUR_RING}>
           {RANGES.map((r) => (

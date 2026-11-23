@@ -212,3 +212,11 @@ export async function openSort(page: Page) {
   if ((await btn.getAttribute('aria-expanded')) !== 'true') await btn.click();
   await expect(page.locator('#history-sort-panel')).toBeVisible();
 }
+
+/** Öffnet einen Tab der Auswertung; die Tab-Leiste ist ein Carousel, ein Tab kann außerhalb des Bildes liegen — daher Fokus + Enter (Fokus holt ihn ins Bild). */
+export async function openAnalysisView(page: Page, name: string): Promise<void> {
+  const tab = page.getByRole('group', { name: 'Ansicht' }).getByRole('button', { name, exact: true });
+  await tab.focus();
+  await tab.press('Enter');
+  await expect(tab).toHaveAttribute('aria-pressed', 'true');
+}

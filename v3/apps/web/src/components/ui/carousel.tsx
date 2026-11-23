@@ -22,10 +22,14 @@ function useCarousel() {
   return context;
 }
 
-function Carousel({ opts, className, children, ...props }: React.ComponentProps<'div'> & { opts?: CarouselOptions }) {
+function Carousel({ opts, setApi, className, children, ...props }: React.ComponentProps<'div'> & { opts?: CarouselOptions; setApi?: (api: CarouselApi) => void }) {
   const [carouselRef, api] = useEmblaCarousel({ align: 'start', containScroll: 'trimSnaps', ...opts, axis: 'x' });
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [scrollCount, setScrollCount] = React.useState(0);
+
+  React.useEffect(() => {
+    setApi?.(api);
+  }, [api, setApi]);
 
   React.useEffect(() => {
     if (!api) return;
