@@ -63,13 +63,11 @@ const noOverflow = (page: Page) => page.evaluate(() => document.documentElement.
 test.describe('RDM-028 P6: Umbruch und Beschriftung', () => {
   test('RDM-028 P6: lange Chips und Namen brechen um, kein horizontaler Überlauf', async ({ page }) => {
     await prepare(page);
-    for (const view of ['Verlauf']) {
-      await openAnalysisView(page, view);
-      const chip = page.getByRole('group', { name: 'Feld' }).getByRole('button').first();
-      await expect(chip).toBeVisible();
-      expect((await chip.boundingBox())!.height).toBeGreaterThan(36);
-      expect(await noOverflow(page)).toBeLessThanOrEqual(375);
-    }
+    await openAnalysisView(page, 'Verlauf');
+    const chip = page.getByRole('group', { name: 'Feld' }).getByRole('button').first();
+    await expect(chip).toBeVisible();
+    expect((await chip.boundingBox())!.height).toBeGreaterThan(36);
+    expect(await noOverflow(page)).toBeLessThanOrEqual(375);
     await openAnalysisView(page, 'Dashboards');
     const name = 'Mein sehr langes Dashboard für die Auswertung aller Übungen und Beschwerden xxxx';
     expect(name.length).toBe(80);

@@ -306,7 +306,7 @@ export function EntryForm({ templates, entry, prefill }: { templates: Template[]
           <legend className="mb-2 text-sm font-medium">{de.entry.template}</legend>
           <div className="flex flex-wrap gap-2">
             {templates.map((t) => (
-              <Button key={t.id} type="button" size="sm" variant={t.id === template.id ? 'default' : 'outline'} aria-pressed={t.id === template.id} onClick={() => requestTemplate(t.id)}>
+              <Button key={t.id} type="button" size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant={t.id === template.id ? 'default' : 'outline'} aria-pressed={t.id === template.id} onClick={() => requestTemplate(t.id)}>
                 <TemplateIcon icon={t.icon} color={t.color} className={t.id === template.id ? 'text-primary-foreground' : undefined} />
                 {t.name}
               </Button>

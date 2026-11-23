@@ -118,7 +118,7 @@ export function QuickPage() {
             {options.map((o) => {
               const active = o.state.template.id === selection.state.template.id;
               return (
-                <Button key={o.state.template.id} type="button" size="sm" variant={active ? 'default' : 'outline'} aria-pressed={active} onClick={() => switchTo(o.state.template.id)}>
+                <Button key={o.state.template.id} type="button" size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant={active ? 'default' : 'outline'} aria-pressed={active} onClick={() => switchTo(o.state.template.id)}>
                   <TemplateIcon icon={o.state.template.icon} color={o.state.template.color} className={active ? 'text-primary-foreground' : undefined} />
                   {o.state.template.name}
                 </Button>

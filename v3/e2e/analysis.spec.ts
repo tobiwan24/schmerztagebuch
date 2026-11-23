@@ -193,6 +193,17 @@ test.describe('Auswertung', () => {
       expect(await dots.count()).toBeGreaterThanOrEqual(2);
       expect((await dots.first().boundingBox())!.height).toBeGreaterThanOrEqual(44);
       expect((await box(first)).height).toBeGreaterThanOrEqual(44);
+      // Klick auf einen sichtbaren Tab („Kalender“) schiebt die Leiste nicht
+      const x0 = (await box(first)).x;
+      await tabs.getByRole('button', { name: 'Kalender', exact: true }).click();
+      await expect(tabs.getByRole('button', { name: 'Kalender', exact: true })).toHaveAttribute('aria-pressed', 'true');
+      await page.waitForTimeout(500);
+      expect((await box(first)).x).toBe(x0);
+      // Mausweg: Punkt antippen, vorher verdeckten Tab „Dashboards“ anklicken -> aktiv
+      await dots.last().click();
+      await expect.poll(async () => { const b = await box(last); return b.x + b.width <= right + 1; }).toBe(true);
+      await last.click();
+      await expect(last).toHaveAttribute('aria-pressed', 'true');
       // Wechsel auf „Dashboards“: Tab liegt danach vollständig im Bild
       await openAnalysisView(page, 'Dashboards');
       await expect(page.getByTestId('dashboards-view')).toBeVisible();

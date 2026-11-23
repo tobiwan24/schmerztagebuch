@@ -55,10 +55,14 @@ export function AnalysisPage() {
   const views = trainingAny && trainingAny.totalDays > 0 ? VIEWS_WITH_TRAINING : VIEWS;
   const view = views.includes(pickedView) ? pickedView : 'trend';
   const [tabsApi, setTabsApi] = useState<CarouselApi>();
-  // Der aktive Tab scrollt ins Bild (P6): Schnappposition suchen, die ihn enthält.
+  // Der aktive Tab scrollt ins Bild (P6), aber nur, wenn er nicht schon ganz sichtbar ist (`inViewThreshold: 1`);
+  // sonst wandert die Leiste bei jedem Klick. Die Schnappposition liefert `internalEngine().slideRegistry` —
+  // interne embla-API, daher ist embla in apps/web fest auf 8.6.0 gepinnt.
   useEffect(() => {
     if (!tabsApi) return;
-    const snap = tabsApi.internalEngine().slideRegistry.findIndex((slides) => slides.includes(views.indexOf(view)));
+    const idx = views.indexOf(view);
+    if (tabsApi.slidesInView().includes(idx)) return;
+    const snap = tabsApi.internalEngine().slideRegistry.findIndex((slides) => slides.includes(idx));
     if (snap >= 0 && snap !== tabsApi.selectedScrollSnap()) tabsApi.scrollTo(snap);
   }, [tabsApi, view, views]);
   const [range, setRange] = useState<Range>('30d');
@@ -97,7 +101,7 @@ export function AnalysisPage() {
   return (
     <>
       <PageHeader title={deAnalysis.title} sync />
-      <Carousel setApi={setTabsApi} opts={{ dragFree: false }}>
+      <Carousel setApi={setTabsApi} aria-label={deAnalysis.views} opts={{ inViewThreshold: 1 }}>
         <CarouselContent role="group" aria-label={deAnalysis.views} className="-ml-1">
           {views.map((v) => (
             <CarouselItem key={v} className="basis-auto pl-1">

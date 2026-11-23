@@ -217,7 +217,7 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
             {templates.map((t) => {
               const on = state.templateIds.includes(t.id);
               return (
-                <Button key={t.id} size="sm" className="h-auto max-w-full whitespace-normal py-1 text-left" variant={on ? 'default' : 'outline'} aria-pressed={on} onClick={() => onChange({ ...state, templateIds: on ? state.templateIds.filter((x) => x !== t.id) : [...state.templateIds, t.id] })}>
+                <Button key={t.id} size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant={on ? 'default' : 'outline'} aria-pressed={on} onClick={() => onChange({ ...state, templateIds: on ? state.templateIds.filter((x) => x !== t.id) : [...state.templateIds, t.id] })}>
                   {t.name}
                 </Button>
               );

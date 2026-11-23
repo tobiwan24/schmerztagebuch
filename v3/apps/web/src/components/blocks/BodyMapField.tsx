@@ -153,7 +153,7 @@ export function BodyMapField({ id, value, defaultPresetId, onChange, diaryId, on
           </Button>
         ))}
         {ownImages.map((img) => (
-          <Button key={img.id} type="button" size="sm" data-own-image variant={img.id === image.id ? 'default' : 'outline'} aria-pressed={img.id === image.id} onClick={() => choosePreset(img.id)}>
+          <Button key={img.id} type="button" size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" data-own-image variant={img.id === image.id ? 'default' : 'outline'} aria-pressed={img.id === image.id} onClick={() => choosePreset(img.id)}>
             {img.name}
           </Button>
         ))}

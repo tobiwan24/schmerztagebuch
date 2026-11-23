@@ -213,10 +213,24 @@ export async function openSort(page: Page) {
   await expect(page.locator('#history-sort-panel')).toBeVisible();
 }
 
-/** Öffnet einen Tab der Auswertung; die Tab-Leiste ist ein Carousel, ein Tab kann außerhalb des Bildes liegen — daher Fokus + Enter (Fokus holt ihn ins Bild). */
+/** Öffnet einen Tab der Auswertung; die Tab-Leiste ist ein Carousel, ein Tab kann außerhalb des Bildes liegen — dann Punkte antippen, bis er ganz sichtbar ist, und klicken. */
 export async function openAnalysisView(page: Page, name: string): Promise<void> {
-  const tab = page.getByRole('group', { name: 'Ansicht' }).getByRole('button', { name, exact: true });
-  await tab.focus();
-  await tab.press('Enter');
+  const region = page.getByRole('region', { name: 'Ansicht' });
+  const group = page.getByRole('group', { name: 'Ansicht' });
+  const tab = group.getByRole('button', { name, exact: true });
+  const fits = async () => {
+    const b = await tab.boundingBox();
+    const v = await region.locator('[data-slot=carousel-content]').boundingBox();
+    return !!b && !!v && b.x >= v.x - 1 && b.x + b.width <= v.x + v.width + 1;
+  };
+  if (!(await fits())) {
+    const dots = region.locator('[data-slot=carousel-dots] button');
+    const n = await dots.count();
+    for (let i = 0; i < n && !(await fits()); i++) {
+      await dots.nth(i).click();
+      await page.waitForTimeout(400);
+    }
+  }
+  await tab.click();
   await expect(tab).toHaveAttribute('aria-pressed', 'true');
 }
