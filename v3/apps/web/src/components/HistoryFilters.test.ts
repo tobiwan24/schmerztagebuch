@@ -45,5 +45,7 @@ describe('RDM-028 P4: Zähler aktiver Filter', () => {
     expect(activeFilterCount({ ...EMPTY_FILTER, range: '7d' })).toBe(1);
     expect(activeFilterCount({ ...EMPTY_FILTER, from: '2026-03-01', to: '2026-03-31' })).toBe(1);
     expect(activeFilterCount({ ...EMPTY_FILTER, templateIds: ['a', 'b'], outcome: true, meds: true, events: true, content: ['doctor', 'pdf'], authorId: 'u', range: '30d' })).toBe(9);
+    expect(activeFilterCount({ ...EMPTY_FILTER, meds: true }, false)).toBe(0);
+    expect(activeFilterCount({ ...EMPTY_FILTER, meds: true }, true)).toBe(1);
   });
 });

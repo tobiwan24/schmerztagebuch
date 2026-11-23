@@ -47,7 +47,7 @@ export const de = {
     sort: 'Sortierung',
     filter: 'Filter',
     sortButton: 'Sortieren',
-    activeFilters: (n: number) => (n === 1 ? ' aktiver Filter' : ' aktive Filter'),
+    activeFilters: (n: number) => (n === 1 ? 'aktiver Filter' : 'aktive Filter'),
     sorts: { newest: 'Neueste zuerst', oldest: 'Älteste zuerst', template_az: 'Vorlage A–Z', template_date: 'Vorlage und Datum' },
     loadMore: (n: number) => `Weitere laden (${n})`,
     from: 'Von',

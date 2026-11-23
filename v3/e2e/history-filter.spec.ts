@@ -191,6 +191,20 @@ test.describe('Verlauf: Suche und Filter', () => {
   });
 });
 
+/** Filter, Sortieren und Export stehen auf einer Zeile und sind mindestens 44 px hoch (Spec 10:8). */
+async function expectOneRow(page: Page) {
+  const boxes = await Promise.all([
+    page.locator('[aria-controls="history-filter-panel"]').boundingBox(),
+    page.locator('[aria-controls="history-sort-panel"]').boundingBox(),
+    page.getByRole('link', { name: 'Exportieren' }).boundingBox(),
+  ]);
+  for (const b of boxes) {
+    expect(b).not.toBeNull();
+    expect(b!.height).toBeGreaterThanOrEqual(44);
+    expect(b!.y).toBe(boxes[0]!.y);
+  }
+}
+
 test.describe('RDM-028 P4: Verlauf-Kopf', () => {
   test('RDM-028 P4: Verlauf-Kopf zeigt nur Suche offen, Filter/Sortieren/Export kompakt', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
@@ -199,8 +213,9 @@ test.describe('RDM-028 P4: Verlauf-Kopf', () => {
     await go(page, '/history');
     const range = page.getByRole('group', { name: 'Zeitraum' });
     await expect(page.getByLabel('Suchen')).toBeVisible();
-    await expect(range).toHaveCount(0);
+    await expect(range).toBeHidden();
     await expect(page.getByTestId('filter-count')).toHaveCount(0);
+    await expectOneRow(page);
 
     await openFilter(page);
     await expect(range).toBeVisible();
@@ -208,15 +223,25 @@ test.describe('RDM-028 P4: Verlauf-Kopf', () => {
     await expect(page.getByTestId('filter-count')).toHaveText(/^1/);
     await page.getByRole('button', { name: 'Ereignis' }).click();
     await expect(page.getByTestId('filter-count')).toHaveText(/^2/);
+    await expectOneRow(page);
     await page.locator('[aria-controls="history-filter-panel"]').click();
-    await expect(range).toHaveCount(0);
+    await expect(range).toBeHidden();
     await expect(page.getByTestId('filter-count')).toHaveText(/^2/);
 
     await openFilter(page);
     await openSort(page);
-    await expect(page.locator('#history-filter-panel')).toHaveCount(0);
+    await expect(page.locator('#history-filter-panel')).toBeHidden();
     await expect(page.getByLabel('Sortierung')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Exportieren' })).toBeVisible();
+
+    // Escape schließt das Panel und gibt den Fokus an den Auslöser zurück.
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#history-sort-panel')).toBeHidden();
+    await expect(page.locator('[aria-controls="history-sort-panel"]')).toBeFocused();
+    await openFilter(page);
+    await page.getByLabel('Suchen').focus();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#history-filter-panel')).toBeHidden();
 
     const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(over).toBeLessThanOrEqual(0);

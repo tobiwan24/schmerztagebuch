@@ -46,7 +46,7 @@ export function HistoryPage() {
   return (
     <>
       <PageHeader title={de.history.title} sync />
-      {diaryIds.length ? <HistoryFilters state={filter} onChange={setFilter} diaryIds={diaryIds} medOptionIds={medOptionIds} templates={templates} sort={sort} onSortChange={setSort} /> : null}
+      <HistoryFilters state={filter} onChange={setFilter} diaryIds={diaryIds} medOptionIds={medOptionIds} templates={templates} sort={sort} onSortChange={setSort} />
       {active && !ids ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
       {!active || ids ? <EntryListState emptyTitle={de.history.emptyTitle} emptyHint={de.history.emptyHint} onlyIds={active ? ids : null} allowAllDiaries sort={sort} /> : null}
     </>
