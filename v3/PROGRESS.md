@@ -14,7 +14,7 @@
 
 Gate G4 (Umstellung des Deployments, siehe [GATE-G4.md](GATE-G4.md)):
 
-- **CRY-17** Passkey-Login auf echtem iPhone (Face ID, iCloud-Schlüsselbund)
+- ~~**CRY-17** Passkey-Login auf echtem iPhone (Face ID, iCloud-Schlüsselbund)~~ — erledigt 2026-11-23
 - ~~**MIG-16** Migration der echten Daten auf dem Hauptgerät, Stichprobe~~ — erledigt 2026-11-23
 - **VOI-11** Echter Kurzbefehl auf dem iPhone (nach dem Umzug)
 - **SHR-12** Einladung an ein zweites iPhone, beide tragen ein (nach dem Umzug)
@@ -220,7 +220,7 @@ Umgebungs-Erkenntnis: Der Arbeitsbaum lag mit CRLF vor (`core.autocrlf=true`); S
 
 ### G2 — Kernablauf
 - [x] UI-11 Kernablauf auf dem iPhone durchgeklickt und freigegeben (User im Chat: „g2freigegeben“, 2026-11-13; Body-Map-Nacharbeiten → M8b)
-- [ ] CRY-17 Passkey-Login auf echtem iPhone (Face ID, iCloud-Schlüsselbund) inkl. App-Neustart — mit der G2-Freigabe nicht ausdrücklich bestätigt, beim User nachfragen
+- [x] CRY-17 Passkey-Login auf echtem iPhone (Face ID, iCloud-Schlüsselbund) inkl. App-Neustart — User bestätigt im Chat, 2026-11-23, auf `:8060` nach der Umstellung
 
 ### G3 — Auswertung & Export
 - [x] UI-12 Auswertung und Export freigegeben — **stellvertretend durch den Loop** (ADR-012, 2026-11-15) mit synthetischem v2-Monat (34 Einträge, März 2026) über den Assistenten migriert, im Browser (iPhone-Viewport 390×844) geprüft; Befunde G3-1…G3-5 behoben. Echte Daten: siehe MIG-16.
