@@ -2,7 +2,7 @@
 // Nur der Besitzer ändert; Mitglieder mit anderer Rolle sehen die Werte nur lesend (Spec 09).
 import { useState, type FormEvent } from 'react';
 import { useParams } from 'react-router';
-import { updateDiarySettings, type Diary } from '@stb/core';
+import { compareByOrder, updateDiarySettings, type Diary } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,8 @@ import { ErrorState } from '@/components/StateView';
 import { useData } from '@/data/DataContext';
 import { useMembers } from '@/data/useSharing';
 import { useQuery } from '@/data/useQuery';
+import { isEntryTemplate } from '@/lib/entry-template';
+import { mergeQuickIds } from '@/lib/quick-buttons';
 import { de } from '@/i18n/de';
 import { deDiaries } from '@/i18n/lazy/diaries';
 
@@ -37,8 +39,8 @@ export function DiarySettingsPage() {
   const query = useQuery(async () => {
     const diary = await data.diary.getDiary(id);
     if (!diary) return null;
-    // Gleiche Auswahl wie die Start-Kacheln: aktiv und kein Training.
-    const templates = (await data.diary.listTemplates(id)).filter((x) => !x.archived && x.purpose !== 'training');
+    // Gleiche Auswahl und Reihenfolge wie Start-Kacheln und Vorlagenliste.
+    const templates = (await data.diary.listTemplates(id)).filter(isEntryTemplate).sort(compareByOrder);
     return { diary, templates };
   }, [data.diary, id]);
   const readOnly = members.query.status === 'ok' && members.query.data.cloud && members.query.data.myRole !== 'owner';
@@ -77,8 +79,8 @@ function SettingsForm({ diary, templates, readOnly }: { diary: Diary; templates:
     try {
       const s = await data.stamper.stamp();
       const current = (await data.diary.getDiary(diary.id)) ?? diary;
-      // Reihenfolge der Vorlagenliste; Auswahl nicht mehr vorhandener Vorlagen entfällt.
-      const quickTemplateIds = templates.filter((x) => quickIds.has(x.id)).map((x) => x.id);
+      // Angezeigte Vorlagen in Listenreihenfolge; IDs nicht angezeigter (archiviert/unbekannt) bleiben unverändert erhalten.
+      const quickTemplateIds = mergeQuickIds(templates, quickIds, current.settings.quickTemplateIds);
       const patch = { name, timezone, weather: { enabled, gpsDefault, location: location ?? null }, quickTemplateIds };
       await data.diary.saveDiary(updateDiarySettings(current, patch, { hlc: s.hlc, updatedAt: s.at }));
       setSaved(true);

@@ -186,7 +186,7 @@ Pakete P1–P7 je mit Explore → v3-implementer (nacheinander) → code-reviewe
 | Paket | Inhalt | Status | Commits |
 |---|---|---|---|
 | P1 | Grundgerüst: Fußleiste fest, Sync-Status in Titelzeile (nur Tab-Hauptseiten) | erledigt | `2a523c6`, Review-Fix siehe Commit `fix(v3/web): Review-Befunde [RDM-028 P1]` (A-131) |
-| P2 | Start: Liste entfällt, Schnell-Buttons pro Vorlage (`quickTemplateIds`), Carousel | erledigt | `0747ca6` (A-132), `3662398` (A-133), Carousel: Commit `feat(v3/web): Schnell-Buttons als Carousel … [RDM-028 P2]` (A-134) |
+| P2 | Start: Liste entfällt, Schnell-Buttons pro Vorlage (`quickTemplateIds`), Carousel | erledigt | `0747ca6` (A-132), `3662398` (A-133), Carousel: Commit `feat(v3/web): Schnell-Buttons als Carousel … [RDM-028 P2]` (A-134), Review-Fix: Commit `fix(v3/web): Review-Befunde [RDM-028 P2]` |
 | P3 | Verlauf-Cards wie v2 in v3-Optik, v2-Symbole/-Farben zuordnen | offen | |
 | P4 | Verlauf-Kopf: Suche + Filter ▾ / Sortieren ▾ / Export | offen | |
 | P5 | Detailansicht: Datum als Titel, „archiviertes Feld“ ausblenden | offen | |
@@ -195,7 +195,8 @@ Pakete P1–P7 je mit Explore → v3-implementer (nacheinander) → code-reviewe
 
 Review-Restbefunde und Blocker:
 
-- (noch keine)
+- P2: `diarySettingsSchema` ist `strictObject`; ein nicht aktualisiertes Gerät scheitert an Diary-Records mit `quickTemplateIds`. Vorwärtskompatibilität (lockeres Schema oder Versionssprung) bewusst entscheiden, nicht behoben.
+- P2: Im Carousel-Fall bleibt beim Übergang Ladezustand → Carousel ein kleiner Sprung (Platzhalter 7,5 rem ist nur Annäherung; Einzelknopf-Standardfall ohne Sprung), dokumentiert in A-134.
 
 ## Meilensteine
 
@@ -521,3 +522,4 @@ Voller E2E-Lauf nach M14.30: 173 grün, 2 WebKit-Timeouts (`install.spec` UI-19,
 | 2026-11-23 | RDM-028 P2 (1/3) | — | `quickTemplateIds` in `diarySettingsSchema`/`updateDiarySettings` (Duplikate raus, leer/null löscht, unbekannte Vorlage mit `templates` abgelehnt), Export-Schema neu, „Als Kopie“ schreibt IDs um, Tagebuch-Einstellungen: Fieldset „Schnell-Buttons auf Start“, `/quick?template=` (auch ohne `diary`) wählt vor. Start-Seite unverändert (Teil 2/3). verify grün, E2E diary-settings/quick*/export chromium+webkit grün (A-132). |
 | 2026-11-23 | RDM-028 P2 (2/3) | — | Start ohne Eintragsliste, „Weitere laden“ und „Neuer Eintrag“; Schnell-Buttons je Vorlage aus `quickTemplateIds` über die reine Funktion `quickButtons` (`lib/quick-buttons.ts`, Vitest), Link `/quick?template=<id>` (+ `&diary=` bei mehreren Tagebüchern), `data-tour="start-quick"` am ersten Knopf; unbenutzte i18n `start.emptyTitle/emptyHint` entfernt. E2E angepasst (Einträge im Verlauf prüfen, Vorlagen-Kachel statt „Neuer Eintrag“, UI-05/UI-24/UI-25 neu gefasst, A-133) und neu `start-quick.spec.ts`. Erkenntnis: `go(page, …)` direkt nach „Speichern“ braucht vorher die Start-Überschrift, sonst überschreibt die Navigation nach dem Speichern den Wechsel; die gesamte E2E-Suite braucht in dieser Umgebung ca. 25 min (Global-Timeout 1500000 nötig). |
 | 2026-11-23 | RDM-028 P2 (3/3) | — | shadcn-Carousel (`ui/carousel.tsx`, `embla-carousel-react` 8.6.0 fest, in DECISIONS) mit `CarouselDots`; Start zeigt bei mehreren Schnell-Buttons Carousel (85 % Breite, Peek, Punkte, Wischen), bei einem wie bisher; Schnell-Bereich erst nach dem Laden (Platzhalter gleicher Höhe). E2E `RDM-028 P2:` Carousel und Einzel-Button in start-quick.spec.ts (A-134). Initial 241,4 KB gzip. |
+| 2026-11-23 | RDM-028 P2 | — | Review-Befunde zu 0747ca6..2cd1743: Carousel nach shadcn-Muster (`-ml-3`/`pl-3`, Viewport `p-1 -m-1`, Fokus-Ring nicht mehr abgeschnitten), Punkte 44-px-Touch-Ziele, embla per `React.lazy` (`QuickCarousel`, Platzhalter 7,5 rem), initial 241,4 → 232,8 KB gzip; Auswahl-Liste mit `compareByOrder`, `mergeQuickIds` behält IDs archivierter Vorlagen; „Als Kopie“ lässt leeres `quickTemplateIds` weg; gemeinsames Prädikat `isEntryTemplate`; Spec 10 nachgezogen; A-132/A-133/A-134 ergänzt. E2E `RDM-028 P2: Punkte sind mindestens 44 px groß` plus Ring-Platz. |

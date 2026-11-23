@@ -72,14 +72,17 @@ export function copyWithNewIds(doc: ExportV1, newId: () => string): ExportV1 {
     ...(f.anyOf ? { anyOf: f.anyOf.map((g) => g.map(condition)) } : {}),
   });
 
-  const diary = (d: ExportDiary): ExportDiary => ({
+  const diary = (d: ExportDiary): ExportDiary => {
+    const { quickTemplateIds, ...rest } = d.diary.settings;
+    const quickIds = (quickTemplateIds ?? []).filter((id) => map.has(id)).map(m);
+    return {
     diary: {
       ...d.diary,
       id: m(d.diary.id),
       settings: {
-        ...d.diary.settings,
+        ...rest,
         ...(d.diary.settings.quickEntryTemplateId ? { quickEntryTemplateId: m(d.diary.settings.quickEntryTemplateId) } : {}),
-        ...(d.diary.settings.quickTemplateIds ? { quickTemplateIds: d.diary.settings.quickTemplateIds.filter((id) => map.has(id)).map(m) } : {}),
+        ...(quickIds.length > 0 ? { quickTemplateIds: quickIds } : {}),
         ...(d.diary.settings.quickEntryBlockIds ? { quickEntryBlockIds: d.diary.settings.quickEntryBlockIds.map(m) } : {}),
       },
     },
@@ -96,7 +99,8 @@ export function copyWithNewIds(doc: ExportV1, newId: () => string): ExportV1 {
     })),
     bodymapImages: d.bodymapImages.map((i) => ({ ...i, id: m(i.id), diaryId: m(i.diaryId) })),
     attachments: d.attachments.map((a) => ({ ...a, id: m(a.id), diaryId: m(a.diaryId), entryId: m(a.entryId) })),
-  });
+    };
+  };
 
   return { ...doc, ...(doc.filter ? { filter: filter(doc.filter) } : {}), diaries: doc.diaries.map(diary) };
 }

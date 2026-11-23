@@ -1,10 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { cn } from '@/lib/utils';
-import { TOUR_RING } from '@/tour/anchor';
-import { Link } from 'react-router';
-import { Zap } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Carousel, CarouselContent, CarouselDots, CarouselItem } from '@/components/ui/carousel';
+import { QuickLink } from '@/components/QuickLink';
 import { PageHeader } from '@/components/PageHeader';
 import { BackupReminder } from '@/components/BackupReminder';
 import { ConflictBanner } from '@/components/ConflictBanner';
@@ -14,7 +9,7 @@ import { InboxCard } from '@/components/InboxCard';
 import { useWritableDiaries } from '@/data/useSharing';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
-import { quickButtons, type QuickButton } from '@/lib/quick-buttons';
+import { quickButtons } from '@/lib/quick-buttons';
 import { de } from '@/i18n/de';
 
 // Selten sichtbare Hinweise werden erst bei Bedarf geladen (QA-02, Bundle-Budget).
@@ -22,18 +17,8 @@ const InstallBanner = lazy(() => import('@/components/InstallBanner').then((m) =
 const CloudSyncBanner = lazy(() => import('@/components/CloudSyncBanner').then((m) => ({ default: m.CloudSyncBanner })));
 const V2Banner = lazy(() => import('@/components/V2DataCard').then((m) => ({ default: m.V2Banner })));
 const NewEntriesNotice = lazy(() => import('@/components/NewEntriesNotice').then((m) => ({ default: m.NewEntriesNotice })));
+const QuickCarousel = lazy(() => import('@/components/QuickCarousel'));
 const RestoreBackupBanner = lazy(() => import('@/components/RestoreBackupBanner').then((m) => ({ default: m.RestoreBackupBanner })));
-
-function QuickLink({ q, first }: { q: QuickButton; first: boolean }) {
-  return (
-    <Button asChild size="lg" data-tour={first ? 'start-quick' : undefined} className={cn('h-16 w-full text-base', TOUR_RING)}>
-      <Link to={q.to}>
-        <Zap aria-hidden />
-        {q.label}
-      </Link>
-    </Button>
-  );
-}
 
 export function StartPage() {
   const writable = useWritableDiaries();
@@ -64,16 +49,10 @@ export function StartPage() {
       ) : quick.length === 1 ? (
         <QuickLink q={quick[0]!} first />
       ) : (
-        <Carousel aria-label={de.start.quickLabel}>
-          <CarouselContent>
-            {quick.map((q, i) => (
-              <CarouselItem key={q.to} className="basis-[85%]">
-                <QuickLink q={q} first={i === 0} />
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          <CarouselDots />
-        </Carousel>
+        // Platzhalter = Knopf (4rem) + Punktezeile (0.75rem Abstand + 2.75rem), kein Layoutsprung beim Nachladen von embla.
+        <Suspense fallback={<div aria-hidden className="h-[7.5rem]" />}>
+          <QuickCarousel buttons={quick} />
+        </Suspense>
       )}
       <TemplateTiles />
     </>

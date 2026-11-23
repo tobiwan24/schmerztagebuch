@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { quickButtons } from './quick-buttons';
+import { mergeQuickIds, quickButtons } from './quick-buttons';
 
 const d = (id: string, name: string, quick?: string[]) => ({ id, name, settings: quick ? { quickTemplateIds: quick } : {} });
 const t = (id: string, diaryId: string, name: string, extra: object = {}) => ({ id, diaryId, name, ...extra });
@@ -23,5 +23,14 @@ describe('quickButtons', () => {
       { to: '/quick?template=a&diary=d1', label: 'Schnell: Fuß · Mein' },
       { to: '/quick?diary=d2', label: 'Schnell eintragen · Katze' },
     ]);
+  });
+});
+
+describe('mergeQuickIds', () => {
+  it('RDM-028 P2: angezeigte Auswahl in Listenreihenfolge, nicht angezeigte (archiviert/unbekannt) bleiben erhalten', () => {
+    const shown = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+    expect(mergeQuickIds(shown, new Set(['c', 'a']), ['x', 'b', 'arch'])).toEqual(['a', 'c', 'x', 'arch']);
+    expect(mergeQuickIds(shown, new Set(), ['arch'])).toEqual(['arch']);
+    expect(mergeQuickIds(shown, new Set(['b']))).toEqual(['b']);
   });
 });

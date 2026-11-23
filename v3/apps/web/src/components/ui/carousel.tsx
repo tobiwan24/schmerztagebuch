@@ -62,14 +62,15 @@ function Carousel({ opts, className, children, ...props }: React.ComponentProps<
 function CarouselContent({ className, ...props }: React.ComponentProps<'div'>) {
   const { carouselRef } = useCarousel();
   return (
-    <div ref={carouselRef} className="overflow-hidden" data-slot="carousel-content">
-      <div className={cn('flex touch-pan-y gap-3', className)} {...props} />
+    // p-1 -m-1: Platz für Fokus- und Tour-Ring innerhalb des abschneidenden Viewports, Layout bleibt gleich.
+    <div ref={carouselRef} className="-m-1 overflow-hidden p-1" data-slot="carousel-content">
+      <div className={cn('-ml-3 flex touch-pan-y', className)} {...props} />
     </div>
   );
 }
 
 function CarouselItem({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div role="group" aria-roledescription="slide" data-slot="carousel-item" className={cn('min-w-0 shrink-0 grow-0 basis-full', className)} {...props} />;
+  return <div role="group" aria-roledescription="slide" data-slot="carousel-item" className={cn('min-w-0 shrink-0 grow-0 basis-full pl-3', className)} {...props} />;
 }
 
 /** Punkte für die Position; Klick scrollt zum Element. */
@@ -77,7 +78,7 @@ function CarouselDots({ className }: { className?: string }) {
   const { api, selectedIndex, scrollCount } = useCarousel();
   if (scrollCount < 2) return null;
   return (
-    <div data-slot="carousel-dots" className={cn('mt-3 flex justify-center gap-2', className)}>
+    <div data-slot="carousel-dots" className={cn('mt-1 flex justify-center', className)}>
       {Array.from({ length: scrollCount }, (_, i) => (
         <button
           key={i}
@@ -85,8 +86,10 @@ function CarouselDots({ className }: { className?: string }) {
           aria-label={de.carousel.toPosition(i + 1)}
           aria-current={i === selectedIndex ? 'true' : undefined}
           onClick={() => api?.scrollTo(i)}
-          className={cn('size-2.5 rounded-full transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50', i === selectedIndex ? 'bg-primary' : 'bg-muted-foreground/30')}
-        />
+          className="group flex size-11 items-center justify-center rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          <span aria-hidden className={cn('size-2.5 rounded-full transition-colors', i === selectedIndex ? 'bg-primary' : 'bg-muted-foreground/30')} />
+        </button>
       ))}
     </div>
   );

@@ -95,6 +95,16 @@ test.describe('Start: Schnell-Buttons je Vorlage', () => {
     await expect(dots).toHaveCount(2);
     await expect(dots.nth(0)).toHaveAttribute('aria-current', 'true');
 
+    for (let i = 0; i < 2; i++) {
+      const b = (await dots.nth(i).boundingBox())!;
+      expect(b.width, 'RDM-028 P2: Punkte sind mindestens 44 px groß').toBeGreaterThanOrEqual(44);
+      expect(b.height).toBeGreaterThanOrEqual(44);
+    }
+    // Fokus-Ring des ersten Knopfes wird nicht vom Viewport abgeschnitten: Platz um den Knopf im Viewport.
+    const viewport = (await carousel.locator('[data-slot="carousel-content"]').boundingBox())!;
+    expect(b1.x - viewport.x).toBeGreaterThanOrEqual(4);
+    expect(b1.y - viewport.y).toBeGreaterThanOrEqual(4);
+
     await dots.nth(1).click();
     await expect(dots.nth(1)).toHaveAttribute('aria-current', 'true');
     await expect
