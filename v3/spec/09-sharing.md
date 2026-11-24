@@ -42,6 +42,10 @@ Owner                                Server                         Eingeladene 
   kann die Mitgliedschaft als „verifiziert" markiert werden. Ändert sich der Identity-Key eines Mitglieds, wird die
   Markierung entfernt und ein Hinweis angezeigt.
 - Einladungen sind widerrufbar, laufen nach 7 Tagen ab und sind nur einmal annehmbar.
+- **QR-Einladung** (RDM-032, A-148): Weil iOS Links nie in einer installierten PWA öffnet, kann der Owner die Einladung
+  auch als QR-Code mit `<id>.<secret>` zeigen; die eingeladene Person scannt ihn in der App („Einladung scannen“) oder fügt
+  Code/Link ein. Angelegt mit `kind: 'qr'` gilt sie nur 10 Minuten; Schließen des QR-Dialogs oder App im Hintergrund
+  widerruft sie. Der offene Dialog fragt die Annahme ab und stößt die Bestätigung per Sync sofort an.
 
 ## Mitglied entfernen / austreten
 
@@ -55,7 +59,7 @@ Owner                                Server                         Eingeladene 
 
 | Endpunkt | Beschreibung |
 |---|---|
-| `POST /api/v1/diaries/:id/invitations` | Einladung anlegen (nur `owner`) |
+| `POST /api/v1/diaries/:id/invitations` | Einladung anlegen (nur `owner`; optional `kind: 'qr'` = 10 Minuten gültig) |
 | `GET /api/v1/invitations/:id` | Chiffretext der Einladung (ohne Auth, rate-limited) |
 | `POST /api/v1/invitations/:id/accept` | Annahme mit `identityPub` + `mac` (Auth erforderlich) |
 | `POST /api/v1/diaries/:id/members` | Owner bestätigt Annahme mit `wrapped_dk` |
@@ -90,3 +94,7 @@ Owner                                Server                         Eingeladene 
 | SHR-14 | Owner erteilt einem Editor „Vorlagen bearbeiten“ → Editor kann den Vorlagen-Editor nutzen, der Server erlaubt den Push von `template`/`templateVersion` (A-013 je Flag). | e2e |
 | SHR-15 | Start zeigt „3 neue Einträge von X“ seit dem letzten Besuch; Tippen führt zum gefilterten Verlauf. | e2e |
 | SHR-16 | Rotation mit zwei echten Geräten/Konten. | manual |
+| SHR-17 | QR-Einladung (`kind: 'qr'`) ist nach 10 Minuten nicht mehr abruf- oder annehmbar, Link-Einladungen gelten weiter 7 Tage; unbekannte Art → 400. | integration |
+| SHR-18 | Einladungscode wird als Code, Fragment oder ganzer Link erkannt; ein erzeugter QR-Code wird vom Leser wieder als derselbe Code gelesen. | unit |
+| SHR-19 | QR-Einladung zwischen zwei Konten: Dialog zeigt QR-Code, eingeladene Person löst den Code in der App ein, der Dialog meldet den Beitritt; Schließen des Dialogs widerruft eine nicht angenommene Einladung. | e2e |
+| SHR-20 | QR-Code mit der installierten App auf einem echten zweiten iPhone gescannt und angenommen. | manual |

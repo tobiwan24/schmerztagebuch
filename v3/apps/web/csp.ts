@@ -5,7 +5,7 @@
 export const SECURITY_HEADERS_BASE = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
-  'Permissions-Policy': 'camera=(), microphone=(), payment=(), usb=()',
+  'Permissions-Policy': 'camera=(self), microphone=(), payment=(), usb=()',
 } as const;
 
 export function contentSecurityPolicy(extraConnect: string[] = []): string {

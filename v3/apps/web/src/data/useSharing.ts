@@ -65,6 +65,42 @@ export function useMembers(diaryId: string) {
     [db, diary, diaryId, api, records, now, query],
   );
 
+  /** QR-Einladung (RDM-032): kurz gültig (10 min), wird beim Schließen widerrufen. → `{ id, code }`. */
+  const inviteQr = useCallback(
+    async (role: 'editor' | 'viewer') => {
+      const me = await self(db);
+      const d = await diary.getDiary(diaryId);
+      const r = await createInvitationLink(await api(), records, {
+        diaryId, role, diaryName: d?.name ?? '', inviterName: me?.username ?? '', origin: globalThis.location.origin, now, kind: 'qr',
+      });
+      return { id: r.id, code: r.code };
+    },
+    [db, diary, diaryId, api, records, now],
+  );
+
+  /**
+   * QR-Einladung abfragen: angenommen? Dann sofort synchronisieren — der Sync prüft die HMAC und bestätigt (SHR-03).
+   * → `waiting` (noch nicht angenommen), `joined` (bestätigt, mit Benutzername) oder `failed` (Prüfung fehlgeschlagen).
+   */
+  const pollQrInvitation = useCallback(
+    async (invitationId: string): Promise<{ status: 'waiting' } | { status: 'joined'; username: string | null } | { status: 'failed' }> => {
+      const pending = await (await api()).listPending(diaryId);
+      const hit = pending.find((p) => p.id === invitationId);
+      const stillOpen = async () => {
+        const rec = await records.get(invitationId);
+        return !!rec && !rec.deleted;
+      };
+      // Schon von einem anderen Sync bestätigt (Geheimnis entfernt)?
+      if (!hit) return (await stillOpen()) ? { status: 'waiting' } : { status: 'joined', username: null };
+      await sync.syncNow();
+      query.retry();
+      if (await stillOpen()) return { status: 'failed' };
+      const username = (await loadMembers(db, diaryId)).find((m) => m.principalId === hit.acceptedBy)?.username ?? null;
+      return { status: 'joined', username };
+    },
+    [api, db, diaryId, records, sync, query],
+  );
+
   const revokeInvitation = useCallback(
     async (id: string) => {
       await (await api()).revokeInvitation(id).catch(() => undefined);
@@ -97,7 +133,7 @@ export function useMembers(diaryId: string) {
     void sync.syncNow();
   }, [api, db, diaryId, sync]);
 
-  return { query, invite, revokeInvitation, changeRole, setTemplateRight, remove, leave, refresh: query.retry };
+  return { query, invite, inviteQr, pollQrInvitation, revokeInvitation, changeRole, setTemplateRight, remove, leave, refresh: query.retry };
 }
 
 /** Darf dieses Gerät Vorlagen des Tagebuchs ändern (A-002: Besitzer bzw. local-only; A-121: Editor mit dem Flag „Vorlagen bearbeiten“)? `null` = noch unbekannt. */

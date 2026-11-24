@@ -43,6 +43,7 @@ Reihenfolge verbindlich, Plan und Aufgaben in [PROGRESS.md](PROGRESS.md).
 | M22 | v3.x: Schlüsselrotation, feinere Rechte, Hinweis auf neue Einträge | CRY-21 CRY-22 SHR-13 SHR-14 SHR-15 SHR-16 | — |
 | M23 | v3.x: Lokale Verschlüsselung und persistierter Suchindex | DM-16 DM-17 DM-18 ANA-33 DM-19 | — |
 | M24 | v3.x: Integrationen, client-sdk, MCP | CRY-23 CRY-24 ARC-08 EXP-27 EXP-28 | — |
+| M25 | v3.x: Einladung per QR-Code (RDM-032) | SHR-17 SHR-18 SHR-19 SHR-20 | — |
 
 ## Manuelle Kriterien (Abhaken in PROGRESS.md)
 
@@ -52,7 +53,7 @@ Reihenfolge verbindlich, Plan und Aufgaben in [PROGRESS.md](PROGRESS.md).
 | G2 | UI-11 CRY-17 |
 | G3 | UI-12 ANA-16 EXP-13 |
 | G4 | UI-13 MIG-16 VOI-11 SHR-12 |
-| v3.x (nicht blockierend) | EXP-25 VOI-17 ANA-31 SHR-16 DM-19 |
+| v3.x (nicht blockierend) | EXP-25 VOI-17 ANA-31 SHR-16 DM-19 SHR-20 |
 
 ## Hinweise zur Reihenfolge
 

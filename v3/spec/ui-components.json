@@ -31,7 +31,8 @@
       "svg", "g", "path", "circle", "rect", "line", "polyline", "polygon", "ellipse", "text", "tspan", "defs", "title", "use", "clipPath", "mask", "linearGradient", "stop"
     ],
     "structural": { "approval": "A-147", "list": ["form", "a", "img", "output"] },
-    "temporary": { "approval": "A-147", "until": "RDM-031", "list": ["option"] }
+    "temporary": { "approval": "A-147", "until": "RDM-031", "list": ["option"] },
+    "media": { "approval": "A-148", "note": "Kamerabild beim Scannen der QR-Einladung (RDM-032), kein shadcn-Gegenstück", "list": ["video"] }
   },
   "dependencies": {
     "@radix-ui/react-slot": { "kind": "ui-only" },
@@ -51,6 +52,9 @@
     "react-dom": { "kind": "frei" },
     "react-is": { "kind": "frei" },
     "react-router": { "kind": "frei" },
+    "qrcode": { "kind": "ausnahme", "approval": "A-148", "reason": "QR-Code der Einladung erzeugen (RDM-032), nur per import(); Darstellung als SVG-Pfad" },
+    "jsqr": { "kind": "ausnahme", "approval": "A-148", "reason": "QR-Code aus dem Kamerabild lesen (RDM-032), iOS Safari hat keinen BarcodeDetector; nur per import()" },
+    "@types/qrcode": { "kind": "frei", "note": "Typen zu qrcode (dev)" },
     "react-easy-crop": { "kind": "ausnahme", "approval": "A-147", "reason": "Bildzuschnitt, kein shadcn-Gegenstück (dauerhaft genehmigt)" }
   }
 }

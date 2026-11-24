@@ -14,24 +14,31 @@ export interface InvitationSecretRecord {
   createdAt: string;
 }
 
-/** Owner: Einladung anlegen → Link `/invite#<id>.<secret>`. */
+/** Owner: Einladung anlegen → Link `/invite#<id>.<secret>` und Code `<id>.<secret>` (QR, RDM-032: `kind: 'qr'` = kurz gültig). */
 export async function createInvitationLink(
   api: SharingApi,
   records: RecordRepository,
-  input: { diaryId: string; role: 'editor' | 'viewer'; diaryName: string; inviterName: string; origin: string; now: () => number },
-): Promise<{ id: string; link: string }> {
+  input: { diaryId: string; role: 'editor' | 'viewer'; diaryName: string; inviterName: string; origin: string; now: () => number; kind?: 'link' | 'qr' },
+): Promise<{ id: string; link: string; code: string }> {
   const secret = createInvitationSecret();
   const ciphertext = await encryptInvitation({ diaryName: input.diaryName, role: input.role, inviterName: input.inviterName }, secret);
-  const { id } = await api.createInvitation(input.diaryId, { role: input.role, ciphertext });
+  const { id } = await api.createInvitation(input.diaryId, { role: input.role, ciphertext, ...(input.kind === 'qr' ? { kind: 'qr' as const } : {}) });
   const rec: InvitationSecretRecord = { id, diaryId: input.diaryId, secret, role: input.role, createdAt: new Date(input.now()).toISOString() };
   await records.put({ id, diaryId: input.diaryId, kind: INVITATION_SECRET_KIND, payload: rec });
-  return { id, link: `${input.origin}/invite#${id}.${secret}` };
+  return { id, link: `${input.origin}/invite#${id}.${secret}`, code: `${id}.${secret}` };
 }
 
 /** Fragment `<id>.<secret>` zerlegen. */
 export function parseInviteFragment(hash: string): { id: string; secret: string } | null {
   const m = /^#?([A-Za-z0-9-]{1,128})\.([A-Za-z0-9_-]{16,64})$/.exec(hash);
   return m ? { id: m[1]!, secret: m[2]! } : null;
+}
+
+/** Eingescannter oder eingefügter Einladungscode (RDM-032): `<id>.<secret>`, `#<id>.<secret>` oder ganzer Link `…/invite#<id>.<secret>`. */
+export function parseInviteCode(text: string): { id: string; secret: string } | null {
+  const t = text.trim();
+  const hash = t.lastIndexOf('#');
+  return parseInviteFragment(hash >= 0 ? t.slice(hash + 1) : t);
 }
 
 /** Eingeladene Person: Einladung lesen und mit dem Geheimnis entschlüsseln (Tagebuch, Rolle, wer einlädt). */

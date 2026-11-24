@@ -8,6 +8,8 @@ import {
   acceptInvitation,
   confirmMember,
   createInvitation,
+  INVITATION_QR_TTL_MS,
+  INVITATION_TTL_MS,
   listPendingAcceptances,
   readInvitation,
   revokeInvitation,
@@ -17,7 +19,7 @@ import {
 const id = z.string().min(1).max(128);
 const diaryParams = z.object({ id });
 const invParams = z.object({ id });
-const createBody = z.strictObject({ role: z.enum(['editor', 'viewer']), ciphertext: z.string().min(1).max(16_384) });
+const createBody = z.strictObject({ role: z.enum(['editor', 'viewer']), ciphertext: z.string().min(1).max(16_384), kind: z.enum(['link', 'qr']).optional() });
 const acceptBody = z.strictObject({ identityPub: z.string().min(1).max(1024), mac: z.string().min(1).max(256) });
 const confirmBody = z.strictObject({ invitationId: id, wrappedDk: z.string().min(1).max(4096) });
 
@@ -39,7 +41,7 @@ export function registerInvitationRoutes(app: FastifyInstance, { db, auth, now }
     const params = diaryParams.safeParse(req.params);
     const body = createBody.safeParse(req.body);
     if (!params.success || !body.success) return reply.code(400).send({ error: 'invalid-request' });
-    return send(reply, createInvitation(db, params.data.id, p.userId, body.data.role, body.data.ciphertext, now()), 201);
+    return send(reply, createInvitation(db, params.data.id, p.userId, body.data.role, body.data.ciphertext, now(), body.data.kind === 'qr' ? INVITATION_QR_TTL_MS : INVITATION_TTL_MS), 201);
   });
 
   app.get('/api/v1/diaries/:id/invitations', async (req, reply) => {

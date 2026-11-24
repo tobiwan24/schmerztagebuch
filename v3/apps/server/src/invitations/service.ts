@@ -5,6 +5,8 @@ import type { Db } from '../db.js';
 import { findActiveRole, type MembershipRole } from '../members/service.js';
 
 export const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+/** QR-Einladung (RDM-032): nur kurz gültig, der Owner-Client widerruft sie zusätzlich beim Schließen. */
+export const INVITATION_QR_TTL_MS = 10 * 60 * 1000;
 
 interface InvitationRow {
   id: string;
@@ -28,10 +30,10 @@ const ok = <T>(value: T): Result<T> => ({ ok: true, value });
 const get = (db: Db, id: string) => db.prepare('SELECT * FROM invitations WHERE id = ?').get(id) as InvitationRow | undefined;
 const isOpen = (r: InvitationRow, now: number) => r.revoked_at === null && r.accepted_at === null && now < r.expires_at;
 
-export function createInvitation(db: Db, diaryId: string, actor: string, role: Exclude<MembershipRole, 'owner'>, ciphertext: string, now: number): Result<{ id: string; expiresAt: number }> {
+export function createInvitation(db: Db, diaryId: string, actor: string, role: Exclude<MembershipRole, 'owner'>, ciphertext: string, now: number, ttlMs: number = INVITATION_TTL_MS): Result<{ id: string; expiresAt: number }> {
   if (findActiveRole(db, diaryId, actor) !== 'owner') return fail('forbidden');
   const id = randomUUID();
-  const expiresAt = now + INVITATION_TTL_MS;
+  const expiresAt = now + ttlMs;
   db.prepare('INSERT INTO invitations (id, diary_id, inviter_id, role, ciphertext, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(id, diaryId, actor, role, ciphertext, expiresAt, now);
   return ok({ id, expiresAt });
 }

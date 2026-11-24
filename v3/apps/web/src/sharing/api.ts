@@ -19,7 +19,7 @@ export class SharingError extends Error {
 }
 
 export interface SharingApi extends InvitationApi, MembershipApi {
-  createInvitation(diaryId: string, body: { role: 'editor' | 'viewer'; ciphertext: string }): Promise<{ id: string }>;
+  createInvitation(diaryId: string, body: { role: 'editor' | 'viewer'; ciphertext: string; kind?: 'link' | 'qr' }): Promise<{ id: string }>;
   readInvitation(id: string): Promise<{ id: string; diaryId: string; ciphertext: string; expiresAt: number }>;
   acceptInvitation(id: string, body: { identityPub: string; mac: string }): Promise<void>;
   revokeInvitation(id: string): Promise<void>;
