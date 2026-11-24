@@ -1,3 +1,4 @@
+| A-144 | **Vorlagen-Standardfarbe Schwarz (User-Wunsch 2026-11-24), Status: zur Prüfung.** Neuer Farb-Token `black` an erster Stelle der Palette („Schwarz“), Standard für neue Vorlagen und für Vorlagen ohne, mit grauer oder ungültiger Farbe (ersetzt das bisherige Grau bzw. Blau aus A-135 (4)). „Schwarz“ ist die Vordergrundfarbe des Themes (`text-foreground`, im Dunkelmodus hell), damit das Symbol in beiden Modi sichtbar bleibt; Tönung `bg-foreground/10`. Schwarz nimmt nicht an der Hex-Zuordnung bunter v2-Farben teil. | Wunsch des Users; Theme-Vordergrund statt festem #000 wegen Dunkelmodus. |
 # DECISIONS — Entscheidungslog v3
 
 Format: `ADR-NNN` = getroffene Entscheidung. `A-NNN` = offene Annahme, die der User bestätigen oder ändern soll.

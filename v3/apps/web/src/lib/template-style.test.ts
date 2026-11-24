@@ -26,9 +26,11 @@ describe('Vorlagen-Stil auflösen', () => {
     expect(resolveTemplateColor('#6366f1')).toBe('violet');
     expect(resolveTemplateColor('#f00')).toBe('red');
   });
-  it('RDM-028 P3: Grau, ungültig und leer → keine Farbe', () => {
-    expect(resolveTemplateColor('#888888')).toBeUndefined();
-    expect(resolveTemplateColor('nonsense')).toBeUndefined();
-    expect(resolveTemplateColor(undefined)).toBeUndefined();
+  it('RDM-028: Grau, Schwarz, ungültig und leer → Standardfarbe Schwarz', () => {
+    expect(resolveTemplateColor('black')).toBe('black');
+    expect(resolveTemplateColor('#888888')).toBe('black');
+    expect(resolveTemplateColor('#000000')).toBe('black');
+    expect(resolveTemplateColor('nonsense')).toBe('black');
+    expect(resolveTemplateColor(undefined)).toBe('black');
   });
 });

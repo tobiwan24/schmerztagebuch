@@ -8,6 +8,17 @@ test.describe('Vorlagen-Editor', () => {
     await onboardWithPassword(page);
   });
 
+  test('RDM-028: neue Vorlage hat Standardfarbe Schwarz, Schwarz steht in der Farbpalette', async ({ page }) => {
+    await go(page, '/more/templates');
+    await page.getByRole('link', { name: 'Neue leere Vorlage' }).click();
+    await expect(page.getByRole('button', { name: 'Schwarz' })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByLabel('Name', { exact: true }).fill('Ohne Farbwahl');
+    await page.getByRole('button', { name: 'Speichern' }).click();
+    const row = page.getByTestId('template-row').filter({ hasText: 'Ohne Farbwahl' });
+    await expect(row.getByTestId('template-icon')).toHaveAttribute('data-color', 'black');
+    await expect(row.getByTestId('template-icon')).toHaveClass(/text-foreground/);
+  });
+
   test('BLK-23: leere Vorlage anlegen, Name/Icon/Farbe ändern (Liste und Eintragsformular), Duplizieren ist unabhängig', async ({ page }) => {
     // Anlegen
     await go(page, '/more/templates');

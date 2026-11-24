@@ -7,11 +7,11 @@ export const TEMPLATE_ICON_NAMES = [
 ] as const;
 export type TemplateIconName = (typeof TEMPLATE_ICON_NAMES)[number];
 
-export const TEMPLATE_COLOR_TOKENS = ['red', 'orange', 'amber', 'green', 'teal', 'blue', 'violet', 'pink'] as const;
+export const TEMPLATE_COLOR_TOKENS = ['black', 'red', 'orange', 'amber', 'green', 'teal', 'blue', 'violet', 'pink'] as const;
 export type TemplateColorToken = (typeof TEMPLATE_COLOR_TOKENS)[number];
 
-/** Tailwind-600-Näherungen in sRGB (Tailwind v4 nutzt oklch). */
-const TOKEN_HEX: Record<TemplateColorToken, string> = {
+/** Tailwind-600-Näherungen in sRGB (Tailwind v4 nutzt oklch); Schwarz nimmt nicht an der Hex-Zuordnung teil. */
+const TOKEN_HEX: Record<Exclude<TemplateColorToken, 'black'>, string> = {
   red: '#dc2626', orange: '#ea580c', amber: '#d97706', green: '#16a34a', teal: '#0d9488', blue: '#2563eb', violet: '#7c3aed', pink: '#db2777',
 };
 
@@ -31,17 +31,17 @@ export function resolveTemplateIcon(icon?: string): TemplateIconName {
   return V2_ICON_MAP[icon.trim().toLowerCase().replace(/[\s_-]/g, '')] ?? 'BookOpen';
 }
 
-/** Grau/ungültig → `undefined`; sonst der nächste der 8 Farb-Tokens (RGB-Abstand). */
-export function resolveTemplateColor(color?: string): TemplateColorToken | undefined {
-  if (!color) return undefined;
+/** Standardfarbe Schwarz: fehlend/grau/ungültig → 'black'; sonst der nächste Farb-Token (RGB-Abstand). */
+export function resolveTemplateColor(color?: string): TemplateColorToken {
+  if (!color) return 'black';
   const exact = TEMPLATE_COLOR_TOKENS.find((t) => t === color);
   if (exact) return exact;
   const c = rgb(color);
-  if (!c) return undefined;
-  if (Math.max(...c) - Math.min(...c) < 30) return undefined;
+  if (!c) return 'black';
+  if (Math.max(...c) - Math.min(...c) < 30) return 'black';
   let best: TemplateColorToken = 'blue';
   let bestD = Infinity;
-  for (const t of TEMPLATE_COLOR_TOKENS) {
+  for (const t of Object.keys(TOKEN_HEX) as (keyof typeof TOKEN_HEX)[]) {
     const h = rgb(TOKEN_HEX[t])!;
     const d = (h[0] - c[0]) ** 2 + (h[1] - c[1]) ** 2 + (h[2] - c[2]) ** 2;
     if (d < bestD) {

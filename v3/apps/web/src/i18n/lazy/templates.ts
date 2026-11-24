@@ -27,7 +27,7 @@ export const deTemplates = {
     icon: 'Symbol',
     iconLabel: (name: string) => `Symbol ${name}`,
     color: 'Farbe',
-    colorNames: { red: 'Rot', orange: 'Orange', amber: 'Gelb', green: 'Grün', teal: 'Türkis', blue: 'Blau', violet: 'Violett', pink: 'Rosa' },
+    colorNames: { black: 'Schwarz', red: 'Rot', orange: 'Orange', amber: 'Gelb', green: 'Grün', teal: 'Türkis', blue: 'Blau', violet: 'Violett', pink: 'Rosa' },
     save: 'Speichern',
     duplicate: 'Duplizieren',
     notFound: 'Diese Vorlage gibt es nicht (mehr).',

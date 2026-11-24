@@ -69,7 +69,7 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
   const { state } = loaded;
   const [name, setName] = useState(state?.template.name ?? '');
   const [icon, setIcon] = useState<string>(() => resolveTemplateIcon(state?.template.icon ?? DEFAULT_TEMPLATE_ICON));
-  const [color, setColor] = useState<string>(() => resolveTemplateColor(state?.template.color) ?? DEFAULT_TEMPLATE_COLOR);
+  const [color, setColor] = useState<string>(() => state ? resolveTemplateColor(state.template.color) : DEFAULT_TEMPLATE_COLOR);
   const [blocks, setBlocks] = useState<BlockDef[]>(() => [...(state?.version.blocks ?? [])].sort(compareByOrder));
   const [quickIds, setQuickIds] = useState<string[]>(state?.template.quickBlockIds ?? []);
   const [training, setTraining] = useState(state?.template.purpose === 'training');

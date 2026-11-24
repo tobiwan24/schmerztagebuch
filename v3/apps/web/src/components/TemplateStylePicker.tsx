@@ -42,7 +42,7 @@ export function TemplateStylePicker({
               aria-label={deTemplates.editor.colorNames[token as keyof typeof deTemplates.editor.colorNames]}
               onClick={() => onColor(token)}
             >
-              <span className={cn('flex size-6 items-center justify-center rounded-full text-white', c.bg)}>
+              <span className={cn('flex size-6 items-center justify-center rounded-full', c.bg, c.check)}>
                 {token === color ? <Check aria-hidden className="size-4" /> : null}
               </span>
             </Button>
