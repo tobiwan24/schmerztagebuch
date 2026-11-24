@@ -4,7 +4,7 @@ import { openDatabase, type Db } from '../db.js';
 import { migrate } from '../schema.js';
 import { buildApp } from '../app.js';
 import { headerAuth, TEST_AUTH_HEADER } from '../auth/test-auth.js';
-import { INVITATION_TTL_MS } from './service.js';
+import { INVITATION_QR_TTL_MS, INVITATION_TTL_MS } from './service.js';
 
 const config = { rpId: 'localhost', allowedOrigins: ['http://localhost:5173'], databasePath: ':memory:', blobDir: '.', port: 0, host: '127.0.0.1' };
 const D = 'diary-1';
@@ -69,6 +69,21 @@ describe('Einladungen', () => {
     expect((await accept(id, 'bob')).statusCode).toBe(410);
     expect((await fetchInv(id)).statusCode).toBe(410);
     expect(INVITATION_TTL_MS).toBe(7 * 24 * 60 * 60 * 1000);
+  });
+
+  it('SHR-17: QR-Einladung (kind qr) läuft nach 10 Minuten ab, Link-Einladung gilt weiter; unbekannte Art → 400', async () => {
+    const qr = await app.inject({ method: 'POST', url: `/api/v1/diaries/${D}/invitations`, headers: as('olga'), payload: { role: 'viewer', ciphertext: 'ct', kind: 'qr' } });
+    expect(qr.statusCode).toBe(201);
+    expect((qr.json() as { expiresAt: number }).expiresAt).toBe(now + INVITATION_QR_TTL_MS);
+    const qrId = (qr.json() as { id: string }).id;
+    const linkId = await newInvitation();
+    now += INVITATION_QR_TTL_MS + 1;
+    expect((await fetchInv(qrId)).statusCode).toBe(410);
+    expect((await accept(qrId, 'bob')).statusCode).toBe(410);
+    expect((await fetchInv(linkId)).statusCode).toBe(200);
+    expect(INVITATION_QR_TTL_MS).toBe(10 * 60 * 1000);
+    const bad = await app.inject({ method: 'POST', url: `/api/v1/diaries/${D}/invitations`, headers: as('olga'), payload: { role: 'viewer', ciphertext: 'ct', kind: 'sms' } });
+    expect(bad.statusCode).toBe(400);
   });
 
   it('SHR-08: nach Widerruf nicht mehr annehmbar; widerrufen darf nur ein owner', async () => {

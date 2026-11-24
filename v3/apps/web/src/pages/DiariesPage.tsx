@@ -1,20 +1,25 @@
 // Mehr → Tagebücher (Spec 10): Liste der Tagebücher mit Kurzbefehl (08) und Mitgliedern (09).
-import { Link } from 'react-router';
-import { ChevronRight, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { ChevronRight, Plus, ScanQrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { InviteQrScanner } from '@/components/InviteQrScanner';
 import { PageHeader } from '@/components/PageHeader';
 import { ErrorState } from '@/components/StateView';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 import { deDiaries } from '@/i18n/lazy/diaries';
+import { deInvite } from '@/i18n/lazy/invite';
 
 const t = deDiaries;
 
 export function DiariesPage() {
   const { diary } = useData();
   const list = useQuery(() => diary.listDiaries(), [diary]);
+  const [scanning, setScanning] = useState(false);
+  const navigate = useNavigate();
   return (
     <>
       <PageHeader title={de.more.diaries} back />
@@ -44,6 +49,11 @@ export function DiariesPage() {
           {t.create}
         </Link>
       </Button>
+      <Button variant="outline" data-testid="invite-scan-open" onClick={() => setScanning(true)}>
+        <ScanQrCode aria-hidden />
+        {deInvite.scan.open}
+      </Button>
+      {scanning ? <InviteQrScanner onClose={() => setScanning(false)} onCode={(code) => (setScanning(false), navigate(`/invite#${code}`))} /> : null}
     </>
   );
 }

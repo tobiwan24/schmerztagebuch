@@ -2,10 +2,12 @@
 // (Link mit Geheimnis im Fragment), offene Einladungen widerrufen, Rolle ändern, entfernen, austreten.
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { InviteQrDialog } from '@/components/InviteQrDialog';
 import { PageHeader } from '@/components/PageHeader';
 import { ErrorState } from '@/components/StateView';
 import { Progress } from '@/components/ui/progress';
@@ -22,6 +24,7 @@ export function MembersPage() {
   const q = m.query;
   const [role, setRole] = useState<'editor' | 'viewer'>('editor');
   const [link, setLink] = useState<string | null>(null);
+  const [qrOpen, setQrOpen] = useState(false);
   const [removing, setRemoving] = useState<MemberView | null>(null);
   const [error, setError] = useState(false);
   const navigate = useNavigate();
@@ -99,6 +102,10 @@ export function MembersPage() {
                   ))}
                 </ToggleGroup>
                 <Button onClick={() => void run(async () => setLink(await m.invite(role)))}>{t.createInvite}</Button>
+                <Button variant="outline" data-testid="invite-qr-open" onClick={() => setQrOpen(true)}>
+                  <QrCode aria-hidden />
+                  {t.showQr}
+                </Button>
                 {link ? (
                   <div className="flex flex-col gap-2 rounded-md border p-3">
                     <span className="text-sm">{t.linkHint}</span>
@@ -123,6 +130,15 @@ export function MembersPage() {
           )}
           {error ? <p role="alert" className="text-sm text-destructive">{t.error}</p> : null}
         </>
+      ) : null}
+      {qrOpen ? (
+        <InviteQrDialog
+          role={role}
+          create={m.inviteQr}
+          poll={m.pollQrInvitation}
+          revoke={m.revokeInvitation}
+          onClose={() => setQrOpen(false)}
+        />
       ) : null}
       <Dialog open={removing !== null} onClose={() => setRemoving(null)} aria-labelledby="remove-member-title">
         <DialogTitle id="remove-member-title">{t.removeTitle(removing?.username ?? '')}</DialogTitle>

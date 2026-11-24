@@ -43,11 +43,9 @@ const packageBlocks = PACKAGES.map((pkg) => ({
 
 /** UI-33 (Spec 10, A-147): Register „nur shadcn“ — erlaubte HTML-Elemente und UI-Pakete stehen in spec/ui-components.json. */
 const UI_REGISTER = loadRegister();
-const ALLOWED_ELEMENTS = [
-  ...UI_REGISTER.elements.neutral,
-  ...UI_REGISTER.elements.structural.list,
-  ...UI_REGISTER.elements.temporary.list,
-];
+const ALLOWED_ELEMENTS = Object.entries(UI_REGISTER.elements).flatMap(([key, group]) =>
+  key === 'neutral' ? group : key.startsWith('$') ? [] : group.list,
+);
 /** Pakete, die nur components/ui/ importieren darf (Radix, react-day-picker, …). */
 const UI_ONLY_BANS = Object.entries(UI_REGISTER.dependencies)
   .filter(([, d]) => d.kind === 'ui-only')

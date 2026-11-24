@@ -4,6 +4,15 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.13.0-alpha.1',
+    date: '2026-11-24',
+    points: [
+      'Einladen per QR-Code: Unter „Mitglieder & Einladungen“ zeigt „QR-Code anzeigen“ einen Code, den die eingeladene Person in der App unter Mehr → Tagebücher → „Einladung scannen“ einliest. So öffnet sich nichts im Browser.',
+      'Der QR-Code gilt 10 Minuten und nur einmal; schließt du das Fenster, ist er ungültig. Sobald die Person beigetreten ist, siehst du es direkt im Fenster.',
+      'Ohne Kamera kannst du im Scanner auch den Code oder den Einladungslink einfügen.',
+    ],
+  },
+  {
     version: '3.12.0-alpha.2',
     date: '2026-11-24',
     points: [

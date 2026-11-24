@@ -45,8 +45,9 @@ export function checkUiRegister({ register, uiFiles, deps, decisions, sources })
   }
   for (const name of Object.keys(comps)) if (!uiFiles.includes(name)) errors.push(`Register-Eintrag „${name}“ ohne Datei in components/ui/`);
 
-  for (const key of ['structural', 'temporary']) {
-    const group = register.elements?.[key];
+  // Alle Element-Gruppen außer „neutral“ brauchen eine Freigabe (structural, temporary, media …).
+  for (const [key, group] of Object.entries(register.elements ?? {})) {
+    if (key === 'neutral' || key.startsWith('$')) continue;
     if (group?.list?.length) approved(`Elemente (${key})`, group);
   }
 
