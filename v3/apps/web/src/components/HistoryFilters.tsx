@@ -1,21 +1,18 @@
-// Verlauf: Suche, Filter-Chips und gespeicherte Filter (Spec 06/10, Wireframe verlauf.html). Baut eine `FilterSpec`;
-// die Treffer liefert der Analyse-Worker. Gespeicherte Filter sind synchronisierte `savedFilter`-Records (ANA-11).
+// Verlauf: Suche und Filter-Chips (Spec 06/10, Wireframe verlauf.html). Baut eine `FilterSpec`; die Treffer liefert der
+// Analyse-Worker. Zeitraum über den shadcn-Datepicker (A-146); „Filter speichern“ ist entfallen (A-146, ANA-11 gestrichen).
 import { cn } from '@/lib/utils';
 import { TOUR_RING } from '@/tour/anchor';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowUpDown, ChevronDown, Download, Filter, Star, X } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, Download, Filter, X } from 'lucide-react';
 import { Link } from 'react-router';
-import { SORT_ORDERS, type FilterSpec, type SavedFilter, type SortOrder } from '@stb/analysis';
+import { SORT_ORDERS, type FilterSpec, type SortOrder } from '@stb/analysis';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { DateRangePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { useData } from '@/data/DataContext';
 import { useAuthorName } from '@/data/useSharing';
-import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 
 export type RangePreset = 'all' | '7d' | '30d' | '90d';
@@ -77,7 +74,7 @@ export function toSpec(s: FilterState, diaryIds: string[], medOptionIds: string[
   };
 }
 
-/** FilterSpec (aus gespeichertem Filter) → UI-Zustand; unbekannte Bestandteile bleiben unberücksichtigt. */
+/** FilterSpec → UI-Zustand (Gegenstück zu `toSpec`); unbekannte Bestandteile bleiben unberücksichtigt. */
 export function fromSpec(spec: FilterSpec): FilterState {
   const c = spec.conditions ?? [];
   const free = 'from' in spec.range ? spec.range : null;
@@ -99,31 +96,32 @@ export function fromSpec(spec: FilterSpec): FilterState {
 const RANGES: RangePreset[] = ['all', '7d', '30d', '90d'];
 
 export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templates, sort, onSortChange }: { state: FilterState; onChange: (s: FilterState) => void; diaryIds: string[]; medOptionIds: string[]; templates: { id: string; name: string }[]; sort: SortOrder; onSortChange: (s: SortOrder) => void }) {
-  const data = useData();
   const ownerDiary = diaryIds[0];
-  const saved = useQuery(async () => (ownerDiary ? data.diary.listSavedFilters(ownerDiary) : []), [data.diary, ownerDiary]);
   const [text, setText] = useState(state.text);
   const freeRange = state.from !== '' || state.to !== '';
   const authorName = useAuthorName(ownerDiary, state.authorId || undefined);
-  const [saving, setSaving] = useState(false);
-  const [name, setName] = useState('');
   // Nur ein Panel gleichzeitig; mit vorgewähltem Autor (SHR-15) startet das Filter-Panel offen, damit der Autor-Chip sichtbar ist.
   const [panel, setPanel] = useState<'filter' | 'sort' | null>(state.authorId ? 'filter' : null);
   const count = activeFilterCount(state, medOptionIds.length > 0);
   const filterBtn = useRef<HTMLButtonElement>(null);
   const sortBtn = useRef<HTMLButtonElement>(null);
-  // Escape schließt das offene Panel und gibt den Fokus an den Auslöser zurück.
+  // Panel schließen und den Fokus an den Auslöser zurückgeben (Escape, „Übernehmen“).
+  const closePanel = () => {
+    (panel === 'filter' ? filterBtn : sortBtn).current?.focus();
+    setPanel(null);
+  };
   useEffect(() => {
-    if (!panel || saving) return;
+    if (!panel) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
+      // Ein offenes Datums-Popup schließt Radix selbst; das Panel bleibt dann offen.
+      if (e.key !== 'Escape' || e.defaultPrevented || document.querySelector('[data-slot="popover-content"]')) return;
       (panel === 'filter' ? filterBtn : sortBtn).current?.focus();
       setPanel(null);
     };
     // Am Dokument, weil WebKit Knöpfe beim Klick nicht fokussiert.
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [panel, saving]);
+  }, [panel]);
   const togglePanel = (p: 'filter' | 'sort') => setPanel(panel === p ? null : p);
 
   // Suche entprellt übernehmen
@@ -135,7 +133,7 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
     }, 200);
     return () => clearTimeout(t);
   }, [text, state, onChange]);
-  // Nur Änderungen von außen (gespeicherter Filter, Zurücksetzen) ins Feld übernehmen — nie die laufende Eingabe überschreiben.
+  // Nur Änderungen von außen (Zurücksetzen, Rückkehr in den Verlauf) ins Feld übernehmen — nie die laufende Eingabe überschreiben.
   const external = useRef(state.text);
   useEffect(() => {
     if (state.text !== external.current) {
@@ -145,21 +143,6 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
   }, [state.text]);
 
   const toggle = (k: 'outcome' | 'meds' | 'events') => onChange({ ...state, [k]: !state[k] });
-
-  async function save() {
-    if (!ownerDiary || !name.trim()) return;
-    const s = await data.stamper.stamp();
-    const f: SavedFilter = { id: data.newId(), diaryId: ownerDiary, name: name.trim(), filter: toSpec(state, diaryIds, medOptionIds), hlc: s.hlc, updatedAt: s.at };
-    await data.diary.saveSavedFilter(f);
-    setSaving(false);
-    setName('');
-    saved.retry();
-  }
-  async function remove(f: SavedFilter) {
-    const s = await data.stamper.stamp();
-    await data.diary.deleteSavedFilter(f.id, { hlc: s.hlc, updatedAt: s.at });
-    saved.retry();
-  }
 
   return (
     <section data-tour="history-filters" className={cn('flex flex-col gap-3', TOUR_RING)} aria-label={de.history.filters}>
@@ -193,88 +176,77 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
           </Link>
         </Button>
       </div>
-      <div id="history-filter-panel" role="region" aria-label={de.history.filter} hidden={panel !== 'filter'} className={cn('flex flex-col gap-3 rounded-lg border bg-card p-3', panel !== 'filter' && 'hidden')}>
-        <ToggleGroup aria-label={de.history.range}>
-          {RANGES.map((r) => (
-            <ToggleGroupItem key={r} pressed={state.range === r && !freeRange} onClick={() => onChange({ ...state, range: r, from: '', to: '' })}>
-              {de.history.ranges[r]}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="history-from">{de.history.from}</Label>
-            <Input id="history-from" type="date" value={state.from} max={state.to || undefined} onChange={(e) => onChange({ ...state, from: e.target.value })} />
-          </div>
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="history-to">{de.history.to}</Label>
-            <Input id="history-to" type="date" value={state.to} min={state.from || undefined} onChange={(e) => onChange({ ...state, to: e.target.value })} />
-          </div>
+      <div id="history-filter-panel" role="region" aria-label={de.history.filter} hidden={panel !== 'filter'} className={cn('flex flex-col gap-4 rounded-lg border bg-card p-3', panel !== 'filter' && 'hidden')}>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="history-range">{de.history.range}</Label>
+          <DateRangePicker
+            id="history-range"
+            from={state.from}
+            to={state.to}
+            onChange={(from, to) => onChange({ ...state, range: 'all', from, to })}
+            text={freeRange ? undefined : de.history.ranges[state.range]}
+            presets={RANGES.map((r) => ({ key: r, label: de.history.ranges[r], active: state.range === r && !freeRange, onSelect: () => onChange({ ...state, range: r, from: '', to: '' }) }))}
+          />
         </div>
         {templates.length > 1 ? (
-          <div className="flex flex-wrap items-center gap-2" role="group" aria-label={de.history.templates}>
-            <span className="text-xs text-muted-foreground">{de.history.templates}</span>
-            {templates.map((t) => {
-              const on = state.templateIds.includes(t.id);
-              return (
-                <Button key={t.id} size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant={on ? 'default' : 'outline'} aria-pressed={on} onClick={() => onChange({ ...state, templateIds: on ? state.templateIds.filter((x) => x !== t.id) : [...state.templateIds, t.id] })}>
-                  {t.name}
-                </Button>
-              );
-            })}
-          </div>
-        ) : null}
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant={state.outcome ? 'default' : 'outline'} aria-pressed={state.outcome} onClick={() => toggle('outcome')}>
-            {de.history.chipOutcome(OUTCOME_THRESHOLD)}
-          </Button>
-          {medOptionIds.length ? (
-            <Button size="sm" variant={state.meds ? 'default' : 'outline'} aria-pressed={state.meds} onClick={() => toggle('meds')}>
-              {de.history.chipMeds}
-            </Button>
-          ) : null}
-          <Button size="sm" variant={state.events ? 'default' : 'outline'} aria-pressed={state.events} onClick={() => toggle('events')}>
-            {de.history.chipEvents}
-          </Button>
-          {state.authorId ? (
-            <Button size="sm" variant="default" aria-pressed onClick={() => onChange({ ...state, authorId: '' })}>
-              {de.history.chipAuthor(authorName.status === 'ok' && authorName.data ? authorName.data : de.history.unknownAuthor)}
-            </Button>
-          ) : null}
-          {CONTENT_KINDS.map((k) => (
-            <Button key={k} size="sm" variant={state.content.includes(k) ? 'default' : 'outline'} aria-pressed={state.content.includes(k)} onClick={() => onChange({ ...state, content: state.content.includes(k) ? state.content.filter((x) => x !== k) : [...state.content, k] })}>
-              {de.history.content[k]}
-            </Button>
-          ))}
-          {isActive(state) ? (
-            <>
-              <Button size="sm" variant="ghost" onClick={() => onChange(EMPTY_FILTER)}>
-                <X aria-hidden />
-                {de.history.reset}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setSaving(true)}>
-                <Star aria-hidden />
-                {de.history.saveFilter}
-              </Button>
-            </>
-          ) : null}
-        </div>
-        {saved.status === 'ok' && saved.data.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-2" data-testid="saved-filters">
-            <span className="text-xs text-muted-foreground">{de.history.saved}</span>
-            {saved.data.map((f) => (
-              <span key={f.id} className="inline-flex items-center">
-                <Button size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant="secondary" onClick={() => onChange(fromSpec(f.filter))}>
-                  <Star aria-hidden />
-                  {f.name}
-                </Button>
-                <Button size="icon" variant="ghost" aria-label={de.history.deleteSaved(f.name)} onClick={() => void remove(f)}>
-                  <X aria-hidden />
-                </Button>
+          <>
+            <div className="flex flex-col gap-2" role="group" aria-labelledby="history-templates-heading">
+              <span id="history-templates-heading" className="text-sm font-medium">
+                {de.history.templates}
               </span>
+              <div className="flex flex-wrap gap-2">
+                {templates.map((t) => {
+                  const on = state.templateIds.includes(t.id);
+                  return (
+                    <Button key={t.id} size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant={on ? 'default' : 'outline'} aria-pressed={on} onClick={() => onChange({ ...state, templateIds: on ? state.templateIds.filter((x) => x !== t.id) : [...state.templateIds, t.id] })}>
+                      {t.name}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+            <div role="separator" className="h-px w-full shrink-0 bg-border" />
+          </>
+        ) : null}
+        <div className="flex flex-col gap-2" role="group" aria-labelledby="history-more-heading">
+          <span id="history-more-heading" className="text-sm font-medium">
+            {de.history.moreFilters}
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant={state.outcome ? 'default' : 'outline'} aria-pressed={state.outcome} onClick={() => toggle('outcome')}>
+              {de.history.chipOutcome(OUTCOME_THRESHOLD)}
+            </Button>
+            {medOptionIds.length ? (
+              <Button size="sm" variant={state.meds ? 'default' : 'outline'} aria-pressed={state.meds} onClick={() => toggle('meds')}>
+                {de.history.chipMeds}
+              </Button>
+            ) : null}
+            <Button size="sm" variant={state.events ? 'default' : 'outline'} aria-pressed={state.events} onClick={() => toggle('events')}>
+              {de.history.chipEvents}
+            </Button>
+            {state.authorId ? (
+              <Button size="sm" variant="default" aria-pressed onClick={() => onChange({ ...state, authorId: '' })}>
+                {de.history.chipAuthor(authorName.status === 'ok' && authorName.data ? authorName.data : de.history.unknownAuthor)}
+              </Button>
+            ) : null}
+            {CONTENT_KINDS.map((k) => (
+              <Button key={k} size="sm" variant={state.content.includes(k) ? 'default' : 'outline'} aria-pressed={state.content.includes(k)} onClick={() => onChange({ ...state, content: state.content.includes(k) ? state.content.filter((x) => x !== k) : [...state.content, k] })}>
+                {de.history.content[k]}
+              </Button>
             ))}
           </div>
-        ) : null}
+        </div>
+        <div className="flex items-center justify-between gap-2 border-t pt-3">
+          {isActive(state) ? (
+            <Button size="sm" variant="ghost" onClick={() => onChange(EMPTY_FILTER)}>
+              <X aria-hidden />
+              {de.history.reset}
+            </Button>
+          ) : (
+            <span />
+          )}
+          <Button onClick={closePanel}>{de.history.apply}</Button>
+        </div>
       </div>
       <div id="history-sort-panel" role="region" aria-label={de.history.sortButton} hidden={panel !== 'sort'} className={cn('flex flex-col gap-1 rounded-lg border bg-card p-3', panel !== 'sort' && 'hidden')}>
         <Label htmlFor="history-sort">{de.history.sort}</Label>
@@ -286,21 +258,6 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
           ))}
         </Select>
       </div>
-      <Dialog open={saving} onClose={() => setSaving(false)} aria-labelledby="save-filter-title">
-        <DialogTitle id="save-filter-title">{de.history.saveFilter}</DialogTitle>
-        <div className="mt-4 flex flex-col gap-2">
-          <Label htmlFor="filter-name">{de.history.filterName}</Label>
-          <Input id="filter-name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setSaving(false)}>
-            {de.lock.cancel}
-          </Button>
-          <Button disabled={!name.trim()} onClick={() => void save()}>
-            {de.entry.save}
-          </Button>
-        </DialogFooter>
-      </Dialog>
     </section>
   );
 }

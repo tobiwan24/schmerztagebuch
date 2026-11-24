@@ -33,7 +33,7 @@ import { TagInput } from '@/components/TagInput';
 import { TemplateIcon } from '@/components/TemplateIcon';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { DatePicker, DateTimePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { WeatherSwitch, useDiaryWeatherSettings, useGpsChoice } from '@/components/WeatherSwitch';
@@ -399,7 +399,7 @@ export function EntryForm({ templates, entry, prefill }: { templates: Template[]
   );
 }
 
-/** Browser liefern `datetime-local` teils mit Sekunden (WebKit) — minutengenau vergleichen und speichern. */
+/** Werte minutengenau vergleichen und speichern (ältere Einträge können Sekunden tragen). */
 const minutes = (v: string) => (v.length > 16 ? v.slice(0, 16) : v);
 
 function TimeField({ time, error, onChange }: { time: TimeInput; error: ReturnType<typeof validateTime>; onChange: (t: TimeInput) => void }) {
@@ -432,18 +432,27 @@ function TimeField({ time, error, onChange }: { time: TimeInput; error: ReturnTy
       {time.mode === 'point' ? (
         <div className="flex flex-col gap-2">
           <Label htmlFor="entry-time">{de.entry.pointLabel}</Label>
-          <Input id="entry-time" type="datetime-local" value={time.at} onChange={(e) => onChange({ mode: 'point', at: minutes(e.target.value) })} {...invalid} />
+          <DateTimePicker id="entry-time" label={de.entry.pointLabel} value={time.at} onChange={(v) => onChange({ mode: 'point', at: minutes(v) })} {...invalid} />
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
+          {/* Mit Uhrzeit untereinander, sonst wird die Datumsauswahl neben dem Uhrzeitfeld zu schmal. */}
+          <div className={cn('grid grid-cols-1 gap-3', !time.withTime && 'min-[400px]:grid-cols-2')}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="entry-time">{de.entry.periodStart}</Label>
-              <Input id="entry-time" type={time.withTime ? 'datetime-local' : 'date'} value={time.start} onChange={(e) => onChange({ ...time, start: minutes(e.target.value) })} {...invalid} />
+              {time.withTime ? (
+                <DateTimePicker id="entry-time" label={de.entry.periodStart} value={time.start} defaultTime="00:00" onChange={(v) => onChange({ ...time, start: minutes(v) })} {...invalid} />
+              ) : (
+                <DatePicker id="entry-time" required value={time.start} onChange={(v) => onChange({ ...time, start: v })} {...invalid} />
+              )}
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="entry-time-end">{de.entry.periodEnd}</Label>
-              <Input id="entry-time-end" type={time.withTime ? 'datetime-local' : 'date'} value={time.end} onChange={(e) => onChange({ ...time, end: minutes(e.target.value) })} {...invalid} />
+              {time.withTime ? (
+                <DateTimePicker id="entry-time-end" label={de.entry.periodEnd} value={time.end} defaultTime="23:59" onChange={(v) => onChange({ ...time, end: minutes(v) })} {...invalid} />
+              ) : (
+                <DatePicker id="entry-time-end" required value={time.end} onChange={(v) => onChange({ ...time, end: v })} {...invalid} />
+              )}
             </div>
           </div>
           <div className="flex min-h-11 items-center gap-3">

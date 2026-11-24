@@ -41,7 +41,9 @@ Condition =
 - Sortierung der Ergebnisliste: `newest | oldest | template_az | template_date` (stabil; pro Gerät gemerkt). Der Verlauf lädt
   seitenweise je 50 Einträge („Weitere laden"), Sortierung und Datum je Eintrag bleiben über Seitengrenzen korrekt, bei Vorlagensortierung auch die Gruppen (ANA-20).
 - Auswertungs-Zeiträume: `day | 7d | 30d | 90d | 6m | 1y`; „Tag" zeigt Einzelwerte mit Uhrzeit-Achse (ANA-17).
-- Gespeicherte Filter = `SavedFilter` (02), synchronisiert und per Tagebuch geteilt.
+- Gespeicherte Filter = `SavedFilter` (02), synchronisiert und per Tagebuch geteilt. Seit RDM-030 (A-146) legt der Verlauf keine
+  gespeicherten Filter mehr an; vorhandene Records bleiben in Datenmodell, Sync und Export erhalten. Die Verlauf-Filter selbst
+  liegen nur im Speicher: Sie bleiben beim Wechsel Verlauf → Detail → zurück erhalten und sind nach einem Neustart leer.
 - Suche ist umlaut- und groß/klein-tolerant (`ä`≙`ae`, Normalisierung NFKD).
 
 ## Aggregation (verbindliche Semantik)
@@ -107,7 +109,7 @@ Condition =
 | ANA-08 | Periodenvergleich liefert für die Fixture die vorab berechneten Kennzahlen (n, Mittelwert, Median, Min, Max, Tage ≥ Schwelle). | unit |
 | ANA-09 | Hinweis „Wenige Daten" erscheint genau dann, wenn eine Seite `n < 7` hat. | unit |
 | ANA-10 | Medikamententage je Monat entsprechen der Fixture; mehrere Einnahmen am selben Tag zählen als ein Tag. | unit |
-| ANA-11 | Gespeicherter Filter überlebt Reload und erscheint auf dem Zweitgerät. | e2e |
+| ANA-11 | ~~Gespeicherter Filter überlebt Reload und erscheint auf dem Zweitgerät.~~ Gestrichen 2026-11-24 (User-Entscheidung, RDM-030/A-146: „Filter speichern“ entfällt). | dropped |
 | ANA-12 | Leistungsbudgets aus der Tabelle werden eingehalten (Benchmark-Test mit 5.000-Einträge-Fixture). | integration |
 | ANA-13 | Verlauf, Heatmap, Medikamententage, Häufigkeiten, Body-Map-Übersicht rendern mit Fixture-Daten ohne Konsolenfehler; Ereignismarkierungen erscheinen. | e2e |
 | ANA-14 | Diagramm als PNG exportierbar (Download-Event im E2E-Test). | e2e |

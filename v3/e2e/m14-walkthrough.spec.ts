@@ -85,7 +85,8 @@ test.describe('M14-Rundgang (iPhone-Viewport)', () => {
 
     // Verlauf-Filter + Export daraus als PDF (Datei mit pdfjs öffnen)
     await openFilter(page);
-    await page.getByRole('button', { name: '7 Tage' }).click();
+    await page.getByLabel('Zeitraum', { exact: true }).click();
+    await page.getByRole('group', { name: 'Schnellauswahl' }).getByRole('button', { name: '7 Tage' }).click();
     await expect(page.getByTestId('entry-row')).toHaveCount(1);
     await page.getByLabel('Suchen').fill('rundgang');
     await expect(page.getByTestId('entry-row')).toHaveCount(1);

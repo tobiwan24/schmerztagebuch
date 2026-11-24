@@ -1,5 +1,5 @@
 import { test, expect, type Download, type Page } from '@playwright/test';
-import { addVirtualAuthenticator, go, onboardWithCloud, onboardWithPassword, uniqueUser } from './helpers';
+import { addVirtualAuthenticator, go, onboardWithCloud, onboardWithPassword, uniqueUser, pickMonth } from './helpers';
 
 const DAY = 86_400_000;
 
@@ -92,7 +92,7 @@ test.describe('Export & Backup', () => {
     const [y, m] = thisMonth.split('-').map(Number) as [number, number];
     const prevMonth = new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7);
     const csvFor = async (month: string) => {
-      await page.getByLabel('Monat', { exact: true }).fill(month);
+      await pickMonth(page, 'Monat', month);
       const [d] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Herunterladen', exact: true }).click()]);
       return text(d);
     };

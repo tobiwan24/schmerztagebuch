@@ -9,6 +9,7 @@ import type { FilterSpec, SavedFilter } from '@stb/analysis';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DateRangePicker, MonthPicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -183,19 +184,21 @@ function ExportCard() {
         {period === 'month' ? (
           <div className="flex flex-col gap-2">
             <Label htmlFor="export-month">{t.periodMonth}</Label>
-            <Input id="export-month" type="month" value={month} onChange={(ev) => setMonth(ev.target.value)} />
+            <MonthPicker id="export-month" value={month} onChange={setMonth} />
           </div>
         ) : null}
         {period === 'range' ? (
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="export-from">{t.periodFrom}</Label>
-              <Input id="export-from" type="date" value={rangeFrom} onChange={(ev) => setRangeFrom(ev.target.value)} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="export-to">{t.periodTo}</Label>
-              <Input id="export-to" type="date" value={rangeTo} onChange={(ev) => setRangeTo(ev.target.value)} />
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="export-range">{t.periods.range}</Label>
+            <DateRangePicker
+              id="export-range"
+              from={rangeFrom}
+              to={rangeTo}
+              onChange={(from, to) => {
+                setRangeFrom(from);
+                setRangeTo(to);
+              }}
+            />
           </div>
         ) : null}
         <LlmSummaryPanel

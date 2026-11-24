@@ -234,3 +234,60 @@ export async function openAnalysisView(page: Page, name: string): Promise<void> 
   await tab.click();
   await expect(tab).toHaveAttribute('aria-pressed', 'true');
 }
+
+// ---- shadcn-Datepicker (A-146): Popover + Calendar statt nativer Datumsfelder ----
+const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+const popover = (page: Page) => page.locator('[data-slot="popover-content"]');
+
+/** Im offenen Calendar zum Monat von `ymd` blättern und den Tag anklicken. */
+export async function chooseDay(page: Page, ymd: string): Promise<void> {
+  const [y, m, d] = ymd.split('-').map(Number);
+  const pop = popover(page);
+  await expect(pop).toBeVisible();
+  for (let i = 0; i < 120; i++) {
+    const caption = (await pop.locator('.rdp-caption_label').first().textContent()) ?? '';
+    const [name, year] = caption.trim().split(/\s+/);
+    const shown = Number(year) * 12 + MONTHS.indexOf(name);
+    const wanted = y * 12 + (m - 1);
+    if (shown === wanted) break;
+    await pop.getByRole('button', { name: shown < wanted ? 'Zum nächsten Monat' : 'Zum vorherigen Monat' }).click();
+  }
+  // Tageslabel „Montag, 2. März 2026“; „12.“ darf nicht auf „2.“ passen.
+  await pop.getByRole('button', { name: new RegExp(`(^|\\s)${d}\\. ${MONTHS[m - 1]} ${y}`) }).first().click();
+}
+
+/** Datum (und optional Uhrzeit) in einem Datepicker setzen; `label` = Beschriftung des Datums-Auslösers. */
+export async function pickDate(page: Page, label: string, ymd: string, hm?: string): Promise<void> {
+  await page.getByLabel(label, { exact: true }).click();
+  await chooseDay(page, ymd);
+  await expect(popover(page)).toHaveCount(0);
+  if (hm) await page.getByLabel(`${label}: Uhrzeit`, { exact: true }).fill(hm);
+}
+
+/** `YYYY-MM-DDTHH:mm` wie früher bei `datetime-local` in einen DateTimePicker eintragen. */
+export async function pickDateTime(page: Page, label: string, value: string): Promise<void> {
+  await pickDate(page, label, value.slice(0, 10), value.slice(11, 16));
+}
+
+/** Zeitraum im Range-Datepicker wählen (zwei Klicks im selben Popup). */
+export async function pickRange(page: Page, label: string, from: string, to: string): Promise<void> {
+  await page.getByLabel(label, { exact: true }).click();
+  await chooseDay(page, from);
+  await chooseDay(page, to);
+  await expect(popover(page)).toHaveCount(0);
+}
+
+/** Monat (`YYYY-MM`) im Monats-Picker wählen. */
+export async function pickMonth(page: Page, label: string, ym: string): Promise<void> {
+  const [y, m] = ym.split('-').map(Number);
+  await page.getByLabel(label, { exact: true }).click();
+  const pop = popover(page);
+  await expect(pop).toBeVisible();
+  for (let i = 0; i < 50; i++) {
+    const shown = Number((await pop.locator('[aria-live="polite"]').textContent())?.trim());
+    if (shown === y) break;
+    await pop.getByRole('button', { name: shown < y ? 'Nächstes Jahr' : 'Voriges Jahr' }).click();
+  }
+  await pop.getByRole('button', { name: `${MONTHS[m - 1]} ${y}`, exact: true }).click();
+  await expect(pop).toHaveCount(0);
+}

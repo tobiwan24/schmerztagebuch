@@ -47,6 +47,10 @@ const UI_BASE_ELEMENTS = [
     message: 'Basis-Elemente nur in components/ui/ — shadcn/ui-Komponente verwenden (Spec 10, UI-01).',
   },
   { selector: "JSXAttribute[name.name='style']", message: 'Kein Inline-CSS — Tailwind-Klassen/Tokens verwenden (Spec 10, UI-01).' },
+  {
+    selector: "JSXAttribute[name.name='type'] Literal[value=/^(date|datetime-local|month|week)$/]",
+    message: 'Keine nativen Datums-Picker — shadcn-Datepicker aus components/ui/date-picker verwenden (Spec 10, UI-24, A-146).',
+  },
 ];
 
 /** UI-07 (Spec 10): sichtbarer Text und textuelle Attribute müssen aus i18n/de.ts kommen. */

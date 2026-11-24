@@ -27,6 +27,11 @@ describe('UI-Lint-Regeln', () => {
     expect(await rulesFor('ui-style-prop.tsx', 'apps/web/src/pages/Start.tsx')).toContain('no-restricted-syntax');
   });
 
+  it('UI-01: native Datums-Picker (type date/datetime-local/month) sind außerhalb von components/ui/ verboten (A-146)', async () => {
+    expect(await rulesFor('ui-native-date.tsx', 'apps/web/src/components/EntryForm.tsx')).toContain('no-restricted-syntax');
+    expect(await rulesFor('ui-native-date.tsx', 'apps/web/src/pages/ExportPage.tsx')).toContain('no-restricted-syntax');
+  });
+
   it('UI-01: keine CSS-Datei außer index.css in apps/web/src', () => {
     const dir = mkdtempSync(join(tmpdir(), 'stb-css-'));
     try {

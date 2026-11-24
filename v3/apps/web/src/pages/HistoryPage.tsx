@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
 import type { FilterSpec } from '@stb/analysis';
-import { EMPTY_FILTER, HistoryFilters, isActive, toSpec, type FilterState } from '@/components/HistoryFilters';
+import { EMPTY_FILTER, HistoryFilters, isActive, toSpec } from '@/components/HistoryFilters';
+import { useHistoryFilter } from '@/data/history-filter-store';
 import { useAnalysis } from '@/data/AnalysisContext';
 import { PageHeader } from '@/components/PageHeader';
 import { EntryListState } from '@/components/EntryListState';
@@ -16,8 +17,10 @@ export function HistoryPage() {
   const { diary, now } = useData();
   const { client, version } = useAnalysis();
   // Vom Start-Hinweis „n neue Einträge von X“ (SHR-15): Verlauf nach diesem Autor vorfiltern
-  const fromNotice = (useLocation().state as { authorId?: unknown } | null)?.authorId;
-  const [filter, setFilter] = useState<FilterState>(() => ({ ...EMPTY_FILTER, authorId: typeof fromNotice === 'string' ? fromNotice : '' }));
+  const location = useLocation();
+  const fromNotice = (location.state as { authorId?: unknown } | null)?.authorId;
+  // Filter bleiben bis zum Neustart im Speicher erhalten (A-146), der Start-Hinweis setzt seinen Autor-Filter neu.
+  const [filter, setFilter] = useHistoryFilter(typeof fromNotice === 'string' ? { ...EMPTY_FILTER, authorId: fromNotice } : undefined, location.key);
   const [sort, setSort] = useHistorySort();
   const [ids, setIds] = useState<ReadonlySet<string> | null>(null);
   const meta = useQuery(async () => {

@@ -1,9 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
-import { go, onboardWithPassword } from './helpers';
+import { go, onboardWithPassword, pickDateTime } from './helpers';
 
 async function addEntry(page: Page, when: string, pain: string) {
   await go(page, '/entry/new');
-  await page.getByLabel('Zeitpunkt', { exact: true }).fill(when);
+  await pickDateTime(page, 'Zeitpunkt', when);
   await page.getByLabel(/Schmerzstärke/).fill(pain);
   await page.getByRole('button', { name: 'Speichern' }).click();
   await expect(page.getByTestId('entry-time')).toBeVisible();

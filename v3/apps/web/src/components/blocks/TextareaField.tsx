@@ -85,7 +85,7 @@ export function TextareaField({
     <div className="flex flex-col gap-3">
       <Textarea id={id} value={v.text ?? ''} onChange={(e) => onChange({ ...v, text: e.target.value || undefined })} {...aria} />
 
-      {config.allowEvents ? (
+      {config.allowEvents && (events.length || adding) ? (
         <div className="flex flex-col gap-2">
           {events.length ? (
             <ul className="flex flex-col gap-1" aria-label={de.entry.eventsHeading}>
@@ -125,22 +125,11 @@ export function TextareaField({
                 </Button>
               </div>
             </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={() => setAdding('event')}>
-                <CalendarPlus aria-hidden />
-                {de.entry.addEvent}
-              </Button>
-              <Button type="button" size="sm" variant="outline" onClick={() => setAdding('doctor')}>
-                <Stethoscope aria-hidden />
-                {de.entry.addDoctor}
-              </Button>
-            </div>
-          )}
+          ) : null}
         </div>
       ) : null}
 
-      {config.allowAttachments && attachments ? (
+      {config.allowAttachments && attachments && (ids.length || error) ? (
         <div className="flex flex-col gap-2">
           {ids.length ? (
             <ul className="flex flex-col gap-2" aria-label={de.entry.attachments}>
@@ -162,18 +151,37 @@ export function TextareaField({
               })}
             </ul>
           ) : null}
-          <Input
-            ref={fileInput} type="file" multiple accept="image/*,application/pdf" className="hidden" aria-label={de.entry.attachFileInput}
-            onChange={(e) => void onFiles(e.target.files).finally(() => (e.target.value = ''))}
-          />
-          <Button type="button" size="sm" variant="outline" className="self-start" onClick={() => fileInput.current?.click()}>
-            <Paperclip aria-hidden />
-            {de.entry.attachFile}
-          </Button>
           {error ? (
             <p role="alert" className="text-sm text-destructive">
               {error}
             </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Aktionen nur als Symbole in einer Zeile (A-146); Beschriftung als aria-label und Hover-Hinweis. */}
+      {!adding && (config.allowEvents || (config.allowAttachments && attachments)) ? (
+        <div className="flex flex-wrap gap-2">
+          {config.allowEvents ? (
+            <>
+              <Button type="button" size="icon" variant="outline" aria-label={de.entry.addEvent} title={de.entry.addEvent} onClick={() => setAdding('event')}>
+                <CalendarPlus aria-hidden />
+              </Button>
+              <Button type="button" size="icon" variant="outline" aria-label={de.entry.addDoctor} title={de.entry.addDoctor} onClick={() => setAdding('doctor')}>
+                <Stethoscope aria-hidden />
+              </Button>
+            </>
+          ) : null}
+          {config.allowAttachments && attachments ? (
+            <>
+              <Input
+                ref={fileInput} type="file" multiple accept="image/*,application/pdf" className="hidden" aria-label={de.entry.attachFileInput}
+                onChange={(e) => void onFiles(e.target.files).finally(() => (e.target.value = ''))}
+              />
+              <Button type="button" size="icon" variant="outline" aria-label={de.entry.attachFile} title={de.entry.attachFile} onClick={() => fileInput.current?.click()}>
+                <Paperclip aria-hidden />
+              </Button>
+            </>
           ) : null}
         </div>
       ) : null}
