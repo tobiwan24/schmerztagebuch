@@ -51,7 +51,7 @@ test.describe('Tags im Eintrag', () => {
 
   test('BLK-29: Tag-Änderung zählt als ungespeicherte Änderung (Warnung beim Verlassen)', async ({ page }) => {
     await onboardWithPassword(page);
-    await page.getByRole('link', { name: 'Neuer Eintrag' }).click();
+    await page.getByTestId('template-tile').first().click();
     await expect(page.getByRole('button', { name: 'Speichern' })).toBeVisible();
     await tagField(page).fill('Wochenende');
     await tagField(page).press('Enter');

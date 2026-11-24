@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { PASSWORD, go, onboardWithPassword } from './helpers';
+import { PASSWORD, go, onboardWithPassword, openAnalysisView } from './helpers';
 
 /**
  * Nur im Test: synthetische Einträge der letzten 25 Tage direkt in die lokale DB (Codec `plain`).
@@ -62,14 +62,14 @@ test.describe('Auswertung: Zusammenhänge', () => {
     await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible({ timeout: 30_000 });
     await go(page, '/analysis');
 
-    await page.getByRole('button', { name: 'Zusammenh.' }).click();
+    await openAnalysisView(page, 'Zusammenh.');
     const caveat = page.getByTestId('corr-caveat');
     await expect(caveat).toHaveText('Zusammenhang ist keine Ursache.');
 
     // Zwei Felder: Schmerzstärke im Allgemeinen Tagebuch gegen Schmerzstärke im Kopfschmerz-Tagebuch, selber Tag
     const pair = page.getByTestId('corr-pair');
-    await pair.getByRole('group', { name: 'Feld A' }).getByRole('button', { name: 'Schmerzstärke · Allgemeines Schmerz-Tagebuch' }).click();
-    await pair.getByRole('group', { name: 'Feld B' }).getByRole('button', { name: 'Schmerzstärke · Kopfschmerz-Tagebuch' }).click();
+    await pair.getByRole('group', { name: 'Wert A' }).getByRole('button', { name: 'Schmerzstärke · Allgemeines Schmerz-Tagebuch' }).click();
+    await pair.getByRole('group', { name: 'Wert B' }).getByRole('button', { name: 'Schmerzstärke · Kopfschmerz-Tagebuch' }).click();
     const result = page.getByTestId('corr-result');
     // Minuszeichen kann als „-“ oder „−“ formatiert sein
     await expect(result).toContainText(/Rangkorrelation ρ = [-−]0,9\d/, { timeout: 15_000 });

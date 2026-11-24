@@ -8,7 +8,7 @@ import { TEMPLATE_COLORS, TEMPLATE_ICONS } from './TemplateIcon';
 export function TemplateStylePicker({
   icon, color, onIcon, onColor,
 }: { icon: string; color: string; onIcon: (icon: string) => void; onColor: (color: string) => void }) {
-  const tone = TEMPLATE_COLORS[color]?.text ?? '';
+  const tone = (TEMPLATE_COLORS as Record<string, { text: string } | undefined>)[color]?.text ?? '';
   return (
     <>
       <fieldset className="flex flex-col gap-2">
@@ -42,7 +42,7 @@ export function TemplateStylePicker({
               aria-label={deTemplates.editor.colorNames[token as keyof typeof deTemplates.editor.colorNames]}
               onClick={() => onColor(token)}
             >
-              <span className={cn('flex size-6 items-center justify-center rounded-full text-white', c.bg)}>
+              <span className={cn('flex size-6 items-center justify-center rounded-full', c.bg, c.check)}>
                 {token === color ? <Check aria-hidden className="size-4" /> : null}
               </span>
             </Button>

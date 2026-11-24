@@ -4,6 +4,17 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.11.0-alpha.1',
+    date: '2026-11-24',
+    points: [
+      'Die Startseite zeigt für jede ausgewählte Vorlage einen eigenen Schnell-Button; welche, legst du in den Einstellungen des Tagebuchs fest. Die Eintragsliste ist jetzt im Verlauf.',
+      'Im Verlauf hat jeder Eintrag eine eigene Card mit Symbol, Titel, Kennzeichen und Schmerzwert; der Kopf mit Suche, Filter und Sortierung ist kompakter.',
+      'Die Detailansicht zeigt das Datum als Titel, darunter den Namen der Vorlage.',
+      'In der Auswertung lassen sich die Ansichten seitlich wischen; lange Knöpfe brechen jetzt um.',
+      'Die Einstellungen sind neu geordnet (Konto & Sync zuerst, der Backup-Code dort am Ende); Geräte erscheinen mit lesbaren Namen.',
+    ],
+  },
+  {
     version: '3.10.0-alpha.1',
     date: '2026-11-17',
     points: [

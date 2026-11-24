@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { PASSWORD, go, onboardWithPassword } from './helpers';
+import { PASSWORD, go, onboardWithPassword, openAnalysisView, addEntry } from './helpers';
 
 /** Nur im Test: synthetische Einträge der letzten 25 Tage direkt in die lokale DB (Codec `plain`) schreiben. */
 async function seedEntries(page: Page) {
@@ -70,22 +70,22 @@ test.describe('Auswertung', () => {
     expect(await trend.locator('.recharts-reference-line').count()).toBeGreaterThan(0);
 
     // Kalender
-    await page.getByRole('button', { name: 'Kalender' }).click();
+    await openAnalysisView(page, 'Kalender');
     await expect(page.getByTestId('calendar-grid')).toBeVisible();
     await expect.poll(() => page.locator('[data-testid=calendar-day]:not([data-value=""])').count()).toBeGreaterThan(0);
 
     // Medikamententage
-    await page.getByRole('button', { name: 'Medis' }).click();
+    await openAnalysisView(page, 'Medis');
     await expect.poll(() => page.getByTestId('analysis-view-meds').locator('.recharts-bar-rectangle').count()).toBeGreaterThan(0);
     await page.getByLabel('Markierungslinie (Tage)').fill('10');
     await expect(page.getByTestId('analysis-view-meds').locator('.recharts-reference-line')).toHaveCount(1);
 
     // Häufigkeiten
-    await page.getByRole('button', { name: 'Häufig.' }).click();
+    await openAnalysisView(page, 'Häufig.');
     await expect.poll(() => page.getByTestId('analysis-view-freq').locator('.recharts-bar-rectangle').count()).toBeGreaterThan(0);
 
     // Body-Map-Übersicht
-    await page.getByRole('button', { name: 'Körper' }).click();
+    await openAnalysisView(page, 'Körper');
     await expect.poll(() => page.getByTestId('bodymap-overview').locator('circle').count()).toBeGreaterThan(0);
 
     // Zeitraumvergleich (Vorperiode ohne Daten → „Wenige Daten")
@@ -118,7 +118,7 @@ test.describe('Auswertung', () => {
       ['Häufig.', 'freq', '.recharts-bar-rectangle'],
       ['Körper', 'body', '[data-testid=bodymap-overview] circle'],
     ] as const) {
-      await page.getByRole('group', { name: 'Ansicht' }).getByRole('button', { name: tab, exact: true }).click();
+      await openAnalysisView(page, tab);
       await expect(page.getByTestId(`analysis-view-${view}`).locator(ready).first()).toBeVisible({ timeout: 15_000 });
       const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Als PNG' }).click()]);
       expect(download.suggestedFilename()).toMatch(new RegExp(`^schmerztagebuch-${view}-[0-9]{4}-[0-9]{2}-[0-9]{2}[.]png$`));
@@ -168,8 +168,50 @@ test.describe('Auswertung', () => {
     await swipe(20); // zu kurz: keine Änderung
     await expect(period).toHaveText(older);
 
-    await page.getByRole('group', { name: 'Ansicht' }).getByRole('button', { name: 'Medis', exact: true }).click();
+    await openAnalysisView(page, 'Medis');
     await page.getByRole('button', { name: '90 T' }).click();
     await expect(page.getByTestId('meds-legend').locator('li').first()).toBeVisible();
   });
+
+  for (const width of [390, 375]) {
+    test(`RDM-028 P6: Auswertungs-Tabs als Carousel mit Peek, Punkten, aktiver Tab im Bild (${width} px)`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await onboardWithPassword(page);
+      await addEntry(page, '4', 'Tabs');
+      await go(page, '/analysis');
+      const carousel = page.getByRole('region').filter({ has: page.getByRole('group', { name: 'Ansicht' }) });
+      const tabs = page.getByRole('group', { name: 'Ansicht' });
+      const last = tabs.getByRole('button', { name: 'Dashboards', exact: true });
+      const first = tabs.getByRole('button', { name: 'Verlauf', exact: true });
+      const box = async (l: typeof last) => (await l.boundingBox())!;
+      const view = (await carousel.locator('[data-slot=carousel-content]').boundingBox())!;
+      const right = view.x + view.width;
+      // Peek: der letzte Tab liegt anfangs nicht vollständig im Bild, der erste schon; Punkte vorhanden
+      expect((await box(last)).x + (await box(last)).width).toBeGreaterThan(right);
+      expect((await box(first)).x).toBeGreaterThanOrEqual(view.x);
+      const dots = carousel.locator('[data-slot=carousel-dots] button');
+      expect(await dots.count()).toBeGreaterThanOrEqual(2);
+      expect((await dots.first().boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      expect((await box(first)).height).toBeGreaterThanOrEqual(44);
+      // Klick auf einen sichtbaren Tab („Kalender“) schiebt die Leiste nicht
+      const x0 = (await box(first)).x;
+      await tabs.getByRole('button', { name: 'Kalender', exact: true }).click();
+      await expect(tabs.getByRole('button', { name: 'Kalender', exact: true })).toHaveAttribute('aria-pressed', 'true');
+      await page.waitForTimeout(500);
+      expect((await box(first)).x).toBe(x0);
+      // Mausweg: Punkt antippen, vorher verdeckten Tab „Dashboards“ anklicken -> aktiv
+      await dots.last().click();
+      await expect.poll(async () => { const b = await box(last); return b.x + b.width <= right + 1; }).toBe(true);
+      await last.click();
+      await expect(last).toHaveAttribute('aria-pressed', 'true');
+      // Wechsel auf „Dashboards“: Tab liegt danach vollständig im Bild
+      await openAnalysisView(page, 'Dashboards');
+      await expect(page.getByTestId('dashboards-view')).toBeVisible();
+      await expect.poll(async () => {
+        const b = await box(last);
+        return b.x >= view.x - 1 && b.x + b.width <= right + 1;
+      }).toBe(true);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    });
+  }
 });

@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/auth/AuthContext';
 import { useData } from '@/data/DataContext';
 import { useQuery } from '@/data/useQuery';
-import { SyncStatus } from '@/components/SyncStatus';
 import { DiarySwitcher } from '@/components/DiarySwitcher';
 import { WhatsNewGate } from '@/components/WhatsNewGate';
 import { TourGate } from '@/tour/TourGate';
@@ -57,7 +56,6 @@ export function AppShell() {
           </Button>
         </div>
       ) : null}
-      <SyncStatus />
       {status === 'unlocked' ? <WhatsNewGate /> : null}
       {status === 'unlocked' ? <TourGate /> : null}
       <main className="flex flex-1 flex-col gap-4 p-4 pb-24">
@@ -79,7 +77,7 @@ export function AppShell() {
       <nav
         aria-label={de.nav.label}
         data-tour="nav"
-        className={cn('fixed inset-x-0 bottom-0 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur', TOUR_RING)}
+        className={cn('fixed inset-x-0 bottom-0 z-30 transform-gpu border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur', TOUR_RING)}
       >
         <ul className="mx-auto grid max-w-md grid-cols-4">
           {TABS.map(({ to, label, Icon, end }) => (

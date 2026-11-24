@@ -198,3 +198,39 @@ export async function addEntry(page: Page, pain: string, note: string) {
   await page.getByRole('button', { name: 'Speichern' }).click();
   await expect(page.getByTestId('entry-time')).toBeVisible();
 }
+
+/** Verlauf: Filter-Panel öffnen (RDM-028 P4), falls noch zu. */
+export async function openFilter(page: Page) {
+  const btn = page.locator('[aria-controls="history-filter-panel"]');
+  if ((await btn.getAttribute('aria-expanded')) !== 'true') await btn.click();
+  await expect(page.locator('#history-filter-panel')).toBeVisible();
+}
+
+/** Verlauf: Sortieren-Panel öffnen (RDM-028 P4), falls noch zu. */
+export async function openSort(page: Page) {
+  const btn = page.locator('[aria-controls="history-sort-panel"]');
+  if ((await btn.getAttribute('aria-expanded')) !== 'true') await btn.click();
+  await expect(page.locator('#history-sort-panel')).toBeVisible();
+}
+
+/** Öffnet einen Tab der Auswertung; die Tab-Leiste ist ein Carousel, ein Tab kann außerhalb des Bildes liegen — dann Punkte antippen, bis er ganz sichtbar ist, und klicken. */
+export async function openAnalysisView(page: Page, name: string): Promise<void> {
+  const region = page.getByRole('region', { name: 'Ansichten' });
+  const group = page.getByRole('group', { name: 'Ansicht' });
+  const tab = group.getByRole('button', { name, exact: true });
+  const fits = async () => {
+    const b = await tab.boundingBox();
+    const v = await region.locator('[data-slot=carousel-content]').boundingBox();
+    return !!b && !!v && b.x >= v.x - 1 && b.x + b.width <= v.x + v.width + 1;
+  };
+  if (!(await fits())) {
+    const dots = region.locator('[data-slot=carousel-dots] button');
+    const n = await dots.count();
+    for (let i = 0; i < n && !(await fits()); i++) {
+      await dots.nth(i).click();
+      await expect.poll(fits, { timeout: 3000 }).toBe(true).catch(() => undefined);
+    }
+  }
+  await tab.click();
+  await expect(tab).toHaveAttribute('aria-pressed', 'true');
+}

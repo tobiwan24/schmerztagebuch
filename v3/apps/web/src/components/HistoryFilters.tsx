@@ -3,12 +3,15 @@
 import { cn } from '@/lib/utils';
 import { TOUR_RING } from '@/tour/anchor';
 import { useEffect, useRef, useState } from 'react';
-import { Star, X } from 'lucide-react';
-import type { FilterSpec, SavedFilter } from '@stb/analysis';
+import { ArrowUpDown, ChevronDown, Download, Filter, Star, X } from 'lucide-react';
+import { Link } from 'react-router';
+import { SORT_ORDERS, type FilterSpec, type SavedFilter, type SortOrder } from '@stb/analysis';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useData } from '@/data/DataContext';
 import { useAuthorName } from '@/data/useSharing';
@@ -41,6 +44,10 @@ const OPEN_TO = '9999-12-31';
 
 export const isActive = (s: FilterState) =>
   s.text.trim() !== '' || s.range !== 'all' || s.from !== '' || s.to !== '' || s.templateIds.length > 0 || s.outcome || s.meds || s.events || s.content.length > 0 || s.authorId !== '';
+
+/** Anzahl aktiver Filter für das Zähler-Badge (RDM-028 P4): je Vorlage 1, Zeitraum 1, je Inhalt/Kennzeichen 1, Autor 1; die offen sichtbare Suche zählt nicht, `meds` nur mit angezeigtem Medikament-Chip (`medsAvailable`). */
+export const activeFilterCount = (s: FilterState, medsAvailable = true) =>
+  s.templateIds.length + (s.range !== 'all' || s.from !== '' || s.to !== '' ? 1 : 0) + s.content.length + [s.outcome, s.meds && medsAvailable, s.events].filter(Boolean).length + (s.authorId !== '' ? 1 : 0);
 
 type Cond = NonNullable<FilterSpec['conditions']>[number];
 const CONTENT_CONDITIONS: Record<ContentKind, Cond> = {
@@ -91,7 +98,7 @@ export function fromSpec(spec: FilterSpec): FilterState {
 
 const RANGES: RangePreset[] = ['all', '7d', '30d', '90d'];
 
-export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templates }: { state: FilterState; onChange: (s: FilterState) => void; diaryIds: string[]; medOptionIds: string[]; templates: { id: string; name: string }[] }) {
+export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templates, sort, onSortChange }: { state: FilterState; onChange: (s: FilterState) => void; diaryIds: string[]; medOptionIds: string[]; templates: { id: string; name: string }[]; sort: SortOrder; onSortChange: (s: SortOrder) => void }) {
   const data = useData();
   const ownerDiary = diaryIds[0];
   const saved = useQuery(async () => (ownerDiary ? data.diary.listSavedFilters(ownerDiary) : []), [data.diary, ownerDiary]);
@@ -100,6 +107,24 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
   const authorName = useAuthorName(ownerDiary, state.authorId || undefined);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
+  // Nur ein Panel gleichzeitig; mit vorgewähltem Autor (SHR-15) startet das Filter-Panel offen, damit der Autor-Chip sichtbar ist.
+  const [panel, setPanel] = useState<'filter' | 'sort' | null>(state.authorId ? 'filter' : null);
+  const count = activeFilterCount(state, medOptionIds.length > 0);
+  const filterBtn = useRef<HTMLButtonElement>(null);
+  const sortBtn = useRef<HTMLButtonElement>(null);
+  // Escape schließt das offene Panel und gibt den Fokus an den Auslöser zurück.
+  useEffect(() => {
+    if (!panel || saving) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      (panel === 'filter' ? filterBtn : sortBtn).current?.focus();
+      setPanel(null);
+    };
+    // Am Dokument, weil WebKit Knöpfe beim Klick nicht fokussiert.
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [panel, saving]);
+  const togglePanel = (p: 'filter' | 'sort') => setPanel(panel === p ? null : p);
 
   // Suche entprellt übernehmen
   useEffect(() => {
@@ -144,87 +169,123 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
         </Label>
         <Input id="history-search" type="search" placeholder={de.history.searchPlaceholder} value={text} onChange={(e) => setText(e.target.value)} />
       </div>
-      <ToggleGroup aria-label={de.history.range}>
-        {RANGES.map((r) => (
-          <ToggleGroupItem key={r} pressed={state.range === r && !freeRange} onClick={() => onChange({ ...state, range: r, from: '', to: '' })}>
-            {de.history.ranges[r]}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="history-from">{de.history.from}</Label>
-          <Input id="history-from" type="date" value={state.from} max={state.to || undefined} onChange={(e) => onChange({ ...state, from: e.target.value })} />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="history-to">{de.history.to}</Label>
-          <Input id="history-to" type="date" value={state.to} min={state.from || undefined} onChange={(e) => onChange({ ...state, to: e.target.value })} />
-        </div>
-      </div>
-      {templates.length > 1 ? (
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label={de.history.templates}>
-          <span className="text-xs text-muted-foreground">{de.history.templates}</span>
-          {templates.map((t) => {
-            const on = state.templateIds.includes(t.id);
-            return (
-              <Button key={t.id} size="sm" variant={on ? 'default' : 'outline'} aria-pressed={on} onClick={() => onChange({ ...state, templateIds: on ? state.templateIds.filter((x) => x !== t.id) : [...state.templateIds, t.id] })}>
-                {t.name}
-              </Button>
-            );
-          })}
-        </div>
-      ) : null}
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant={state.outcome ? 'default' : 'outline'} aria-pressed={state.outcome} onClick={() => toggle('outcome')}>
-          {de.history.chipOutcome(OUTCOME_THRESHOLD)}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button ref={filterBtn} variant="outline" aria-expanded={panel === 'filter'} aria-controls="history-filter-panel" onClick={() => togglePanel('filter')}>
+          <Filter aria-hidden />
+          {de.history.filter}
+          {count > 0 ? (
+            <Badge data-testid="filter-count">
+              {count}
+              <span className="sr-only"> {de.history.activeFilters(count)}</span>
+            </Badge>
+          ) : null}
+          <ChevronDown aria-hidden className={cn('transition-transform', panel === 'filter' && 'rotate-180')} />
         </Button>
-        {medOptionIds.length ? (
-          <Button size="sm" variant={state.meds ? 'default' : 'outline'} aria-pressed={state.meds} onClick={() => toggle('meds')}>
-            {de.history.chipMeds}
-          </Button>
-        ) : null}
-        <Button size="sm" variant={state.events ? 'default' : 'outline'} aria-pressed={state.events} onClick={() => toggle('events')}>
-          {de.history.chipEvents}
+        <Button ref={sortBtn} variant="outline" aria-expanded={panel === 'sort'} aria-controls="history-sort-panel" onClick={() => togglePanel('sort')}>
+          <ArrowUpDown aria-hidden />
+          {de.history.sortButton}
+          <ChevronDown aria-hidden className={cn('transition-transform', panel === 'sort' && 'rotate-180')} />
         </Button>
-        {state.authorId ? (
-          <Button size="sm" variant="default" aria-pressed onClick={() => onChange({ ...state, authorId: '' })}>
-            {de.history.chipAuthor(authorName.status === 'ok' && authorName.data ? authorName.data : de.history.unknownAuthor)}
-          </Button>
-        ) : null}
-        {CONTENT_KINDS.map((k) => (
-          <Button key={k} size="sm" variant={state.content.includes(k) ? 'default' : 'outline'} aria-pressed={state.content.includes(k)} onClick={() => onChange({ ...state, content: state.content.includes(k) ? state.content.filter((x) => x !== k) : [...state.content, k] })}>
-            {de.history.content[k]}
-          </Button>
-        ))}
-        {isActive(state) ? (
-          <>
-            <Button size="sm" variant="ghost" onClick={() => onChange(EMPTY_FILTER)}>
-              <X aria-hidden />
-              {de.history.reset}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setSaving(true)}>
-              <Star aria-hidden />
-              {de.history.saveFilter}
-            </Button>
-          </>
-        ) : null}
+        {/* Export mit den aktuell angewendeten Filtern (EXP-18, A-073): FilterSpec als Router-State an die Export-Seite. */}
+        <Button asChild size="icon" variant="outline" className="ml-auto">
+          <Link to="/more/export" state={{ filter: toSpec(state, diaryIds, medOptionIds) }} aria-label={de.history.export} title={de.history.export}>
+            <Download aria-hidden />
+          </Link>
+        </Button>
       </div>
-      {saved.status === 'ok' && saved.data.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2" data-testid="saved-filters">
-          <span className="text-xs text-muted-foreground">{de.history.saved}</span>
-          {saved.data.map((f) => (
-            <span key={f.id} className="inline-flex items-center">
-              <Button size="sm" variant="secondary" onClick={() => onChange(fromSpec(f.filter))}>
-                <Star aria-hidden />
-                {f.name}
-              </Button>
-              <Button size="icon" variant="ghost" aria-label={de.history.deleteSaved(f.name)} onClick={() => void remove(f)}>
-                <X aria-hidden />
-              </Button>
-            </span>
+      <div id="history-filter-panel" role="region" aria-label={de.history.filter} hidden={panel !== 'filter'} className={cn('flex flex-col gap-3 rounded-lg border bg-card p-3', panel !== 'filter' && 'hidden')}>
+        <ToggleGroup aria-label={de.history.range}>
+          {RANGES.map((r) => (
+            <ToggleGroupItem key={r} pressed={state.range === r && !freeRange} onClick={() => onChange({ ...state, range: r, from: '', to: '' })}>
+              {de.history.ranges[r]}
+            </ToggleGroupItem>
           ))}
+        </ToggleGroup>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="history-from">{de.history.from}</Label>
+            <Input id="history-from" type="date" value={state.from} max={state.to || undefined} onChange={(e) => onChange({ ...state, from: e.target.value })} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="history-to">{de.history.to}</Label>
+            <Input id="history-to" type="date" value={state.to} min={state.from || undefined} onChange={(e) => onChange({ ...state, to: e.target.value })} />
+          </div>
         </div>
-      ) : null}
+        {templates.length > 1 ? (
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label={de.history.templates}>
+            <span className="text-xs text-muted-foreground">{de.history.templates}</span>
+            {templates.map((t) => {
+              const on = state.templateIds.includes(t.id);
+              return (
+                <Button key={t.id} size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant={on ? 'default' : 'outline'} aria-pressed={on} onClick={() => onChange({ ...state, templateIds: on ? state.templateIds.filter((x) => x !== t.id) : [...state.templateIds, t.id] })}>
+                  {t.name}
+                </Button>
+              );
+            })}
+          </div>
+        ) : null}
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant={state.outcome ? 'default' : 'outline'} aria-pressed={state.outcome} onClick={() => toggle('outcome')}>
+            {de.history.chipOutcome(OUTCOME_THRESHOLD)}
+          </Button>
+          {medOptionIds.length ? (
+            <Button size="sm" variant={state.meds ? 'default' : 'outline'} aria-pressed={state.meds} onClick={() => toggle('meds')}>
+              {de.history.chipMeds}
+            </Button>
+          ) : null}
+          <Button size="sm" variant={state.events ? 'default' : 'outline'} aria-pressed={state.events} onClick={() => toggle('events')}>
+            {de.history.chipEvents}
+          </Button>
+          {state.authorId ? (
+            <Button size="sm" variant="default" aria-pressed onClick={() => onChange({ ...state, authorId: '' })}>
+              {de.history.chipAuthor(authorName.status === 'ok' && authorName.data ? authorName.data : de.history.unknownAuthor)}
+            </Button>
+          ) : null}
+          {CONTENT_KINDS.map((k) => (
+            <Button key={k} size="sm" variant={state.content.includes(k) ? 'default' : 'outline'} aria-pressed={state.content.includes(k)} onClick={() => onChange({ ...state, content: state.content.includes(k) ? state.content.filter((x) => x !== k) : [...state.content, k] })}>
+              {de.history.content[k]}
+            </Button>
+          ))}
+          {isActive(state) ? (
+            <>
+              <Button size="sm" variant="ghost" onClick={() => onChange(EMPTY_FILTER)}>
+                <X aria-hidden />
+                {de.history.reset}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setSaving(true)}>
+                <Star aria-hidden />
+                {de.history.saveFilter}
+              </Button>
+            </>
+          ) : null}
+        </div>
+        {saved.status === 'ok' && saved.data.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2" data-testid="saved-filters">
+            <span className="text-xs text-muted-foreground">{de.history.saved}</span>
+            {saved.data.map((f) => (
+              <span key={f.id} className="inline-flex items-center">
+                <Button size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant="secondary" onClick={() => onChange(fromSpec(f.filter))}>
+                  <Star aria-hidden />
+                  {f.name}
+                </Button>
+                <Button size="icon" variant="ghost" aria-label={de.history.deleteSaved(f.name)} onClick={() => void remove(f)}>
+                  <X aria-hidden />
+                </Button>
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      <div id="history-sort-panel" role="region" aria-label={de.history.sortButton} hidden={panel !== 'sort'} className={cn('flex flex-col gap-1 rounded-lg border bg-card p-3', panel !== 'sort' && 'hidden')}>
+        <Label htmlFor="history-sort">{de.history.sort}</Label>
+        <Select id="history-sort" value={sort} onChange={(e) => onSortChange(e.target.value as SortOrder)}>
+          {SORT_ORDERS.map((o) => (
+            <option key={o} value={o}>
+              {de.history.sorts[o]}
+            </option>
+          ))}
+        </Select>
+      </div>
       <Dialog open={saving} onClose={() => setSaving(false)} aria-labelledby="save-filter-title">
         <DialogTitle id="save-filter-title">{de.history.saveFilter}</DialogTitle>
         <div className="mt-4 flex flex-col gap-2">

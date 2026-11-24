@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { onboardWithPassword } from './helpers';
+import { go, onboardWithPassword } from './helpers';
 
 async function storedEntries(page: Page) {
   return page.evaluate(
@@ -31,8 +31,9 @@ test.describe('Schnelleintrag', () => {
     await tap(() => page.getByRole('button', { name: 'Speichern' }).click());
 
     await expect(page.getByRole('heading', { name: 'Start' })).toBeVisible();
-    await expect(page.getByTestId('entry-row')).toHaveCount(1);
     expect(taps).toBeLessThanOrEqual(3);
+    await go(page, '/history');
+    await expect(page.getByTestId('entry-row')).toHaveCount(1);
 
     const [entry] = await storedEntries(page);
     expect(entry!.meta.source).toBe('quick');

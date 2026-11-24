@@ -13,6 +13,8 @@ export const diarySettingsSchema = z.strictObject({
   }),
   quickEntryTemplateId: idSchema.optional(),
   quickEntryBlockIds: z.array(idSchema).optional(),
+  /** RDM-028 P2: Vorlagen, für die die Start-Seite einen eigenen Schnell-Knopf zeigt (Reihenfolge der Vorlagenliste). */
+  quickTemplateIds: z.array(idSchema).optional(),
   timezone: z.string().min(1),
 });
 export type DiarySettings = z.infer<typeof diarySettingsSchema>;
@@ -60,6 +62,8 @@ export interface DiarySettingsPatch {
   /** `null` = Standardregel (Spec 05 „Schnelleintrag"). */
   quickEntryTemplateId?: string | null;
   quickEntryBlockIds?: string[] | null;
+  /** `null` oder leeres Array löscht das Feld; Duplikate entfallen. */
+  quickTemplateIds?: string[] | null;
 }
 
 /** Orte werden nur auf 1 Dezimalstelle (≈ 10 km) gespeichert (Spec 05 „Wetter als Metadaten"). */
@@ -75,7 +79,7 @@ export function updateDiarySettings(
   stamp: { hlc: string; updatedAt: string },
   options: { templates?: readonly { id: string; blockIds: readonly string[] }[] } = {},
 ): Diary {
-  const { weather: w, quickEntryTemplateId, quickEntryBlockIds } = patch;
+  const { weather: w, quickEntryTemplateId, quickEntryBlockIds, quickTemplateIds } = patch;
   const settings: Record<string, unknown> = { ...diary.settings };
   if (patch.timezone !== undefined) settings.timezone = patch.timezone;
   if (w) {
@@ -90,6 +94,8 @@ export function updateDiarySettings(
   else if (quickEntryTemplateId !== undefined) settings.quickEntryTemplateId = quickEntryTemplateId;
   if (quickEntryBlockIds === null) delete settings.quickEntryBlockIds;
   else if (quickEntryBlockIds !== undefined) settings.quickEntryBlockIds = quickEntryBlockIds;
+  if (quickTemplateIds === null || quickTemplateIds?.length === 0) delete settings.quickTemplateIds;
+  else if (quickTemplateIds !== undefined) settings.quickTemplateIds = [...new Set(quickTemplateIds)];
 
   const templateId = settings.quickEntryTemplateId as string | undefined;
   const blockIds = settings.quickEntryBlockIds as string[] | undefined;
@@ -100,5 +106,7 @@ export function updateDiarySettings(
     const known = new Set(t.blockIds);
     if (blockIds?.some((id) => !known.has(id))) throw new RangeError('Schnelleintrag-Block gehört nicht zur Vorlage');
   }
+  const quickIds = settings.quickTemplateIds as string[] | undefined;
+  if (options.templates && quickIds?.some((id) => !options.templates!.some((x) => x.id === id))) throw new RangeError('Schnell-Knopf-Vorlage existiert nicht');
   return diarySchema.parse({ ...diary, ...(patch.name === undefined ? {} : { name: patch.name }), settings, updatedAt: stamp.updatedAt, hlc: stamp.hlc });
 }

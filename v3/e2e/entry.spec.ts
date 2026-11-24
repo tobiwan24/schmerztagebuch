@@ -82,7 +82,7 @@ test.describe('Eintragsformular', () => {
   test('BLK-09: Warnung nur nach echter Änderung, nicht nach bloßem Öffnen oder Vorlagenwechsel ohne Eingabe', async ({ page }) => {
     // Navigation per Link (wie in der App) — nur Router-Navigationen lassen sich abfangen.
     const nav = page.getByRole('navigation', { name: 'Hauptnavigation' });
-    const openNew = () => page.getByRole('link', { name: 'Neuer Eintrag' }).click();
+    const openNew = () => page.getByTestId('template-tile').first().click();
 
     // bloßes Öffnen → keine Warnung
     await openNew();
@@ -108,7 +108,7 @@ test.describe('Eintragsformular', () => {
     await expect(page.getByRole('dialog')).toContainText('Änderungen verwerfen?');
     await page.getByRole('button', { name: 'Weiter bearbeiten' }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expect(page).toHaveURL(/\/entry\/new$/);
+    await expect(page).toHaveURL(/\/entry\/new(?:\?template=[^/]+)?$/);
     await expect(page.getByLabel('Notizen')).toHaveValue('nach dem Aufstehen');
 
     // Zeitangabe geändert → ebenfalls Warnung (auch über die untere Navigation)
@@ -126,7 +126,7 @@ test.describe('Eintragsformular', () => {
     await expect(page.getByRole('heading', { name: 'Verlauf' })).toBeVisible();
     await expect(page.getByRole('dialog')).toHaveCount(0);
 
-    // „Verwerfen" verlässt das Formular (Neuer Eintrag gibt es nur auf Start, UI-25)
+    // „Verwerfen" verlässt das Formular (neue Einträge starten über die Vorlagen-Kacheln auf Start, UI-25)
     await nav.getByRole('link', { name: 'Start' }).click();
     await openNew();
     await page.getByLabel('Notizen').fill('x');
@@ -164,23 +164,49 @@ test.describe('Eintragsformular', () => {
     await save(page);
     await expect(page.getByTestId('entry-time')).toContainText('10.03.2026, 18:00 – 22:15');
 
-    // Verlauf: nach Tagen gruppiert, neueste zuerst; Zeitraum unter seinem Beginn
+    // Verlauf: neueste zuerst, Datum in der Card (keine Tagesüberschriften, RDM-028 P3); Zeitraum unter seinem Beginn
     await go(page, '/history');
-    const days = page.getByTestId('entry-day');
-    await expect(days).toHaveCount(3);
-    await expect(days.nth(0)).toContainText('10. März 2026');
-    await expect(days.nth(0)).toContainText('10.03.2026, 18:00 – 22:15 · Zeitraum');
-    await expect(days.nth(1)).toContainText('2. März 2026');
-    await expect(days.nth(1)).toContainText('02.03.2026 – 04.03.2026 · Zeitraum');
-    await expect(days.nth(2)).toContainText('20. Februar 2026');
-    await expect(days.nth(2)).toContainText('21:30');
+    const rows = page.getByTestId('entry-row');
+    await expect(page.getByTestId('entry-day')).toHaveCount(0);
+    await expect(rows).toHaveCount(3);
+    await expect(rows.nth(0)).toContainText('10.03.2026, 18:00 – 22:15 · Zeitraum');
+    await expect(rows.nth(1)).toContainText('02.03.2026 – 04.03.2026 · Zeitraum');
+    await expect(rows.nth(2)).toContainText('20.02.2026, 21:30');
 
     // Bearbeiten behält die Zeitangabe
-    await days.nth(2).getByTestId('entry-row').click();
+    await rows.nth(2).click();
     await page.getByRole('link', { name: 'Bearbeiten' }).click();
     await expect(page.getByLabel('Zeitpunkt', { exact: true })).toHaveValue('2026-02-20T21:30');
     await page.getByLabel('Zeitpunkt', { exact: true }).fill('2026-02-19T07:05');
     await save(page);
     await expect(page.getByTestId('entry-time')).toHaveText('19.02.2026, 07:05');
+  });
+  test('RDM-028 P5: Detailansicht zeigt Datum und Uhrzeit als Titel, darunter den Vorlagennamen', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await go(page, '/entry/new');
+    await page.getByLabel('Zeitpunkt', { exact: true }).fill('2026-02-20T21:30');
+    await page.getByLabel(/Schmerzstärke/).fill('3');
+    await save(page);
+    const h1 = page.getByRole('heading', { level: 1 });
+    await expect(h1).toContainText('20.02.2026, 21:30');
+    await expect(page.getByRole('heading', { name: 'Eintrag', exact: true })).toHaveCount(0);
+    const title = await h1.boundingBox();
+    const sub = await page.locator('header p').first().boundingBox();
+    await expect(page.locator('header p').first()).toBeVisible();
+    expect(sub!.y).toBeGreaterThanOrEqual(title!.y + title!.height - 1);
+
+    // Zeitraum über zwei Tage: bricht um statt abgeschnitten zu werden
+    await go(page, '/entry/new');
+    await page.getByRole('button', { name: 'Zeitraum' }).click();
+    await page.getByLabel('Mit Uhrzeit').check();
+    await page.getByLabel('Beginn').fill('2026-03-02T18:00');
+    await page.getByLabel('Ende').fill('2026-03-04T08:00');
+    await save(page);
+    await expect(page.getByTestId('entry-time')).toContainText('Zeitraum');
+    await expect(h1).toHaveAccessibleName(/\d{2}:\d{2} Zeitraum$/);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+    const fits = await h1.evaluate((el) => ({ over: el.scrollWidth > el.clientWidth, ellipsis: getComputedStyle(el).textOverflow }));
+    expect(fits.over).toBe(false);
+    expect(fits.ellipsis).not.toBe('ellipsis');
   });
 });

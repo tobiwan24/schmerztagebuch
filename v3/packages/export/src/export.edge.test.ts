@@ -96,6 +96,20 @@ describe('Export: Randfälle', () => {
     }
   });
 
+  it('RDM-028 P2: Als Kopie schreibt quickTemplateIds um und entfernt unbekannte', () => {
+    const tid = src.templates[0]!.id;
+    const withIds = { ...src, diaries: [{ ...src.diaries[0]!, settings: { ...src.diaries[0]!.settings, quickTemplateIds: [tid, '01900000-0000-7000-8000-000000000000'] } }] };
+    const copy = copyWithNewIds(buildExport(withIds, { appVersion: 't', now: FIXTURE_EXPORT_NOW }), newId);
+    const d = copy.diaries[0]!;
+    expect(d.diary.settings.quickTemplateIds).toEqual([d.templates.find((t) => t.name === src.templates[0]!.name)!.id]);
+  });
+
+  it('RDM-028 P2: Als Kopie lässt quickTemplateIds weg, wenn nach dem Umschreiben keine bleibt', () => {
+    const withIds = { ...src, diaries: [{ ...src.diaries[0]!, settings: { ...src.diaries[0]!.settings, quickTemplateIds: ['01900000-0000-7000-8000-000000000000'] } }] };
+    const copy = copyWithNewIds(buildExport(withIds, { appVersion: 't', now: FIXTURE_EXPORT_NOW }), newId);
+    expect('quickTemplateIds' in copy.diaries[0]!.diary.settings).toBe(false);
+  });
+
   it('Als Kopie: Filter (Vorlagen, Bedingungen, oder-Gruppen) und Schnelleintrag-Einstellungen werden umgeschrieben', () => {
     const filter = { diaryIds: [src.diaries[0]!.id], templateIds: [src.templates[0]!.id], range: { preset: 'all' as const }, conditions: src.savedFilters[0]!.filter.conditions!, anyOf: [src.savedFilters[0]!.filter.conditions!] };
     const doc = buildExport(src, { appVersion: 't', now: FIXTURE_EXPORT_NOW, filter });

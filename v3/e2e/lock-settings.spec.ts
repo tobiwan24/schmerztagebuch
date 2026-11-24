@@ -6,8 +6,8 @@ test.describe('Sperre', () => {
   test('CRY-20: Dauer einstellbar (Entsperr-Dialog zeigt sie), „entsperrt bleiben" aktiv und widerrufbar, Inaktivität wählbar', async ({ page }) => {
     await onboardWithPassword(page);
     await go(page, '/more/settings');
-    await expect(page.getByTestId('stay-status')).toContainText('nicht entsperrt');
-    const days = page.getByLabel(/Entsperrt bleiben \(Tage/);
+    await expect(page.getByTestId('stay-status')).toContainText('Entsperrt bleiben ist aus');
+    const days = page.getByLabel(/Dauer für ‚Entsperrt bleiben‘/);
     await days.fill('3');
     await days.blur();
     await page.getByRole('button', { name: '5 min', exact: true }).click();
@@ -26,5 +26,16 @@ test.describe('Sperre', () => {
     await page.getByRole('button', { name: 'Entsperrt bleiben widerrufen' }).click();
     await expect(page.getByTestId('stay-status')).toContainText('Widerrufen');
     await expect(page.getByRole('button', { name: '5 min', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('RDM-028 P7: Status-Text „Entsperrt bleiben“ widerspruchsfrei zur Einstellung', async ({ page }) => {
+    await onboardWithPassword(page);
+    await go(page, '/more/settings');
+    // Gespeicherte Dauer (7 Tage) ist nur die Voreinstellung; der Status sagt, dass es aus ist und wie man es einschaltet.
+    await expect(page.getByLabel(/Dauer für ‚Entsperrt bleiben‘/)).toHaveValue('7');
+    const status = page.getByTestId('stay-status');
+    await expect(status).toContainText('Entsperrt bleiben ist aus');
+    await expect(status).toContainText('Auf diesem Gerät entsperrt bleiben');
+    await expect(status).not.toContainText('nicht entsperrt');
   });
 });

@@ -1197,6 +1197,12 @@
                       "type": "string"
                     }
                   },
+                  "quickTemplateIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
                   "timezone": {
                     "type": "string",
                     "minLength": 1

@@ -2,18 +2,21 @@
 // Nur der Besitzer ändert; Mitglieder mit anderer Rolle sehen die Werte nur lesend (Spec 09).
 import { useState, type FormEvent } from 'react';
 import { useParams } from 'react-router';
-import { updateDiarySettings, type Diary } from '@stb/core';
+import { compareByOrder, updateDiarySettings, type Diary } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { LocationPicker } from '@/components/LocationPicker';
+import { TemplateIcon } from '@/components/TemplateIcon';
 import { PageHeader } from '@/components/PageHeader';
 import { ErrorState } from '@/components/StateView';
 import { useData } from '@/data/DataContext';
 import { useMembers } from '@/data/useSharing';
 import { useQuery } from '@/data/useQuery';
+import { isEntryTemplate } from '@/lib/entry-template';
+import { mergeQuickIds } from '@/lib/quick-buttons';
 import { de } from '@/i18n/de';
 import { deDiaries } from '@/i18n/lazy/diaries';
 
@@ -36,7 +39,9 @@ export function DiarySettingsPage() {
   const query = useQuery(async () => {
     const diary = await data.diary.getDiary(id);
     if (!diary) return null;
-    return { diary };
+    // Gleiche Auswahl und Reihenfolge wie Start-Kacheln und Vorlagenliste.
+    const templates = (await data.diary.listTemplates(id)).filter(isEntryTemplate).sort(compareByOrder);
+    return { diary, templates };
   }, [data.diary, id]);
   const readOnly = members.query.status === 'ok' && members.query.data.cloud && members.query.data.myRole !== 'owner';
   return (
@@ -45,18 +50,21 @@ export function DiarySettingsPage() {
       {query.status === 'loading' ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
       {query.status === 'error' ? <ErrorState onRetry={query.retry} /> : null}
       {query.status === 'ok' && !query.data ? <ErrorState detail={t.notFound} /> : null}
-      {query.status === 'ok' && query.data && members.query.status !== 'loading' ? <SettingsForm key={query.data.diary.id} diary={query.data.diary} readOnly={readOnly} /> : null}
+      {query.status === 'ok' && query.data && members.query.status !== 'loading' ? <SettingsForm key={query.data.diary.id} diary={query.data.diary} templates={query.data.templates} readOnly={readOnly} /> : null}
     </>
   );
 }
 
-function SettingsForm({ diary, readOnly }: { diary: Diary; readOnly: boolean }) {
+type QuickTemplate = { id: string; name: string; icon?: string; color?: string };
+
+function SettingsForm({ diary, templates, readOnly }: { diary: Diary; templates: readonly QuickTemplate[]; readOnly: boolean }) {
   const data = useData();
   const [name, setName] = useState(diary.name);
   const [timezone, setTimezone] = useState(diary.settings.timezone);
   const [enabled, setEnabled] = useState(diary.settings.weather.enabled);
   const [location, setLocation] = useState(diary.settings.weather.location);
   const [gpsDefault, setGpsDefault] = useState(diary.settings.weather.gpsDefault);
+  const [quickIds, setQuickIds] = useState<ReadonlySet<string>>(new Set(diary.settings.quickTemplateIds));
   const [showErrors, setShowErrors] = useState(false);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -71,7 +79,9 @@ function SettingsForm({ diary, readOnly }: { diary: Diary; readOnly: boolean }) 
     try {
       const s = await data.stamper.stamp();
       const current = (await data.diary.getDiary(diary.id)) ?? diary;
-      const patch = { name, timezone, weather: { enabled, gpsDefault, location: location ?? null } };
+      // Angezeigte Vorlagen in Listenreihenfolge; IDs nicht angezeigter (archiviert/unbekannt) bleiben unverändert erhalten.
+      const quickTemplateIds = mergeQuickIds(templates, quickIds, current.settings.quickTemplateIds);
+      const patch = { name, timezone, weather: { enabled, gpsDefault, location: location ?? null }, quickTemplateIds };
       await data.diary.saveDiary(updateDiarySettings(current, patch, { hlc: s.hlc, updatedAt: s.at }));
       setSaved(true);
     } finally {
@@ -113,6 +123,23 @@ function SettingsForm({ diary, readOnly }: { diary: Diary; readOnly: boolean }) 
         />
         {!location ? <p className="text-sm text-muted-foreground">{t.weatherNoLocation}</p> : null}
       </fieldset>
+      {templates.length > 0 ? (
+        <fieldset className="flex flex-col gap-3" data-testid="quick-buttons-settings">
+          <legend className="mb-1 text-sm font-medium">{t.quickButtonsTitle}</legend>
+          <p className="text-sm text-muted-foreground">{t.quickButtonsHint}</p>
+          {templates.map((x) => (
+            <Label key={x.id} className="min-h-11 gap-3">
+              <Checkbox
+                checked={quickIds.has(x.id)}
+                disabled={readOnly}
+                onChange={(e) => (setQuickIds((prev) => (e.target.checked ? new Set(prev).add(x.id) : new Set([...prev].filter((i) => i !== x.id)))), setSaved(false))}
+              />
+              <TemplateIcon icon={x.icon} color={x.color} className="size-5" />
+              {x.name}
+            </Label>
+          ))}
+        </fieldset>
+      ) : null}
       {readOnly ? null : (
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={busy}>{busy ? t.saving : t.save}</Button>

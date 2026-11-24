@@ -22,11 +22,11 @@ async function createDiary(page: Page, name: string, template: RegExp) {
 test.describe('Tagebuch-Umschalter', () => {
   test.describe.configure({ timeout: 90_000 });
 
-  test('UI-24: Umschalter filtert Start, Verlauf und Auswertung, setzt die Vorauswahl neuer Einträge und bleibt nach dem Neuladen', async ({ page }) => {
+  test('UI-24: Umschalter filtert Verlauf und Auswertung (Start hat keine Eintragsliste mehr), setzt die Vorauswahl neuer Einträge und bleibt nach dem Neuladen', async ({ page }) => {
     await onboardWithPassword(page);
     await addEntry(page, null, 'Alpha');
     // Bei nur einem Tagebuch ausgeblendet
-    await go(page, '/');
+    await go(page, '/history');
     await expect(page.getByTestId('entry-row')).toHaveCount(1);
     await expect(page.getByLabel('Tagebuch', { exact: true })).toHaveCount(0);
 
@@ -34,11 +34,13 @@ test.describe('Tagebuch-Umschalter', () => {
     await addEntry(page, 'Migräne-Tracking', 'Beta');
 
     const switcher = page.getByLabel('Tagebuch', { exact: true });
-    // Start: ein Tagebuch zur Zeit (kein „Alle")
+    // Start: Umschalter sichtbar (ein Tagebuch zur Zeit, kein „Alle"), aber keine Eintragsliste mehr
     await go(page, '/');
     await expect(switcher).toBeVisible();
     await expect(switcher.locator('option')).toHaveText(['Mein Tagebuch', 'Katzentagebuch']);
+    await expect(page.getByTestId('entry-row')).toHaveCount(0);
     await switcher.selectOption({ label: 'Katzentagebuch' });
+    await go(page, '/history');
     await expect(page.getByTestId('entry-row')).toHaveCount(1);
     await expect(page.getByTestId('entry-row')).toContainText('Migräne-Tracking');
     await switcher.selectOption({ label: 'Mein Tagebuch' });

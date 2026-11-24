@@ -120,7 +120,7 @@ export function DashboardsView() {
       {all.length > 0 ? (
         <div role="group" aria-label={t.list} className="flex flex-wrap gap-2">
           {all.map((d) => (
-            <Button key={d.id} size="sm" variant={d.id === current?.id ? 'default' : 'outline'} aria-pressed={d.id === current?.id} onClick={() => (setPickedId(d.id), setRename(undefined))}>
+            <Button key={d.id} size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant={d.id === current?.id ? 'default' : 'outline'} aria-pressed={d.id === current?.id} onClick={() => (setPickedId(d.id), setRename(undefined))}>
               {d.name}
             </Button>
           ))}
@@ -130,8 +130,8 @@ export function DashboardsView() {
         <Card>
           <CardContent className="flex flex-col gap-2 pt-6">
             <Label htmlFor="dash-new">{t.newName}</Label>
-            <div className="flex gap-2">
-              <Input id="dash-new" value={newName} maxLength={80} onChange={(e) => setNewName(e.target.value)} />
+            <div className="flex flex-wrap gap-2">
+              <Input id="dash-new" className="min-w-0 flex-1" value={newName} maxLength={80} onChange={(e) => setNewName(e.target.value)} />
               <Button onClick={() => void create()}>{t.create}</Button>
             </div>
           </CardContent>
@@ -141,17 +141,17 @@ export function DashboardsView() {
       {current ? (
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-base font-medium" data-testid="dashboard-name">{current.name}</h2>
+            <h2 className="min-w-0 break-words text-base font-medium" data-testid="dashboard-name">{current.name}</h2>
             {!readOnly ? (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" onClick={() => setRename(current.name)}>{t.rename}</Button>
                 <Button size="sm" variant="outline" onClick={() => void remove()}>{t.delete}</Button>
               </div>
             ) : null}
           </div>
           {rename !== undefined && !readOnly ? (
-            <div className="flex gap-2">
-              <Input aria-label={t.renameLabel} value={rename} maxLength={80} onChange={(e) => setRename(e.target.value)} />
+            <div className="flex flex-wrap gap-2">
+              <Input className="min-w-0 flex-1" aria-label={t.renameLabel} value={rename} maxLength={80} onChange={(e) => setRename(e.target.value)} />
               <Button onClick={() => void change((d, s) => renameDashboard(d, rename, s)).then(() => setRename(undefined))}>{t.save}</Button>
             </div>
           ) : null}
@@ -190,7 +190,7 @@ export function DashboardsView() {
           </div>
           {current.widgets.length > 0 ? (
             <div className="flex justify-end">
-              <Button size="sm" variant="outline" disabled={pdfBusy} onClick={() => void exportPdf()}>
+              <Button size="sm" variant="outline" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" disabled={pdfBusy} onClick={() => void exportPdf()}>
                 <FileText aria-hidden />
                 {t.exportPdf}
               </Button>
@@ -200,8 +200,8 @@ export function DashboardsView() {
             <Card>
               <CardContent className="flex flex-col gap-2 pt-6">
                 <Label htmlFor="dash-kind">{t.addWidget}</Label>
-                <div className="flex gap-2">
-                  <Select id="dash-kind" value={kind} onChange={(e) => setKind(e.target.value as WidgetKind)}>
+                <div className="flex flex-wrap gap-2">
+                  <Select id="dash-kind" className="min-w-0 flex-1" value={kind} onChange={(e) => setKind(e.target.value as WidgetKind)}>
                     {WIDGET_KINDS.map((k) => <option key={k} value={k}>{t.kinds[k]}</option>)}
                   </Select>
                   <Button disabled={current.widgets.length >= DASHBOARD_MAX_WIDGETS} onClick={() => void addKind()}>{t.add}</Button>

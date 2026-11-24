@@ -6,6 +6,7 @@ export const deAnalysis = {
   // Rein beschreibend (Spec 06): keine Ursachen- oder Wirkungsformulierungen (ANA-15).
   fewData: 'Wenige Daten — Unterschied kann zufällig sein.',
   views: 'Ansicht',
+  viewsRegion: 'Ansichten',
   viewNames: { trend: 'Verlauf', calendar: 'Kalender', meds: 'Medis', freq: 'Häufig.', body: 'Körper', corr: 'Zusammenh.', training: 'Übungen', dashboards: 'Dashboards' },
   ranges: { day: 'Tag', '7d': '7 T', '30d': '30 T', '90d': '90 T', '6m': '6 M', '1y': '1 J' },
   block: 'Feld',
@@ -64,7 +65,7 @@ export const deAnalysis = {
     // Rein beschreibend (Spec 06, A-090): keine Ursachen- oder Wirkungsformulierung, keine Zahl unter der Mindestzahl.
     caveat: 'Zusammenhang ist keine Ursache.',
     pairTitle: 'Zusammenhang zweier Felder',
-    fieldA: 'Feld A', fieldB: 'Feld B',
+    fieldA: 'Wert A', fieldB: 'Wert B',
     lag: 'Zeitversatz in Tagen',
     lagHint: (a: string, b: string, lag: number) => (lag === 0 ? `Werte von „${a}“ und „${b}“ am selben Tag.` : `Wert von „${a}“ an einem Tag, „${b}“ ${lag === 1 ? '1 Tag' : `${lag} Tage`} später.`),
     needTwo: 'Für einen Zusammenhang werden zwei Zahlenfelder mit Werten gebraucht.',

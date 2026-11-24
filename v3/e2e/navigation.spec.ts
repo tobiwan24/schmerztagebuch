@@ -32,7 +32,7 @@ test.describe('Deep-Links und Zustände', () => {
 
   test('UI-05: jede Hauptansicht zeigt bei leerer DB ihren Leerzustand', async ({ page }) => {
     await onboardWithPassword(page);
-    for (const [path, title] of [['/', 'Noch keine Einträge'], ['/history', 'Noch nichts im Verlauf'], ['/analysis', 'Noch keine Daten für eine Auswertung']] as const) {
+    for (const [path, title] of [['/history', 'Noch nichts im Verlauf'], ['/analysis', 'Noch keine Daten für eine Auswertung']] as const) {
       await go(page, path);
       await expect(page.getByTestId('empty-state')).toContainText(title);
       await expect(page.getByTestId('error-state')).toHaveCount(0);
@@ -56,7 +56,7 @@ test.describe('Deep-Links und Zustände', () => {
       }
     });
     await onboardWithPassword(page);
-    for (const path of ['/', '/history', '/analysis']) {
+    for (const path of ['/history', '/analysis']) {
       await go(page, path);
       const error = page.getByTestId('error-state');
       await expect(error).toBeVisible();

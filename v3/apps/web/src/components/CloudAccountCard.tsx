@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/auth/AuthContext';
+import { FactorsSection } from '@/components/FactorsSection';
 import { useSync } from '@/data/SyncContext';
 import { de } from '@/i18n/de';
 import { deSettings } from '@/i18n/lazy/settings';
@@ -36,7 +37,10 @@ export function CloudAccountCard() {
         <CardHeader>
           <CardTitle>{t.account}</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground" data-testid="account-detached">{t.detached}</CardContent>
+        <CardContent className="flex flex-col gap-3">
+          <p className="text-sm text-muted-foreground" data-testid="account-detached">{t.detached}</p>
+          {auth.status === 'unlocked' ? <FactorsSection /> : null}
+        </CardContent>
       </Card>
     );
   }
@@ -67,6 +71,7 @@ export function CloudAccountCard() {
         ) : (
           <Button variant="ghost" onClick={() => setConfirm(true)}>{t.detachAction}</Button>
         )}
+        {auth.status === 'unlocked' ? <FactorsSection /> : null}
       </CardContent>
     </Card>
   );

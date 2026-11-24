@@ -30,15 +30,20 @@ export function QuickPage() {
   const [pending, setPending] = useState<string | null>(null);
   const [draft, setDraft] = useState<FillDraft | null>(null);
   const [llmChanged, setLlmChanged] = useState<ReadonlySet<string>>(new Set());
-  const wanted = useSearchParams()[0].get('diary');
+  const [params] = useSearchParams();
+  const wanted = params.get('diary');
+  const templateParam = params.get('template');
   const writable = useWritableDiaries();
   const writableIds = writable.status === 'ok' ? writable.data.map((d) => d.id).join() : null;
   // Mehrere beschreibbare Tagebücher ohne Angabe → Auswahl (A-041); sonst das gewählte bzw. einzige Tagebuch.
   const query = useQuery<{ choose: Diary[] | null; options: QuickEntrySelection[]; lastTemplateId: string | null }>(async () => {
     if (writable.status !== 'ok') return { choose: null, options: [], lastTemplateId: null };
     const list = writable.data;
-    if (!wanted && list.length > 1) return { choose: list, options: [], lastTemplateId: null };
-    const diary = wanted ? list.find((d) => d.id === wanted) : list[0];
+    // `?template=` ohne `diary`: das Tagebuch der Vorlage bestimmt die Auswahl (RDM-028 P2).
+    const templateDiaryId = !wanted && templateParam ? (await data.diary.listAllTemplates()).find((x) => x.id === templateParam)?.diaryId : undefined;
+    const diaryId = wanted ?? (templateDiaryId && list.some((d) => d.id === templateDiaryId) ? templateDiaryId : null);
+    if (!diaryId && list.length > 1) return { choose: list, options: [], lastTemplateId: null };
+    const diary = diaryId ? list.find((d) => d.id === diaryId) : list[0];
     if (!diary) return { choose: null, options: [], lastTemplateId: null };
     const states = (await Promise.all((await data.diary.listTemplates(diary.id)).map((t) => data.diary.getTemplate(t.id)))).filter(
       (s): s is TemplateState => s !== undefined,
@@ -46,9 +51,9 @@ export function QuickPage() {
     // Vorausgewählt: die Vorlage des zuletzt gespeicherten Eintrags (A-070), sonst die erste.
     const last = (await data.diary.listEntries(diary.id)).reduce<Entry | null>((a, e) => (!a || e.recordedAt > a.recordedAt ? e : a), null);
     return { choose: null, options: quickEntryOptions(diary, states), lastTemplateId: last?.templateId ?? null };
-  }, [data.diary, wanted, writableIds]);
+  }, [data.diary, wanted, templateParam, writableIds]);
   const options = query.status === 'ok' ? query.data.options : [];
-  const selection = (query.status === 'ok' ? options.find((o) => o.state.template.id === (chosen ?? query.data.lastTemplateId)) : undefined) ?? options[0] ?? null;
+  const selection = (query.status === 'ok' ? options.find((o) => o.state.template.id === (chosen ?? (templateParam && options.some((x) => x.state.template.id === templateParam) ? templateParam : query.data.lastTemplateId))) : undefined) ?? options[0] ?? null;
   const switchTo = (id: string) => {
     if (id === selection?.state.template.id) return;
     if (Object.keys(valuesToSave(selection!.state.version, values)).length > 0) setPending(id);
@@ -113,7 +118,7 @@ export function QuickPage() {
             {options.map((o) => {
               const active = o.state.template.id === selection.state.template.id;
               return (
-                <Button key={o.state.template.id} type="button" size="sm" variant={active ? 'default' : 'outline'} aria-pressed={active} onClick={() => switchTo(o.state.template.id)}>
+                <Button key={o.state.template.id} type="button" size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant={active ? 'default' : 'outline'} aria-pressed={active} onClick={() => switchTo(o.state.template.id)}>
                   <TemplateIcon icon={o.state.template.icon} color={o.state.template.color} className={active ? 'text-primary-foreground' : undefined} />
                   {o.state.template.name}
                 </Button>

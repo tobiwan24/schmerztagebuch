@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { go, onboardWithPassword } from './helpers';
+import { go, onboardWithPassword, openAnalysisView } from './helpers';
 
 async function createTraining(page: Page): Promise<void> {
   await go(page, '/more/templates/new');
@@ -125,8 +125,7 @@ test.describe('Training', () => {
     await expect(page.getByTestId('entry-time')).toBeVisible();
 
     await go(page, '/analysis');
-    const views = page.getByRole('group', { name: 'Ansicht' });
-    await views.getByRole('button', { name: 'Übungen' }).click();
+    await openAnalysisView(page, 'Übungen');
     await expect(page.getByTestId('analysis-view-training')).toBeVisible();
     await expect(page.getByTestId('training-weeks')).toContainText('n = 1 Tag mit erledigten Übungen');
     await expect(page.getByTestId('training-week-list').getByRole('listitem')).toHaveCount(1);

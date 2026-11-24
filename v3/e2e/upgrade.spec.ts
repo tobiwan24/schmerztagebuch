@@ -22,6 +22,7 @@ test.describe('Wechsel „nur auf diesem Gerät" → „Mit Konto"', () => {
     await go(page, '/more/templates');
     await page.getByRole('button', { name: /Migräne-Tracking/ }).click();
     await expect(page.getByTestId('template-row')).toHaveCount(2);
+    await go(page, '/more');
     await expect(page.getByTestId('sync-status')).toHaveCount(0); // local-only: kein Sync
 
     // umstellen
@@ -36,6 +37,7 @@ test.describe('Wechsel „nur auf diesem Gerät" → „Mit Konto"', () => {
     await page.getByLabel('Ich habe den Code sicher aufbewahrt').check();
     await page.getByRole('button', { name: 'Weiter' }).click();
     await expect(page.getByTestId('account-card')).toBeVisible({ timeout: 30_000 });
+    await go(page, '/more');
     await expect(page.getByTestId('sync-status')).toHaveAttribute('data-state', 'synced', { timeout: 20_000 });
     await expect(page.getByTestId('sync-status')).toHaveAttribute('data-pending', '0');
 

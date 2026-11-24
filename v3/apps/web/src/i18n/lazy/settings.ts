@@ -5,7 +5,7 @@ export const deSettings = {
   appearance: 'Darstellung',
   themeLight: 'Hell',
   themeDark: 'Dunkel',
-  themeSystem: 'Automatisch',
+  themeSystem: 'Auto',
   account: 'Konto & Sync',
   localOnly: 'Deine Daten liegen nur auf diesem Gerät.',
   upgradeAction: 'Mit Konto synchronisieren',

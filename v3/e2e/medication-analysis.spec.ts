@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { go, onboardWithPassword } from './helpers';
+import { go, onboardWithPassword, openAnalysisView } from './helpers';
 
 /** Nur im Test: Einträge der letzten 8 Tage mit Medikamenten-Positionen direkt in die lokale DB (Codec `plain`) schreiben. */
 async function seedMedication(page: Page) {
@@ -55,7 +55,7 @@ test.describe('Auswertung: Medikamente', () => {
     await page.getByRole('button', { name: /Migräne-Tracking/ }).click();
     await expect(page.getByTestId('template-row')).toHaveCount(3);
     await go(page, '/analysis');
-    await page.getByRole('button', { name: 'Häufig.' }).click();
+    await openAnalysisView(page, 'Häufig.');
 
     const pie = page.getByTestId('med-pie');
     await expect(pie.getByText('Medikamente: Anteil je Medikament')).toBeVisible();

@@ -10,6 +10,8 @@ async function quickEntry(page: Page) {
   const box = (await slider.boundingBox())!;
   await slider.click({ position: { x: box.width * 0.5, y: box.height / 2 } });
   await page.getByRole('button', { name: 'Speichern' }).click();
+  await expect(page.getByRole('heading', { name: 'Start' })).toBeVisible();
+  await go(page, '/history');
   await expect(page.getByTestId('entry-row')).toHaveCount(1);
 }
 

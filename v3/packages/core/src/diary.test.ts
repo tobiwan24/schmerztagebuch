@@ -48,6 +48,17 @@ describe('Tagebuch-Einstellungen ändern', () => {
     expect(without.settings.weather.location).toBeUndefined();
   });
 
+  it('RDM-028 P2: quickTemplateIds setzen, Duplikate entfernen, leer/null löscht, unbekannte Vorlage wird abgelehnt', () => {
+    const a = tpl.id;
+    const set = updateDiarySettings(base, { quickTemplateIds: [a, a] }, stamp, { templates: [tpl] });
+    expect(set.settings.quickTemplateIds).toEqual([a]);
+    expect(diarySchema.safeParse(set).success).toBe(true);
+    expect(updateDiarySettings(set, { name: 'X' }, stamp).settings.quickTemplateIds).toEqual([a]);
+    expect(updateDiarySettings(set, { quickTemplateIds: [] }, stamp).settings.quickTemplateIds).toBeUndefined();
+    expect(updateDiarySettings(set, { quickTemplateIds: null }, stamp).settings.quickTemplateIds).toBeUndefined();
+    expect(() => updateDiarySettings(base, { quickTemplateIds: [foreign] }, stamp, { templates: [tpl] })).toThrow(RangeError);
+  });
+
   it('DM-14: Schnelleintrag-Blöcke müssen zur gewählten Vorlage gehören', () => {
     const ok = updateDiarySettings(base, { quickEntryTemplateId: tpl.id, quickEntryBlockIds: [tpl.blockIds[1]!] }, stamp, { templates: [tpl] });
     expect(ok.settings.quickEntryBlockIds).toEqual([tpl.blockIds[1]!]);

@@ -1,17 +1,15 @@
 import { lazy, Suspense } from 'react';
-import { cn } from '@/lib/utils';
-import { TOUR_RING } from '@/tour/anchor';
-import { Link } from 'react-router';
-import { Plus, Zap } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { QuickLink } from '@/components/QuickLink';
 import { PageHeader } from '@/components/PageHeader';
-import { EntryListState } from '@/components/EntryListState';
 import { BackupReminder } from '@/components/BackupReminder';
 import { ConflictBanner } from '@/components/ConflictBanner';
 import { RuleBanner } from '@/components/RuleBanner';
 import { TemplateTiles } from '@/components/TemplateTiles';
 import { InboxCard } from '@/components/InboxCard';
 import { useWritableDiaries } from '@/data/useSharing';
+import { useData } from '@/data/DataContext';
+import { useQuery } from '@/data/useQuery';
+import { quickButtons } from '@/lib/quick-buttons';
 import { de } from '@/i18n/de';
 
 // Selten sichtbare Hinweise werden erst bei Bedarf geladen (QA-02, Bundle-Budget).
@@ -19,15 +17,20 @@ const InstallBanner = lazy(() => import('@/components/InstallBanner').then((m) =
 const CloudSyncBanner = lazy(() => import('@/components/CloudSyncBanner').then((m) => ({ default: m.CloudSyncBanner })));
 const V2Banner = lazy(() => import('@/components/V2DataCard').then((m) => ({ default: m.V2Banner })));
 const NewEntriesNotice = lazy(() => import('@/components/NewEntriesNotice').then((m) => ({ default: m.NewEntriesNotice })));
+const QuickCarousel = lazy(() => import('@/components/QuickCarousel'));
 const RestoreBackupBanner = lazy(() => import('@/components/RestoreBackupBanner').then((m) => ({ default: m.RestoreBackupBanner })));
 
 export function StartPage() {
   const writable = useWritableDiaries();
-  // Je beschreibbarem Tagebuch ein Schnelleintrag-Knopf (A-041); mit einem Tagebuch der gewohnte eine Knopf.
-  const quick = writable.status === 'ok' && writable.data.length > 1 ? writable.data.map((d) => ({ to: `/quick?diary=${d.id}`, label: de.start.quickEntryFor(d.name) })) : [{ to: '/quick', label: de.start.quickEntry }];
+  const { diary } = useData();
+  const templates = useQuery(() => diary.listAllTemplates(), [diary]);
+  // Je ausgewählter Vorlage (Tagebuch-Einstellungen) ein Knopf; sonst je beschreibbarem Tagebuch einer (A-041, A-133).
+  const quick = quickButtons(writable.status === 'ok' ? writable.data : [], templates.status === 'ok' ? templates.data : []);
+  // Erst rendern, wenn Tagebücher und Vorlagen geladen sind (kein Umspringen der Beschriftung).
+  const loading = writable.status === 'loading' || templates.status === 'loading';
   return (
     <>
-      <PageHeader title={de.start.title} />
+      <PageHeader title={de.start.title} sync />
       <ConflictBanner />
       <RuleBanner />
       <Suspense fallback={null}>
@@ -41,22 +44,17 @@ export function StartPage() {
       </Suspense>
       <InboxCard />
       <BackupReminder />
-      {quick.map((q, i) => (
-        <Button key={q.to} asChild size="lg" data-tour={i === 0 ? 'start-quick' : undefined} className={cn('h-16 text-base', TOUR_RING)}>
-          <Link to={q.to}>
-            <Zap aria-hidden />
-            {q.label}
-          </Link>
-        </Button>
-      ))}
+      {loading ? (
+        <div aria-hidden className="h-16" />
+      ) : quick.length === 1 ? (
+        <QuickLink q={quick[0]!} first />
+      ) : (
+        // Platzhalter = Knopf (4rem) + Punktezeile (0.75rem Abstand + 2.75rem), kein Layoutsprung beim Nachladen von embla.
+        <Suspense fallback={<div aria-hidden className="h-[7.5rem]" />}>
+          <QuickCarousel buttons={quick} />
+        </Suspense>
+      )}
       <TemplateTiles />
-      <EntryListState emptyTitle={de.start.emptyTitle} emptyHint={de.start.emptyHint} />
-      <Button asChild variant="outline">
-        <Link to="/entry/new">
-          <Plus aria-hidden />
-          {de.start.newEntry}
-        </Link>
-      </Button>
     </>
   );
 }

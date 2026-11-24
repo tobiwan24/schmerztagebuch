@@ -25,6 +25,9 @@ test.describe('Barrierefreiheit', () => {
       await go(page, '/entry/new');
       await page.getByLabel(/Schmerzstärke/).fill('6');
       await page.getByLabel('Notizen').fill('Testeintrag');
+      await page.getByRole('button', { name: 'Arztbesuch hinzufügen' }).click();
+      await page.getByLabel('Titel').fill('Hausarzt');
+      await page.getByLabel('Titel').press('Enter');
       await page.getByRole('button', { name: 'Speichern' }).click();
       await expect(page.getByTestId('entry-time')).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.classList.contains('dark'))).toBe(theme === 'dark');
@@ -36,6 +39,11 @@ test.describe('Barrierefreiheit', () => {
       for (const path of VIEWS) {
         await go(page, path);
         await page.waitForTimeout(400); // Worker-Daten/Charts
+        if (path === '/history') {
+          // Kennzeichen und Schmerzwert der Verlauf-Card müssen sichtbar sein, damit axe sie prüft
+          await expect(page.getByTestId('entry-flag-doctor').first()).toBeVisible();
+          await expect(page.getByTestId('entry-pain').first()).toBeVisible();
+        }
         const v = await seriousViolations(page);
         if (v.length) found[path] = v;
       }

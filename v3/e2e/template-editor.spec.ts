@@ -8,6 +8,17 @@ test.describe('Vorlagen-Editor', () => {
     await onboardWithPassword(page);
   });
 
+  test('RDM-028: neue Vorlage hat Standardfarbe Schwarz, Schwarz steht in der Farbpalette', async ({ page }) => {
+    await go(page, '/more/templates');
+    await page.getByRole('link', { name: 'Neue leere Vorlage' }).click();
+    await expect(page.getByRole('button', { name: 'Schwarz' })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByLabel('Name', { exact: true }).fill('Ohne Farbwahl');
+    await page.getByRole('button', { name: 'Speichern' }).click();
+    const row = page.getByTestId('template-row').filter({ hasText: 'Ohne Farbwahl' });
+    await expect(row.getByTestId('template-icon')).toHaveAttribute('data-color', 'black');
+    await expect(row.getByTestId('template-icon')).toHaveClass(/text-foreground/);
+  });
+
   test('BLK-23: leere Vorlage anlegen, Name/Icon/Farbe ändern (Liste und Eintragsformular), Duplizieren ist unabhängig', async ({ page }) => {
     // Anlegen
     await go(page, '/more/templates');
@@ -136,7 +147,7 @@ test.describe('Vorlagen-Editor', () => {
     await expect(field('Stärke')).toBeVisible();
   });
 
-  test('BLK-25: Felder per Tastatur und Ziehen umsortieren, entfernen (neue Version, Archiviertes Feld), Warnung beim Verlassen nur nach echter Änderung', async ({ page }) => {
+  test('BLK-25: Felder per Tastatur und Ziehen umsortieren, entfernen (neue Version, entferntes Feld bleibt sichtbar), Warnung beim Verlassen nur nach echter Änderung', async ({ page }) => {
     // Hohes Fenster: Ziehen mit der Maus braucht alle Karten im sichtbaren Bereich
     await page.setViewportSize({ width: 600, height: 2400 });
     await go(page, '/more/templates/new');
@@ -185,7 +196,7 @@ test.describe('Vorlagen-Editor', () => {
     await expect(page.getByTestId('block-field').locator('label').first()).toContainText('Beta');
     await expect(page.getByTestId('block-field')).toHaveCount(3);
 
-    // Entfernen: Gamma weg → neue Version; der ältere Eintrag zeigt den Wert als archiviertes Feld
+    // Entfernen: Gamma weg → neue Version; der ältere Eintrag zeigt den Wert weiter, ohne Hinweis (RDM-028 P5)
     await go(page, '/more/templates');
     await page.getByRole('link', { name: 'Reihe bearbeiten' }).click();
     await page.getByRole('button', { name: 'Feld Gamma entfernen' }).click();
@@ -194,7 +205,7 @@ test.describe('Vorlagen-Editor', () => {
     await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
     await go(page, new URL(entryUrl).pathname);
     await expect(page.getByTestId('entry-field').filter({ hasText: 'Gamma' })).toContainText('Wert-G');
-    await expect(page.getByTestId('entry-field').filter({ hasText: 'Gamma' })).toContainText('archiviertes Feld');
+    await expect(page.getByTestId('entry-field').filter({ hasText: 'Gamma' })).not.toContainText('archiviertes Feld');
 
     // Warnung: ohne echte Änderung keine Abfrage (auch nach Hinzufügen und Entfernen), nach Änderung schon
     await go(page, '/more/templates');

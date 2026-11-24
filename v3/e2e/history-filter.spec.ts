@@ -1,5 +1,5 @@
 import { test, expect, type Download, type Page } from '@playwright/test';
-import { addDeviceWithBackupCode, addVirtualAuthenticator, go, onboardWithCloud, onboardWithPassword, uniqueUser } from './helpers';
+import { addDeviceWithBackupCode, addVirtualAuthenticator, go, onboardWithCloud, onboardWithPassword, openFilter, openSort, uniqueUser } from './helpers';
 
 async function addEntry(page: Page, pain: string, note?: string) {
   await go(page, '/entry/new');
@@ -32,10 +32,12 @@ test.describe('Verlauf: Suche und Filter', () => {
     await page.getByLabel('Suchen').fill('uebelkeit');
     await expect(rows(page)).toHaveCount(1);
     await page.getByLabel('Suchen').fill('xyzzy');
+    await openFilter(page);
     await expect(page.getByTestId('empty-state')).toContainText('Keine Einträge für diesen Filter');
     await page.getByRole('button', { name: 'Zurücksetzen' }).click();
     await expect(rows(page)).toHaveCount(3);
 
+    await openFilter(page);
     await page.getByRole('button', { name: 'Schmerz ≥ 6' }).click();
     await expect(rows(page)).toHaveCount(2);
     await page.getByRole('button', { name: '7 Tage' }).click();
@@ -49,6 +51,7 @@ test.describe('Verlauf: Suche und Filter', () => {
     await addEntry(page, '7');
     await go(page, '/history');
     await expect(rows(page)).toHaveCount(3);
+    await openFilter(page);
     await page.getByRole('button', { name: 'Schmerz ≥ 6' }).click();
     await expect(rows(page)).toHaveCount(2);
 
@@ -104,6 +107,7 @@ test.describe('Verlauf: Suche und Filter', () => {
 
     await go(page, '/history');
     await expect(rows(page)).toHaveCount(3);
+    await openFilter(page);
     // freier Zeitraum
     await page.getByLabel('Von').fill('2026-03-01');
     await expect(rows(page)).toHaveCount(2);
@@ -155,6 +159,7 @@ test.describe('Verlauf: Suche und Filter', () => {
     await addEntry(a, '9');
 
     await go(a, '/history');
+    await openFilter(a);
     await a.getByRole('button', { name: 'Schmerz ≥ 6' }).click();
     await expect(rows(a)).toHaveCount(2);
     await a.getByRole('button', { name: 'Filter speichern' }).click();
@@ -170,6 +175,7 @@ test.describe('Verlauf: Suche und Filter', () => {
     // Entsperren führt zurück in die gesperrte Ansicht (Verlauf)
     await expect(a.getByRole('heading', { name: 'Verlauf' })).toBeVisible({ timeout: 30_000 });
     await expect(rows(a)).toHaveCount(3);
+    await openFilter(a);
     await a.getByTestId('saved-filters').getByRole('button', { name: 'Schwere Tage', exact: true }).click();
     await expect(a.getByRole('button', { name: 'Schmerz ≥ 6' })).toHaveAttribute('aria-pressed', 'true');
     await expect(rows(a)).toHaveCount(2);
@@ -178,8 +184,66 @@ test.describe('Verlauf: Suche und Filter', () => {
     const b = await addDeviceWithBackupCode(browser, user, code);
     await expect(b.getByTestId('sync-status')).toHaveAttribute('data-state', 'synced', { timeout: 20_000 });
     await go(b, '/history');
+    await openFilter(b);
     await b.getByTestId('saved-filters').getByRole('button', { name: 'Schwere Tage', exact: true }).click();
     await expect(rows(b)).toHaveCount(2);
     await b.context().close();
+  });
+});
+
+/** Filter, Sortieren und Export stehen auf einer Zeile und sind mindestens 44 px hoch (Spec 10:8). */
+async function expectOneRow(page: Page) {
+  const boxes = await Promise.all([
+    page.locator('[aria-controls="history-filter-panel"]').boundingBox(),
+    page.locator('[aria-controls="history-sort-panel"]').boundingBox(),
+    page.getByRole('link', { name: 'Exportieren' }).boundingBox(),
+  ]);
+  for (const b of boxes) {
+    expect(b).not.toBeNull();
+    expect(b!.height).toBeGreaterThanOrEqual(44);
+    expect(b!.y).toBe(boxes[0]!.y);
+  }
+}
+
+test.describe('RDM-028 P4: Verlauf-Kopf', () => {
+  test('RDM-028 P4: Verlauf-Kopf zeigt nur Suche offen, Filter/Sortieren/Export kompakt', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await onboardWithPassword(page);
+    await addEntry(page, '8', 'Kopf');
+    await go(page, '/history');
+    const range = page.getByRole('group', { name: 'Zeitraum' });
+    await expect(page.getByLabel('Suchen')).toBeVisible();
+    await expect(range).toBeHidden();
+    await expect(page.getByTestId('filter-count')).toHaveCount(0);
+    await expectOneRow(page);
+
+    await openFilter(page);
+    await expect(range).toBeVisible();
+    await page.getByRole('button', { name: 'Schmerz ≥ 6' }).click();
+    await expect(page.getByTestId('filter-count')).toHaveText(/^1/);
+    await page.getByRole('button', { name: 'Ereignis' }).click();
+    await expect(page.getByTestId('filter-count')).toHaveText(/^2/);
+    await expectOneRow(page);
+    await page.locator('[aria-controls="history-filter-panel"]').click();
+    await expect(range).toBeHidden();
+    await expect(page.getByTestId('filter-count')).toHaveText(/^2/);
+
+    await openFilter(page);
+    await openSort(page);
+    await expect(page.locator('#history-filter-panel')).toBeHidden();
+    await expect(page.getByLabel('Sortierung')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Exportieren' })).toBeVisible();
+
+    // Escape schließt das Panel und gibt den Fokus an den Auslöser zurück.
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#history-sort-panel')).toBeHidden();
+    await expect(page.locator('[aria-controls="history-sort-panel"]')).toBeFocused();
+    await openFilter(page);
+    await page.getByLabel('Suchen').focus();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#history-filter-panel')).toBeHidden();
+
+    const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(over).toBeLessThanOrEqual(0);
   });
 });
