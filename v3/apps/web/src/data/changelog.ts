@@ -4,6 +4,25 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.12.0-alpha.2',
+    date: '2026-11-24',
+    points: [
+      'Die Symbole für Ereignis, Arztbesuch und Foto zeigen beim Darüberfahren einen Hinweis.',
+      'Im Export wählst du den Zeitraum im Kalender; „Dieser Monat“ und „Voriger Monat“ gibt es dort als Schnellauswahl.',
+      'Gespeicherte Filter werden auch im Export nicht mehr angeboten.',
+    ],
+  },
+  {
+    version: '3.12.0-alpha.1',
+    date: '2026-11-24',
+    points: [
+      'Datum und Zeitraum wählst du jetzt überall in einem Kalender-Fenster, die Uhrzeit daneben.',
+      'Im Verlauf öffnet „Zeitraum“ einen Kalender mit Schnellauswahl (Alle, 7, 30, 90 Tage); Vorlagen stehen getrennt von den weiteren Filtern, „Übernehmen“ schließt die Filter.',
+      'Filter bleiben erhalten, wenn du einen Eintrag öffnest und zurückkehrst; nach einem Neustart der App sind sie zurückgesetzt. „Filter speichern“ gibt es nicht mehr.',
+      'Im neuen Eintrag sind Ereignis, Arztbesuch und Foto jetzt kompakte Symbole nebeneinander.',
+    ],
+  },
+  {
     version: '3.11.0-alpha.1',
     date: '2026-11-24',
     points: [

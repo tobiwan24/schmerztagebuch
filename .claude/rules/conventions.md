@@ -11,6 +11,17 @@ Use `EnterPlanMode` when ANY of the following apply:
 
 Skip plan mode for: single-line fixes, obvious typos, adding one small utility function with clear spec.
 
+### shadcn-Abgleich (Pflicht in jedem Plan mit UI-Anteil)
+
+- Der Plan enthält eine Tabelle **„shadcn-Abgleich“**: Bedarf → shadcn-Komponente (mit Doku auf ui.shadcn.com) → Status.
+- Jede Zeile **ohne** shadcn-Original (eigener Nachbau, angepasste/abgespeckte shadcn-Komponente, Fremd-UI-Bibliothek, neues
+  HTML-Element außerhalb `components/ui/`) ist eine **Ausnahme** und wird **vor `ExitPlanMode` per `AskUserQuestion`** zur
+  Genehmigung gestellt. Ohne ausdrückliche Freigabe des Users wird sie nicht umgesetzt.
+- Taucht eine Ausnahme erst beim Implementieren auf: anhalten und fragen, nicht selbst entscheiden.
+- Freigaben stehen in `v3/DECISIONS.md` (A-Eintrag mit „Freigabe User JJJJ-MM-TT“) und im Register `v3/spec/ui-components.json`;
+  Claude/Loop/Agenten tragen dort **nie** eine Freigabe ohne ausdrückliche Zustimmung des Users ein (geprüft von
+  `npm run lint`, UI-33).
+
 ## Response Style
 
 - Short and precise. No essay-length explanations.

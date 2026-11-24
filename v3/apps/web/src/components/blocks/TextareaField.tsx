@@ -1,11 +1,12 @@
 // Textarea-Block im Eintragsformular (Port v2 `TextAreaBlock`, BLK-31): Text, Ereignisse/Arztbesuche mit Titel,
 // Foto/PDF anhängen (Bildvorschau) und entfernen. Dateien liegen bis zum Speichern im Speicher des Formulars (BLK-30).
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { CalendarPlus, FileText, Paperclip, Stethoscope, X } from 'lucide-react';
 import type { TextareaConfig, TextareaValue } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { de } from '@/i18n/de';
 
 export interface AttachmentItem {
@@ -85,7 +86,7 @@ export function TextareaField({
     <div className="flex flex-col gap-3">
       <Textarea id={id} value={v.text ?? ''} onChange={(e) => onChange({ ...v, text: e.target.value || undefined })} {...aria} />
 
-      {config.allowEvents ? (
+      {config.allowEvents && (events.length || adding) ? (
         <div className="flex flex-col gap-2">
           {events.length ? (
             <ul className="flex flex-col gap-1" aria-label={de.entry.eventsHeading}>
@@ -125,22 +126,11 @@ export function TextareaField({
                 </Button>
               </div>
             </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={() => setAdding('event')}>
-                <CalendarPlus aria-hidden />
-                {de.entry.addEvent}
-              </Button>
-              <Button type="button" size="sm" variant="outline" onClick={() => setAdding('doctor')}>
-                <Stethoscope aria-hidden />
-                {de.entry.addDoctor}
-              </Button>
-            </div>
-          )}
+          ) : null}
         </div>
       ) : null}
 
-      {config.allowAttachments && attachments ? (
+      {config.allowAttachments && attachments && (ids.length || error) ? (
         <div className="flex flex-col gap-2">
           {ids.length ? (
             <ul className="flex flex-col gap-2" aria-label={de.entry.attachments}>
@@ -162,14 +152,6 @@ export function TextareaField({
               })}
             </ul>
           ) : null}
-          <Input
-            ref={fileInput} type="file" multiple accept="image/*,application/pdf" className="hidden" aria-label={de.entry.attachFileInput}
-            onChange={(e) => void onFiles(e.target.files).finally(() => (e.target.value = ''))}
-          />
-          <Button type="button" size="sm" variant="outline" className="self-start" onClick={() => fileInput.current?.click()}>
-            <Paperclip aria-hidden />
-            {de.entry.attachFile}
-          </Button>
           {error ? (
             <p role="alert" className="text-sm text-destructive">
               {error}
@@ -177,6 +159,47 @@ export function TextareaField({
           ) : null}
         </div>
       ) : null}
+
+      {/* Aktionen nur als Symbole in einer Zeile (A-146); Beschriftung als aria-label, Hinweis per shadcn-Tooltip (A-147). */}
+      {!adding && (config.allowEvents || (config.allowAttachments && attachments)) ? (
+        <div className="flex flex-wrap gap-2">
+          {config.allowEvents ? (
+            <>
+              <IconAction label={de.entry.addEvent} onClick={() => setAdding('event')}>
+                <CalendarPlus aria-hidden />
+              </IconAction>
+              <IconAction label={de.entry.addDoctor} onClick={() => setAdding('doctor')}>
+                <Stethoscope aria-hidden />
+              </IconAction>
+            </>
+          ) : null}
+          {config.allowAttachments && attachments ? (
+            <>
+              <Input
+                ref={fileInput} type="file" multiple accept="image/*,application/pdf" className="hidden" aria-label={de.entry.attachFileInput}
+                onChange={(e) => void onFiles(e.target.files).finally(() => (e.target.value = ''))}
+              />
+              <IconAction label={de.entry.attachFile} onClick={() => fileInput.current?.click()}>
+                <Paperclip aria-hidden />
+              </IconAction>
+            </>
+          ) : null}
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+/** Icon-Button mit shadcn-Tooltip; der Text dient zugleich als zugänglicher Name. */
+function IconAction({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button type="button" size="icon" variant="outline" aria-label={label} onClick={onClick}>
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 }

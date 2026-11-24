@@ -16,7 +16,7 @@ describe('Verlauf-Filterzustand', () => {
     expect(isActive(f)).toBe(true);
   });
 
-  it('erzeugt eine gültige FilterSpec und stellt den Zustand daraus wieder her (gespeicherter Filter)', () => {
+  it('erzeugt eine gültige FilterSpec und stellt den Zustand daraus wieder her', () => {
     const spec = toSpec(full, ['d1'], []);
     expect(filterSpecSchema.parse(spec)).toEqual(spec);
     expect(spec.range).toEqual({ from: '2026-03-01', to: '2026-03-31' });

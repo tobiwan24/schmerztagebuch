@@ -14,7 +14,7 @@ Jede Spec-ID steht in **genau einem** Meilenstein (`npm run acceptance -- --stru
 | M4 | Server: Auth, Records, Mitglieder, Intake | ARC-04 CRY-13 CRY-14 SYN-03 SHR-05 SHR-06 SHR-07 SHR-08 VOI-03 VOI-04 VOI-10 QA-08 | — |
 | M5 | Sync-Engine | SYN-01 SYN-02 SYN-04 SYN-05 SYN-07 SYN-08 SYN-12 SYN-13 SYN-16 DM-13 | — |
 | M6 | Client-Logik Teilen, Intake, Wetter | SHR-03 SHR-04 SHR-11 VOI-01 VOI-05 VOI-06 VOI-07 VOI-08 BLK-11 BLK-12 BLK-14 BLK-17 | **G1 Wireframes** |
-| M7 | UI-Grundgerüst, Onboarding, Entsperren | UI-01 UI-03 UI-04 UI-05 UI-06 UI-07 CRY-08 CRY-09 CRY-10 CRY-11 CRY-12 CRY-16 SYN-10 SYN-15 | — |
+| M7 | UI-Grundgerüst, Onboarding, Entsperren | UI-01 UI-03 UI-04 UI-05 UI-06 UI-07 UI-33 CRY-08 CRY-09 CRY-10 CRY-11 CRY-12 CRY-16 SYN-10 SYN-15 | — |
 | M8 | Einträge, Vorlagen, Schnelleintrag, Sync im UI | BLK-03 BLK-05 BLK-07 BLK-09 BLK-10 BLK-15 BLK-19 SYN-06 SYN-09 SYN-11 SYN-14 CRY-15 | **G2 Kernablauf** |
 | M8b | Body-Map vollständig wie v2 (User-Entscheidung nach G2) | BLK-20 BLK-21 | — |
 | M9 | Suche, Filter, Vergleich, Standard-Ansichten | ANA-01 ANA-02 ANA-03 ANA-04 ANA-05 ANA-06 ANA-07 ANA-08 ANA-09 ANA-10 ANA-11 ANA-12 ANA-13 ANA-14 ANA-15 | — |

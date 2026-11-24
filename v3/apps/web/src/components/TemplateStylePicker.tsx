@@ -1,6 +1,7 @@
 // Auswahl von Icon und Farbe einer Vorlage (Spec 05 „Vorlagen-Editor"; v2 `TemplateStylePicker`).
 import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { FieldLegend, FieldSet } from '@/components/ui/field';
 import { cn } from '@/lib/utils';
 import { deTemplates } from '@/i18n/lazy/templates';
 import { TEMPLATE_COLORS, TEMPLATE_ICONS } from './TemplateIcon';
@@ -11,8 +12,8 @@ export function TemplateStylePicker({
   const tone = (TEMPLATE_COLORS as Record<string, { text: string } | undefined>)[color]?.text ?? '';
   return (
     <>
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-sm font-medium">{deTemplates.editor.icon}</legend>
+      <FieldSet className="flex flex-col gap-2">
+        <FieldLegend variant="label" className="mb-1">{deTemplates.editor.icon}</FieldLegend>
         <div className="flex flex-wrap gap-2">
           {Object.entries(TEMPLATE_ICONS).map(([name, Icon]) => (
             <Button
@@ -28,9 +29,9 @@ export function TemplateStylePicker({
             </Button>
           ))}
         </div>
-      </fieldset>
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-sm font-medium">{deTemplates.editor.color}</legend>
+      </FieldSet>
+      <FieldSet className="flex flex-col gap-2">
+        <FieldLegend variant="label" className="mb-1">{deTemplates.editor.color}</FieldLegend>
         <div className="flex flex-wrap gap-2">
           {Object.entries(TEMPLATE_COLORS).map(([token, c]) => (
             <Button
@@ -48,7 +49,7 @@ export function TemplateStylePicker({
             </Button>
           ))}
         </div>
-      </fieldset>
+      </FieldSet>
     </>
   );
 }

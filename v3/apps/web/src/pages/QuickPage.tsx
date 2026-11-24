@@ -5,6 +5,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 import { initialWeatherMeta, quickEntryOptions, valuesToSave, type DiaryWeatherSettings, type Diary, type Entry, type FormValues, type QuickEntrySelection, type TemplateState } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { FieldLegend, FieldSet } from '@/components/ui/field';
 import { TemplateIcon } from '@/components/TemplateIcon';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState, ErrorState } from '@/components/StateView';
@@ -112,8 +113,8 @@ export function QuickPage() {
         </section>
       ) : null}
       {selection && options.length > 1 ? (
-        <fieldset className="flex flex-col gap-2" data-testid="quick-template-choice">
-          <legend className="mb-2 text-sm font-medium">{deQuick.template}</legend>
+        <FieldSet className="flex flex-col gap-2" data-testid="quick-template-choice">
+          <FieldLegend variant="label" className="mb-2">{deQuick.template}</FieldLegend>
           <div className="flex flex-wrap gap-2">
             {options.map((o) => {
               const active = o.state.template.id === selection.state.template.id;
@@ -125,7 +126,7 @@ export function QuickPage() {
               );
             })}
           </div>
-        </fieldset>
+        </FieldSet>
       ) : null}
       {query.status === 'ok' && writable.status === 'ok' && !query.data.choose && (!selection || selection.blocks.length === 0) ? (
         <>

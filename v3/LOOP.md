@@ -11,7 +11,9 @@ Gestartet mit: `/loop Arbeite nach v3/LOOP.md`. Jede Iteration arbeitet **eine**
   nicht still abweichen, sondern Annahme in `DECISIONS.md` unter „Offene Annahmen" eintragen und eine Alternative wählen,
   die sich leicht ändern lässt. Akzeptanzkriterien nie abschwächen, um Tests grün zu bekommen.
 - Neue npm-Abhängigkeit: erlaubt, aber vorher Eintrag in `DECISIONS.md` (Name, Zweck, Lizenz, verworfene Alternative).
-- shadcn/ui ist das einzige UI-Kit (siehe Spec 10).
+- shadcn/ui ist das einzige UI-Kit (siehe Spec 10). **Nur shadcn-Originale**; jede Ausnahme (Nachbau, Anpassung, Fremd-UI-Paket,
+  nicht freigegebenes HTML-Element) braucht die ausdrückliche Freigabe des Users (Register `spec/ui-components.json`, UI-33,
+  A-147). Der Loop trägt **nie selbst** eine Freigabe ins Register oder in `DECISIONS.md` ein.
 - Keine Secrets, keine echten Gesundheitsdaten in Fixtures (nur synthetisch bzw. anonymisiert).
 
 ## Ablauf einer Iteration
@@ -37,6 +39,7 @@ Gestartet mit: `/loop Arbeite nach v3/LOOP.md`. Jede Iteration arbeitet **eine**
 - offenem Gate,
 - dreimal hintereinander rotem `verify` bei derselben Aufgabe (Blocker mit Fehlerausgabe in `PROGRESS.md`),
 - einer Entscheidung, die nur der User treffen kann (Eintrag in `DECISIONS.md` → „Offene Annahmen", Status `blockiert`),
+- Bedarf an einer UI-Ausnahme von „nur shadcn“ (kein passendes shadcn-Original) — anhalten und melden, nicht selbst freigeben,
 - Bedarf, v2-Code oder etwas außerhalb von `v3/` zu ändern,
 - Erreichen der Gesamt-Definition-of-Done (`npm run acceptance` ohne `--milestone` = OK bis auf manuelle IDs).
 

@@ -132,7 +132,7 @@ test.describe('Aus Text ausfüllen', () => {
     await mockLlm(page, () => ({ body: { values: {} } }));
     await cloudWithOptIn(page, false);
     await go(page, '/entry/new');
-    await expect(page.getByLabel('Zeitpunkt')).toBeVisible();
+    await expect(page.getByLabel('Zeitpunkt', { exact: true })).toBeVisible();
     await expect(page.getByTestId('llm-fill-open')).toHaveCount(0);
     await go(page, '/quick');
     await expect(page.getByLabel(/Schmerzstärke/)).toBeVisible();
@@ -154,7 +154,7 @@ test.describe('Aus Text ausfüllen', () => {
     await page.addInitScript(() => localStorage.setItem('stb-v3-llm', '1'));
     await onboardWithPassword(page);
     await go(page, '/entry/new');
-    await expect(page.getByLabel('Zeitpunkt')).toBeVisible();
+    await expect(page.getByLabel('Zeitpunkt', { exact: true })).toBeVisible();
     await expect(page.getByTestId('llm-fill-open')).toHaveCount(0);
     expect(calls).toEqual([]);
   });

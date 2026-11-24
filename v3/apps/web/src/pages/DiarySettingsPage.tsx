@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { FieldLegend, FieldSet } from '@/components/ui/field';
 import { LocationPicker } from '@/components/LocationPicker';
 import { TemplateIcon } from '@/components/TemplateIcon';
 import { PageHeader } from '@/components/PageHeader';
@@ -105,8 +106,8 @@ function SettingsForm({ diary, templates, readOnly }: { diary: Diary; templates:
           ))}
         </Select>
       </div>
-      <fieldset className="flex flex-col gap-3">
-        <legend className="mb-1 text-sm font-medium">{t.weatherTitle}</legend>
+      <FieldSet className="flex flex-col gap-3">
+        <FieldLegend variant="label" className="mb-1">{t.weatherTitle}</FieldLegend>
         <Label className="min-h-11 gap-3">
           <Checkbox checked={enabled} disabled={readOnly} onChange={(e) => (setEnabled(e.target.checked), setSaved(false))} />
           {t.weatherEnabled}
@@ -122,10 +123,10 @@ function SettingsForm({ diary, templates, readOnly }: { diary: Diary; templates:
           onChange={(l) => (setLocation(l ?? undefined), setEnabled(l !== null), setSaved(false))}
         />
         {!location ? <p className="text-sm text-muted-foreground">{t.weatherNoLocation}</p> : null}
-      </fieldset>
+      </FieldSet>
       {templates.length > 0 ? (
-        <fieldset className="flex flex-col gap-3" data-testid="quick-buttons-settings">
-          <legend className="mb-1 text-sm font-medium">{t.quickButtonsTitle}</legend>
+        <FieldSet className="flex flex-col gap-3" data-testid="quick-buttons-settings">
+          <FieldLegend variant="label" className="mb-1">{t.quickButtonsTitle}</FieldLegend>
           <p className="text-sm text-muted-foreground">{t.quickButtonsHint}</p>
           {templates.map((x) => (
             <Label key={x.id} className="min-h-11 gap-3">
@@ -138,7 +139,7 @@ function SettingsForm({ diary, templates, readOnly }: { diary: Diary; templates:
               {x.name}
             </Label>
           ))}
-        </fieldset>
+        </FieldSet>
       ) : null}
       {readOnly ? null : (
         <div className="flex items-center gap-3">

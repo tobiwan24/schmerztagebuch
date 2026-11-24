@@ -1,5 +1,5 @@
 import { test, expect, type Download, type Page } from '@playwright/test';
-import { addDeviceWithBackupCode, addVirtualAuthenticator, go, onboardWithCloud, onboardWithPassword, openFilter, openSort, uniqueUser } from './helpers';
+import { PASSWORD, go, onboardWithPassword, openFilter, openSort, pickDateTime, pickRange } from './helpers';
 
 async function addEntry(page: Page, pain: string, note?: string) {
   await go(page, '/entry/new');
@@ -40,7 +40,11 @@ test.describe('Verlauf: Suche und Filter', () => {
     await openFilter(page);
     await page.getByRole('button', { name: 'Schmerz ≥ 6' }).click();
     await expect(rows(page)).toHaveCount(2);
-    await page.getByRole('button', { name: '7 Tage' }).click();
+    // Schnellauswahl liegt im Zeitraum-Popup (RDM-030)
+    await page.getByLabel('Zeitraum', { exact: true }).click();
+    await page.getByRole('group', { name: 'Schnellauswahl' }).getByRole('button', { name: '7 Tage' }).click();
+    await expect(page.locator('[data-slot="popover-content"]')).toHaveCount(0);
+    await expect(page.getByLabel('Zeitraum', { exact: true })).toHaveText('7 Tage');
     await expect(rows(page)).toHaveCount(2);
   });
 
@@ -72,7 +76,7 @@ test.describe('Verlauf: Suche und Filter', () => {
     await expect(page.getByRole('button', { name: 'Alle Einträge' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  test('ANA-18: freier Zeitraum, Vorlagen und Inhalt (UND) grenzen ein; gespeicherter Filter stellt alles wieder her', async ({ page }) => {
+  test('ANA-18: freier Zeitraum (Range-Popup), Vorlagen und Inhalt (UND) grenzen ein', async ({ page }) => {
     await onboardWithPassword(page);
     // Zweite Vorlage per Duplizieren
     await go(page, '/more/templates');
@@ -86,7 +90,7 @@ test.describe('Verlauf: Suche und Filter', () => {
     const at = async (when: string, template?: string) => {
       await go(page, '/entry/new');
       if (template) await page.getByRole('button', { name: template }).click();
-      await page.getByLabel('Zeitpunkt', { exact: true }).fill(when);
+      await pickDateTime(page, 'Zeitpunkt', when);
       await page.getByLabel('Notizen').fill('Eintrag');
     };
     const saved = async () => {
@@ -108,10 +112,11 @@ test.describe('Verlauf: Suche und Filter', () => {
     await go(page, '/history');
     await expect(rows(page)).toHaveCount(3);
     await openFilter(page);
-    // freier Zeitraum
-    await page.getByLabel('Von').fill('2026-03-01');
+    // freier Zeitraum im Range-Popup (RDM-030)
+    await pickRange(page, 'Zeitraum', '2026-03-01', '2026-03-31');
+    await expect(page.getByLabel('Zeitraum', { exact: true })).toHaveText('01.03. – 31.03.2026');
     await expect(rows(page)).toHaveCount(2);
-    await page.getByLabel('Bis').fill('2026-03-15');
+    await pickRange(page, 'Zeitraum', '2026-03-01', '2026-03-15');
     await expect(rows(page)).toHaveCount(1);
     await page.getByRole('button', { name: 'Zurücksetzen' }).click();
     await expect(rows(page)).toHaveCount(3);
@@ -132,62 +137,51 @@ test.describe('Verlauf: Suche und Filter', () => {
     await expect(page.getByTestId('empty-state')).toBeVisible();
     await page.getByRole('button', { name: 'Body-Map', exact: true }).click();
 
-    // Kombination Zeitraum + Vorlage + Inhalt als gespeicherter Filter
-    await page.getByLabel('Von').fill('2026-03-01');
+    // Kombination Zeitraum + Vorlage + Inhalt
+    await pickRange(page, 'Zeitraum', '2026-03-01', '2026-03-31');
     await page.getByRole('group', { name: 'Vorlagen' }).getByRole('button', { name: 'Allgemeines Schmerz-Tagebuch' }).click();
-    await expect(rows(page)).toHaveCount(1);
-    await page.getByRole('button', { name: 'Filter speichern' }).click();
-    await page.getByLabel('Name des Filters').fill('Befunde im März');
-    await page.getByRole('dialog').getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByTestId('saved-filters')).toContainText('Befunde im März');
-    await page.getByRole('button', { name: 'Zurücksetzen' }).click();
-    await expect(rows(page)).toHaveCount(3);
-    await page.getByTestId('saved-filters').getByRole('button', { name: 'Befunde im März', exact: true }).click();
-    await expect(page.getByLabel('Von')).toHaveValue('2026-03-01');
-    await expect(page.getByRole('group', { name: 'Vorlagen' }).getByRole('button', { name: 'Allgemeines Schmerz-Tagebuch' })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('button', { name: 'PDF', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await expect(rows(page)).toHaveCount(1);
+    // Vorlagen stehen als eigene Gruppe vor den weiteren Filtern
+    await expect(page.getByRole('group', { name: 'Weitere Filter' }).getByRole('button', { name: 'Schmerz ≥ 6' })).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Vorlagen' }).getByRole('button', { name: 'Schmerz ≥ 6' })).toHaveCount(0);
   });
 
-  test('ANA-11: gespeicherter Filter überlebt Reload und erscheint auf dem Zweitgerät', async ({ page: a, browser, browserName }) => {
-    test.skip(browserName !== 'chromium', 'Konto + Zweitgerät mit virtuellem Authenticator (Chromium)');
-    await addVirtualAuthenticator(a);
-    const user = uniqueUser('ana11');
-    const code = await onboardWithCloud(a, user);
-    await addEntry(a, '8', 'schwerer Tag');
-    await addEntry(a, '3');
-    await addEntry(a, '9');
+  test('RDM-030: „Übernehmen“ schließt die Karte, Filter bleiben nach der Detailansicht erhalten, nach Neustart leer; kein „Filter speichern“', async ({ page }) => {
+    await onboardWithPassword(page);
+    await addEntry(page, '8', 'schwerer Tag');
+    await addEntry(page, '3');
+    await go(page, '/history');
+    await openFilter(page);
+    await expect(page.getByRole('button', { name: 'Filter speichern' })).toHaveCount(0);
+    await expect(page.getByTestId('saved-filters')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Schmerz ≥ 6' }).click();
+    await expect(rows(page)).toHaveCount(1);
+    await page.getByRole('button', { name: 'Übernehmen' }).click();
+    await expect(page.locator('#history-filter-panel')).toBeHidden();
+    await expect(page.locator('[aria-controls="history-filter-panel"]')).toBeFocused();
+    await expect(rows(page)).toHaveCount(1);
 
-    await go(a, '/history');
-    await openFilter(a);
-    await a.getByRole('button', { name: 'Schmerz ≥ 6' }).click();
-    await expect(rows(a)).toHaveCount(2);
-    await a.getByRole('button', { name: 'Filter speichern' }).click();
-    await a.getByLabel('Name des Filters').fill('Schwere Tage');
-    await a.getByRole('dialog').getByRole('button', { name: 'Speichern' }).click();
-    await expect(a.getByTestId('saved-filters')).toContainText('Schwere Tage');
-    await expect(a.getByTestId('sync-status')).toHaveAttribute('data-state', 'synced', { timeout: 20_000 });
+    // Detail öffnen und zurück: Filter weiter aktiv
+    await rows(page).first().click();
+    await expect(page).toHaveURL(/\/entry\/[^/]+$/);
+    await page.goBack();
+    await expect(page.getByRole('heading', { name: 'Verlauf' })).toBeVisible();
+    await expect(page.getByTestId('filter-count')).toHaveText(/^1/);
+    await expect(rows(page)).toHaveCount(1);
+    // auch über die untere Navigation
+    await go(page, '/');
+    await go(page, '/history');
+    await expect(rows(page)).toHaveCount(1);
 
-    // Reload (sperrt) → entsperren → gespeicherter Filter da und wirksam
-    await a.reload();
-    await a.getByTestId('lock-banner').getByRole('link', { name: 'Entsperren' }).click();
-    await a.getByRole('button', { name: 'Mit Passkey entsperren' }).click();
-    // Entsperren führt zurück in die gesperrte Ansicht (Verlauf)
-    await expect(a.getByRole('heading', { name: 'Verlauf' })).toBeVisible({ timeout: 30_000 });
-    await expect(rows(a)).toHaveCount(3);
-    await openFilter(a);
-    await a.getByTestId('saved-filters').getByRole('button', { name: 'Schwere Tage', exact: true }).click();
-    await expect(a.getByRole('button', { name: 'Schmerz ≥ 6' })).toHaveAttribute('aria-pressed', 'true');
-    await expect(rows(a)).toHaveCount(2);
-
-    // Zweitgerät
-    const b = await addDeviceWithBackupCode(browser, user, code);
-    await expect(b.getByTestId('sync-status')).toHaveAttribute('data-state', 'synced', { timeout: 20_000 });
-    await go(b, '/history');
-    await openFilter(b);
-    await b.getByTestId('saved-filters').getByRole('button', { name: 'Schwere Tage', exact: true }).click();
-    await expect(rows(b)).toHaveCount(2);
-    await b.context().close();
+    // Neustart (Reload) setzt die Filter zurück
+    await page.reload();
+    await page.getByTestId('lock-banner').getByRole('link', { name: 'Entsperren' }).click();
+    await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
+    await page.getByRole('button', { name: 'Mit Passwort entsperren' }).click();
+    await expect(page.getByRole('heading', { name: 'Verlauf' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('filter-count')).toHaveCount(0);
+    await expect(rows(page)).toHaveCount(2);
   });
 });
 
@@ -211,7 +205,7 @@ test.describe('RDM-028 P4: Verlauf-Kopf', () => {
     await onboardWithPassword(page);
     await addEntry(page, '8', 'Kopf');
     await go(page, '/history');
-    const range = page.getByRole('group', { name: 'Zeitraum' });
+    const range = page.getByLabel('Zeitraum', { exact: true });
     await expect(page.getByLabel('Suchen')).toBeVisible();
     await expect(range).toBeHidden();
     await expect(page.getByTestId('filter-count')).toHaveCount(0);

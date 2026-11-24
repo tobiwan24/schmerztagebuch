@@ -4,6 +4,7 @@ import { Check, Info } from 'lucide-react';
 import type { BlockDef, BodymapValue, CheckboxValue, DateValue, ExerciseValue, MedicationValue, TextareaValue } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DatePicker, DateTimePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -171,6 +172,16 @@ function FieldInput({
   }
 }
 
+/** ISO-Zeitpunkt → lokales `YYYY-MM-DDTHH:mm` für den Datepicker. */
+function isoToLocal(iso: string | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+const localToIso = (v: string) => (v ? new Date(v).toISOString() : '');
+
 function DateInput({ id, mode, value, onChange, aria }: { id: string; mode: 'date' | 'datetime' | 'duration' | 'range'; value: DateValue | undefined; onChange: (v: unknown) => void; aria: Aria }) {
   if (mode === 'duration') {
     const minutes = value && 'minutes' in value ? value.minutes : '';
@@ -179,23 +190,27 @@ function DateInput({ id, mode, value, onChange, aria }: { id: string; mode: 'dat
         onChange={(e) => onChange(e.target.value === '' ? undefined : { minutes: Number(e.target.value) })} {...aria} />
     );
   }
-  if (mode === 'range') {
-    const r = value && 'start' in value ? value : undefined;
-    const set = (k: 'start' | 'end', s: string) => {
-      const next = { start: r?.start ?? '', end: r?.end ?? '', [k]: s ? new Date(s).toISOString() : '' };
-      onChange(next.start && next.end ? next : undefined);
-    };
-    return (
-      <div className="grid grid-cols-2 gap-2">
-        <Input id={id} type="datetime-local" aria-label={de.entry.periodStart} onChange={(e) => set('start', e.target.value)} {...aria} />
-        <Input type="datetime-local" aria-label={de.entry.periodEnd} onChange={(e) => set('end', e.target.value)} />
-      </div>
-    );
-  }
+  if (mode === 'range') return <DateRangeInput id={id} value={value && 'start' in value ? value : undefined} onChange={onChange} aria={aria} />;
   const at = value && 'at' in value ? (value.at ?? '') : '';
   return mode === 'date' ? (
-    <Input id={id} type="date" value={at} onChange={(e) => onChange({ at: e.target.value || undefined })} {...aria} />
+    <DatePicker id={id} value={at} onChange={(v) => onChange({ at: v || undefined })} {...aria} />
   ) : (
-    <Input id={id} type="datetime-local" onChange={(e) => onChange({ at: e.target.value ? new Date(e.target.value).toISOString() : undefined })} {...aria} />
+    <DateTimePicker id={id} label={de.entry.pointLabel} value={isoToLocal(at)} onChange={(v) => onChange({ at: v ? localToIso(v) : undefined })} {...aria} />
+  );
+}
+
+/** Zeitraum im Datumsblock: erst mit Beginn und Ende ein Wert; eine halbe Angabe bleibt nur im Formular. */
+function DateRangeInput({ id, value, onChange, aria }: { id: string; value: { start: string; end: string } | undefined; onChange: (v: unknown) => void; aria: Aria }) {
+  const [draft, setDraft] = useState({ start: isoToLocal(value?.start), end: isoToLocal(value?.end) });
+  const set = (k: 'start' | 'end', v: string) => {
+    const next = { ...draft, [k]: v };
+    setDraft(next);
+    onChange(next.start && next.end ? { start: localToIso(next.start), end: localToIso(next.end) } : undefined);
+  };
+  return (
+    <div className="flex flex-col gap-2">
+      <DateTimePicker id={id} label={de.entry.periodStart} aria-label={de.entry.periodStart} value={draft.start} defaultTime="00:00" onChange={(v) => set('start', v)} {...aria} />
+      <DateTimePicker label={de.entry.periodEnd} aria-label={de.entry.periodEnd} value={draft.end} defaultTime="23:59" onChange={(v) => set('end', v)} />
+    </div>
   );
 }

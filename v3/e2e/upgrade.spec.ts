@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { PASSWORD, addDeviceWithBackupCode, addVirtualAuthenticator, go, lockViaSettings, onboardWithPassword, uniqueUser } from './helpers';
+import { PASSWORD, addDeviceWithBackupCode, addVirtualAuthenticator, go, lockViaSettings, onboardWithPassword, uniqueUser, pickDateTime } from './helpers';
 
 test.describe('Wechsel „nur auf diesem Gerät" → „Mit Konto"', () => {
   // Mehrere Geräte bzw. mehrfaches PBKDF2 (600k): unter Volllast mehr Zeit als die Standard-30 s.
@@ -14,7 +14,7 @@ test.describe('Wechsel „nur auf diesem Gerät" → „Mit Konto"', () => {
     // lokale Daten: zwei Einträge, eine zweite Vorlage
     for (const [time, note] of [['2026-02-10T08:00', 'STB-E2E-MARKER lokal eins'], ['2026-02-11T09:30', 'STB-E2E-MARKER lokal zwei']] as const) {
       await go(page, '/entry/new');
-      await page.getByLabel('Zeitpunkt', { exact: true }).fill(time);
+      await pickDateTime(page, 'Zeitpunkt', time);
       await page.getByLabel('Notizen').fill(note);
       await page.getByRole('button', { name: 'Speichern' }).click();
       await expect(page.getByTestId('entry-time')).toBeVisible();

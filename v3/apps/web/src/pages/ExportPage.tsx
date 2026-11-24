@@ -5,13 +5,15 @@ import { Link, useLocation } from 'react-router';
 import { Download, FileUp, Link2, ShieldCheck } from 'lucide-react';
 import type { BackupSecret } from '@stb/crypto';
 import { parseExport, type CsvProfile, type ExportV1, type PdfImageSize, type PdfLayout } from '@stb/export';
-import type { FilterSpec, SavedFilter } from '@stb/analysis';
+import type { FilterSpec } from '@stb/analysis';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DateRangePicker, toYmd, type RangePreset } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { FieldLegend, FieldSet } from '@/components/ui/field';
 import { LlmSummaryPanel } from '@/components/LlmSummaryPanel';
 import { PageHeader } from '@/components/PageHeader';
 import { ReportLinkDialog } from '@/components/ReportLinkDialog';
@@ -72,18 +74,22 @@ function ExportCard() {
   const msList = multiselects.status === 'ok' ? multiselects.data : [];
   const [pdfPassword, setPdfPassword] = useState('');
   const [period, setPeriod] = useState<Period>('all');
-  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [rangeFrom, setRangeFrom] = useState('');
   const [rangeTo, setRangeTo] = useState('');
-  const saved = useQuery(async () => (await Promise.all((await diary.listDiaries()).map((d) => diary.listSavedFilters(d.id)))).flat(), [diary]);
   const diaryIds = useQuery(async () => (await diary.listDiaries()).map((d) => d.id), [diary]);
   const [summaryText, setSummaryText] = useState('');
   const [summaryInPdf, setSummaryInPdf] = useState(false);
   const [busy, setBusy] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
 
-  const currentSpec = () => effectiveFilter(filter?.filter, period, { month, from: rangeFrom, to: rangeTo }, diaryIds.status === 'ok' ? diaryIds.data : []);
+  const currentSpec = () => effectiveFilter(filter?.filter, period, { from: rangeFrom, to: rangeTo }, diaryIds.status === 'ok' ? diaryIds.data : []);
   const multiselectBlockIds = () => msList.filter((m) => !skipped.has(m.id)).map((m) => m.id);
+  const rangeInvalid = period === 'range' && (!rangeFrom || !rangeTo || rangeTo < rangeFrom);
+  // Monat = Zeitraum im Range-Calendar mit Schnellauswahl (A-147, statt eigenem Monats-Picker).
+  const monthPresets: RangePreset[] = ([['thisMonth', 0], ['lastMonth', -1]] as const).map(([key, offset]) => {
+    const [from, to] = monthRange(offset);
+    return { key, label: t.presets[key], active: rangeFrom === from && rangeTo === to, onSelect: () => (setRangeFrom(from), setRangeTo(to)) };
+  });
 
   async function run() {
     setBusy(true);
@@ -123,8 +129,8 @@ function ExportCard() {
               ))}
             </ToggleGroup>
             {layout === 'dashboard' && msList.length ? (
-              <fieldset className="flex flex-col gap-2">
-                <legend className="mb-1 text-sm font-medium">{t.multiselects}</legend>
+              <FieldSet className="flex flex-col gap-2">
+                <FieldLegend variant="label" className="mb-1">{t.multiselects}</FieldLegend>
                 {msList.map((m) => (
                   <div key={m.id} className="flex items-center gap-2">
                     <Checkbox
@@ -134,7 +140,7 @@ function ExportCard() {
                     <Label htmlFor={`ms-${m.id}`}>{t.multiselectLabel(m.label, m.template)}</Label>
                   </div>
                 ))}
-              </fieldset>
+              </FieldSet>
             ) : null}
             <ToggleGroup aria-label={t.imageSize}>
               {(['a4', 'a5', 'a6', 'none'] as PdfImageSize[]).map((s) => (
@@ -167,49 +173,41 @@ function ExportCard() {
               {historyChoice.name}
             </Button>
           ) : null}
-          {(saved.status === 'ok' ? saved.data : []).map((f) => (
-            <Button key={f.id} size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant={filter?.id === f.id ? 'default' : 'outline'} aria-pressed={filter?.id === f.id} onClick={() => setFilter(f)}>
-              {f.name}
-            </Button>
-          ))}
         </div>
         <ToggleGroup aria-label={t.period}>
-          {(['all', 'month', 'range'] as Period[]).map((p) => (
+          {(['all', 'range'] as Period[]).map((p) => (
             <ToggleGroupItem key={p} pressed={period === p} onClick={() => setPeriod(p)}>
               {t.periods[p]}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
-        {period === 'month' ? (
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="export-month">{t.periodMonth}</Label>
-            <Input id="export-month" type="month" value={month} onChange={(ev) => setMonth(ev.target.value)} />
-          </div>
-        ) : null}
         {period === 'range' ? (
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="export-from">{t.periodFrom}</Label>
-              <Input id="export-from" type="date" value={rangeFrom} onChange={(ev) => setRangeFrom(ev.target.value)} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="export-to">{t.periodTo}</Label>
-              <Input id="export-to" type="date" value={rangeTo} onChange={(ev) => setRangeTo(ev.target.value)} />
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="export-range">{t.periods.range}</Label>
+            <DateRangePicker
+              id="export-range"
+              from={rangeFrom}
+              to={rangeTo}
+              presets={monthPresets}
+              onChange={(from, to) => {
+                setRangeFrom(from);
+                setRangeTo(to);
+              }}
+            />
           </div>
         ) : null}
         <LlmSummaryPanel
           buildInput={(includeNotes) => { const spec = currentSpec(); return summaryInput({ includeNotes, ...(spec ? { filter: spec } : {}) }); }}
-          disabled={busy || (period === 'range' && (!rangeFrom || !rangeTo || rangeTo < rangeFrom)) || (period === 'month' && !month)}
+          disabled={busy || rangeInvalid}
           text={summaryText} onText={setSummaryText} includeInPdf={summaryInPdf} onIncludeInPdf={setSummaryInPdf}
         />
-        <Button disabled={busy || (period === 'range' && (!rangeFrom || !rangeTo || rangeTo < rangeFrom)) || (period === 'month' && !month)} onClick={() => void run()}>
+        <Button disabled={busy || rangeInvalid} onClick={() => void run()}>
           <Download aria-hidden />
           {t.download}
         </Button>
         {accountMode === 'cloud-primary' ? (
           <>
-            <Button variant="outline" disabled={busy || (period === 'range' && (!rangeFrom || !rangeTo || rangeTo < rangeFrom)) || (period === 'month' && !month)} onClick={() => setLinkOpen(true)}>
+            <Button variant="outline" disabled={busy || rangeInvalid} onClick={() => setLinkOpen(true)}>
               <Link2 aria-hidden />
               {t.reportLink.open}
             </Button>
@@ -228,20 +226,20 @@ function ExportCard() {
   );
 }
 
-type Period = 'all' | 'month' | 'range';
-/** Umfang des Exports: gespeicherter Filter oder die Filter des Verlaufs. */
-type Scope = Pick<SavedFilter, 'id' | 'name' | 'filter'>;
+type Period = 'all' | 'range';
+/** Umfang des Exports: die Filter des Verlaufs (gespeicherte Filter entfallen, A-147). */
+type Scope = { id: string; name: string; filter: FilterSpec };
 
-/** Zeitraum (Monat oder von–bis, Spec 06 Custom-Zeitraum) mit einem gespeicherten Filter kombinieren. `undefined` = alles. */
-function effectiveFilter(saved: FilterSpec | undefined, period: Period, p: { month: string; from: string; to: string }, diaryIds: string[]): FilterSpec | undefined {
+/** Erster und letzter Tag des Monats relativ zu heute (`0` = dieser, `-1` = voriger), je `YYYY-MM-DD`. */
+function monthRange(offset: number): [string, string] {
+  const now = new Date();
+  return [toYmd(new Date(now.getFullYear(), now.getMonth() + offset, 1)), toYmd(new Date(now.getFullYear(), now.getMonth() + offset + 1, 0))];
+}
+
+/** Zeitraum (Spec 06 Custom-Zeitraum) mit den Filtern aus dem Verlauf kombinieren. `undefined` = alles. */
+function effectiveFilter(saved: FilterSpec | undefined, period: Period, p: { from: string; to: string }, diaryIds: string[]): FilterSpec | undefined {
   if (period === 'all') return saved;
-  let range: { from: string; to: string };
-  if (period === 'month') {
-    const [y, m] = p.month.split('-').map(Number) as [number, number];
-    const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
-    range = { from: `${p.month}-01`, to: `${p.month}-${String(last).padStart(2, '0')}` };
-  } else range = { from: p.from, to: p.to };
-  return { ...(saved ?? { diaryIds }), range };
+  return { ...(saved ?? { diaryIds }), range: { from: p.from, to: p.to } };
 }
 
 function SecretFields({ kind, onKind, value, onValue, repeat, onRepeat, idPrefix }: {

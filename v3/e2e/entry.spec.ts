@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { go, onboardWithPassword } from './helpers';
+import { go, onboardWithPassword, pickDate, pickDateTime } from './helpers';
 
 /** Nur im Test: ersten Block der Vorlagenversion zum Pflichtfeld machen (Vorlagen-Editor folgt in M8). */
 async function makeFirstBlockRequired(page: Page): Promise<void> {
@@ -113,15 +113,16 @@ test.describe('Eintragsformular', () => {
 
     // Zeitangabe geändert → ebenfalls Warnung (auch über die untere Navigation)
     await page.getByLabel('Notizen').fill('');
-    const initialTime = await page.getByLabel('Zeitpunkt', { exact: true }).inputValue();
-    await page.getByLabel('Zeitpunkt', { exact: true }).fill('2026-01-05T10:00');
+    const timeField = page.getByLabel('Zeitpunkt: Uhrzeit', { exact: true });
+    const initialTime = await timeField.inputValue();
+    await timeField.fill(initialTime === '10:00' ? '11:00' : '10:00');
     await nav.getByRole('link', { name: 'Verlauf' }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.getByRole('button', { name: 'Weiter bearbeiten' }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
 
     // Änderung zurückgenommen (Ausgangswert) → keine Warnung
-    await page.getByLabel('Zeitpunkt', { exact: true }).fill(initialTime);
+    await timeField.fill(initialTime);
     await nav.getByRole('link', { name: 'Verlauf' }).click();
     await expect(page.getByRole('heading', { name: 'Verlauf' })).toBeVisible();
     await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -138,7 +139,7 @@ test.describe('Eintragsformular', () => {
   test('BLK-19: Zeitpunkt nachtragen und Zeitraum mit/ohne Uhrzeiten werden gespeichert und in Verlauf/Detail angezeigt', async ({ page }) => {
     // vergangener Zeitpunkt (Nachtragen)
     await go(page, '/entry/new');
-    await page.getByLabel('Zeitpunkt', { exact: true }).fill('2026-02-20T21:30');
+    await pickDateTime(page, 'Zeitpunkt', '2026-02-20T21:30');
     await page.getByLabel(/Schmerzstärke/).fill('3');
     await save(page);
     await expect(page.getByTestId('entry-time')).toHaveText('20.02.2026, 21:30');
@@ -146,8 +147,8 @@ test.describe('Eintragsformular', () => {
     // Zeitraum ganztägig
     await go(page, '/entry/new');
     await page.getByRole('button', { name: 'Zeitraum' }).click();
-    await page.getByLabel('Beginn').fill('2026-03-02');
-    await page.getByLabel('Ende').fill('2026-03-04');
+    await pickDate(page, 'Beginn', '2026-03-02');
+    await pickDate(page, 'Ende', '2026-03-04');
     await save(page);
     await expect(page.getByTestId('entry-time')).toContainText('02.03.2026 – 04.03.2026');
     await expect(page.getByTestId('entry-time')).toContainText('Zeitraum');
@@ -156,11 +157,11 @@ test.describe('Eintragsformular', () => {
     await go(page, '/entry/new');
     await page.getByRole('button', { name: 'Zeitraum' }).click();
     await page.getByLabel('Mit Uhrzeit').check();
-    await page.getByLabel('Beginn').fill('2026-03-10T18:00');
-    await page.getByLabel('Ende').fill('2026-03-10T08:00');
+    await pickDateTime(page, 'Beginn', '2026-03-10T18:00');
+    await pickDateTime(page, 'Ende', '2026-03-10T08:00');
     await save(page);
     await expect(page.getByText('Das Ende liegt vor dem Beginn.')).toBeVisible();
-    await page.getByLabel('Ende').fill('2026-03-10T22:15');
+    await page.getByLabel('Ende: Uhrzeit', { exact: true }).fill('22:15');
     await save(page);
     await expect(page.getByTestId('entry-time')).toContainText('10.03.2026, 18:00 – 22:15');
 
@@ -176,15 +177,16 @@ test.describe('Eintragsformular', () => {
     // Bearbeiten behält die Zeitangabe
     await rows.nth(2).click();
     await page.getByRole('link', { name: 'Bearbeiten' }).click();
-    await expect(page.getByLabel('Zeitpunkt', { exact: true })).toHaveValue('2026-02-20T21:30');
-    await page.getByLabel('Zeitpunkt', { exact: true }).fill('2026-02-19T07:05');
+    await expect(page.getByLabel('Zeitpunkt', { exact: true })).toHaveText('20.02.2026');
+    await expect(page.getByLabel('Zeitpunkt: Uhrzeit', { exact: true })).toHaveValue('21:30');
+    await pickDateTime(page, 'Zeitpunkt', '2026-02-19T07:05');
     await save(page);
     await expect(page.getByTestId('entry-time')).toHaveText('19.02.2026, 07:05');
   });
   test('RDM-028 P5: Detailansicht zeigt Datum und Uhrzeit als Titel, darunter den Vorlagennamen', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
     await go(page, '/entry/new');
-    await page.getByLabel('Zeitpunkt', { exact: true }).fill('2026-02-20T21:30');
+    await pickDateTime(page, 'Zeitpunkt', '2026-02-20T21:30');
     await page.getByLabel(/Schmerzstärke/).fill('3');
     await save(page);
     const h1 = page.getByRole('heading', { level: 1 });
@@ -199,8 +201,8 @@ test.describe('Eintragsformular', () => {
     await go(page, '/entry/new');
     await page.getByRole('button', { name: 'Zeitraum' }).click();
     await page.getByLabel('Mit Uhrzeit').check();
-    await page.getByLabel('Beginn').fill('2026-03-02T18:00');
-    await page.getByLabel('Ende').fill('2026-03-04T08:00');
+    await pickDateTime(page, 'Beginn', '2026-03-02T18:00');
+    await pickDateTime(page, 'Ende', '2026-03-04T08:00');
     await save(page);
     await expect(page.getByTestId('entry-time')).toContainText('Zeitraum');
     await expect(h1).toHaveAccessibleName(/\d{2}:\d{2} Zeitraum$/);
