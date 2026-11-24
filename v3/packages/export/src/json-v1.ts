@@ -4,13 +4,15 @@
 // eigene Body-Map-Bilder sowie Anhänge (Metadaten + Inhalt als Data-URL, A-032). Das Glossar erklärt jedes Feld auf Deutsch (auch für KI-Werkzeuge).
 import { z } from 'zod';
 import {
-  attachmentMetaSchema, bodymapImageSchema, dashboardSchema, diarySchema, entrySchema, notificationRuleSchema, templateSchema, templateVersionSchema,
-  type AttachmentMeta, type BodymapImage, type Dashboard, type Diary, type Entry, type NotificationRule, type Template, type TemplateVersion,
+  attachmentMetaSchema, bodymapImageSchema, dashboardSchema, diarySchema, entrySchema, exerciseMediaSchema, notificationRuleSchema, templateSchema, templateVersionSchema,
+  type AttachmentMeta, type BodymapImage, type Dashboard, type Diary, type Entry, type ExerciseMedia, type NotificationRule, type Template, type TemplateVersion,
 } from '@stb/core';
 import { applyFilter, buildWorkingSet, filterSpecSchema, savedFilterSchema, type FilterSpec, type SavedFilter } from '@stb/analysis';
 
 export const EXPORT_FORMAT = 'stb-export';
 export const EXPORT_FORMAT_VERSION = 1;
+
+const dataUrlSchema = z.string().regex(/^data:[a-z]+\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/]*=*$/i);
 
 const exportTemplate = templateSchema.extend({ versions: z.array(templateVersionSchema.omit({ templateId: true })).min(1) });
 
@@ -25,11 +27,15 @@ export const exportDiarySchema = z.strictObject({
   /** Eigene Dashboards (M21, `dashboard`); fehlt in älteren Dateien → leer. */
   dashboards: z.array(dashboardSchema).default([]),
   /** Fehlt in Dateien vor A-032 → leer. */
-  attachments: z.array(attachmentMetaSchema.extend({ dataUrl: z.string().regex(/^data:[a-z]+\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/]*=*$/i) })).default([]),
+  attachments: z.array(attachmentMetaSchema.extend({ dataUrl: dataUrlSchema })).default([]),
+  /** Übungsmedien (RDM-033, Video und Schrittbilder einer Vorlage); fehlt in älteren Dateien → leer. */
+  exerciseMedia: z.array(exerciseMediaSchema.extend({ dataUrl: dataUrlSchema })).default([]),
 });
 
 /** Anhang im Export: Metadaten + Inhalt. */
 export type ExportAttachment = AttachmentMeta & { dataUrl: string };
+/** Übungsmedium im Export: Metadaten + Inhalt. */
+export type ExportExerciseMedia = ExerciseMedia & { dataUrl: string };
 
 export const exportV1Schema = z.strictObject({
   format: z.literal(EXPORT_FORMAT),
@@ -88,6 +94,8 @@ export interface ExportSource {
   dashboards?: Dashboard[];
   /** Anhänge mit Inhalt (A-032); fehlt bei Quellen ohne Anhänge. */
   attachments?: ExportAttachment[];
+  /** Übungsmedien mit Inhalt (RDM-033); fehlt bei Quellen ohne Medien. */
+  exerciseMedia?: ExportExerciseMedia[];
 }
 
 /** Baut den JSON-v1-Export. Mit `filter` enthält er genau die Einträge des Filters und den Filter selbst (EXP-07). */
@@ -125,6 +133,7 @@ export function buildExport(src: ExportSource, opts: { appVersion: string; now: 
       notificationRules: (src.notificationRules ?? []).filter((r) => r.diaryId === diary.id),
       dashboards: (src.dashboards ?? []).filter((x) => x.diaryId === diary.id).sort(byOrder),
       attachments: (src.attachments ?? []).filter((a) => a.diaryId === diary.id && entries.some((e) => e.id === a.entryId)),
+      exerciseMedia: (src.exerciseMedia ?? []).filter((m) => m.diaryId === diary.id && src.templates.some((t) => t.id === m.templateId)),
     })),
     glossary: GLOSSARY,
   };
@@ -176,12 +185,16 @@ function checkReferences(doc: ExportV1): string[] {
     for (const a of d.attachments) {
       if (a.diaryId !== d.diary.id || !entryIds.has(a.entryId)) out.push(`Anhang ${a.id}: Eintrag fehlt`);
     }
+    const templateIds = new Set(d.templates.map((t) => t.id));
+    for (const m of d.exerciseMedia) {
+      if (m.diaryId !== d.diary.id || !templateIds.has(m.templateId)) out.push(`Übungsmedium ${m.id}: Vorlage fehlt`);
+    }
   }
   return out;
 }
 
 /** Zurück zu Datensätzen (Import): Vorlagenversionen bekommen ihre `templateId` wieder. */
-export function exportRecords(d: ExportDiary): { diary: Diary; templates: Template[]; versions: TemplateVersion[]; entries: Entry[]; savedFilters: SavedFilter[]; bodymapImages: BodymapImage[]; notificationRules: NotificationRule[]; dashboards: Dashboard[]; attachments: ExportAttachment[] } {
+export function exportRecords(d: ExportDiary): { diary: Diary; templates: Template[]; versions: TemplateVersion[]; entries: Entry[]; savedFilters: SavedFilter[]; bodymapImages: BodymapImage[]; notificationRules: NotificationRule[]; dashboards: Dashboard[]; attachments: ExportAttachment[]; exerciseMedia: ExportExerciseMedia[] } {
   return {
     diary: d.diary,
     templates: d.templates.map((t) => templateSchema.parse(Object.fromEntries(Object.entries(t).filter(([k]) => k !== 'versions')))),
@@ -192,5 +205,6 @@ export function exportRecords(d: ExportDiary): { diary: Diary; templates: Templa
     notificationRules: d.notificationRules,
     dashboards: d.dashboards,
     attachments: d.attachments,
+    exerciseMedia: d.exerciseMedia,
   };
 }

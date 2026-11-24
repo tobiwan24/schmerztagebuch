@@ -1,5 +1,5 @@
 // „Als Kopie importieren" (Spec 07, EXP-04): neue IDs für Tagebücher, Vorlagen, Blöcke, Optionen, Einträge, gespeicherte
-// Filter, eigene Body-Map-Bilder und Anhänge; alle Verweise werden konsistent umgeschrieben (Einträge → Vorlage/Blöcke/Optionen,
+// Filter, eigene Body-Map-Bilder, Anhänge und Übungsmedien; alle Verweise werden konsistent umgeschrieben (Einträge → Vorlage/Blöcke/Optionen,
 // Body-Map → eigenes Bild, Tagebuch-Einstellungen → Schnelleintrag, gespeicherte Filter → Tagebuch/Vorlage/Block/Option).
 import type { BlockDef } from '@stb/core';
 import type { Condition, FilterSpec } from '@stb/analysis';
@@ -36,12 +36,25 @@ export function copyWithNewIds(doc: ExportV1, newId: () => string): ExportV1 {
       for (const w of x.widgets) fresh(w.id);
     }
     for (const a of d.attachments) fresh(a.id);
+    for (const x of d.exerciseMedia) fresh(x.id);
   }
 
   const block = (b: BlockDef): BlockDef => {
     if (b.type === 'multiselect') return { ...b, id: m(b.id), config: { ...b.config, options: b.config.options.map((o) => ({ ...o, id: m(o.id) })) } };
     if (b.type === 'medication') return { ...b, id: m(b.id), config: { ...b.config, presets: b.config.presets.map((p) => ({ ...p, id: m(p.id) })) } };
     if (b.type === 'bodymap') return { ...b, id: m(b.id), config: { ...b.config, defaultPresetId: m(b.config.defaultPresetId) } };
+    if (b.type === 'exercise') {
+      // Übungsmedien (RDM-033): Video und Schrittbilder verweisen auf `exerciseMedia`
+      const { videoMediaId, steps, ...c } = b.config;
+      return {
+        ...b, id: m(b.id),
+        config: {
+          ...c,
+          ...(videoMediaId ? { videoMediaId: m(videoMediaId) } : {}),
+          ...(steps ? { steps: steps.map((s) => (typeof s === 'string' || !s.imageId ? s : { ...s, imageId: m(s.imageId) })) } : {}),
+        },
+      };
+    }
     return { ...b, id: m(b.id) };
   };
   const value = (raw: unknown): unknown => {
@@ -99,6 +112,7 @@ export function copyWithNewIds(doc: ExportV1, newId: () => string): ExportV1 {
     })),
     bodymapImages: d.bodymapImages.map((i) => ({ ...i, id: m(i.id), diaryId: m(i.diaryId) })),
     attachments: d.attachments.map((a) => ({ ...a, id: m(a.id), diaryId: m(a.diaryId), entryId: m(a.entryId) })),
+    exerciseMedia: d.exerciseMedia.map((x) => ({ ...x, id: m(x.id), diaryId: m(x.diaryId), templateId: m(x.templateId) })),
     };
   };
 

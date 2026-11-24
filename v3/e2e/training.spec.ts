@@ -12,7 +12,10 @@ async function createTraining(page: Page): Promise<void> {
   await first.getByLabel('Sätze (optional)').fill('2');
   await first.getByLabel('Wiederholungen (optional)').fill('8');
   await first.getByLabel('Dauer in Sekunden (optional)').fill('30');
-  await first.getByLabel(/^Schritte/).fill('Auf den Rücken legen\nBecken heben');
+  for (const [i, text] of ['Auf den Rücken legen', 'Becken heben'].entries()) {
+    await first.getByRole('button', { name: 'Schritt hinzufügen' }).click();
+    await first.getByLabel(`Schritt ${i + 1}`, { exact: true }).fill(text);
+  }
   await first.getByRole('button', { name: 'Stufe hinzufügen' }).click();
   await first.getByRole('button', { name: 'Stufe hinzufügen' }).click();
   await first.getByLabel('Bezeichnung von Stufe 1').fill('Leicht');

@@ -4,6 +4,15 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.14.0-alpha.1',
+    date: '2026-11-24',
+    points: [
+      'Übungen mit eigenem Video: Im Vorlagen-Editor lädst du beim Übungsfeld ein Video hoch (MP4, WebM oder MOV bis 20 MB); im Training spielst du es direkt in der App ab.',
+      'Schritt-für-Schritt-Anleitung mit Bildern: Jeder Schritt einer Übung kann ein Foto bekommen. Im Training blätterst du dann mit „Nächster Schritt“ durch die Anleitung.',
+      'Videos und Bilder werden wie Anhänge verschlüsselt synchronisiert und sind im Backup enthalten. Der Video-Link bleibt zusätzlich möglich.',
+    ],
+  },
+  {
     version: '3.13.0-alpha.1',
     date: '2026-11-24',
     points: [

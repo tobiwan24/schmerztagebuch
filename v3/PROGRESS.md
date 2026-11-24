@@ -28,6 +28,7 @@ v3.x (nicht blockierend):
 - **SHR-16** Schlüsselrotation mit zwei echten Geräten/Konten
 - **DM-19** Leistung und Akku mit lokaler Verschlüsselung auf dem iPhone mit echtem Datenbestand
 - **SHR-20** QR-Einladung mit der installierten App auf einem echten zweiten iPhone scannen und annehmen (RDM-032)
+- **BLK-57** Echtes iPhone-Video (.mov, ≤ 20 MB) und Schrittfotos hochladen, im Training auf iPhone und zweitem Gerät abspielen (RDM-033)
 
 Weitere Punkte: Ollama installieren und Modell laden, Anthropic-Konto/Schlüssel und `LLM_PROVIDER` im Deployment setzen (nur wenn KI gewünscht); `npm run verify:docker` einmal mit laufendem Docker (der Koordinator hat es nach M24.2 grün gemeldet, der Stand nach M24.5 ist durch ihn zu bestätigen).
 
@@ -238,6 +239,7 @@ Review-Restbefunde und Blocker:
 | M23 | erledigt | 4/4 IDs automatisiert (DM-19 manuell, offen) — Lokale Verschlüsselung und Suchindex, Version 3.9.0-alpha.1 |
 | M24 | erledigt | 5/5 IDs (Skript OK nach vollem E2E, 297 grün) — Integrationen, client-sdk, MCP, Version 3.10.0-alpha.1; `verify:docker` durch den Koordinator |
 | M25 | erledigt | 3/3 IDs automatisiert (SHR-20 manuell, offen) — Einladung per QR-Code (RDM-032), Version 3.13.0-alpha.1 |
+| M26 | erledigt | 3/3 IDs automatisiert (BLK-57 manuell, offen) — Übungsmedien: Video + Bild pro Schritt (RDM-033), Version 3.14.0-alpha.1 |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
 
@@ -266,6 +268,7 @@ Review-Restbefunde und Blocker:
 - [ ] SHR-16 Schlüsselrotation mit zwei echten Geräten/Konten
 - [ ] DM-19 Leistung und Akku mit lokaler Verschlüsselung auf dem iPhone
 - [ ] SHR-20 QR-Einladung auf einem echten zweiten iPhone gescannt und angenommen
+- [ ] BLK-57 Echtes iPhone-Video (.mov) und Schrittfotos hochgeladen, im Training auf iPhone und zweitem Gerät abgespielt
 
 ### Ablösungs-Checkliste (Spec 11)
 - [ ] Letzter v2-Sync auf jedem Gerät
@@ -553,3 +556,4 @@ $//'`). |
 | 2026-11-24 | RDM-030 | ANA-11 gestrichen | shadcn-Datepicker (A-146): `ui/popover.tsx` (Radix), `ui/calendar.tsx` (react-day-picker 9.14.0, Locale de, Zellen 44 px), `ui/date-picker.tsx` (`DatePicker`, `DateTimePicker`, `DateRangePicker` mit Schnellauswahl, `MonthPicker`); ersetzt alle nativen Datumsfelder (Eintragszeit, Datumsblock, Verlauf, Export Monat/Zeitraum), neue Lint-Regel + Test gegen `type=date/datetime-local/month`. Verlauf: Zeitraum-Popup mit Alle/7/30/90 Tage, Vorlagen als eigene Gruppe vor „Weitere Filter“, „Übernehmen“ schließt die Karte, „Filter speichern“ entfällt (Datenebene bleibt), Filter im Speicher (`data/history-filter-store.ts`) bis zum Neustart. Neuer Eintrag: Ereignis/Arztbesuch/Foto als Icon-Buttons in einer Zeile. E2E: Helper `pickDate`/`pickDateTime`/`pickRange`/`pickMonth`, ANA-11-Test durch `RDM-030:`-Tests ersetzt. |
 | 2026-11-24 | RDM-030 Runde 2 | UI-33 | „Nur shadcn“ mit Genehmigungspflicht (A-147): Register `spec/ui-components.json` + `scripts/check-ui-components.mjs` (in `npm run lint`), ESLint-Whitelist für HTML-Elemente und UI-Pakete nur in `components/ui/`; befristete Ausnahmen bis RDM-031 (User-Freigabe). Neu shadcn `tooltip` (Notiz-Icons), `field` (statt fieldset/legend, 9 Stellen), `separator`. Export: MonthPicker entfernt, Zeitraum per Range-Calendar mit Presets „Dieser/Voriger Monat“, gespeicherte Filter nicht mehr im Umfang. Tests: `check-ui-components.test.mjs`, `ui-rules.test.mjs`, E2E `export.spec.ts`, `entry-content.spec.ts`. Version 3.12.0-alpha.2. |
 | 2026-11-24 | RDM-032 | SHR-17 SHR-18 SHR-19 | Einladung per QR-Code (A-148, User-Freigabe): Anlass iOS öffnet Links nie in der installierten PWA. Server: `kind: 'qr'` beim Anlegen → 10 min gültig (`INVITATION_QR_TTL_MS`). Client: `InviteQrDialog` (Mitglieder-Seite, QR als SVG-Pfad aus `qrcode`, Abfrage alle 3 s, bei Annahme sofort Sync → Bestätigung, Widerruf beim Schließen/Hintergrund), `InviteQrScanner` (Mehr → Tagebücher, Kamera + `jsqr`, Ersatzweg Code/Link einfügen, `parseInviteCode`). `Permissions-Policy` `camera=(self)` (csp.ts + nginx.conf). Register: Element-Gruppe `media` (`video`), Gruppen allgemein geprüft. Tests: `invitations.test.ts` (SHR-17), `invite-code.test.ts` (SHR-18, QR-Rundlauf), E2E `invite-qr.spec.ts` (SHR-19, QR aus Screenshot gelesen). Neuer Meilenstein M25 (SHR-20 manuell). Version 3.13.0-alpha.1. |
+| 2026-11-24 | RDM-033 | BLK-54 BLK-55 BLK-56 | Übungsmedien (A-149, User-Freigabe `video`): Record-Kind `exerciseMedia` (Vorlage, Blob wie Anhänge, Sync/Rotation/Backup), `exerciseConfig.videoMediaId` + Schritte `string \| { text?, imageId? }`, `checkExerciseMediaFile` (mp4/webm/mov, Bilder ohne SVG, ≤ 20 MB). Editor: Schritte als Liste mit Bild je Schritt, Video-Upload, Vormerken bis Speichern (`ExerciseMediaDraftContext`). Training: `ExerciseVideo` (`<video controls playsInline>`, Object-URL) + `ExerciseStepViewer` (Card, Vor/Zurück). JSON v1 `exerciseMedia` + Kopie-Import, Server: `exerciseMedia` als Vorlagen-Kind. CSP `media-src 'self' blob:`. Tests: `core/exercise-media.test.ts` (BLK-54), `export/exercise-media.test.ts` (BLK-55), E2E `exercise-media.spec.ts` (BLK-56), Rotation-Integration um Übungsmedium ergänzt; UI-31/UI-30-E2E auf Schritt-Liste umgestellt. Neuer Meilenstein M26 (BLK-57 manuell). Version 3.14.0-alpha.1. |

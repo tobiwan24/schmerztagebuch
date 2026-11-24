@@ -116,7 +116,7 @@ Rollen sind optional und frei kombinierbar (mehrere Blöcke können dieselbe Rol
 | `invitations` | `id, diary_id, inviter_id, ciphertext, expires_at, accepted_at` |
 
 Record-`kind`s in v3.0: `diary`, `template`, `templateVersion`, `entry`, `savedFilter`, `intakeKey`, `conflictLog`
-(lokal, nicht synchronisiert), `attachmentMeta`, `bodymapImage` (eigenes Body-Map-Bild eines Tagebuchs, A-024). (v3.x: `dashboard`.)
+(lokal, nicht synchronisiert), `attachmentMeta`, `bodymapImage` (eigenes Body-Map-Bild eines Tagebuchs, A-024). (v3.x: `dashboard`, `exerciseMedia` — Video/Schrittbild eines Übungsblocks, Inhalt als Blob wie Anhänge, A-149.)
 
 `kind` ist der einzige fachliche Hinweis im Klartext und für die Sync-Reihenfolge nötig (Vorlagen vor Einträgen).
 

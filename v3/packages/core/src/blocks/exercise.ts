@@ -19,14 +19,25 @@ const httpsUrl = z
 
 const posInt = z.number().int().positive();
 
+/** Schritt: reiner Text (alte Daten) oder Text und/oder Bild (Übungsmedien, RDM-033). */
+export const exerciseStepSchema = z.union([
+  z.string().trim().min(1),
+  z
+    .strictObject({ text: z.string().trim().min(1).optional(), imageId: idSchema.optional() })
+    .refine((s) => s.text !== undefined || s.imageId !== undefined, { message: 'Schritt braucht Text oder Bild' }),
+]);
+export type ExerciseStep = z.infer<typeof exerciseStepSchema>;
+
 export const exerciseConfig = z
   .strictObject({
     description: z.string().optional(),
-    steps: z.array(z.string().trim().min(1)).max(EXERCISE_MAX_STEPS).optional(),
+    steps: z.array(exerciseStepSchema).max(EXERCISE_MAX_STEPS).optional(),
     targetSets: posInt.optional(),
     targetReps: posInt.optional(),
     targetDurationSec: posInt.optional(),
     videoUrl: httpsUrl.optional(),
+    /** Hochgeladenes Video (`exerciseMedia`, RDM-033), zusätzlich zum Link. */
+    videoMediaId: idSchema.optional(),
     levels: z.array(z.strictObject({ id: idSchema, label: z.string().trim().min(1) })).optional(),
   })
   .refine((c) => !c.levels || new Set(c.levels.map((l) => l.id)).size === c.levels.length, {

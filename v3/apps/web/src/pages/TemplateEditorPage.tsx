@@ -6,7 +6,7 @@ import { TOUR_RING } from '@/tour/anchor';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useBlocker, useNavigate, useParams } from 'react-router';
 import { Copy } from 'lucide-react';
-import { canonical, compareByOrder, createTemplate, duplicateTemplate, keyBetween, parseFunctionPhases, updateTemplate, validateTemplateDraft, type BlockDef, type TemplateState } from '@stb/core';
+import { canonical, compareByOrder, createTemplate, duplicateTemplate, exerciseMediaIds, keyBetween, parseFunctionPhases, updateTemplate, validateTemplateDraft, type BlockDef, type TemplateState } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -16,6 +16,7 @@ import { LlmRolesButton } from '@/components/LlmRolesButton';
 import { PageHeader } from '@/components/PageHeader';
 import { ErrorState } from '@/components/StateView';
 import { BlockEditor } from '@/components/template-editor/BlockEditor';
+import { ExerciseMediaDraftContext, type ExerciseMediaDraft } from '@/components/exercise-media-draft';
 import { resolveTemplateColor, resolveTemplateIcon } from '@/lib/template-style';
 import { DEFAULT_TEMPLATE_COLOR, DEFAULT_TEMPLATE_ICON } from '@/components/TemplateIcon';
 import { TemplateStylePicker } from '@/components/TemplateStylePicker';
@@ -76,6 +77,8 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
   const [phasesText, setPhasesText] = useState((state?.template.functionPhases ?? []).join(', '));
   const phases = parseFunctionPhases(phasesText);
   const [draftId] = useState(() => data.newId());
+  // Übungsmedien (RDM-033): bis zum Speichern nur vorgemerkt
+  const [mediaDraft] = useState<ExerciseMediaDraft>(() => ({ diaryId: loaded.diaryId, templateId: state?.template.id ?? draftId, pending: new Map() }));
   const [showErrors, setShowErrors] = useState(false);
   const [busy, setBusy] = useState(false);
   // Ungespeicherte Änderungen: Vergleich mit dem Ausgangszustand (Hinzufügen und wieder Entfernen ist keine Änderung, BLK-25).
@@ -108,6 +111,9 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
     setBusy(true);
     try {
       const trimmed = name.trim();
+      // Vorgemerkte Übungsmedien, auf die die Vorlage noch verweist, vor der Vorlage speichern (nie Verweise ohne Inhalt)
+      const used = new Set(blocks.flatMap((b) => (b.type === 'exercise' ? exerciseMediaIds(b.config) : [])));
+      await data.attachments.saveExerciseMedia([...mediaDraft.pending.values()].filter((m) => used.has(m.meta.id)));
       if (state) {
         // Name/Icon/Farbe sind Metadaten (keine neue Version); geänderte Blöcke ergeben Version n+1 (DM-06).
         const quick = quickOf(blocks, quickIds);
@@ -120,7 +126,7 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
         else await data.diary.saveTemplateMeta(next.state.template);
       } else {
         await data.diary.saveTemplate(
-          createTemplate({ id: data.newId(), diaryId: loaded.diaryId, name: trimmed, icon, color, order: keyBetween(loaded.lastOrder, null), blocks, ...(quickOf(blocks, quickIds).length ? { quickBlockIds: quickOf(blocks, quickIds) } : {}), ...(training ? { purpose: 'training' as const } : {}), ...(training && phases.phases.length ? { functionPhases: phases.phases } : {}) }, { now: data.now }),
+          createTemplate({ id: draftId, diaryId: loaded.diaryId, name: trimmed, icon, color, order: keyBetween(loaded.lastOrder, null), blocks, ...(quickOf(blocks, quickIds).length ? { quickBlockIds: quickOf(blocks, quickIds) } : {}), ...(training ? { purpose: 'training' as const } : {}), ...(training && phases.phases.length ? { functionPhases: phases.phases } : {}) }, { now: data.now }),
         );
       }
       leaving.current = true;
@@ -191,7 +197,9 @@ function EditorForm({ loaded }: { loaded: Loaded }) {
       </div>
       <LlmRolesButton templateName={name} templateId={state?.template.id ?? draftId} blocks={blocks} valid={issues.length === 0} now={new Date(data.now()).toISOString()} onBlocks={setBlocks} />
       <div data-tour="editor-blocks" className={TOUR_RING}>
-      <BlockEditor training={training} blocks={blocks} issues={blockIssues} newId={data.newId} onChange={setBlocks} quickIds={quickIds} onQuickChange={(id, on) => setQuickIds(on ? [...quickIds, id] : quickIds.filter((x) => x !== id))} />
+      <ExerciseMediaDraftContext.Provider value={mediaDraft}>
+        <BlockEditor training={training} blocks={blocks} issues={blockIssues} newId={data.newId} onChange={setBlocks} quickIds={quickIds} onQuickChange={(id, on) => setQuickIds(on ? [...quickIds, id] : quickIds.filter((x) => x !== id))} />
+      </ExerciseMediaDraftContext.Provider>
       </div>
       <div data-tour="editor-save" className={cn('flex flex-col gap-2', TOUR_RING)}>
         <Button type="submit" disabled={busy}>
