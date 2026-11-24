@@ -27,7 +27,7 @@ test.describe('Wechsel „nur auf diesem Gerät" → „Mit Konto"', () => {
 
     // umstellen
     await addVirtualAuthenticator(page);
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/konto');
     await page.getByRole('button', { name: 'Mit Konto synchronisieren' }).click();
     const user = uniqueUser('syn11');
     await page.getByLabel('Benutzername').fill(user);

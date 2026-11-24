@@ -22,7 +22,7 @@ async function addEntry(page: Page, note: string) {
 
 /** Die Inaktivitäts-Sperre (CRY-20) würde beim Vorspulen der Uhr greifen — hier geht es um die Erinnerung, nicht um die Sperre. */
 async function idleLockOff(page: Page) {
-  await go(page, '/more/settings');
+  await go(page, '/more/settings/sicherheit');
   await page.getByRole('button', { name: 'Aus', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Aus', exact: true })).toHaveAttribute('aria-pressed', 'true');
 }

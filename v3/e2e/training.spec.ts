@@ -139,7 +139,7 @@ test.describe('Training', () => {
   test('UI-32: zusätzliche Erinnerung „Übungen“ mit eigener Uhrzeit und eigenen Tagen, unabhängig von der Eintrags-Erinnerung', async ({ page, context, browserName }) => {
     if (browserName === 'chromium') await context.grantPermissions(['notifications']);
     await onboardWithPassword(page);
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/erinnerungen');
     const diary = page.getByTestId('reminder-card');
     const training = page.getByTestId('reminder-card-training');
     await expect(training).toContainText('Erinnerung „Übungen“');
@@ -156,7 +156,7 @@ test.describe('Training', () => {
     await expect(diary.getByRole('button', { name: 'So' })).toHaveAttribute('aria-pressed', 'true');
 
     await go(page, '/more');
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/erinnerungen');
     await expect(training.getByLabel('Übungs-Erinnerung aktiv')).toBeChecked();
     await expect(training.getByLabel('Uhrzeit')).toHaveValue('17:15');
     await expect(training.getByRole('button', { name: 'So' })).toHaveAttribute('aria-pressed', 'false');

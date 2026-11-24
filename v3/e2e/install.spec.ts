@@ -23,7 +23,7 @@ test.describe('Speicher und Installation', () => {
     });
     await onboardWithPassword(page);
     expect(await page.evaluate(() => (window as unknown as { __persistCalls: number }).__persistCalls)).toBe(1);
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/daten');
     await expect(page.getByTestId('persist-card')).toContainText('Dauerhafter Speicher');
     await expect(page.getByTestId('persist-card')).toContainText('Gewährt');
   });

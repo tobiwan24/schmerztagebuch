@@ -129,6 +129,6 @@ CSV: eine Zelle „Ibuprofen 400 mg 08:00; …“; JSON v1 (Export-Schema neu er
 | EXP-24 | Liste aktiver Links mit Aufrufen und Ablauf; Widerrufen → die Ansicht meldet „widerrufen“. In local-only Hinweis statt Funktion. | e2e |
 | EXP-25 | Arzt-Link auf fremdem Gerät (Arzt-PC/Handy) öffnen und Darstellung prüfen. | manual |
 | EXP-26 | Dashboard (ANA-32) als PNG exportierbar und als Grundlage für das PDF-Layout „Dashboard“. | e2e |
-| EXP-27 | Einstellungen → Integrationen: anlegen (einmalige Anzeige), Liste, widerrufen. | e2e |
+| EXP-27 | Einstellungen → Konto & Sync → Integrationen: anlegen (einmalige Anzeige), Liste, widerrufen. | e2e |
 | EXP-28 | `apps/mcp`: Tools über einen In-Process-MCP-Client gegen die Fixture; nur lesend. | integration |
 | ARC-08 | `client-sdk` gegen den In-Process-Server: anmelden, Pull, Entschlüsseln, typisierte Einträge; Abhängigkeitsregeln (`client-sdk` → nur `core`, `crypto`, `sync-protocol`). | integration |

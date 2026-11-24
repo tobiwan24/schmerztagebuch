@@ -19,7 +19,7 @@ test.describe('Start-Banner „Mit Konto synchronisieren"', () => {
     const banner = page.getByTestId('cloud-banner');
     await expect(banner).toBeVisible();
     await banner.getByRole('link', { name: 'Zu den Einstellungen' }).click();
-    await expect(page).toHaveURL(/\/more\/settings$/);
+    await expect(page).toHaveURL(/\/more\/settings\/konto$/);
     await expect(page.getByRole('button', { name: 'Mit Konto synchronisieren' })).toBeVisible();
     await go(page, '/');
     await banner.getByRole('button', { name: 'Ausblenden' }).click();

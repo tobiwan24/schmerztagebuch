@@ -62,7 +62,7 @@ test.describe('Konfliktprotokoll', () => {
     const banner = page.getByTestId('conflict-banner');
     await expect(banner).toContainText('2 Konflikte');
 
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/daten');
     await page.getByRole('link', { name: 'Konfliktprotokoll' }).click();
     await expect(page.getByTestId('conflict-row')).toHaveCount(2);
     await expect(page.getByTestId('conflict-row').first()).toContainText('Vorlage');

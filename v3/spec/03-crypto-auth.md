@@ -101,8 +101,8 @@ Jeder Code hat einen deutschen, handlungsorientierten Text. Fehler werden nie zu
 | CRY-16 | Recovery mit Backup-Code erzwingt Registrierung eines neuen Passkeys und Anzeige eines neuen Codes. | e2e |
 | CRY-17 | Passkey-Login auf echtem iPhone (Face ID, iCloud-Schlüsselbund) inkl. App-Neustart. | manual |
 | CRY-18 | Einstellungen → Konto & Sync (Ende der Card): Passwort ändern (local-only; mit aktuellem Faktor, alter Passwort-Wrap danach ungültig), Passkey hinzufügen/entfernen (mindestens ein Faktor außer Backup-Code bleibt), Backup-Code erneuern (neuer Code mit Pflichtbestätigung, alter ungültig; im Konto Wrap + Verifier auf dem Server ersetzt). | e2e |
-| CRY-19 | Einstellungen → Geräte (Konto): Liste der eigenen Geräte mit „dieses Gerät"; „Abmelden" beendet die Sitzung und verwirft lokale Schlüssel und Wraps (Daten bleiben bis zum Löschen); anderes Gerät sperren → `revoked_at` (Wirkung wie CRY-14). | e2e |
-| CRY-20 | Einstellungen → Sperre: Dauer „entsperrt bleiben" einstellbar (1–30 Tage) und widerrufbar; automatische Sperre nach Inaktivität (Aus/5/15/30/60 min, Standard 30) mit gefälschter Uhr geprüft. | integration |
+| CRY-19 | Einstellungen → Konto & Sync → Geräte (Konto): Liste der eigenen Geräte mit „dieses Gerät"; „Abmelden" beendet die Sitzung und verwirft lokale Schlüssel und Wraps (Daten bleiben bis zum Löschen); anderes Gerät sperren → `revoked_at` (Wirkung wie CRY-14). | e2e |
+| CRY-20 | Einstellungen → Sicherheit & Sperre → Sperre: Dauer „entsperrt bleiben" einstellbar (1–30 Tage) und widerrufbar; automatische Sperre nach Inaktivität (Aus/5/15/30/60 min, Standard 30) mit gefälschter Uhr geprüft. | integration |
 | CRY-21 | `planDkRotation`/Re-Encrypt-Batches: neue Epoche, Wraps nur für aktive Mitglieder; nach einem Abbruch fortsetzbar, idempotent. | unit |
 | CRY-22 | Server `POST /diaries/:id/rotate` (Owner, atomar); ein entferntes Mitglied bekommt keinen Wrap der neuen Epoche; Push mit alter Epoche nach Abschluss → 409. | integration |
 | CRY-23 | Schlüssel und DK-Wrap der Integration, Token-Hash, Format des Zugangsstrings mit Prüfsumme. | unit |

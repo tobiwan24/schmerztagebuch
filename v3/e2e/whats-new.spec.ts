@@ -12,7 +12,7 @@ async function unlockInSettings(page: Page) {
   await page.getByRole('main').getByRole('link', { name: 'Entsperren' }).click();
   await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
   await page.getByRole('button', { name: 'Mit Passwort entsperren' }).click();
-  await expect(page).toHaveURL(/\/more\/settings$/, { timeout: 30_000 });
+  await expect(page).toHaveURL(/\/more\/settings\/sicherheit$/, { timeout: 30_000 });
   await expect(page.getByTestId('lock-banner')).toHaveCount(0);
 }
 

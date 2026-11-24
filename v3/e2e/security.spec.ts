@@ -5,7 +5,7 @@ import { PASSWORD, addDeviceWithBackupCode, addVirtualAuthenticator, finishDiary
 test.describe.configure({ timeout: 120_000 });
 
 async function openSettings(page: Page) {
-  await go(page, '/more/settings');
+  await go(page, '/more/settings/konto');
   await expect(page.getByTestId('factors')).toBeVisible();
 }
 

@@ -34,7 +34,7 @@ test.describe('App-Gerüst', () => {
 
   test('UI-06: Dark Mode wirkt sofort und bleibt nach Reload erhalten', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'light' });
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/darstellung');
     const html = page.locator('html');
     await expect(html).not.toHaveClass(/dark/);
     const bgLight = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
@@ -55,7 +55,7 @@ test.describe('App-Gerüst', () => {
 
   test('UI-06: „Auto" folgt der Systemeinstellung', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'dark' });
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/darstellung');
     await page.getByRole('button', { name: 'Auto', exact: true }).click();
     await expect(page.locator('html')).toHaveClass(/dark/);
     await page.emulateMedia({ colorScheme: 'light' });

@@ -126,7 +126,7 @@ Condition =
 | ANA-27 | `triggerLift`: Vierfeldertafel, Lift und Mindestzahl (Fixture). | unit |
 | ANA-28 | Auswertung → „Zusammenhänge“: zwei Blöcke + Versatz → Koeffizient, Stärke in Worten, n, Warnhinweis; Liste der Auslöser mit Fallzahlen; unter der Mindestzahl nur der Hinweis. | e2e |
 | ANA-29 | `evaluateRules(entries, rules, lastFired, now)`: aufeinanderfolgende Tage (Tagebuch-Zeitzone), Cooldown, beschreibender Text. | unit |
-| ANA-30 | Einstellungen → Hinweise: Regel anlegen; ein Eintrag, der die Regel erfüllt, erzeugt ein Start-Banner (und `showNotification`, wenn erlaubt); innerhalb des Cooldowns nicht erneut. | e2e |
+| ANA-30 | Einstellungen → Erinnerungen & Hinweise → Hinweise: Regel anlegen; ein Eintrag, der die Regel erfüllt, erzeugt ein Start-Banner (und `showNotification`, wenn erlaubt); innerhalb des Cooldowns nicht erneut. | e2e |
 | ANA-31 | Hinweis-Notification auf dem iPhone (installierte PWA, iOS ≥ 16.4). | manual |
 | ANA-32 | Auswertung → „Meine Dashboards“: anlegen, umbenennen, Widgets aus den Standard-Ansichten hinzufügen, verschieben (Zeiger + Tastatur), entfernen; bleibt nach Reload erhalten. | e2e |
 | ANA-33 | Persistierter Index: Kaltstart-Suche bei 5.000 Einträgen < 500 ms; Index nach Eintragsänderung aktuell. | unit |

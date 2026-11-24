@@ -11,7 +11,7 @@ test.describe('Geräte', () => {
   test('RDM-028 P7: Gerätenamen lesbar — Liste zeigt „<System> · Chrome“ statt der Browserkennung', async ({ page }) => {
     await addVirtualAuthenticator(page);
     await onboardWithCloud(page, uniqueUser('dev28'));
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/konto');
     const current = page.locator('[data-testid="device-row"][data-current="true"]');
     await expect(current).toContainText(/(Windows|Mac|Linux|Android) · Chrome/);
     await expect(current).not.toContainText('Mozilla/5.0');
@@ -23,7 +23,7 @@ test.describe('Geräte', () => {
     const code = await onboardWithCloud(a, user);
     const b = await addDeviceWithBackupCode(browser, user, code);
 
-    await go(a, '/more/settings');
+    await go(a, '/more/settings/konto');
     await expect(a.getByTestId('device-row')).toHaveCount(2);
     const current = a.locator('[data-testid="device-row"][data-current="true"]');
     await expect(current).toHaveCount(1);

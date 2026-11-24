@@ -9,7 +9,7 @@ test.describe('Integrationen', () => {
     test.skip(browserName !== 'chromium', 'Konto mit virtuellem Authenticator (Chromium)');
     await addVirtualAuthenticator(page);
     await onboardWithCloud(page, uniqueUser('integ'));
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/konto');
 
     const card = page.getByTestId('integrations-card');
     await expect(card).toContainText('Schlüsselrotation');
@@ -39,7 +39,7 @@ test.describe('Integrationen', () => {
     const read = await page.request.get('/api/v1/integration/records', { headers: auth });
     expect(read.status()).toBe(200);
     expect((await page.request.post('/api/v1/sync/push', { headers: auth, data: {} })).status()).toBe(403);
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/konto');
     await expect(page.getByTestId('integration-row')).toContainText(/zuletzt genutzt am/);
 
     // Widerruf mit Rückfrage; danach kein Zugriff mehr

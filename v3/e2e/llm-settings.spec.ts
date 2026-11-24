@@ -19,7 +19,7 @@ test.describe('Einstellungen → KI-Funktionen', () => {
     const calls: string[] = [];
     page.on('request', (r) => r.url().includes('/api/v1/llm') && calls.push(r.url()));
     await onboardWithPassword(page);
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/ki');
     await expect(page.getByTestId('llm-needs-account')).toBeVisible();
     await expect(page.getByLabel('KI-Funktionen verwenden')).toHaveCount(0);
     expect(calls).toEqual([]);
@@ -30,7 +30,7 @@ test.describe('Einstellungen → KI-Funktionen', () => {
     await mockStatus(page, ANTHROPIC);
     await addVirtualAuthenticator(page);
     await onboardWithCloud(page, uniqueUser('ki'));
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/ki');
     const card = page.getByTestId('llm-card');
     await expect(card.getByTestId('llm-status')).toContainText('Anthropic Claude');
     await expect(card.getByTestId('llm-status')).toContainText('claude-opus-5-5');
@@ -56,7 +56,7 @@ test.describe('Einstellungen → KI-Funktionen', () => {
     await mockStatus(page, OLLAMA);
     await addVirtualAuthenticator(page);
     await onboardWithCloud(page, uniqueUser('ki'));
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/ki');
     await expect(page.getByTestId('llm-third-party')).toContainText('Nein');
     await expect(page.getByTestId('llm-card')).toContainText('1200 von 50000');
 
@@ -67,7 +67,7 @@ test.describe('Einstellungen → KI-Funktionen', () => {
     await mockStatus(page, null);
     await addVirtualAuthenticator(page);
     await onboardWithCloud(page, uniqueUser('ki'));
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/ki');
     await expect(page.getByTestId('llm-off')).toBeVisible();
     await expect(page.getByLabel('KI-Funktionen verwenden')).toHaveCount(0);
   });

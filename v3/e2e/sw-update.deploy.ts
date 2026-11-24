@@ -14,7 +14,7 @@ test('SYN-15, UI-22: „Nach Updates suchen" meldet „aktuell"; neue Version �
   expect(current).toMatch(/^3\.\d+\.\d+-/);
 
   // UI-22: ohne neue Version meldet die Suche „aktuell“, kein Hinweis.
-  await go(page, '/more/settings');
+  await go(page, '/more/settings/updates');
   await page.getByRole('button', { name: 'Nach Updates suchen' }).click();
   await expect(page.getByText('Die App ist auf dem neuesten Stand.')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByTestId('update-banner')).toHaveCount(0);

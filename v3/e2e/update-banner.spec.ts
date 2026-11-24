@@ -5,7 +5,7 @@ const showUpdate = (page: import('@playwright/test').Page) => page.evaluate(() =
 
 /** Standard ist „automatisch“ (kein Hinweis, UI-22); die Banner-Tests stellen auf „Nur Hinweis“. */
 async function notifyOnly(page: import('@playwright/test').Page) {
-  await go(page, '/more/settings');
+  await go(page, '/more/settings/updates');
   await page.getByTestId('update-settings').getByRole('button', { name: 'Nur Hinweis' }).click();
   await go(page, '/');
 }
@@ -54,7 +54,7 @@ test.describe('Update-Hinweis', () => {
     await page.getByLabel('Ich habe den Code sicher aufbewahrt').check();
     await page.getByRole('button', { name: 'Weiter' }).click();
     await finishDiarySetup(page);
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/updates');
     await expect(page.getByTestId('update-settings').getByRole('button', { name: 'Nur Hinweis' })).toHaveAttribute('aria-pressed', 'true');
     await go(page, '/');
     await showUpdate(page);
@@ -65,7 +65,7 @@ test.describe('Update-Hinweis', () => {
     await onboardWithPassword(page);
     await showUpdate(page);
     await expect(page.getByTestId('update-banner')).toHaveCount(0);
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/updates');
     await expect(page.getByTestId('update-settings').getByRole('button', { name: 'Selbstständig' })).toHaveAttribute('aria-pressed', 'true');
     // Update ist (per Testnaht) bereit: die Suche zeigt den Hinweis auch im Modus „automatisch"
     await page.getByRole('button', { name: 'Nach Updates suchen' }).click();
