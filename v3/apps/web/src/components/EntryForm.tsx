@@ -36,6 +36,7 @@ import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/componen
 import { DatePicker, DateTimePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { FieldLegend, FieldSet } from '@/components/ui/field';
 import { WeatherSwitch, useDiaryWeatherSettings, useGpsChoice } from '@/components/WeatherSwitch';
 import { BlockField } from '@/components/blocks/BlockField';
 import { LlmFillButton } from '@/components/LlmFillButton';
@@ -302,8 +303,8 @@ export function EntryForm({ templates, entry, prefill }: { templates: Template[]
       onPointerCancel={() => (swipe.current = null)}
       onSubmit={(e) => (e.preventDefault(), void save())}>
       {!entry && templates.length > 1 ? (
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 text-sm font-medium">{de.entry.template}</legend>
+        <FieldSet className="flex flex-col gap-2">
+          <FieldLegend variant="label" className="mb-2">{de.entry.template}</FieldLegend>
           <div className="flex flex-wrap gap-2">
             {templates.map((t) => (
               <Button key={t.id} type="button" size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" variant={t.id === template.id ? 'default' : 'outline'} aria-pressed={t.id === template.id} onClick={() => requestTemplate(t.id)}>
@@ -312,7 +313,7 @@ export function EntryForm({ templates, entry, prefill }: { templates: Template[]
               </Button>
             ))}
           </div>
-        </fieldset>
+        </FieldSet>
       ) : (
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
           <TemplateIcon icon={template.icon} color={template.color} />
@@ -419,8 +420,8 @@ function TimeField({ time, error, onChange }: { time: TimeInput; error: ReturnTy
   };
   const invalid = error ? { 'aria-invalid': true as const, 'aria-describedby': 'entry-time-error' } : {};
   return (
-    <fieldset className="flex flex-col gap-3">
-      <legend className="mb-2 text-sm font-medium">{de.entry.timeLabel}</legend>
+    <FieldSet className="flex flex-col gap-3">
+      <FieldLegend variant="label" className="mb-2">{de.entry.timeLabel}</FieldLegend>
       <ToggleGroup aria-label={de.entry.timeLabel}>
         <ToggleGroupItem pressed={time.mode === 'point'} onClick={() => onChange(toPoint())}>
           {de.entry.modePoint}
@@ -468,6 +469,6 @@ function TimeField({ time, error, onChange }: { time: TimeInput; error: ReturnTy
           {error === 'missing' ? de.entry.timeMissing : de.entry.endBeforeStart}
         </p>
       ) : null}
-    </fieldset>
+    </FieldSet>
   );
 }

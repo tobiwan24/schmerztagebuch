@@ -1,0 +1,56 @@
+{
+  "$comment": "UI-33 (Spec 10, A-147): Register 'nur shadcn'. Jede Datei in apps/web/src/components/ui/ und jedes Paket der Web-App steht hier. Ausnahmen (source/kind 'ausnahme') brauchen eine ausdrückliche Freigabe des Users, dokumentiert als A-Eintrag in DECISIONS.md mit 'Freigabe User JJJJ-MM-TT'. Loop/Agenten tragen NIE selbst eine Freigabe ein. Geprüft von scripts/check-ui-components.mjs; die Element-Listen speisen die ESLint-Whitelist.",
+  "components": {
+    "badge": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/badge" },
+    "button": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/button" },
+    "calendar": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/calendar" },
+    "card": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/card" },
+    "date-picker": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/date-picker", "note": "shadcn-Komposition Popover + Calendar (Date Picker, Date and Time Picker, Calendar with presets), A-146" },
+    "field": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/field" },
+    "input": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/input" },
+    "popover": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/popover" },
+    "separator": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/separator" },
+    "table": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/table" },
+    "textarea": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/textarea" },
+    "tooltip": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/tooltip" },
+    "carousel": { "source": "ausnahme", "approval": "A-147", "until": "RDM-031", "reason": "angepasst: ohne Pfeil-Buttons, eigene CarouselDots" },
+    "chart": { "source": "ausnahme", "approval": "A-147", "until": "RDM-031", "reason": "abgespeckt: eigener Tooltip-Inhalt, ohne ChartLegend/ChartTooltip" },
+    "checkbox": { "source": "ausnahme", "approval": "A-147", "until": "RDM-031", "reason": "Nachbau ohne Radix (natives Element)" },
+    "dialog": { "source": "ausnahme", "approval": "A-147", "until": "RDM-031", "reason": "Nachbau ohne Radix (natives <dialog>)" },
+    "label": { "source": "ausnahme", "approval": "A-147", "until": "RDM-031", "reason": "Nachbau ohne Radix (natives <label>)" },
+    "progress": { "source": "ausnahme", "approval": "A-147", "until": "RDM-031", "reason": "Nachbau ohne Radix" },
+    "select": { "source": "ausnahme", "approval": "A-147", "until": "RDM-031", "reason": "Native-Select-Nachbau ohne NativeSelectOption" },
+    "slider": { "source": "ausnahme", "approval": "A-147", "until": "RDM-031", "reason": "Nachbau ohne Radix (natives range-Input)" },
+    "toggle-group": { "source": "ausnahme", "approval": "A-147", "until": "RDM-031", "reason": "Nachbau ohne Radix (Buttons mit aria-pressed)" }
+  },
+  "elements": {
+    "neutral": [
+      "div", "span", "p", "section", "article", "aside", "header", "footer", "main", "nav",
+      "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "dl", "dt", "dd",
+      "strong", "em", "b", "i", "small", "br", "code", "pre", "kbd", "time", "abbr", "blockquote", "figure", "figcaption",
+      "svg", "g", "path", "circle", "rect", "line", "polyline", "polygon", "ellipse", "text", "tspan", "defs", "title", "use", "clipPath", "mask", "linearGradient", "stop"
+    ],
+    "structural": { "approval": "A-147", "list": ["form", "a", "img", "output"] },
+    "temporary": { "approval": "A-147", "until": "RDM-031", "list": ["option"] }
+  },
+  "dependencies": {
+    "@radix-ui/react-slot": { "kind": "ui-only" },
+    "@radix-ui/react-popover": { "kind": "ui-only" },
+    "@radix-ui/react-tooltip": { "kind": "ui-only" },
+    "@radix-ui/react-separator": { "kind": "ui-only" },
+    "react-day-picker": { "kind": "ui-only" },
+    "embla-carousel-react": { "kind": "ui-only" },
+    "recharts": { "kind": "frei", "note": "shadcn-Chart-Muster: Diagramme importieren Recharts direkt" },
+    "lucide-react": { "kind": "frei", "note": "Icon-Satz von shadcn" },
+    "class-variance-authority": { "kind": "frei" },
+    "clsx": { "kind": "frei" },
+    "tailwind-merge": { "kind": "frei" },
+    "date-fns": { "kind": "frei" },
+    "dexie": { "kind": "frei" },
+    "react": { "kind": "frei" },
+    "react-dom": { "kind": "frei" },
+    "react-is": { "kind": "frei" },
+    "react-router": { "kind": "frei" },
+    "react-easy-crop": { "kind": "ausnahme", "approval": "A-147", "reason": "Bildzuschnitt, kein shadcn-Gegenstück (dauerhaft genehmigt)" }
+  }
+}

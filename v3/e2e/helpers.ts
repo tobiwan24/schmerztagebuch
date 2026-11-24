@@ -276,18 +276,3 @@ export async function pickRange(page: Page, label: string, from: string, to: str
   await chooseDay(page, to);
   await expect(popover(page)).toHaveCount(0);
 }
-
-/** Monat (`YYYY-MM`) im Monats-Picker wählen. */
-export async function pickMonth(page: Page, label: string, ym: string): Promise<void> {
-  const [y, m] = ym.split('-').map(Number);
-  await page.getByLabel(label, { exact: true }).click();
-  const pop = popover(page);
-  await expect(pop).toBeVisible();
-  for (let i = 0; i < 50; i++) {
-    const shown = Number((await pop.locator('[aria-live="polite"]').textContent())?.trim());
-    if (shown === y) break;
-    await pop.getByRole('button', { name: shown < y ? 'Nächstes Jahr' : 'Voriges Jahr' }).click();
-  }
-  await pop.getByRole('button', { name: `${MONTHS[m - 1]} ${y}`, exact: true }).click();
-  await expect(pop).toHaveCount(0);
-}

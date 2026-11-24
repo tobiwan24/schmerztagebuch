@@ -22,11 +22,8 @@ export const de = {
   datePicker: {
     placeholder: 'Datum wählen',
     rangePlaceholder: 'Zeitraum wählen',
-    monthPlaceholder: 'Monat wählen',
     time: (label: string) => `${label}: Uhrzeit`,
     quick: 'Schnellauswahl',
-    prevYear: 'Voriges Jahr',
-    nextYear: 'Nächstes Jahr',
   },
   start: {
     title: 'Start',
@@ -281,8 +278,8 @@ export const de = {
     allEntries: 'Alle Einträge',
     fromHistory: 'Auswahl aus dem Verlauf',
     period: 'Zeitraum',
-    periods: { all: 'Gesamt', month: 'Monat', range: 'Von – bis' },
-    periodMonth: 'Monat',
+    periods: { all: 'Gesamt', range: 'Zeitraum' },
+    presets: { thisMonth: 'Dieser Monat', lastMonth: 'Voriger Monat' },
     download: 'Herunterladen',
     reportLink: {
       open: 'Arzt-Link erstellen',

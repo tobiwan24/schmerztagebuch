@@ -11,7 +11,7 @@
   },
   "scripts": {
     "typecheck": "tsc -b",
-    "lint": "eslint . && node scripts/check-ui-css.mjs",
+    "lint": "eslint . && node scripts/check-ui-css.mjs && node scripts/check-ui-components.mjs",
     "test": "vitest run --coverage",
     "build": "npm run build --workspaces --if-present && node scripts/check-bundle.mjs",
     "deps:check": "node scripts/check-deps.mjs",

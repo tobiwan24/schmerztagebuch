@@ -2,6 +2,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
+import { loadRegister } from './scripts/check-ui-components.mjs';
 
 const UI_AND_RUNTIME = ['react', 'react-dom', 'dexie', 'fastify', 'better-sqlite3'];
 const pkgImport = (name) => ({ group: [name, `${name}/*`], message: `packages/* dürfen ${name} nicht importieren (Spec 01).` });
@@ -40,11 +41,23 @@ const packageBlocks = PACKAGES.map((pkg) => ({
   },
 }));
 
-/** UI-01 (Spec 10): native Basis-Elemente und Inline-CSS außerhalb von components/ui/. */
+/** UI-33 (Spec 10, A-147): Register „nur shadcn“ — erlaubte HTML-Elemente und UI-Pakete stehen in spec/ui-components.json. */
+const UI_REGISTER = loadRegister();
+const ALLOWED_ELEMENTS = [
+  ...UI_REGISTER.elements.neutral,
+  ...UI_REGISTER.elements.structural.list,
+  ...UI_REGISTER.elements.temporary.list,
+];
+/** Pakete, die nur components/ui/ importieren darf (Radix, react-day-picker, …). */
+const UI_ONLY_BANS = Object.entries(UI_REGISTER.dependencies)
+  .filter(([, d]) => d.kind === 'ui-only')
+  .map(([name]) => ({ group: [name, `${name}/*`], message: `${name} nur in components/ui/ — shadcn-Komponente verwenden (Spec 10, UI-33).` }));
+
+/** UI-01/UI-33 (Spec 10): außerhalb von components/ui/ nur registrierte HTML-Elemente (Whitelist), kein Inline-CSS. */
 const UI_BASE_ELEMENTS = [
   {
-    selector: 'JSXOpeningElement[name.name=/^(button|input|select|textarea|dialog|style)$/]',
-    message: 'Basis-Elemente nur in components/ui/ — shadcn/ui-Komponente verwenden (Spec 10, UI-01).',
+    selector: `JSXOpeningElement[name.type='JSXIdentifier'][name.name=/^[a-z]/]:not([name.name=/^(${ALLOWED_ELEMENTS.join('|')})$/])`,
+    message: 'Nur shadcn/ui: dieses HTML-Element ist nicht freigegeben — shadcn-Komponente aus components/ui/ verwenden oder Ausnahme mit User-Freigabe ins Register spec/ui-components.json (Spec 10, UI-01, UI-33).',
   },
   { selector: "JSXAttribute[name.name='style']", message: 'Kein Inline-CSS — Tailwind-Klassen/Tokens verwenden (Spec 10, UI-01).' },
   {
@@ -60,6 +73,14 @@ const UI_HARDCODED_TEXT = [
     selector: 'JSXAttribute[name.name=/^(title|placeholder|alt|label|aria-label|aria-description)$/] > Literal',
     message: 'Kein hart codierter UI-Text in Attributen — Text aus i18n/de.ts verwenden (Spec 10, UI-07).',
   },
+];
+
+/** Komponenten greifen nur über Repositories auf Daten zu (Spec 01). */
+const COMPONENT_BANS = [
+  { group: ['dexie', 'dexie/*'], message: 'Komponenten greifen nur über data/repositories/* auf Daten zu (Spec 01).' },
+  { group: ['**/data/db', '**/data/db.*', '**/data/db/**'], message: 'Komponenten greifen nur über data/repositories/* auf Daten zu (Spec 01).' },
+  ...appBans.filter((_, i) => APPS[i] !== 'web'),
+  ...webLlmBans,
 ];
 
 export default tseslint.config(
@@ -92,7 +113,7 @@ export default tseslint.config(
   ...APPS.map((app) => ({
     files: [`apps/${app}/**/*.{ts,tsx,js,mjs}`],
     rules: {
-      'no-restricted-imports': ['error', { patterns: [...appBans.filter((_, i) => APPS[i] !== app), ...(app === 'web' ? webLlmBans : [])] }],
+      'no-restricted-imports': ['error', { patterns: [...appBans.filter((_, i) => APPS[i] !== app), ...(app === 'web' ? [...webLlmBans, ...UI_ONLY_BANS] : [])] }],
     },
   })),
   {
@@ -102,16 +123,12 @@ export default tseslint.config(
   },
   {
     files: ['apps/web/src/components/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [
-          { group: ['dexie', 'dexie/*'], message: 'Komponenten greifen nur über data/repositories/* auf Daten zu (Spec 01).' },
-          { group: ['**/data/db', '**/data/db.*', '**/data/db/**'], message: 'Komponenten greifen nur über data/repositories/* auf Daten zu (Spec 01).' },
-          ...appBans.filter((_, i) => APPS[i] !== 'web'),
-          ...webLlmBans,
-        ],
-      }],
-    },
+    rules: { 'no-restricted-imports': ['error', { patterns: [...COMPONENT_BANS, ...UI_ONLY_BANS] }] },
+  },
+  // UI-33: components/ui/ (shadcn) darf die UI-Pakete (Radix u. a.) importieren.
+  {
+    files: ['apps/web/src/components/ui/**/*.{ts,tsx}'],
+    rules: { 'no-restricted-imports': ['error', { patterns: COMPONENT_BANS }] },
   },
   // UI-01: Basis-Elemente und Inline-Styles nur in components/ui/ (shadcn), sonst shadcn-Komponenten verwenden.
   {

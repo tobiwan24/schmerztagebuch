@@ -1,10 +1,9 @@
 // shadcn/ui Date Picker = Komposition aus Popover + Calendar (shadcn-Doku „Date Picker“, A-146). Werte bleiben Strings im
-// bisherigen Format: Datum `YYYY-MM-DD`, Datum+Uhrzeit `YYYY-MM-DDTHH:mm`, Monat `YYYY-MM`; leer = `''`.
+// bisherigen Format: Datum `YYYY-MM-DD`, Datum+Uhrzeit `YYYY-MM-DDTHH:mm`; leer = `''`.
 // Uhrzeit nach shadcn-Muster „Date and Time Picker“: Calendar für das Datum, daneben `Input type="time"`.
 import * as React from 'react';
 import { format } from 'date-fns';
-import { de as deLocale } from 'react-day-picker/locale';
-import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -51,7 +50,7 @@ function DatePicker({ id, value, onChange, placeholder = de.datePicker.placehold
       <PopoverTrigger asChild>
         <TriggerButton id={id} text={selected ? show(selected) : ''} placeholder={placeholder} disabled={disabled} className={className} {...aria} />
       </PopoverTrigger>
-      <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+      <PopoverContent className="max-h-(--radix-popover-content-available-height) w-auto overflow-y-auto p-0" align="start">
         <Calendar
           mode="single"
           selected={selected}
@@ -81,7 +80,7 @@ function DateTimePicker({ id, value, onChange, label, defaultTime = '12:00', dis
       <DatePicker id={id} value={date} required disabled={disabled} className="flex-1" onChange={(d) => onChange(d ? `${d}T${time || defaultTime}` : '')} {...aria} />
       <Input
         type="time"
-        className="w-28 shrink-0"
+        className="w-28 shrink-0 appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
         aria-label={de.datePicker.time(label)}
         aria-invalid={aria['aria-invalid']}
         disabled={disabled}
@@ -117,7 +116,7 @@ function DateRangePicker({ id, from, to, onChange, presets, text, placeholder = 
       <PopoverTrigger asChild>
         <TriggerButton id={id} text={text ?? formatRange(current?.from, current?.to)} placeholder={placeholder} className={className} {...aria} />
       </PopoverTrigger>
-      <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+      <PopoverContent className="max-h-(--radix-popover-content-available-height) w-auto overflow-y-auto p-0" align="start">
         {presets?.length ? (
           <div role="group" aria-label={de.datePicker.quick} className="flex flex-wrap gap-2 border-b p-3">
             {presets.map((p) => (
@@ -156,61 +155,4 @@ function DateRangePicker({ id, from, to, onChange, presets, text, placeholder = 
   );
 }
 
-/** Monat (`YYYY-MM`): Jahr blättern, Monat wählen. */
-function MonthPicker({ id, value, onChange, placeholder = de.datePicker.monthPlaceholder, className, ...aria }: { id?: string; value: string; onChange: (v: string) => void; placeholder?: string; className?: string } & TriggerAria) {
-  const [open, setOpen] = React.useState(false);
-  const m = /^(\d{4})-(\d{2})$/.exec(value);
-  const selYear = m ? Number(m[1]) : undefined;
-  const selMonth = m ? Number(m[2]) : undefined;
-  const [year, setYear] = React.useState(selYear ?? new Date().getFullYear());
-  const months = Array.from({ length: 12 }, (_, i) => i + 1);
-  const name = (y: number, mo: number, f: string) => format(new Date(y, mo - 1, 1), f, { locale: deLocale });
-  return (
-    <Popover
-      open={open}
-      onOpenChange={(o) => {
-        if (o) setYear(selYear ?? new Date().getFullYear());
-        setOpen(o);
-      }}
-    >
-      <PopoverTrigger asChild>
-        <TriggerButton id={id} text={selYear && selMonth ? name(selYear, selMonth, 'LLLL yyyy') : ''} placeholder={placeholder} className={className} {...aria} />
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-3" align="start">
-        <div className="mb-2 flex items-center justify-between gap-1">
-          <Button type="button" variant="ghost" size="icon" aria-label={de.datePicker.prevYear} onClick={() => setYear(year - 1)}>
-            <ChevronLeftIcon aria-hidden />
-          </Button>
-          <span className="text-sm font-medium" aria-live="polite">
-            {year}
-          </span>
-          <Button type="button" variant="ghost" size="icon" aria-label={de.datePicker.nextYear} onClick={() => setYear(year + 1)}>
-            <ChevronRightIcon aria-hidden />
-          </Button>
-        </div>
-        <div className="grid grid-cols-3 gap-1">
-          {months.map((mo) => {
-            const on = year === selYear && mo === selMonth;
-            return (
-              <Button
-                key={mo}
-                type="button"
-                variant={on ? 'default' : 'ghost'}
-                aria-pressed={on}
-                aria-label={name(year, mo, 'LLLL yyyy')}
-                onClick={() => {
-                  onChange(`${year}-${String(mo).padStart(2, '0')}`);
-                  setOpen(false);
-                }}
-              >
-                {name(year, mo, 'LLL')}
-              </Button>
-            );
-          })}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-export { DatePicker, DateTimePicker, DateRangePicker, MonthPicker };
+export { DatePicker, DateTimePicker, DateRangePicker };

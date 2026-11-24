@@ -4,6 +4,15 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.12.0-alpha.2',
+    date: '2026-11-24',
+    points: [
+      'Die Symbole für Ereignis, Arztbesuch und Foto zeigen beim Darüberfahren einen Hinweis.',
+      'Im Export wählst du den Zeitraum im Kalender; „Dieser Monat“ und „Voriger Monat“ gibt es dort als Schnellauswahl.',
+      'Gespeicherte Filter werden auch im Export nicht mehr angeboten.',
+    ],
+  },
+  {
     version: '3.12.0-alpha.1',
     date: '2026-11-24',
     points: [

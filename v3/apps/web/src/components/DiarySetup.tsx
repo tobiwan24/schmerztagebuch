@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { FieldLegend, FieldSet } from '@/components/ui/field';
 import { LocationPicker } from '@/components/LocationPicker';
 import type { WeatherLocation } from '@/weather/geocoding';
 import { deOnboarding } from '@/i18n/lazy/onboarding';
@@ -42,8 +43,8 @@ export function DiaryStep({ onNext, initialName = deOnboarding.diaryDefaultName 
             <Input id="diary-name" value={name} aria-invalid={error} onChange={(e) => (setName(e.target.value), setError(false))} />
             {error ? <p className="text-sm text-destructive">{deOnboarding.diaryNameMissing}</p> : null}
           </div>
-          <fieldset className="flex flex-col gap-2">
-            <legend className="mb-2 text-sm font-medium">{deOnboarding.diarySubject}</legend>
+          <FieldSet className="flex flex-col gap-2">
+            <FieldLegend variant="label" className="mb-2">{deOnboarding.diarySubject}</FieldLegend>
             <div className="grid grid-cols-3 gap-2">
               {SUBJECTS.map((s) => (
                 <Button key={s} type="button" variant={subject === s ? 'default' : 'outline'} aria-pressed={subject === s} onClick={() => setSubject(s)}>
@@ -51,7 +52,7 @@ export function DiaryStep({ onNext, initialName = deOnboarding.diaryDefaultName 
                 </Button>
               ))}
             </div>
-          </fieldset>
+          </FieldSet>
           <Button type="submit">{deOnboarding.next}</Button>
         </form>
       </CardContent>

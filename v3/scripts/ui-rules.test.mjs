@@ -32,6 +32,20 @@ describe('UI-Lint-Regeln', () => {
     expect(await rulesFor('ui-native-date.tsx', 'apps/web/src/pages/ExportPage.tsx')).toContain('no-restricted-syntax');
   });
 
+  it('UI-33: nur registrierte HTML-Elemente außerhalb von components/ui/ (fieldset, legend, hr … sind verboten)', async () => {
+    expect(await rulesFor('ui-raw-element.tsx', 'apps/web/src/pages/Start.tsx')).toContain('no-restricted-syntax');
+    expect(await rulesFor('ui-raw-element.tsx', 'apps/web/src/components/EntryForm.tsx')).toContain('no-restricted-syntax');
+    expect(await rulesFor('ui-raw-element.tsx', 'apps/web/src/components/ui/field.tsx')).toEqual([]);
+    // genehmigte Struktur-Elemente (form, a, img, output) bleiben erlaubt
+    expect(await rulesFor('ui-structural-ok.tsx', 'apps/web/src/pages/Start.tsx')).toEqual([]);
+  });
+
+  it('UI-33: UI-Pakete (Radix u. a.) nur in components/ui/ importieren', async () => {
+    expect(await rulesFor('ui-radix-import.tsx', 'apps/web/src/pages/Start.tsx')).toContain('no-restricted-imports');
+    expect(await rulesFor('ui-radix-import.tsx', 'apps/web/src/components/EntryForm.tsx')).toContain('no-restricted-imports');
+    expect(await rulesFor('ui-radix-import.tsx', 'apps/web/src/components/ui/tooltip.tsx')).toEqual([]);
+  });
+
   it('UI-01: keine CSS-Datei außer index.css in apps/web/src', () => {
     const dir = mkdtempSync(join(tmpdir(), 'stb-css-'));
     try {

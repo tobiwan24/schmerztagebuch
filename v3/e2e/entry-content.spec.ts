@@ -156,16 +156,22 @@ test.describe('Textarea: Ereignisse und Anhänge', () => {
     expect(counts).toEqual({ blobs: 0, outbox: 0, metas: 0 });
   });
 
-  test('RDM-030: Ereignis, Arztbesuch und Foto nur als Symbole nebeneinander, Beschriftung als Hinweis', async ({ page }) => {
+  test('RDM-030: Ereignis, Arztbesuch und Foto nur als Symbole nebeneinander, Beschriftung als shadcn-Tooltip', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
     await go(page, '/entry/new');
     const names = ['Ereignis hinzufügen', 'Arztbesuch hinzufügen', 'Foto oder PDF anhängen'];
     const boxes = [];
     for (const name of names) {
       const b = page.getByRole('button', { name, exact: true });
-      await expect(b).toHaveAttribute('title', name);
       await expect(b).toHaveText('');
+      await expect(b).not.toHaveAttribute('title');
       boxes.push((await b.boundingBox())!);
+    }
+    // Hinweis beim Hover kommt aus dem shadcn-Tooltip (A-147)
+    for (const name of names) {
+      await page.getByRole('button', { name, exact: true }).hover();
+      // der vorige Tooltip kann noch ausblenden — daher nach Text filtern
+      await expect(page.getByRole('tooltip').filter({ hasText: name })).toHaveCount(1);
     }
     for (const b of boxes) expect(b.y).toBe(boxes[0]!.y);
     for (const b of boxes) expect(b.height).toBeGreaterThanOrEqual(44);

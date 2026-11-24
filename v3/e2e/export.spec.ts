@@ -1,5 +1,5 @@
 import { test, expect, type Download, type Page } from '@playwright/test';
-import { addVirtualAuthenticator, go, onboardWithCloud, onboardWithPassword, uniqueUser, pickMonth } from './helpers';
+import { addVirtualAuthenticator, go, onboardWithCloud, onboardWithPassword, uniqueUser } from './helpers';
 
 const DAY = 86_400_000;
 
@@ -82,22 +82,22 @@ test.describe('Export & Backup', () => {
     expect(Buffer.from(await text(pdf), 'utf8').subarray(0, 5).toString('latin1')).toBe('%PDF-');
   });
 
-  test('Export eines Monats: nur Einträge des gewählten Monats', async ({ page }) => {
+  test('Export eines Monats über den Range-Calendar (Schnellauswahl Dieser/Voriger Monat): nur Einträge des Monats; keine gespeicherten Filter (A-147)', async ({ page }) => {
     await onboardWithPassword(page);
     await addEntry(page, 'STB-E2E-MARKER Monat');
     await go(page, '/more/export');
     await page.getByRole('button', { name: 'CSV lang' }).click();
-    await page.getByRole('button', { name: 'Monat', exact: true }).click();
-    const thisMonth = new Date().toISOString().slice(0, 7);
-    const [y, m] = thisMonth.split('-').map(Number) as [number, number];
-    const prevMonth = new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7);
-    const csvFor = async (month: string) => {
-      await pickMonth(page, 'Monat', month);
+    await expect(page.getByRole('group', { name: 'Zeitraum' }).getByRole('button')).toHaveText(['Gesamt', 'Zeitraum']);
+    await page.getByRole('group', { name: 'Zeitraum' }).getByRole('button', { name: 'Zeitraum', exact: true }).click();
+    const csvFor = async (preset: string) => {
+      await page.locator('#export-range').click();
+      await page.getByRole('group', { name: 'Schnellauswahl' }).getByRole('button', { name: preset }).click();
+      await expect(page.locator('[data-slot="popover-content"]')).toHaveCount(0);
       const [d] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Herunterladen', exact: true }).click()]);
       return text(d);
     };
-    expect(await csvFor(thisMonth)).toContain('STB-E2E-MARKER Monat');
-    expect(await csvFor(prevMonth)).not.toContain('STB-E2E-MARKER Monat');
+    expect(await csvFor('Dieser Monat')).toContain('STB-E2E-MARKER Monat');
+    expect(await csvFor('Voriger Monat')).not.toContain('STB-E2E-MARKER Monat');
   });
 
   test('Backup mit Backup-Code erstellen und auf einem neuen Gerät wiederherstellen; falscher Code wird gemeldet', async ({ page, browser }) => {

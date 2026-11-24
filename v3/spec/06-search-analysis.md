@@ -42,7 +42,8 @@ Condition =
   seitenweise je 50 Einträge („Weitere laden"), Sortierung und Datum je Eintrag bleiben über Seitengrenzen korrekt, bei Vorlagensortierung auch die Gruppen (ANA-20).
 - Auswertungs-Zeiträume: `day | 7d | 30d | 90d | 6m | 1y`; „Tag" zeigt Einzelwerte mit Uhrzeit-Achse (ANA-17).
 - Gespeicherte Filter = `SavedFilter` (02), synchronisiert und per Tagebuch geteilt. Seit RDM-030 (A-146) legt der Verlauf keine
-  gespeicherten Filter mehr an; vorhandene Records bleiben in Datenmodell, Sync und Export erhalten. Die Verlauf-Filter selbst
+  gespeicherten Filter mehr an; vorhandene Records bleiben in Datenmodell, Sync und Export-Datei erhalten, werden in der App aber
+  nirgends mehr angeboten (auch nicht als Export-Umfang, A-147). Die Verlauf-Filter selbst
   liegen nur im Speicher: Sie bleiben beim Wechsel Verlauf → Detail → zurück erhalten und sind nach einem Neustart leer.
 - Suche ist umlaut- und groß/klein-tolerant (`ä`≙`ae`, Normalisierung NFKD).
 

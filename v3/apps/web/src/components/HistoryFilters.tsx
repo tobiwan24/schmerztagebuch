@@ -12,6 +12,7 @@ import { DateRangePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { useAuthorName } from '@/data/useSharing';
 import { de } from '@/i18n/de';
 
@@ -205,7 +206,7 @@ export function HistoryFilters({ state, onChange, diaryIds, medOptionIds, templa
                 })}
               </div>
             </div>
-            <div role="separator" className="h-px w-full shrink-0 bg-border" />
+            <Separator />
           </>
         ) : null}
         <div className="flex flex-col gap-2" role="group" aria-labelledby="history-more-heading">
