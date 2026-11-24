@@ -72,7 +72,7 @@ export function TrainingRun({ state, onCancel }: { state: TemplateState; onCance
           </h2>
           <p className="text-sm text-muted-foreground" data-testid="training-step-count">{t.stepOf(step + 1, exercises.length)}</p>
           <ExerciseField
-            key={exercise.id} id={`block-${exercise.id}`} guided config={exercise.config as ExerciseConfig}
+            key={exercise.id} id={`block-${exercise.id}`} guided label={exercise.label} config={exercise.config as ExerciseConfig}
             value={values[exercise.id] as ExerciseValue | undefined} onChange={(v) => setValue(exercise.id, v)}
           />
           {missing.has(exercise.id) ? <p role="alert" className="text-sm text-destructive">{de.entry.requiredMissing}</p> : null}

@@ -21,7 +21,13 @@ test.describe('Trainingsvorlage im Editor', () => {
     await card.getByLabel('Sätze (optional)').fill('3');
     await card.getByLabel('Wiederholungen (optional)').fill('10');
     await card.getByLabel('Dauer in Sekunden (optional)').fill('45');
-    await card.getByLabel(/^Schritte/).fill('Aufrecht stehen\nSchultern nach hinten kreisen\n\nLangsam atmen');
+    // Schritte als Liste (RDM-033); ein leerer Schritt entfällt beim Speichern
+    for (const [i, text] of ['Aufrecht stehen', 'Langsam atmen', '', 'Schultern nach hinten kreisen'].entries()) {
+      await card.getByRole('button', { name: 'Schritt hinzufügen' }).click();
+      await card.getByLabel(`Schritt ${i + 1}`, { exact: true }).fill(text);
+    }
+    await card.getByRole('button', { name: 'Schritt 4 nach oben' }).click();
+    await card.getByRole('button', { name: 'Schritt 3 nach oben' }).click();
     await card.getByRole('button', { name: 'Stufe hinzufügen' }).click();
     await card.getByRole('button', { name: 'Stufe hinzufügen' }).click();
     await card.getByLabel('Bezeichnung von Stufe 1').fill('Leicht');
@@ -56,7 +62,10 @@ test.describe('Trainingsvorlage im Editor', () => {
     await expect(again.getByLabel('Sätze (optional)')).toHaveValue('3');
     await expect(again.getByLabel('Wiederholungen (optional)')).toHaveValue('10');
     await expect(again.getByLabel('Dauer in Sekunden (optional)')).toHaveValue('45');
-    await expect(again.getByLabel(/^Schritte/)).toHaveValue('Aufrecht stehen\nSchultern nach hinten kreisen\nLangsam atmen');
+    await expect(again.getByLabel('Schritt 1', { exact: true })).toHaveValue('Aufrecht stehen');
+    await expect(again.getByLabel('Schritt 2', { exact: true })).toHaveValue('Schultern nach hinten kreisen');
+    await expect(again.getByLabel('Schritt 3', { exact: true })).toHaveValue('Langsam atmen');
+    await expect(again.getByLabel('Schritt 4', { exact: true })).toHaveCount(0);
     await expect(again.getByLabel('Bezeichnung von Stufe 1')).toHaveValue('Leicht');
     await expect(again.getByLabel('Bezeichnung von Stufe 2')).toHaveValue('Mittel');
     await expect(again.getByLabel('Video-Link (https, optional)')).toHaveValue('https://example.org/video');

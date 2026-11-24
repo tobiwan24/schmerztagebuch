@@ -14,6 +14,7 @@ export function contentSecurityPolicy(extraConnect: string[] = []): string {
     "script-src 'self'",
     "style-src 'self'",
     "img-src 'self' data: blob:",
+    "media-src 'self' blob:", // Übungsvideos aus dem lokalen Speicher (RDM-033, A-149)
     "font-src 'self'",
     `connect-src 'self' https://api.open-meteo.com https://archive-api.open-meteo.com https://geocoding-api.open-meteo.com${extraConnect.length ? ' ' + extraConnect.join(' ') : ''}`,
     "worker-src 'self'",

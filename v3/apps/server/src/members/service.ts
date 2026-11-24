@@ -10,8 +10,8 @@ export type MembershipRole = (typeof ROLES)[number];
  */
 const EDITOR_KINDS: ReadonlySet<string> = new Set(['entry', 'attachmentMeta', 'intakeKey', 'intakeInbox']);
 
-/** Zusätzlich für einen Editor mit dem Flag `canEditTemplates` (A-121, SHR-14). */
-const TEMPLATE_KINDS: ReadonlySet<string> = new Set(['template', 'templateVersion']);
+/** Zusätzlich für einen Editor mit dem Flag `canEditTemplates` (A-121, SHR-14); Übungsmedien gehören zur Vorlage (RDM-033). */
+const TEMPLATE_KINDS: ReadonlySet<string> = new Set(['template', 'templateVersion', 'exerciseMedia']);
 
 export function mayPushKind(role: MembershipRole, kind: string, canEditTemplates = false): boolean {
   if (role === 'owner') return true;

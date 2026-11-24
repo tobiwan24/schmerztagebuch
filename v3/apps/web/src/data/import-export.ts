@@ -7,7 +7,7 @@ import { buildExport, copyWithNewIds, exportRecords, ImportError, parseExport, t
 import type { FilterSpec } from '@stb/analysis';
 import type { RecordInput, RecordRepository } from './repositories/records';
 import { templateVersionRecordId, type DiaryRepository } from './repositories/diary';
-import { ATTACHMENT_KIND, type AttachmentInput, type AttachmentRepository } from './repositories/attachments';
+import { ATTACHMENT_KIND, EXERCISE_MEDIA_KIND, type AttachmentRepository, type BlobInput } from './repositories/attachments';
 
 export async function collectExportSource(diary: DiaryRepository, attachments?: AttachmentRepository): Promise<ExportSource> {
   const diaries = await diary.listDiaries();
@@ -23,7 +23,14 @@ export async function collectExportSource(diary: DiaryRepository, attachments?: 
         return bytes ? { ...m, dataUrl: encodeDataUrl(m.mime, bytes) } : undefined;
       }))).filter((a): a is NonNullable<typeof a> => !!a)
     : [];
-  return { diaries, templates, versions, entries, savedFilters, bodymapImages, notificationRules, dashboards, attachments: withData };
+  // Übungsmedien (RDM-033) ebenso nur mit lokal vorhandenem Inhalt
+  const exerciseMedia = attachments
+    ? (await Promise.all((await attachments.listExerciseMedia()).map(async (m) => {
+        const bytes = await attachments.data(m.id);
+        return bytes ? { ...m, dataUrl: encodeDataUrl(m.mime, bytes) } : undefined;
+      }))).filter((a): a is NonNullable<typeof a> => !!a)
+    : [];
+  return { diaries, templates, versions, entries, savedFilters, bodymapImages, notificationRules, dashboards, attachments: withData, exerciseMedia };
 }
 
 export async function createExport(diary: DiaryRepository, opts: { appVersion: string; now: number; filter?: FilterSpec }, attachments?: AttachmentRepository): Promise<ExportV1> {
@@ -50,8 +57,8 @@ export interface ImportPlan {
   unchanged: number;
   /** Zu schreibende Datensätze (intern). */
   writes: RecordInput[];
-  /** Anhang-Inhalte zu neuen oder geänderten Anhang-Metadaten (intern). */
-  blobs: AttachmentInput[];
+  /** Inhalte zu neuen oder geänderten Anhang-/Übungsmedien-Metadaten (intern). */
+  blobs: BlobInput[];
 }
 
 type Stamp = { hlc?: string; updatedAt?: string };
@@ -97,7 +104,7 @@ export async function planRecordWrites(records: RecordRepository, inputs: readon
 export async function planImport(records: RecordRepository, input: ExportV1, opts: { asCopy?: boolean; newId: () => string }): Promise<ImportPlan> {
   const doc = opts.asCopy ? copyWithNewIds(input, opts.newId) : input;
   const inputs: RecordInput[] = [];
-  const blobOf = new Map<string, AttachmentInput>();
+  const blobOf = new Map<string, BlobInput>();
   let templates = 0;
   let entries = 0;
   for (const d of doc.diaries) {
@@ -124,12 +131,19 @@ export async function planImport(records: RecordRepository, input: ExportV1, opt
       inputs.push({ id: a.id, diaryId: r.diary.id, kind: ATTACHMENT_KIND, payload: meta });
       blobOf.set(a.id, { meta, bytes: decoded.bytes });
     }
+    for (const x of r.exerciseMedia) {
+      const { dataUrl, ...meta } = x;
+      const decoded = decodeDataUrl(dataUrl);
+      if (!decoded) throw new ImportError('invalid', [`Übungsmedium ${x.id}: Inhalt unlesbar`]);
+      inputs.push({ id: x.id, diaryId: r.diary.id, kind: EXERCISE_MEDIA_KIND, payload: meta });
+      blobOf.set(x.id, { meta, bytes: decoded.bytes });
+    }
     templates += r.templates.length;
     entries += r.entries.length;
   }
 
   const { writes, added, updated, unchanged } = await planRecordWrites(records, inputs);
-  const blobs = writes.filter((w) => w.kind === ATTACHMENT_KIND).map((w) => blobOf.get(w.id)!);
+  const blobs = writes.filter((w) => w.kind === ATTACHMENT_KIND || w.kind === EXERCISE_MEDIA_KIND).map((w) => blobOf.get(w.id)!);
   return { diaries: doc.diaries.length, templates, entries, added, updated, unchanged, writes, blobs };
 }
 

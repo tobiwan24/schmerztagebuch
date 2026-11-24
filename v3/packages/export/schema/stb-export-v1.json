@@ -1976,8 +1976,25 @@
                                       "maxItems": 20,
                                       "type": "array",
                                       "items": {
-                                        "type": "string",
-                                        "minLength": 1
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "text": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "imageId": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "additionalProperties": false
+                                          }
+                                        ]
                                       }
                                     },
                                     "targetSets": {
@@ -1998,6 +2015,9 @@
                                     "videoUrl": {
                                       "type": "string",
                                       "maxLength": 2000
+                                    },
+                                    "videoMediaId": {
+                                      "type": "string"
                                     },
                                     "levels": {
                                       "type": "array",
@@ -3997,6 +4017,66 @@
                 "id",
                 "diaryId",
                 "entryId",
+                "kind",
+                "mime",
+                "name",
+                "sizeBytes",
+                "createdAt",
+                "dataUrl"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "exerciseMedia": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "diaryId": {
+                  "type": "string"
+                },
+                "templateId": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "image",
+                    "video"
+                  ]
+                },
+                "mime": {
+                  "type": "string",
+                  "pattern": "^[a-z]+\\/[a-z0-9.+-]+$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "sizeBytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 20971520
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "dataUrl": {
+                  "type": "string",
+                  "pattern": "^data:[a-z]+\\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/]*=*$"
+                }
+              },
+              "required": [
+                "id",
+                "diaryId",
+                "templateId",
                 "kind",
                 "mime",
                 "name",

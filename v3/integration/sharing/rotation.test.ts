@@ -125,9 +125,15 @@ async function setup() {
   await a.records.put({ id: metaId, diaryId: f.diaryId, kind: 'attachmentMeta', payload: { id: metaId, diaryId: f.diaryId, entryId: entries[0]!.id, name: 'x.png', mime: 'image/png', size: 6, createdAt: new Date().toISOString() } });
   await a.engine.sync();
   await injectTransport(server.app, 'olga', { pushes: [], pulls: [], offline: false }).putBlob!(f.diaryId, metaId, await encryptRecord(f.dk, { diaryId: f.diaryId, kind: 'blob', recordId: metaId, keyEpoch: 1 }, img));
+  // Übungsmedium (RDM-033): eigener Record-Kind, Inhalt wie ein Anhang als Blob
+  const mediaId = f.newId();
+  const clip = new Uint8Array([0, 0, 0, 32, 102, 116, 121, 112]);
+  await a.records.put({ id: mediaId, diaryId: f.diaryId, kind: 'exerciseMedia', payload: { id: mediaId, diaryId: f.diaryId, templateId: tpl.template.id, kind: 'video', mime: 'video/mp4', name: 'v.mp4', sizeBytes: 8, createdAt: new Date().toISOString() } });
+  await a.engine.sync();
+  await injectTransport(server.app, 'olga', { pushes: [], pulls: [], offline: false }).putBlob!(f.diaryId, mediaId, await encryptRecord(f.dk, { diaryId: f.diaryId, kind: 'blob', recordId: mediaId, keyEpoch: 1 }, clip));
   await b.engine.sync();
   const recordIds = (server.db.prepare('SELECT id FROM records WHERE diary_id = ? ORDER BY id').all(f.diaryId) as { id: string }[]).map((r) => r.id);
-  return { ...f, olga, bob, eve, server, sOlga, sBob, a, b, tpl, entries, pain, note, close, metaId, img, recordIds };
+  return { ...f, olga, bob, eve, server, sOlga, sBob, a, b, tpl, entries, pain, note, close, metaId, img, mediaId, clip, recordIds };
 }
 
 type Ctx = Awaited<ReturnType<typeof setup>>;
@@ -194,6 +200,9 @@ describe('DK-Rotation: Client (SHR-13)', () => {
     await allReadable(c, { 2: cur.key });
     const stored = await injectTransport(c.server.app, 'olga', wire()).getBlob!(metaId);
     expect([...(await decryptRecord(cur.key, { diaryId: c.diaryId, kind: 'blob', recordId: metaId, keyEpoch: 2 }, stored!))]).toEqual([...img]);
+    // Übungsmedien-Blobs werden ebenso umgestellt (RDM-033)
+    const clip = await injectTransport(c.server.app, 'olga', wire()).getBlob!(c.mediaId);
+    expect([...(await decryptRecord(cur.key, { diaryId: c.diaryId, kind: 'blob', recordId: c.mediaId, keyEpoch: 2 }, clip!))]).toEqual([...c.clip]);
     // lokal bleibt alles lesbar
     expect((await c.a.repo.getEntry(c.entries[2]!.id))?.values[c.note.id]).toBe('Notiz 2 äöü');
   });

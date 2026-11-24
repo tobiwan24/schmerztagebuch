@@ -44,7 +44,8 @@ export type RotationOutcome =
   | { status: 'done'; keyEpoch: number }
   | { status: 'incomplete'; failedRecords: number; failedBlobs: number; pendingRecords: number; pendingBlobs: number };
 
-const ATTACHMENT_KIND = 'attachmentMeta';
+/** Record-Arten mit Blob-Inhalt (Blob-ID = Record-ID): Anhänge und Übungsmedien (RDM-033). */
+const BLOB_KINDS: ReadonlySet<string> = new Set(['attachmentMeta', 'exerciseMedia']);
 
 export async function rotateDiary(deps: RotationDeps, diaryId: string): Promise<RotationOutcome> {
   const { api, keys } = deps;
@@ -90,7 +91,7 @@ export async function rotateDiary(deps: RotationDeps, diaryId: string): Promise<
   const transport = {
     async pull(since: number) {
       const page = await deps.transport.pull({ diaryId, since, limit: 500 });
-      for (const r of page.records) if (r.kind === ATTACHMENT_KIND) blobIds.add(r.recordId);
+      for (const r of page.records) if (BLOB_KINDS.has(r.kind)) blobIds.add(r.recordId);
       return { records: page.records.map((r) => ({ recordId: r.recordId, kind: r.kind, rev: r.rev, deleted: r.deleted, ciphertext: r.ciphertext })), nextSince: page.nextSince, hasMore: page.hasMore };
     },
     async push(ops: Parameters<SyncTransport['push']>[0]['ops']) {

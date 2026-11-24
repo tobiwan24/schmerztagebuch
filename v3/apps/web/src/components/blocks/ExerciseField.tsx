@@ -1,13 +1,15 @@
 // Eingabe des Übungs-Blocks (UI-30): erledigt, Stufe, Sätze, Wiederholungen, Dauer, Schmerz bei der Übung.
-// `guided` (Trainingsdurchgang) zeigt zusätzlich Erklärung, Ziel, Ablauf, Video-Link und einen Timer mit Start/Pause.
+// `guided` (Trainingsdurchgang) zeigt zusätzlich Erklärung, Ziel, Ablauf, Video-Link und einen Timer mit Start/Pause,
+// außerdem hochgeladene Übungsmedien (RDM-033): Video zum Abspielen und Schritt-Ansicht mit Bildern.
 import { useEffect, useRef, useState } from 'react';
 import { ExternalLink, Pause, Play, RotateCcw } from 'lucide-react';
-import type { ExerciseConfig, ExerciseValue } from '@stb/core';
+import { stepImageId, stepText, type ExerciseConfig, type ExerciseValue } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { ExerciseStepViewer, ExerciseVideo } from '@/components/ExerciseMedia';
 import { deTraining } from '@/i18n/lazy/training';
 
 const t = deTraining.field;
@@ -37,8 +39,8 @@ function targetText(c: ExerciseConfig): string {
 }
 
 export function ExerciseField({
-  id, config, value, onChange, guided = false,
-}: { id: string; config: ExerciseConfig; value: ExerciseValue | undefined; onChange: (v: ExerciseValue | undefined) => void; guided?: boolean }) {
+  id, config, value, onChange, guided = false, label = '',
+}: { id: string; config: ExerciseConfig; value: ExerciseValue | undefined; onChange: (v: ExerciseValue | undefined) => void; guided?: boolean; label?: string }) {
   const current: ExerciseValue = value ?? { done: false };
   const [running, setRunning] = useState(false);
   // Der Timer zählt im Wert selbst (`durationSec`); Refs halten Wert und Callback für den Takt aktuell.
@@ -69,12 +71,15 @@ export function ExerciseField({
         <>
           {config.description ? <p className="text-sm">{config.description}</p> : null}
           {target ? <p className="text-sm font-medium" data-testid="exercise-target">{t.target(target)}</p> : null}
-          {config.steps && config.steps.length > 0 ? (
+          {config.videoMediaId ? <ExerciseVideo id={config.videoMediaId} label={label} /> : null}
+          {config.steps && config.steps.some((s) => stepImageId(s) !== undefined) ? (
+            <ExerciseStepViewer steps={config.steps} />
+          ) : config.steps && config.steps.length > 0 ? (
             <section className="flex flex-col gap-1">
               <h3 className="text-sm font-medium">{t.steps}</h3>
               <ol className="list-decimal space-y-1 pl-5 text-sm">
                 {config.steps.map((s, i) => (
-                  <li key={i}>{s}</li>
+                  <li key={i}>{stepText(s)}</li>
                 ))}
               </ol>
             </section>

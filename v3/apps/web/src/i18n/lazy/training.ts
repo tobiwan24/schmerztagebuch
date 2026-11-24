@@ -24,4 +24,9 @@ export const deTraining = {
     steps: 'Ablauf', video: 'Video ansehen (öffnet extern)',
     timer: 'Timer', timerStart: 'Timer starten', timerPause: 'Timer pausieren', timerReset: 'Timer zurücksetzen',
   },
+  media: {
+    loading: 'Lädt …', unavailable: 'Medium nicht verfügbar (noch nicht auf dieses Gerät geladen — online erneut öffnen).',
+    videoLabel: (name: string) => (name ? `Video zur Übung ${name}` : 'Video zur Übung'),
+    stepOf: (n: number, total: number) => `Schritt ${n} von ${total}`, prevStep: 'Vorheriger Schritt', nextStep: 'Nächster Schritt',
+  },
 } as const;
