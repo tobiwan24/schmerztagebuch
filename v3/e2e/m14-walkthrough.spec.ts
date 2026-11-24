@@ -125,15 +125,22 @@ test.describe('M14-Rundgang (iPhone-Viewport)', () => {
 
     // Einstellungen: Sicherheit, Sperre, Updates, Konfliktprotokoll, Gefahr-Zone
     await go(page, '/more/settings');
-    await expect(page.getByTestId('factors')).toBeVisible();
-    await expect(page.getByTestId('stay-status')).toBeVisible();
-    await expect(page.getByTestId('update-settings')).toBeVisible();
+    await expect(page.getByTestId('settings-menu')).toBeVisible();
     await noOverflow(page, 'Einstellungen');
+    await go(page, '/more/settings/konto');
+    await expect(page.getByTestId('factors')).toBeVisible();
+    await noOverflow(page, 'Einstellungen (Konto & Sync)');
+    await go(page, '/more/settings/sicherheit');
+    await expect(page.getByTestId('stay-status')).toBeVisible();
+    await noOverflow(page, 'Einstellungen (Sicherheit & Sperre)');
+    await go(page, '/more/settings/updates');
+    await expect(page.getByTestId('update-settings')).toBeVisible();
     await page.getByRole('button', { name: 'Nach Updates suchen' }).click();
+    await go(page, '/more/settings/daten');
     await page.getByRole('link', { name: 'Konfliktprotokoll' }).click();
     await expect(page.getByRole('heading', { name: 'Konfliktprotokoll' })).toBeVisible();
     await noOverflow(page, 'Konfliktprotokoll');
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/daten');
     await page.getByTestId('danger-zone').getByRole('button', { name: 'Alle Daten auf diesem Gerät löschen' }).click();
     await expect(page.getByTestId('danger-zone').getByRole('button', { name: 'Endgültig löschen' })).toBeDisabled();
     await noOverflow(page, 'Gefahr-Zone');
@@ -145,7 +152,7 @@ test.describe('M14-Rundgang (iPhone-Viewport)', () => {
     const user = uniqueUser('rund');
     await onboardWithCloud(page, user);
     await expect(page.getByText(/Hallo,/)).toBeVisible();
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/konto');
     await expect(page.getByTestId('device-row')).toHaveCount(1);
     await expect(page.getByRole('button', { name: 'Jetzt synchronisieren' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Backup-Code erneuern' })).toBeVisible();

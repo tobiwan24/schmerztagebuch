@@ -24,13 +24,13 @@ test.describe('Einstellungen: Diagnose und Erinnerungen', () => {
   test('Erinnerung: Einstellung (Uhrzeit, Wochentage) bleibt gespeichert', async ({ page, context, browserName }) => {
     if (browserName === 'chromium') await context.grantPermissions(['notifications']);
     await onboardWithPassword(page);
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/erinnerungen');
     const card = page.getByTestId('reminder-card');
     await card.getByLabel('Erinnerung aktiv').check();
     await card.getByLabel('Uhrzeit').fill('07:45');
     await card.getByRole('button', { name: 'Sa' }).click();
     await go(page, '/more');
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/erinnerungen');
     await expect(card.getByLabel('Erinnerung aktiv')).toBeChecked();
     await expect(card.getByLabel('Uhrzeit')).toHaveValue('07:45');
     await expect(card.getByRole('button', { name: 'Sa' })).toHaveAttribute('aria-pressed', 'false');

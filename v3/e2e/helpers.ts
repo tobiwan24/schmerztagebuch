@@ -58,7 +58,7 @@ export async function addVirtualAuthenticator(page: Page): Promise<void> {
 
 /** Sperren über die Einstellungen. */
 export async function lockViaSettings(page: Page): Promise<void> {
-  await go(page, '/more/settings');
+  await go(page, '/more/settings/sicherheit');
   await page.getByRole('button', { name: 'Jetzt sperren' }).click();
   await expect(page.getByTestId('lock-banner')).toBeVisible();
 }

@@ -31,7 +31,7 @@ test.describe('Hinweise', () => {
     page.on('pageerror', (e) => errors.push(String(e)));
     await onboardWithPassword(page);
 
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/erinnerungen');
     const card = page.getByTestId('rules-card');
     await expect(card).toContainText('Noch keine Regel angelegt.');
     await card.getByLabel('Feld').selectOption({ label: 'Schmerzstärke' });
@@ -58,7 +58,7 @@ test.describe('Hinweise', () => {
     expect(await page.evaluate(() => (window as unknown as { __shown: string[] }).__shown)).toHaveLength(1);
 
     // Regel löschen
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/erinnerungen');
     await page.getByTestId('rules-card').getByRole('button', { name: /Regel .* löschen/ }).click();
     await expect(page.getByTestId('rule-row')).toHaveCount(0);
     expect(errors).toEqual([]);

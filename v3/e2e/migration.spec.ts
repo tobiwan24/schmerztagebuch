@@ -78,14 +78,14 @@ test.describe('Migration v2 → v3', () => {
   test('RDM-028 P7: v2-Daten-Card nur mit lokaler v2-Datenbank', async ({ page }) => {
     await onboardWithPassword(page);
     // Ohne v2-Datenbank und ohne Migrationsstand: keine Card
-    await go(page, '/more/settings');
-    await expect(page.getByTestId('lock-settings')).toBeVisible();
+    await go(page, '/more/settings/daten');
+    await expect(page.getByTestId('persist-card')).toBeVisible();
     await expect(page.getByTestId('v2-data-card')).toHaveCount(0);
 
     // Mit v2-Datenbank: Card da; nach Übernahme und Löschen der v2-Datenbank (ohne „entfernt“-Vermerk) wieder weg
     await createV2Db(page);
     await go(page, '/history');
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/daten');
     await expect(page.getByTestId('v2-data-card')).toBeVisible();
     await page.getByTestId('v2-data-card').getByRole('link', { name: 'v2-Daten übernehmen' }).click();
     await page.getByRole('button', { name: 'Trockenlauf starten' }).click();
@@ -93,15 +93,15 @@ test.describe('Migration v2 → v3', () => {
     await expect(page.getByTestId('migration-done')).toBeVisible();
     await page.evaluate(() => new Promise<void>((resolve) => { const r = indexedDB.deleteDatabase('PainDiaryDB'); r.onsuccess = r.onerror = r.onblocked = () => resolve(); }));
     expect(await v2DbExists(page)).toBe(false);
-    await go(page, '/more/settings');
-    await expect(page.getByTestId('lock-settings')).toBeVisible();
+    await go(page, '/more/settings/daten');
+    await expect(page.getByTestId('persist-card')).toBeVisible();
     await expect(page.getByTestId('v2-data-card')).toHaveCount(0);
   });
 
   test('MIG-14: „v2-Daten entfernen" ist erst nach erfolgreicher Prüfung möglich und verlangt Bestätigung', async ({ page }) => {
     await onboardWithPassword(page);
     await createV2Db(page);
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/daten');
     const card = page.getByTestId('v2-data-card');
     await expect(card).toContainText('Noch nicht übernommen.');
     await expect(card.getByRole('button', { name: 'v2-Daten von diesem Gerät entfernen' })).toBeDisabled();
@@ -111,7 +111,7 @@ test.describe('Migration v2 → v3', () => {
     await page.getByRole('button', { name: 'Jetzt übernehmen' }).click();
     await expect(page.getByTestId('migration-done')).toContainText('Übernahme erfolgreich geprüft.');
 
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/daten');
     await expect(card).toContainText('Übernommen und geprüft am');
     const remove = card.getByRole('button', { name: 'v2-Daten von diesem Gerät entfernen' });
     await expect(remove).toBeEnabled();

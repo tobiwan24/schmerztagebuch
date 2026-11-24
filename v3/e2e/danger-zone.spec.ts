@@ -19,7 +19,7 @@ test.describe('Gefahr-Zone', () => {
           r.onerror = () => reject(r.error);
         }),
     );
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/daten');
     const zone = page.getByTestId('danger-zone');
     await zone.getByRole('button', { name: 'Alle Daten auf diesem Gerät löschen' }).click();
     const confirm = zone.getByRole('button', { name: 'Endgültig löschen' });

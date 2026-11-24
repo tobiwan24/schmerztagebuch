@@ -27,14 +27,14 @@ test.describe('Konto & Sync', () => {
     page.on('request', (r) => {
       if (new URL(r.url()).pathname === '/api/v1/sync/pull') pulls.push(r.url());
     });
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/konto');
     await page.getByRole('button', { name: 'Jetzt synchronisieren' }).click();
     await expect.poll(() => pulls.length).toBeGreaterThan(0);
 
     // Push scheitert → Änderung bleibt in der Outbox → Wechsel gesperrt (Hinweis)
     await page.route('**/api/v1/sync/push', (route) => route.abort());
     await quickEntry(page);
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/konto');
     await page.getByRole('button', { name: 'Nur auf diesem Gerät weiterverwenden' }).click();
     await page.getByRole('button', { name: 'Jetzt zurückstellen' }).click();
     await expect(page.getByTestId('detach-blocked')).toContainText('nicht synchronisiert');
@@ -46,7 +46,7 @@ test.describe('Konto & Sync', () => {
     await page.getByRole('button', { name: 'Jetzt synchronisieren' }).click();
     await go(page, '/more');
     await expect(page.getByTestId('sync-status')).toHaveAttribute('data-state', 'synced', { timeout: 20_000 });
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/konto');
     await page.getByRole('button', { name: 'Nur auf diesem Gerät weiterverwenden' }).click();
     await page.getByRole('button', { name: 'Jetzt zurückstellen' }).click();
     await expect(page.getByTestId('account-detached')).toBeVisible({ timeout: 20_000 });

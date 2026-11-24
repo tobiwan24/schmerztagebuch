@@ -39,7 +39,7 @@ export function CloudSyncBanner() {
         </div>
         <div className="flex gap-2">
           <Button asChild size="sm">
-            <Link to="/more/settings">{t.action}</Link>
+            <Link to="/more/settings/konto">{t.action}</Link>
           </Button>
           <Button size="sm" variant="outline" onClick={() => void dismiss()}>{t.dismiss}</Button>
         </div>

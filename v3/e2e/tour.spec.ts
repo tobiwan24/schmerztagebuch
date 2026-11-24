@@ -93,7 +93,7 @@ test.describe('Tutorial (Tour)', () => {
     await expect(page.locator('[data-tour-active]')).toHaveAttribute('data-tour', 'analysis-charts');
     await card(page).getByRole('button', { name: 'Alle überspringen' }).click();
 
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/darstellung');
     await page.getByRole('button', { name: 'Tutorial erneut zeigen' }).click();
     await expect(page.getByTestId('tour-restarted')).toBeVisible();
     expect(await tourState(page)).toEqual({ done: [], skipAll: false });

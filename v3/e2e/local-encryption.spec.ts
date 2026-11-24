@@ -103,7 +103,7 @@ test.describe('Lokale Verschlüsselung', () => {
     expect(before.dump).toContain(MARKER);
     expect(before.codecs['aes']).toBeUndefined();
 
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/sicherheit');
     const card = page.getByTestId('local-encryption');
     await card.getByLabel('Daten auf dem Gerät verschlüsseln').click();
     const dialog = page.getByRole('dialog');
@@ -178,7 +178,7 @@ test.describe('Lokale Verschlüsselung', () => {
     expect((await scanDb(page)).codecs['plain']).toBeUndefined();
     await go(page, '/history');
     await expect(page.getByTestId('entry-row')).toHaveCount(1);
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/sicherheit');
     await expect(page.getByTestId('local-encryption-done')).toBeVisible();
   });
 });

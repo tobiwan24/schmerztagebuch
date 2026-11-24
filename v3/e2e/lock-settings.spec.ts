@@ -5,7 +5,7 @@ import { PASSWORD, go, lockViaSettings, onboardWithPassword } from './helpers';
 test.describe('Sperre', () => {
   test('CRY-20: Dauer einstellbar (Entsperr-Dialog zeigt sie), „entsperrt bleiben" aktiv und widerrufbar, Inaktivität wählbar', async ({ page }) => {
     await onboardWithPassword(page);
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/sicherheit');
     await expect(page.getByTestId('stay-status')).toContainText('Entsperrt bleiben ist aus');
     const days = page.getByLabel(/Dauer für ‚Entsperrt bleiben‘/);
     await days.fill('3');
@@ -21,7 +21,7 @@ test.describe('Sperre', () => {
     await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Mit Passwort entsperren' }).click();
 
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/sicherheit');
     await expect(page.getByTestId('stay-status')).toContainText('bleibt entsperrt bis');
     await page.getByRole('button', { name: 'Entsperrt bleiben widerrufen' }).click();
     await expect(page.getByTestId('stay-status')).toContainText('Widerrufen');
@@ -30,7 +30,7 @@ test.describe('Sperre', () => {
 
   test('RDM-028 P7: Status-Text „Entsperrt bleiben“ widerspruchsfrei zur Einstellung', async ({ page }) => {
     await onboardWithPassword(page);
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/sicherheit');
     // Gespeicherte Dauer (7 Tage) ist nur die Voreinstellung; der Status sagt, dass es aus ist und wie man es einschaltet.
     await expect(page.getByLabel(/Dauer für ‚Entsperrt bleiben‘/)).toHaveValue('7');
     const status = page.getByTestId('stay-status');

@@ -2,6 +2,9 @@
 export const deSettings = {
   title: 'Einstellungen',
   security: 'Sicherheit',
+  securityMenu: 'Sicherheit & Sperre',
+  remindersMenu: 'Erinnerungen & Hinweise',
+  dataMenu: 'Speicher & Daten',
   appearance: 'Darstellung',
   themeLight: 'Hell',
   themeDark: 'Dunkel',

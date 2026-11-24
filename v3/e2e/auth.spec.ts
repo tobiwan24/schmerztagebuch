@@ -57,11 +57,11 @@ test.describe('Onboarding und Entsperren (nur auf diesem Gerät)', () => {
     await expect(page.getByRole('heading', { name: 'Tagebuch entsperren' })).toBeVisible();
     await page.getByRole('button', { name: 'Abbrechen' }).click();
     // … und über die Einstellungen
-    await go(page, '/more/settings');
+    await go(page, '/more/settings/sicherheit');
     await page.getByRole('main').getByRole('link', { name: 'Entsperren' }).click();
     await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Mit Passwort entsperren' }).click();
-    await expect(page).toHaveURL(/\/more\/settings$/);
+    await expect(page).toHaveURL(/\/more\/settings\/sicherheit$/);
     await expect(page.getByTestId('lock-banner')).toHaveCount(0);
   });
 

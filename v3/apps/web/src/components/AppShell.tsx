@@ -24,7 +24,12 @@ const TABS = [
 ] as const;
 
 /** Ansichten, die auch gesperrt erreichbar sind (Entsperren über Einstellungen, CRY-10). */
-const OPEN_WHEN_LOCKED = ['/more', '/more/settings', '/more/settings/diagnose'];
+const OPEN_WHEN_LOCKED = [
+  '/more', '/more/settings', '/more/settings/diagnose',
+  // Unterseiten der Einstellungen (RDM-029), die auch gesperrt Inhalte zeigen wie vorher die lange Einstellungsseite.
+  '/more/settings/konto', '/more/settings/updates', '/more/settings/sicherheit', '/more/settings/darstellung',
+  '/more/settings/erinnerungen', '/more/settings/ki', '/more/settings/daten',
+];
 
 export function AppShell() {
   const { status } = useAuth();
