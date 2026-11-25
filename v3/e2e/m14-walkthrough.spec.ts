@@ -39,13 +39,13 @@ test.describe('M14-Rundgang (iPhone-Viewport)', () => {
     await card(page, 3).getByLabel('Bezeichnung', { exact: true }).fill('Ort');
     await noOverflow(page, 'Vorlagen-Editor');
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
 
     // Vorlage ändern
     await page.getByRole('link', { name: 'Rundgang bearbeiten' }).click();
     await card(page, 2).getByLabel('Bezeichnung', { exact: true }).fill('Beschreibung');
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
 
     // Eintrag mit Tags, Anhang, Körperkarte
     await go(page, '/entry/new');

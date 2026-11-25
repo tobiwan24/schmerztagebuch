@@ -1,4 +1,5 @@
-// Onboarding-Schritte nach dem Konto (Spec 10): erstes Tagebuch (Name, Art) → Wetter-Ort (optional) → Vorlage aus dem Katalog oder leer.
+// Onboarding-Schritte nach dem Konto (Spec 10): erstes Tagebuch (Name, Art) → Wetter-Ort (optional) → Vorlage aus dem
+// Vorlagenkatalog (eigene Einträge, RDM-034, und mitgelieferte) oder leer.
 import { useState, type FormEvent } from 'react';
 import { Check } from 'lucide-react';
 import { TEMPLATE_CATALOG, type DiarySubject } from '@stb/core';
@@ -79,33 +80,43 @@ export function LocationStep({ onDone }: { onDone: (location: WeatherLocation | 
   );
 }
 
-/** `null` = leer beginnen. */
-export function TemplateStep({ busy, onDone }: { busy: boolean; onDone: (catalogId: string | null) => void }) {
-  const [choice, setChoice] = useState<string | null>(TEMPLATE_CATALOG[0]?.id ?? null);
-  const options = [...TEMPLATE_CATALOG.map((c) => ({ id: c.id as string | null, name: c.name, hint: c.description })), { id: null, name: deOnboarding.templateEmpty, hint: deOnboarding.templateEmptyHint }];
+/** Gewählte Vorlage: mitgelieferte (`TEMPLATE_CATALOG`-ID) oder eigener Vorlagenkatalog-Eintrag (Vorlagen-ID). */
+export interface TemplateChoice {
+  id: string;
+  own: boolean;
+}
+
+/** `null` = leer beginnen. `own` = eigene Vorlagen im Vorlagenkatalog (RDM-034), stehen vor den mitgelieferten. */
+export function TemplateStep({ busy, onDone, own = [] }: { busy: boolean; onDone: (choice: TemplateChoice | null) => void; own?: readonly { id: string; name: string; hint: string }[] }) {
+  const options = [
+    ...own.map((o) => ({ key: `own:${o.id}`, choice: { id: o.id, own: true } as TemplateChoice | null, name: o.name, hint: o.hint })),
+    ...TEMPLATE_CATALOG.map((c) => ({ key: c.id, choice: { id: c.id, own: false } as TemplateChoice | null, name: c.name, hint: c.description })),
+    { key: 'empty', choice: null, name: deOnboarding.templateEmpty, hint: deOnboarding.templateEmptyHint },
+  ];
+  const [choice, setChoice] = useState<string>(options[0]!.key);
   return (
     <>
       <h2 className="text-lg font-semibold">{deOnboarding.templateTitle}</h2>
       <div role="radiogroup" aria-label={deOnboarding.templateTitle} className="flex flex-col gap-2">
         {options.map((o) => (
           <Button
-            key={o.id ?? 'empty'}
+            key={o.key}
             type="button"
             role="radio"
-            aria-checked={choice === o.id}
-            variant={choice === o.id ? 'default' : 'outline'}
+            aria-checked={choice === o.key}
+            variant={choice === o.key ? 'default' : 'outline'}
             className="h-auto justify-between py-3 text-left"
-            onClick={() => setChoice(o.id)}
+            onClick={() => setChoice(o.key)}
           >
             <span className="flex flex-col whitespace-normal">
               <span>{o.name}</span>
               <span className="text-xs opacity-80">{o.hint}</span>
             </span>
-            {choice === o.id ? <Check aria-hidden /> : null}
+            {choice === o.key ? <Check aria-hidden /> : null}
           </Button>
         ))}
       </div>
-      <Button disabled={busy} onClick={() => onDone(choice)}>
+      <Button disabled={busy} onClick={() => onDone(options.find((o) => o.key === choice)?.choice ?? null)}>
         {busy ? deOnboarding.working : deOnboarding.finish}
       </Button>
     </>

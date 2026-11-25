@@ -98,3 +98,4 @@ Owner                                Server                         Eingeladene 
 | SHR-18 | Einladungscode wird als Code, Fragment oder ganzer Link erkannt; ein erzeugter QR-Code wird vom Leser wieder als derselbe Code gelesen. | unit |
 | SHR-19 | QR-Einladung zwischen zwei Konten: Dialog zeigt QR-Code, eingeladene Person löst den Code in der App ein, der Dialog meldet den Beitritt; Schließen des Dialogs widerruft eine nicht angenommene Einladung. | e2e |
 | SHR-20 | QR-Code mit der installierten App auf einem echten zweiten iPhone gescannt und angenommen. | manual |
+| SHR-21 | Owner ändert eine Vorlage des geteilten Tagebuchs → nach Sync sieht das Mitglied die Änderung, wenn das geteilte Tagebuch gewählt ist, und **nicht** im eigenen Tagebuch; das Mitglied (auch `viewer`) kann sie als Kopie in den eigenen Vorlagenkatalog übernehmen, der Owner sieht diesen Vorlagenkatalog nicht. | e2e |

@@ -17,6 +17,7 @@ import { applyFill, type FillDraft } from '@/llm/fill';
 import type { LlmFillResponse } from '@stb/sync-protocol';
 import { useData } from '@/data/DataContext';
 import { useWritableDiaries } from '@/data/useSharing';
+import { useActiveDiary } from '@/data/diary-scope';
 import { useQuery } from '@/data/useQuery';
 import { de } from '@/i18n/de';
 import { deQuick } from '@/i18n/lazy/quick';
@@ -36,13 +37,15 @@ export function QuickPage() {
   const templateParam = params.get('template');
   const writable = useWritableDiaries();
   const writableIds = writable.status === 'ok' ? writable.data.map((d) => d.id).join() : null;
-  // Mehrere beschreibbare Tagebücher ohne Angabe → Auswahl (A-041); sonst das gewählte bzw. einzige Tagebuch.
+  const active = useActiveDiary();
+  // Ohne Angabe: das gewählte Tagebuch, falls beschreibbar (RDM-034); sonst bei mehreren beschreibbaren Tagebüchern die Auswahl (A-041).
   const query = useQuery<{ choose: Diary[] | null; options: QuickEntrySelection[]; lastTemplateId: string | null }>(async () => {
-    if (writable.status !== 'ok') return { choose: null, options: [], lastTemplateId: null };
+    if (writable.status !== 'ok' || !active.ready) return { choose: null, options: [], lastTemplateId: null };
     const list = writable.data;
     // `?template=` ohne `diary`: das Tagebuch der Vorlage bestimmt die Auswahl (RDM-028 P2).
     const templateDiaryId = !wanted && templateParam ? (await data.diary.listAllTemplates()).find((x) => x.id === templateParam)?.diaryId : undefined;
-    const diaryId = wanted ?? (templateDiaryId && list.some((d) => d.id === templateDiaryId) ? templateDiaryId : null);
+    const activeWritable = active.diaryId && list.some((d) => d.id === active.diaryId) ? active.diaryId : null;
+    const diaryId = wanted ?? (templateDiaryId && list.some((d) => d.id === templateDiaryId) ? templateDiaryId : null) ?? (templateParam ? null : activeWritable);
     if (!diaryId && list.length > 1) return { choose: list, options: [], lastTemplateId: null };
     const diary = diaryId ? list.find((d) => d.id === diaryId) : list[0];
     if (!diary) return { choose: null, options: [], lastTemplateId: null };
@@ -52,7 +55,7 @@ export function QuickPage() {
     // Vorausgewählt: die Vorlage des zuletzt gespeicherten Eintrags (A-070), sonst die erste.
     const last = (await data.diary.listEntries(diary.id)).reduce<Entry | null>((a, e) => (!a || e.recordedAt > a.recordedAt ? e : a), null);
     return { choose: null, options: quickEntryOptions(diary, states), lastTemplateId: last?.templateId ?? null };
-  }, [data.diary, wanted, templateParam, writableIds]);
+  }, [data.diary, wanted, templateParam, writableIds, active.diaryId, active.ready]);
   const options = query.status === 'ok' ? query.data.options : [];
   const selection = (query.status === 'ok' ? options.find((o) => o.state.template.id === (chosen ?? (templateParam && options.some((x) => x.state.template.id === templateParam) ? templateParam : query.data.lastTemplateId))) : undefined) ?? options[0] ?? null;
   const switchTo = (id: string) => {

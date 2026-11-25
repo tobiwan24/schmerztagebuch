@@ -52,7 +52,7 @@ test.describe('Trainingsvorlage im Editor', () => {
     await expect(link).toHaveAttribute('target', '_blank');
     await expect(link).toHaveAttribute('rel', /noopener/);
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
 
     // Neu öffnen: alles ist erhalten
     await page.getByRole('link', { name: /Schulterübungen/ }).first().click();

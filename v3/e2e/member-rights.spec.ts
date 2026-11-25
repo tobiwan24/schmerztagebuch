@@ -63,7 +63,7 @@ test.describe('Feinere Rechte', () => {
     await b.page.getByRole('link', { name: 'Neue leere Vorlage' }).click();
     await b.page.getByLabel('Name', { exact: true }).fill('STB-VORLAGE-VOM-EDITOR');
     await b.page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(b.page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(b.page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
 
     // Der Server hat sie angenommen: der Owner sieht die Vorlage (nicht in der Outbox des Editors hängengeblieben)
     await expect

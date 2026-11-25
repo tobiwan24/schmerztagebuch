@@ -25,7 +25,7 @@ test.describe('Start: Schnell-Buttons je Vorlage', () => {
     await page.getByRole('group', { name: 'Feld hinzufügen' }).getByRole('button', { name: 'Slider', exact: true }).click();
     await page.getByRole('region', { name: /^Feld 1:/ }).getByLabel('Bezeichnung', { exact: true }).fill('Stimmung');
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
 
     const settings = async (names: string[], on: boolean) => {
       await go(page, '/more/diaries');
@@ -71,7 +71,7 @@ test.describe('Start: Schnell-Buttons je Vorlage', () => {
     await page.getByRole('group', { name: 'Feld hinzufügen' }).getByRole('button', { name: 'Slider', exact: true }).click();
     await page.getByRole('region', { name: /^Feld 1:/ }).getByLabel('Bezeichnung', { exact: true }).fill('Stimmung');
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
     await go(page, '/more/diaries');
     await page.getByTestId('diary-card').getByRole('link', { name: 'Einstellungen' }).click();
     await page.getByLabel('Allgemeines Schmerz-Tagebuch', { exact: true }).check();

@@ -4,6 +4,7 @@ import {
   bodymapImageSchema,
   compareByOrder,
   diarySchema,
+  isLibraryDiary,
   entrySchemaFor,
   resolveEntryView,
   templateSchema,
@@ -26,6 +27,15 @@ import type { RecordInput, RecordRepository } from './records.js';
  */
 export const templateVersionRecordId = (templateId: string, version: number): string => `${templateId}.v${version}`;
 
+/**
+ * RDM-034: Bibliotheken (persönlicher Vorlagenkatalog, `Diary.purpose = 'library'`) sind in `listDiaries`/`listAll*`
+ * standardmäßig ausgeschlossen, damit Umschalter, Start, Verlauf, Auswertung, Export, Erinnerungen und Regeln sie nie sehen.
+ * Nur das Voll-Backup (A1) fragt sie mit `includeLibrary` ab.
+ */
+export interface LibraryOption {
+  includeLibrary?: boolean;
+}
+
 export interface EntryView {
   entry: Entry;
   fields: EntryField[];
@@ -37,11 +47,15 @@ export interface DiaryRepository {
   getDiary(diaryId: string): Promise<Diary | undefined>;
   /** Speichert ein geändertes Tagebuch (Einstellungen, DM-14); neue Tagebücher legt `createDiary` an. */
   saveDiary(diary: Diary): Promise<void>;
-  listDiaries(): Promise<Diary[]>;
+  listDiaries(opts?: LibraryOption): Promise<Diary[]>;
+  /** Bibliotheken des Kontos (normalerweise eine; zwei, wenn zwei Geräte offline je eine anlegten), älteste zuerst. */
+  listLibraries(): Promise<Diary[]>;
+  /** Aktive Vorlagen aller Bibliotheken (Vereinigung, DM-20), nach `order`. */
+  listCatalogTemplates(): Promise<Template[]>;
   /** Eigene Body-Map-Bilder eines Tagebuchs (A-024), älteste zuerst. */
   listBodymapImages(diaryId: string): Promise<BodymapImage[]>;
   /** Alle Vorlagenversionen (Analyse: Werte über die Eintragsversion, Spec 06). */
-  listAllTemplateVersions(): Promise<TemplateVersion[]>;
+  listAllTemplateVersions(opts?: LibraryOption): Promise<TemplateVersion[]>;
   listSavedFilters(diaryId: string): Promise<SavedFilter[]>;
   saveSavedFilter(filter: SavedFilter): Promise<void>;
   deleteSavedFilter(filterId: string, stamp: { hlc: string; updatedAt: string }): Promise<void>;
@@ -67,7 +81,7 @@ export interface DiaryRepository {
   getTemplateVersion(templateId: string, version: number): Promise<TemplateVersion | undefined>;
   listTemplates(diaryId: string): Promise<Template[]>;
   /** Vorlagen aller Tagebücher (Ansicht „Alle“), nach `order`. */
-  listAllTemplates(): Promise<Template[]>;
+  listAllTemplates(opts?: LibraryOption): Promise<Template[]>;
   /** Validiert gegen die referenzierte Vorlagenversion (DM-03) und speichert. */
   saveEntry(entry: Entry): Promise<void>;
   getEntry(entryId: string): Promise<Entry | undefined>;
@@ -75,12 +89,22 @@ export interface DiaryRepository {
   deleteEntry(entryId: string, stamp: { hlc: string; updatedAt: string }): Promise<void>;
   listEntries(diaryId: string): Promise<Entry[]>;
   /** Einträge aller Tagebücher, neueste zuerst. */
-  listAllEntries(): Promise<Entry[]>;
+  listAllEntries(opts?: LibraryOption): Promise<Entry[]>;
   /** Eintrag mit Feldern der aktuellen Vorlagenversion inkl. archivierter Felder (DM-08). */
   getEntryView(entryId: string): Promise<EntryView | undefined>;
 }
 
 export function createDiaryRepository(records: RecordRepository): DiaryRepository {
+  const allDiaries = async (): Promise<Diary[]> => {
+    const all = (await records.listKind('diary')).map((r) => diarySchema.parse(r.payload));
+    return all.sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  };
+  /** Filter auf Records außerhalb von Bibliotheken (oder alles mit `includeLibrary`). */
+  const outsideLibraries = async (opts?: LibraryOption): Promise<(rec: { diaryId: string }) => boolean> => {
+    if (opts?.includeLibrary) return () => true;
+    const libs = new Set((await allDiaries()).filter(isLibraryDiary).map((d) => d.id));
+    return (rec) => !libs.has(rec.diaryId);
+  };
   const repo: DiaryRepository = {
     async createDiary(diary, firstTemplate) {
       const d = diarySchema.parse(diary);
@@ -108,9 +132,19 @@ export function createDiaryRepository(records: RecordRepository): DiaryRepositor
       return rec && !rec.deleted && rec.kind === 'diary' ? diarySchema.parse(rec.payload) : undefined;
     },
 
-    async listDiaries() {
-      const all = (await records.listKind('diary')).map((r) => diarySchema.parse(r.payload));
-      return all.sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0));
+    async listDiaries(opts) {
+      const all = await allDiaries();
+      return opts?.includeLibrary ? all : all.filter((d) => !isLibraryDiary(d));
+    },
+
+    async listLibraries() {
+      return (await allDiaries()).filter(isLibraryDiary);
+    },
+
+    async listCatalogTemplates() {
+      const libs = await repo.listLibraries();
+      const lists = await Promise.all(libs.map((d) => repo.listTemplates(d.id)));
+      return lists.flat().filter((t) => !t.archived).sort(compareByOrder);
     },
 
     async saveTemplate({ template, version }) {
@@ -167,8 +201,9 @@ export function createDiaryRepository(records: RecordRepository): DiaryRepositor
       return (await records.list(diaryId, 'template')).map((r) => templateSchema.parse(r.payload));
     },
 
-    async listAllTemplateVersions() {
-      return (await records.listKind('templateVersion')).map((rec) => templateVersionSchema.parse(rec.payload));
+    async listAllTemplateVersions(opts) {
+      const keep = await outsideLibraries(opts);
+      return (await records.listKind('templateVersion')).filter(keep).map((rec) => templateVersionSchema.parse(rec.payload));
     },
 
     async listSavedFilters(diaryId) {
@@ -232,8 +267,9 @@ export function createDiaryRepository(records: RecordRepository): DiaryRepositor
       if (rec && !rec.deleted && rec.kind === 'bodymapImage') await records.remove(imageId);
     },
 
-    async listAllTemplates() {
-      return (await records.listKind('template')).map((r) => templateSchema.parse(r.payload)).sort(compareByOrder);
+    async listAllTemplates(opts) {
+      const keep = await outsideLibraries(opts);
+      return (await records.listKind('template')).filter(keep).map((r) => templateSchema.parse(r.payload)).sort(compareByOrder);
     },
 
     async saveEntry(entry) {
@@ -254,8 +290,9 @@ export function createDiaryRepository(records: RecordRepository): DiaryRepositor
       await records.remove(entryId, { ...entry, hlc: stamp.hlc, updatedAt: stamp.updatedAt });
     },
 
-    async listAllEntries() {
-      const all = (await records.listKind('entry')).map((r) => r.payload as Entry);
+    async listAllEntries(opts) {
+      const keep = await outsideLibraries(opts);
+      const all = (await records.listKind('entry')).filter(keep).map((r) => r.payload as Entry);
       return all.sort((a, b) => (a.occurredAt < b.occurredAt ? 1 : a.occurredAt > b.occurredAt ? -1 : 0));
     },
 

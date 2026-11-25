@@ -9,9 +9,14 @@ import type { RecordInput, RecordRepository } from './repositories/records';
 import { templateVersionRecordId, type DiaryRepository } from './repositories/diary';
 import { ATTACHMENT_KIND, EXERCISE_MEDIA_KIND, type AttachmentRepository, type BlobInput } from './repositories/attachments';
 
-export async function collectExportSource(diary: DiaryRepository, attachments?: AttachmentRepository): Promise<ExportSource> {
-  const diaries = await diary.listDiaries();
-  const [templates, versions, entries] = await Promise.all([diary.listAllTemplates(), diary.listAllTemplateVersions(), diary.listAllEntries()]);
+/**
+ * Quelle für Export/Bericht. `includeLibrary` (RDM-034, A1): nur das Voll-Backup (JSON-Gesamtexport, Auto-Backup,
+ * `.stbbackup`) enthält den Vorlagenkatalog; PDF/CSV/Bericht werten nur Tagebücher aus.
+ */
+export async function collectExportSource(diary: DiaryRepository, attachments?: AttachmentRepository, opts: { includeLibrary?: boolean } = {}): Promise<ExportSource> {
+  const lib = { includeLibrary: opts.includeLibrary === true };
+  const diaries = await diary.listDiaries(lib);
+  const [templates, versions, entries] = await Promise.all([diary.listAllTemplates(lib), diary.listAllTemplateVersions(lib), diary.listAllEntries(lib)]);
   const savedFilters = (await Promise.all(diaries.map((d) => diary.listSavedFilters(d.id)))).flat();
   const bodymapImages = (await Promise.all(diaries.map((d) => diary.listBodymapImages(d.id)))).flat();
   const dashboards = (await Promise.all(diaries.map((d) => diary.listDashboards(d.id)))).flat();
@@ -34,7 +39,8 @@ export async function collectExportSource(diary: DiaryRepository, attachments?: 
 }
 
 export async function createExport(diary: DiaryRepository, opts: { appVersion: string; now: number; filter?: FilterSpec }, attachments?: AttachmentRepository): Promise<ExportV1> {
-  return buildExport(await collectExportSource(diary, attachments), opts);
+  // Gesamtexport ohne Filter = Voll-Backup inkl. Vorlagenkatalog (A1); gefilterter Export nur Tagebücher.
+  return buildExport(await collectExportSource(diary, attachments, { includeLibrary: !opts.filter }), opts);
 }
 
 /** `.stbbackup` (Spec 07): vollständiger JSON-v1-Export, verschlüsselt mit Backup-Code oder Backup-Passwort. */

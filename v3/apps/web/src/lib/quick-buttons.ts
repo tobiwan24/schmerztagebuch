@@ -1,4 +1,4 @@
-// Schnell-Buttons der Startseite (RDM-028 P2): je Vorlage aus `quickTemplateIds` ein Knopf, sonst der Tagebuch-Knopf.
+// Schnell-Buttons der Startseite (RDM-028 P2, RDM-034): je Vorlage aus `quickTemplateIds` des gewählten Tagebuchs ein Knopf, sonst „Schnell eintragen“.
 import { isEntryTemplate } from '@/lib/entry-template';
 import { de } from '@/i18n/de';
 
@@ -25,20 +25,13 @@ export function mergeQuickIds(shown: readonly { id: string }[], chosen: Readonly
   return [...shown.filter((x) => chosen.has(x.id)).map((x) => x.id), ...stored.filter((i) => !shownIds.has(i))];
 }
 
-/** Reihenfolge: Tagebücher wie übergeben, darin die Vorlagen in Vorlagen-Reihenfolge. Ohne Auswahl der bisherige Knopf. */
-export function quickButtons(writable: readonly QuickDiary[], templates: readonly QuickTemplate[]): QuickButton[] {
-  const many = writable.length > 1;
-  const out: QuickButton[] = [];
-  for (const d of writable) {
-    const chosen = new Set(d.settings.quickTemplateIds ?? []);
-    const own = templates.filter((t) => chosen.has(t.id) && t.diaryId === d.id && isEntryTemplate(t));
-    if (own.length === 0) {
-      out.push(many ? { to: `/quick?diary=${d.id}`, label: de.start.quickEntryFor(d.name) } : { to: '/quick', label: de.start.quickEntry });
-      continue;
-    }
-    for (const t of own) {
-      out.push({ to: `/quick?template=${t.id}${many ? `&diary=${d.id}` : ''}`, label: many ? de.start.quickTemplateIn(t.name, d.name) : de.start.quickTemplate(t.name) });
-    }
-  }
-  return out.length > 0 ? out : [{ to: '/quick', label: de.start.quickEntry }];
+/**
+ * Schnell-Buttons des gewählten Tagebuchs (RDM-034, R1): je gewählter Vorlage ein Knopf in Vorlagen-Reihenfolge
+ * (`templates` sortiert übergeben), ohne Auswahl ein Knopf „Schnell eintragen“. Vorlagen anderer Tagebücher entfallen.
+ */
+export function quickButtons(diary: QuickDiary, templates: readonly QuickTemplate[]): QuickButton[] {
+  const chosen = new Set(diary.settings.quickTemplateIds ?? []);
+  const own = templates.filter((t) => chosen.has(t.id) && t.diaryId === diary.id && isEntryTemplate(t));
+  if (own.length === 0) return [{ to: `/quick?diary=${diary.id}`, label: de.start.quickEntry }];
+  return own.map((t) => ({ to: `/quick?diary=${diary.id}&template=${t.id}`, label: de.start.quickTemplate(t.name) }));
 }

@@ -11,6 +11,8 @@ export const ALL_DIARIES = 'all';
 
 interface ScopeApi {
   diaries: Diary[];
+  /** Tagebuchliste geladen (vorher ist `diaries` leer). */
+  ready: boolean;
   /** Gemerkte Auswahl (`ALL_DIARIES` oder Tagebuch-ID). */
   stored: string;
   select(id: string): void;
@@ -45,7 +47,7 @@ export function DiaryScopeProvider({ enabled, children }: { enabled: boolean; ch
     },
     [db],
   );
-  const api = useMemo<ScopeApi>(() => ({ diaries: list.status === 'ok' ? list.data : [], stored, select }), [list, stored, select]);
+  const api = useMemo<ScopeApi>(() => ({ diaries: list.status === 'ok' ? list.data : [], ready: list.status === 'ok', stored, select }), [list, stored, select]);
   return <ScopeContext.Provider value={api}>{children}</ScopeContext.Provider>;
 }
 
@@ -53,14 +55,23 @@ export function DiaryScopeProvider({ enabled, children }: { enabled: boolean; ch
  * Wirksames Tagebuch für eine Ansicht: ID oder `null` (= alle; auch bei nur einem Tagebuch, dann ohne Umschalter).
  * `allowAll = false` (Start, neuer Eintrag): bei „Alle" gilt das erste Tagebuch.
  */
-export function useDiaryScope(allowAll: boolean): { diaryId: string | null; diaries: Diary[]; stored: string; select(id: string): void } {
+export function useDiaryScope(allowAll: boolean): { diaryId: string | null; diaries: Diary[]; ready: boolean; stored: string; select(id: string): void } {
   const ctx = useContext(ScopeContext);
   if (!ctx) throw new Error('useDiaryScope außerhalb von <DiaryScopeProvider>');
-  const { diaries, stored, select } = ctx;
+  const { diaries, ready, stored, select } = ctx;
   let diaryId: string | null = null;
   if (diaries.length > 1) {
     if (diaries.some((d) => d.id === stored)) diaryId = stored;
     else diaryId = allowAll ? null : (diaries[0]?.id ?? null);
   }
-  return { diaryId, diaries, stored, select };
+  return { diaryId, diaries, ready, stored, select };
+}
+
+/**
+ * RDM-034 (R1): Tagebuch, dessen Vorlagen Start, „Neuer Eintrag“ und Schnelleintrag anbieten — die Auswahl des
+ * Umschalters, bei nur einem Tagebuch dieses. `null` solange nichts geladen ist bzw. es kein Tagebuch gibt.
+ */
+export function useActiveDiary(): { diaryId: string | null; ready: boolean; select(id: string): void } {
+  const { diaryId, diaries, ready, select } = useDiaryScope(false);
+  return { diaryId: diaryId ?? diaries[0]?.id ?? null, ready, select };
 }

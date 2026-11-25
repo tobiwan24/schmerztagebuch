@@ -57,7 +57,7 @@ test.describe('Auswertung: Meine Dashboards', () => {
     await page.getByTestId('lock-banner').getByRole('link', { name: 'Entsperren' }).click();
     await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Mit Passwort entsperren' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible({ timeout: 30_000 });
 
     await openDashboards(page);
     await expect(page.getByText('Noch kein eigenes Dashboard')).toBeVisible();
@@ -103,7 +103,7 @@ test.describe('Auswertung: Meine Dashboards', () => {
     await page.getByTestId('lock-banner').getByRole('link', { name: 'Entsperren' }).click();
     await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Mit Passwort entsperren' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible({ timeout: 30_000 });
     await openDashboards(page);
     await expect(page.getByTestId('dashboard-name')).toHaveText('Monat');
     await expect.poll(kinds).toEqual(['timeseries', 'kpi']);
@@ -124,7 +124,7 @@ test.describe('Auswertung: Meine Dashboards', () => {
     await page.getByTestId('lock-banner').getByRole('link', { name: 'Entsperren' }).click();
     await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Mit Passwort entsperren' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible({ timeout: 30_000 });
 
     await openDashboards(page);
     await page.getByLabel('Name des neuen Dashboards').fill('Export');

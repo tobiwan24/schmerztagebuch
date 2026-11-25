@@ -25,7 +25,7 @@ async function createTraining(page: Page): Promise<void> {
   await palette.getByRole('button', { name: 'Slider', exact: true }).click();
   await page.getByRole('region', { name: /^Feld 3:/ }).getByLabel('Bezeichnung', { exact: true }).fill('Anstrengung');
   await page.getByRole('button', { name: 'Speichern' }).click();
-  await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
 }
 
 test.describe('Training', () => {
@@ -43,7 +43,7 @@ test.describe('Training', () => {
     await page.getByRole('region', { name: /^Feld 1:/ }).getByLabel('Bezeichnung', { exact: true }).fill('Klimmzug');
     await page.getByLabel('Funktionsphasen (optional)').fill('5');
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
 
     // Start: Kachel „Übungen“, Trainingsvorlagen sind keine Vorlagen-Kacheln
     await go(page, '/');

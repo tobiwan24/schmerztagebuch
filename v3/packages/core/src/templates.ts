@@ -60,6 +60,8 @@ export const templateSchema = z.strictObject({
   purpose: z.enum(TEMPLATE_PURPOSES).optional(),
   /** Funktionsphasen (Werte der Rolle `function`), in denen eine Trainingsvorlage erscheint; leer/fehlt = immer. */
   functionPhases: z.array(z.number().finite()).max(20).optional(),
+  /** Nur an Vorlagen im Vorlagenkatalog (RDM-034): Herkunft der Kopie, für „Im Vorlagenkatalog aktualisieren“. Unversioniert. */
+  catalogSource: z.strictObject({ diaryId: idSchema, templateId: idSchema, version: z.number().int().min(1) }).optional(),
   currentVersion: z.number().int().min(1),
   archived: z.boolean(),
   createdAt: isoDateTime,
@@ -105,8 +107,11 @@ export interface NewTemplate {
   quickBlockIds?: string[];
   purpose?: TemplatePurpose;
   functionPhases?: number[];
+  catalogSource?: CatalogSource;
   blocks: BlockDef[];
 }
+
+export type CatalogSource = NonNullable<Template['catalogSource']>;
 
 export function createTemplate(input: NewTemplate, clock: Clock): TemplateState {
   const now = isoNow(clock);
@@ -128,6 +133,8 @@ export interface TemplatePatch {
   purpose?: TemplatePurpose | null;
   /** `null` entfernt die Auswahl (= immer). Ändert keine Version. */
   functionPhases?: number[] | null;
+  /** Herkunft im Vorlagenkatalog neu setzen (RDM-034). Ändert keine Version. */
+  catalogSource?: CatalogSource;
   blocks?: BlockDef[];
 }
 

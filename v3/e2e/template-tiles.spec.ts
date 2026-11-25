@@ -4,14 +4,12 @@ import { addVirtualAuthenticator, go, onboardWithCloud, onboardWithPassword, uni
 test.describe('Start: Vorlagen-Kacheln', () => {
   test.describe.configure({ timeout: 90_000 });
 
-  test('BLK-44: Kacheln aller aktiven Vorlagen in Reihenfolge, Tipp öffnet das Formular mit dieser Vorlage; keine Begrüßung ohne Konto', async ({ page }) => {
+  test('BLK-44: Kacheln der aktiven Vorlagen des gewählten Tagebuchs in Reihenfolge, Tipp öffnet das Formular mit dieser Vorlage; keine Begrüßung ohne Konto', async ({ page }) => {
     await onboardWithPassword(page);
-    await go(page, '/more/diaries/new');
-    await page.getByLabel('Name').fill('Zweitbuch');
-    await page.getByRole('button', { name: 'Weiter' }).click();
-    await page.getByRole('radio', { name: /Migräne-Tracking/ }).click();
-    await page.getByRole('button', { name: 'Fertig' }).click();
-    await expect(page.getByTestId('diary-card')).toHaveCount(2);
+    // zweite Vorlage im selben Tagebuch (mitgeliefert aus dem Vorlagenkatalog)
+    await go(page, '/more/templates');
+    await page.getByTestId('catalog-builtin').getByRole('button', { name: /Migräne-Tracking/ }).click();
+    await expect(page.getByTestId('template-row')).toHaveCount(2);
 
     await go(page, '/');
     const tiles = page.getByTestId('template-tile');
