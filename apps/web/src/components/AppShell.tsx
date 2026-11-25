@@ -1,0 +1,146 @@
+// Grundgerüst: Kopfzeile, Inhalt, untere Leiste mit vier Zielen (Spec 10 „Navigation"). Mobile-first, Desktop zentriert.
+import { useEffect, useState } from 'react';
+import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
+import { useReminderScheduler } from '@/data/useReminders';
+import { useRuleEvaluation } from '@/data/useRuleHints';
+import { Lock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/auth/AuthContext';
+import { useData } from '@/data/DataContext';
+import { useQuery } from '@/data/useQuery';
+import { DiarySwitcher } from '@/components/DiarySwitcher';
+import { WhatsNewGate } from '@/components/WhatsNewGate';
+import { TourGate } from '@/tour/TourGate';
+import { TOUR_RING } from '@/tour/anchor';
+import { DiaryScopeProvider } from '@/data/diary-scope';
+import { BarChart3, Home, List, MoreHorizontal } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { de } from '@/i18n/de';
+
+/**
+ * Passkey-Autostart (RDM-035, A-151): beim Öffnen der App bzw. Zurückkehren aus dem Hintergrund einmal zur
+ * Entsperren-Seite mit `auto=1`. „Scharf“ nach dem Start und nach jedem Hintergrund; verbraucht durch die Umleitung —
+ * Abbrechen (CRY-10) startet den Passkey also erst nach dem nächsten Hintergrund erneut, „Jetzt sperren“ nie.
+ */
+let autoUnlockArmed = true;
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') autoUnlockArmed = true;
+  });
+}
+
+const TABS = [
+  { to: '/', label: de.nav.start, Icon: Home, end: true },
+  { to: '/history', label: de.nav.history, Icon: List, end: false },
+  { to: '/analysis', label: de.nav.analysis, Icon: BarChart3, end: false },
+  { to: '/more', label: de.nav.more, Icon: MoreHorizontal, end: false },
+] as const;
+
+/** Ansichten, die auch gesperrt erreichbar sind (Entsperren über Einstellungen, CRY-10). */
+const OPEN_WHEN_LOCKED = [
+  '/more', '/more/settings', '/more/settings/diagnose',
+  // Unterseiten der Einstellungen (RDM-029), die auch gesperrt Inhalte zeigen wie vorher die lange Einstellungsseite.
+  '/more/settings/konto', '/more/settings/updates', '/more/settings/sicherheit', '/more/settings/darstellung',
+  '/more/settings/erinnerungen', '/more/settings/ki', '/more/settings/daten',
+];
+
+export function AppShell() {
+  const { status, lockReason, passkeyRequest } = useAuth();
+  const navigate = useNavigate();
+  const [visibleTick, setVisibleTick] = useState(0);
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') setVisibleTick((n) => n + 1);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+  useReminderScheduler();
+  useRuleEvaluation();
+  const { diary } = useData();
+  const location = useLocation();
+  // Entsperrt, aber noch kein Tagebuch → Onboarding fortsetzen. Bei Lesefehler normal weiter (Fehlerzustand der Ansicht).
+  const diaries = useQuery(() => (status === 'unlocked' ? diary.listDiaries() : Promise.resolve(null)), [diary, status]);
+  const autoTarget = status === 'locked' && lockReason !== 'manual' && !OPEN_WHEN_LOCKED.includes(location.pathname) ? location.pathname + location.search + location.hash : null;
+  useEffect(() => {
+    if (!autoTarget || !autoUnlockArmed) return;
+    let cancelled = false;
+    // Nur mit Passkey; Passwort-Konten sehen wie bisher Banner und Gesperrt-Ansicht.
+    void passkeyRequest().then((prepared) => {
+      if (cancelled || !prepared || !autoUnlockArmed) return;
+      autoUnlockArmed = false;
+      void navigate(`/unlock?next=${encodeURIComponent(autoTarget)}&auto=1`, { replace: true });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [autoTarget, visibleTick, passkeyRequest, navigate]);
+  if (status === 'loading') return <p className="p-4 text-muted-foreground">{de.app.loading}</p>;
+  if (status === 'no-account') return <Navigate to="/onboarding" replace />;
+  if (status === 'unlocked' && diaries.status === 'ok' && diaries.data?.length === 0) return <Navigate to="/onboarding" replace />;
+  const locked = status === 'locked';
+  const here = location.pathname + location.search + location.hash;
+  const unlockHref = `/unlock?next=${encodeURIComponent(here)}`;
+  return (
+    <DiaryScopeProvider enabled={status === 'unlocked'}>
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
+      {locked ? (
+        <div role="status" data-testid="lock-banner" className="flex items-center justify-between gap-2 border-b bg-muted px-4 py-2 text-sm">
+          <span className="flex items-center gap-2">
+            <Lock className="size-4" aria-hidden />
+            {de.lock.bannerText}
+          </span>
+          <Button asChild size="sm">
+            <Link to={unlockHref} replace>
+              {de.lock.bannerAction}
+            </Link>
+          </Button>
+        </div>
+      ) : null}
+      {status === 'unlocked' ? <WhatsNewGate /> : null}
+      {status === 'unlocked' ? <TourGate /> : null}
+      <main className="flex flex-1 flex-col gap-4 p-4 pb-24">
+        {locked ? null : <DiarySwitcher />}
+        {locked && !OPEN_WHEN_LOCKED.includes(location.pathname) ? (
+          <section data-testid="locked-view" className="flex flex-col gap-3">
+            <h1 className="text-xl font-semibold">{de.lock.lockedTitle}</h1>
+            <p className="text-muted-foreground">{de.lock.lockedHint}</p>
+            <Button asChild>
+              <Link to={unlockHref} replace>
+                {de.lock.bannerAction}
+              </Link>
+            </Button>
+          </section>
+        ) : (
+          <Outlet />
+        )}
+      </main>
+      <nav
+        aria-label={de.nav.label}
+        data-tour="nav"
+        className={cn('fixed inset-x-0 bottom-0 z-30 transform-gpu border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur', TOUR_RING)}
+      >
+        <ul className="mx-auto grid max-w-md grid-cols-4">
+          {TABS.map(({ to, label, Icon, end }) => (
+            <li key={to}>
+              <NavLink
+                to={to}
+                end={end}
+                className={({ isActive }) =>
+                  cn(
+                    'flex min-h-14 flex-col items-center justify-center gap-1 text-xs text-muted-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                    isActive && 'font-semibold text-foreground',
+                  )
+                }
+              >
+                <Icon className="size-5" aria-hidden />
+                {label}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </div>
+    </DiaryScopeProvider>
+  );
+}

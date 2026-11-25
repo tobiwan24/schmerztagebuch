@@ -1,0 +1,19 @@
+{
+  "name": "@stb/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "stb-mcp": "./dist/main.js"
+  },
+  "scripts": {
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@stb/analysis": "*",
+    "@stb/client-sdk": "*",
+    "@stb/core": "*",
+    "zod": "^4.6.7"
+  }
+}

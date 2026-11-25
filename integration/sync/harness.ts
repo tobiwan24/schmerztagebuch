@@ -1,0 +1,119 @@
+// Test-Harness: echter Server (In-Memory-SQLite, fastify.inject) + Web-Datenschicht (fake-indexeddb) + Sync-Engine.
+// Liegt außerhalb von apps/*, weil apps einander nicht importieren dürfen (Spec 01).
+import 'fake-indexeddb/auto';
+import type { FastifyInstance } from 'fastify';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createHlcClock, createIdGenerator, type Clock, type HlcClock } from '@stb/core';
+import { generateDiaryKey } from '@stb/crypto';
+import type { PullQuery, PushRequest } from '@stb/sync-protocol';
+import { openDatabase, type Db } from '../../apps/server/src/db.js';
+import { migrate } from '../../apps/server/src/schema.js';
+import { buildApp } from '../../apps/server/src/app.js';
+import { headerAuth, TEST_AUTH_HEADER } from '../../apps/server/src/auth/test-auth.js';
+import { StbDb } from '../../apps/web/src/data/db.js';
+import { plainCodec } from '../../apps/web/src/data/codec/plain.js';
+import { createCodecRegistry } from '../../apps/web/src/data/codec/registry.js';
+import { createRecordRepository } from '../../apps/web/src/data/repositories/records.js';
+import { createDiaryRepository } from '../../apps/web/src/data/repositories/diary.js';
+import { createAttachmentRepository } from '../../apps/web/src/data/repositories/attachments.js';
+import { createSyncEngine } from '../../apps/web/src/sync/engine.js';
+import type { DiaryKeyProvider } from '../../apps/web/src/sync/engine.js';
+import { TransportError, type SyncTransport } from '../../apps/web/src/sync/transport.js';
+
+const serverConfig = { rpId: 'localhost', allowedOrigins: ['http://localhost:5173'], databasePath: ':memory:', blobDir: '.', port: 0, host: '127.0.0.1' };
+
+export interface Wire {
+  pushes: PushRequest[];
+  pulls: PullQuery[];
+  /** Simuliert Offline: jede Anfrage schlägt fehl. */
+  offline: boolean;
+  /** Simuliert Netzabbruch: Pull-Anfragen ab der n-ten (1-basiert) schlagen fehl. */
+  failPullFrom?: number;
+  /** Wird vor jeder Pull-Anfrage ausgeführt (z. B. um Wettläufe nachzustellen). */
+  beforePull?: () => Promise<void>;
+  /** Wird bei jedem Abruf des Diary Keys ausgeführt. */
+  onKeyGet?: () => Promise<void>;
+}
+
+export async function startServer(diaryId: string, users: string[] = ['alice']): Promise<{ app: FastifyInstance; db: Db; blobDir: string; close(): Promise<void> }> {
+  const db = openDatabase(':memory:');
+  const blobDir = mkdtempSync(join(tmpdir(), 'stb-int-blobs-'));
+  migrate(db);
+  db.prepare('INSERT INTO diaries (id, created_at) VALUES (?, 0)').run(diaryId);
+  for (const u of users) {
+    db.prepare("INSERT INTO memberships (diary_id, principal_id, role, key_epoch, wrapped_dk, created_at) VALUES (?, ?, 'owner', 1, 'w', 0)").run(diaryId, u);
+  }
+  const app = buildApp({ config: { ...serverConfig, blobDir }, db, auth: headerAuth });
+  await app.ready();
+  return { app, db, blobDir, async close() { await app.close(); db.close(); rmSync(blobDir, { recursive: true, force: true }); } };
+}
+
+export function injectTransport(app: FastifyInstance, user: string, wire: Wire): SyncTransport {
+  return {
+    async push(req) {
+      if (wire.offline) throw new TypeError('Failed to fetch');
+      wire.pushes.push(JSON.parse(JSON.stringify(req)) as PushRequest);
+      const res = await app.inject({ method: 'POST', url: '/api/v1/sync/push', headers: { [TEST_AUTH_HEADER]: user }, payload: req });
+      if (res.statusCode !== 200) throw new TransportError(res.statusCode, `push HTTP ${res.statusCode}`, (res.json() as { error?: string }).error);
+      return res.json();
+    },
+    async pull(q) {
+      if (wire.offline) throw new TypeError('Failed to fetch');
+      wire.pulls.push(q);
+      await wire.beforePull?.();
+      if (wire.failPullFrom !== undefined && wire.pulls.length >= wire.failPullFrom) throw new TypeError('Netzwerkfehler');
+      const res = await app.inject({ method: 'GET', url: `/api/v1/sync/pull?diaryId=${q.diaryId}&since=${q.since}&limit=${q.limit}`, headers: { [TEST_AUTH_HEADER]: user } });
+      if (res.statusCode !== 200) throw new TransportError(res.statusCode, `pull HTTP ${res.statusCode}`, (res.json() as { error?: string }).error);
+      return res.json();
+    },
+    async putBlob(diaryId, id, ciphertext) {
+      if (wire.offline) throw new TypeError('Failed to fetch');
+      const res = await app.inject({ method: 'PUT', url: `/api/v1/blobs/${id}?diaryId=${diaryId}`, headers: { [TEST_AUTH_HEADER]: user, 'content-type': 'text/plain' }, payload: ciphertext });
+      if (res.statusCode !== 200 && res.statusCode !== 201) throw new TransportError(res.statusCode, `blob PUT HTTP ${res.statusCode}`, (res.json() as { error?: string }).error);
+    },
+    async getBlob(id) {
+      if (wire.offline) throw new TypeError('Failed to fetch');
+      const res = await app.inject({ method: 'GET', url: `/api/v1/blobs/${id}`, headers: { [TEST_AUTH_HEADER]: user } });
+      if (res.statusCode === 404) return null;
+      if (res.statusCode !== 200) throw new Error(`blob GET HTTP ${res.statusCode}`);
+      return res.body;
+    },
+  };
+}
+
+let dbCounter = 0;
+
+/** Ein Gerät: eigene lokale DB, Repositories, Engine; alle Geräte eines Tests teilen DK und Server. */
+export async function createDevice(opts: { app: FastifyInstance; user: string; diaryId: string; dk: CryptoKey; clock: Clock; pullLimit?: number; diaryIds?: string[]; keys?: DiaryKeyProvider }) {
+  const wire: Wire = { pushes: [], pulls: [], offline: false };
+  const db = new StbDb(`stb-v3-int-${++dbCounter}`);
+  await db.open();
+  const registry = createCodecRegistry([plainCodec]);
+  const hlc: HlcClock = createHlcClock(opts.clock, `dev${dbCounter}`);
+  const records = createRecordRepository(db, { registry, writeCodec: 'plain', clock: opts.clock, outbox: true });
+  const repo = createDiaryRepository(records);
+  const engine = createSyncEngine({
+    db, registry, writeCodec: 'plain', transport: injectTransport(opts.app, opts.user, wire), pullLimit: opts.pullLimit,
+    keys: opts.keys ?? {
+      get: async () => {
+        await wire.onKeyGet?.();
+        return { key: opts.dk, keyEpoch: 1 };
+      },
+    },
+    newId: createIdGenerator(opts.clock).newId, clock: opts.clock, hlc,
+    diaryIds: async () => opts.diaryIds ?? [opts.diaryId],
+  });
+  const attachments = createAttachmentRepository(db, records, opts.clock);
+  return { db, repo, records, attachments, engine, wire, hlc, async close() { db.close(); await db.delete(); } };
+}
+
+export async function fixture() {
+  let t = 1_700_000_000_000;
+  const clock = { now: () => (t += 1000) };
+  const { newId } = createIdGenerator(clock);
+  const diaryId = newId();
+  const dk = await generateDiaryKey();
+  return { clock, newId, diaryId, dk };
+}

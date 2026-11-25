@@ -1,40 +1,21 @@
-# Nur für lokalen Test von Phase 1 (Backend-Grundgerüst). Die spätere
-# VM-Deploy-Konfiguration (Bind-Mounts nach /mnt/data/schmerztagebuch/...,
-# finale Caddy-Anbindung, Tailnet-Origin) ist eine separate spätere Phase
-# außerhalb dieses Worktrees (siehe Spec Phase 6).
-#
-# ACHTUNG lokaler Test: Die Session-Cookie ist laut Spec zwingend
-# `Secure` — moderne Browser behandeln `http://localhost` als potenziell
-# vertrauenswürdigen Kontext und akzeptieren Secure-Cookies dort trotzdem
-# (Chrome/Edge). Für den vollständigen Auth-Flow lokal daher am besten über
-# http://localhost:18060 testen, nicht über die LAN-IP.
+# Lokaler Start von Web + Server (Spec 12 „Betrieb"). Produktiv läuft das im Homelab-Repo.
 services:
-  api:
-    build:
-      context: ./server
-    image: schmerztagebuch-api:local
-    restart: unless-stopped
+  server:
+    build: { context: ., dockerfile: apps/server/Dockerfile }
     environment:
-      DB_PATH: /data/app.db
-      RP_ID: localhost
-      RP_NAME: Schmerztagebuch
-      ORIGIN: http://localhost:18060
-      SESSION_COOKIE_NAME: stb_session
+      RP_ID: ${RP_ID:-localhost}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080}
+      DATABASE_PATH: /data/stb.sqlite
+      BLOB_DIR: /data/blobs
+      PORT: "3000"
+      HOST: 0.0.0.0
     volumes:
-      - api-data:/data
-    expose:
-      - "3000"
-
+      - stb-data:/data
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile.web
-    image: schmerztagebuch-web:local
-    restart: unless-stopped
+    build: { context: ., dockerfile: apps/web/Dockerfile }
     ports:
-      - "127.0.0.1:18060:80"
+      - "${WEB_PORT:-8080}:80"
     depends_on:
-      - api
-
+      - server
 volumes:
-  api-data:
+  stb-data:

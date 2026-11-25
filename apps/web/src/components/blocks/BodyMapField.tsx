@@ -1,0 +1,390 @@
+// Body-Map (Spec 05, A-024), portiert aus v2 `BodyMapBlock.tsx`: Werkzeuge Punkt und Pinsel, Größe klein/mittel/groß,
+// Intensität 1–10 (Farben wie v2), Kommentar je Markierung, Nummerierung in Reihenfolge, Entfernen nummeriert neu.
+// Statt Canvas: Bild + SVG-Overlay (skaliert verlustfrei, testbar). Koordinaten normalisiert 0..1.
+// Bildwahl: Standardbilder + eigene Bilder des Tagebuchs (hochladen, zuschneiden, löschen, als Standard des Feldes setzen);
+// Wechsel mit vorhandenen Markierungen nur nach Rückfrage.
+import { lazy, Suspense, useRef, useState, type PointerEvent } from 'react';
+import { ArrowDownToDot, Brush, Crop, ImagePlus, Star, Trash2, X } from 'lucide-react';
+import { BODYMAP_MAX_PATH, type BodymapValue } from '@stb/core';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useData } from '@/data/DataContext';
+import { useQuery } from '@/data/useQuery';
+import { cropImage, readFileAsDataUrl, resizeImage, type CropArea } from '@/lib/image';
+import { BODYMAP_PRESETS, intensityFill, intensityStroke, presetById } from './bodymap-presets';
+import { de } from '@/i18n/de';
+import { deBodymap } from '@/i18n/lazy/bodymap';
+
+/** Zuschnitt (react-easy-crop) erst beim Öffnen laden — gehört nicht ins initiale JS (QA-02). */
+const CropDialog = lazy(() => import('./CropDialog').then((m) => ({ default: m.CropDialog })));
+
+type Mark = BodymapValue['points'][number];
+type Tool = 'point' | 'brush';
+
+/** Größen wie v2 (`POINT_SIZE`), Durchmesser relativ zur Bildbreite. */
+export const BODYMAP_SIZES = { small: 0.03, medium: 0.05, large: 0.08 } as const;
+type SizeKey = keyof typeof BODYMAP_SIZES;
+const DEFAULT_SIZE = BODYMAP_SIZES.medium;
+/** Mindestabstand zwischen zwei Pfadpunkten (normalisiert) — hält Pinselstriche klein. */
+const MIN_STEP = 0.004;
+
+export interface BodyMapFieldProps {
+  id: string;
+  value: BodymapValue | undefined;
+  defaultPresetId: string;
+  onChange: (v: BodymapValue) => void;
+  /** Tagebuch für eigene Bilder; ohne Angabe nur Standardbilder. */
+  diaryId?: string;
+  /** „Als Standard für dieses Feld" (ändert `defaultPresetId` der Vorlage). */
+  onSetDefault?: (presetId: string) => Promise<void>;
+}
+
+export function BodyMapField({ id, value, defaultPresetId, onChange, diaryId, onSetDefault }: BodyMapFieldProps) {
+  const { newId, diary, now } = useData();
+  const current: BodymapValue = value ?? { presetId: defaultPresetId, points: [] };
+  const own = useQuery(async () => (diaryId ? diary.listBodymapImages(diaryId) : []), [diary, diaryId]);
+  const ownImages = own.status === 'ok' ? own.data : [];
+  const ownImage = ownImages.find((i) => i.id === current.presetId);
+  const preset = presetById(current.presetId) ?? BODYMAP_PRESETS[0];
+  const image = ownImage ? { id: ownImage.id, src: ownImage.dataUrl, name: ownImage.name } : { id: preset.id, src: preset.src, name: deBodymap.presets[preset.id] };
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [savingImage, setSavingImage] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [defaultInfo, setDefaultInfo] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [tool, setTool] = useState<Tool>('point');
+  const [size, setSize] = useState<SizeKey>('medium');
+  const [intensity, setIntensity] = useState(5);
+  const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
+  const [stroke, setStroke] = useState<{ x: number; y: number }[] | null>(null);
+  const [switchTo, setSwitchTo] = useState<string | null>(null);
+  const area = useRef<HTMLDivElement>(null);
+  const presetName = (pid: string) => deBodymap.presets[pid as keyof typeof deBodymap.presets] ?? pid;
+
+  const toNorm = (e: PointerEvent) => {
+    const rect = area.current!.getBoundingClientRect();
+    const clamp = (n: number) => Math.min(1, Math.max(0, n));
+    return { x: clamp((e.clientX - rect.left) / rect.width), y: clamp((e.clientY - rect.top) / rect.height) };
+  };
+  const add = (mark: Omit<Mark, 'id' | 'intensity' | 'size'>) =>
+    onChange({ ...current, points: [...current.points, { id: newId(), intensity, size: BODYMAP_SIZES[size], ...mark }] });
+
+  // Strich in einer Ref puffern: Zeigerereignisse können schneller kommen als Renders (State wäre veraltet).
+  const strokeRef = useRef<{ x: number; y: number }[] | null>(null);
+
+  function onPointerDown(e: PointerEvent<HTMLDivElement>) {
+    const p = toNorm(e);
+    if (tool === 'point') return add({ x: p.x, y: p.y, kind: 'point' });
+    e.currentTarget.setPointerCapture(e.pointerId);
+    strokeRef.current = [p];
+    setStroke([p]);
+  }
+  function onPointerMove(e: PointerEvent<HTMLDivElement>) {
+    const buf = strokeRef.current;
+    if (!buf) return;
+    const p = toNorm(e);
+    const last = buf[buf.length - 1]!;
+    if (Math.hypot(p.x - last.x, p.y - last.y) >= MIN_STEP && buf.length < BODYMAP_MAX_PATH) {
+      buf.push(p);
+      setStroke([...buf]);
+    }
+  }
+  function onPointerUp() {
+    const buf = strokeRef.current;
+    if (!buf) return;
+    strokeRef.current = null;
+    // Kurzer Tipp mit dem Pinsel → Punkt; sonst Strich (Nummer am Anfang des Strichs, wie v2).
+    if (buf.length < 2) add({ x: buf[0]!.x, y: buf[0]!.y, kind: 'point' });
+    else add({ x: buf[0]!.x, y: buf[0]!.y, kind: 'brush', path: buf });
+    setStroke(null);
+  }
+
+  function choosePreset(pid: string) {
+    if (pid === image.id) return;
+    if (current.points.length > 0) return setSwitchTo(pid);
+    onChange({ presetId: pid, points: [] });
+  }
+  const setComment = (mid: string, comment: string) =>
+    onChange({ ...current, points: current.points.map((m) => (m.id === mid ? { ...m, comment: comment || undefined } : m)) });
+  const remove = (mid: string) => onChange({ ...current, points: current.points.filter((m) => m.id !== mid) });
+
+  async function onFile(file: File | undefined) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const resized = await resizeImage(await readFileAsDataUrl(file));
+    setCropSrc(resized.dataUrl);
+  }
+  async function applyCrop(area: CropArea, name: string) {
+    if (!cropSrc || !diaryId) return;
+    setSavingImage(true);
+    try {
+      const cropped = await cropImage(cropSrc, area);
+      const img = { id: newId(), diaryId, name, dataUrl: cropped.dataUrl, width: cropped.width, height: cropped.height, createdAt: new Date(now()).toISOString() };
+      await diary.saveBodymapImage(img);
+      own.retry();
+      onChange({ presetId: img.id, points: [] }); // Zuschneiden setzt Markierungen zurück (Hinweis im Dialog)
+      setCropSrc(null);
+    } finally {
+      setSavingImage(false);
+    }
+  }
+  async function deleteOwn() {
+    if (!ownImage) return;
+    await diary.deleteBodymapImage(ownImage.id);
+    own.retry();
+    onChange({ presetId: defaultPresetId === ownImage.id ? BODYMAP_PRESETS[0].id : defaultPresetId, points: [] });
+    setConfirmDelete(false);
+  }
+  async function setAsDefault() {
+    if (!onSetDefault) return;
+    await onSetDefault(image.id);
+    setDefaultInfo(true);
+  }
+
+  return (
+    <div id={id} className="flex flex-col gap-3">
+      <div role="group" aria-label={deBodymap.image} className="flex flex-wrap gap-2">
+        {BODYMAP_PRESETS.map((p) => (
+          <Button key={p.id} type="button" size="sm" variant={p.id === image.id ? 'default' : 'outline'} aria-pressed={p.id === image.id} onClick={() => choosePreset(p.id)}>
+            {presetName(p.id)}
+          </Button>
+        ))}
+        {ownImages.map((img) => (
+          <Button key={img.id} type="button" size="sm" className="h-auto min-h-9 max-w-full whitespace-normal py-1 text-left" data-own-image variant={img.id === image.id ? 'default' : 'outline'} aria-pressed={img.id === image.id} onClick={() => choosePreset(img.id)}>
+            {img.name}
+          </Button>
+        ))}
+      </div>
+
+      {diaryId ? (
+        <div className="flex flex-wrap gap-2">
+          <Input ref={fileInput} type="file" accept="image/*" className="hidden" aria-label={deBodymap.uploadImage} onChange={(e) => void onFile(e.target.files?.[0]).finally(() => (e.target.value = ''))} />
+          <Button type="button" size="sm" variant="outline" onClick={() => fileInput.current?.click()}>
+            <ImagePlus aria-hidden />
+            {deBodymap.uploadImage}
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => setCropSrc(image.src)}>
+            <Crop aria-hidden />
+            {deBodymap.cropImage}
+          </Button>
+          {ownImage ? (
+            <Button type="button" size="sm" variant="outline" onClick={() => setConfirmDelete(true)}>
+              <Trash2 aria-hidden />
+              {deBodymap.deleteImage}
+            </Button>
+          ) : null}
+          {onSetDefault && image.id !== defaultPresetId ? (
+            <Button type="button" size="sm" variant="outline" onClick={() => void setAsDefault()}>
+              <Star aria-hidden />
+              {deBodymap.setDefault}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {defaultInfo ? (
+        <p role="status" className="text-xs text-muted-foreground">
+          {deBodymap.defaultSet}
+        </p>
+      ) : null}
+
+      <div className="grid grid-cols-1 gap-2 min-[440px]:grid-cols-2">
+        <ToggleGroup aria-label={deBodymap.tool}>
+          <ToggleGroupItem pressed={tool === 'point'} aria-label={deBodymap.toolPoint} onClick={() => setTool('point')}>
+            <ArrowDownToDot className="size-4" aria-hidden />
+            {deBodymap.toolPoint}
+          </ToggleGroupItem>
+          <ToggleGroupItem pressed={tool === 'brush'} aria-label={deBodymap.toolBrush} onClick={() => setTool('brush')}>
+            <Brush className="size-4" aria-hidden />
+            {deBodymap.toolBrush}
+          </ToggleGroupItem>
+        </ToggleGroup>
+        <ToggleGroup aria-label={deBodymap.size}>
+          {(Object.keys(BODYMAP_SIZES) as SizeKey[]).map((k) => (
+            <ToggleGroupItem key={k} pressed={size === k} onClick={() => setSize(k)}>
+              {deBodymap.sizes[k]}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Label htmlFor={`${id}-intensity`} className="shrink-0 font-normal">
+          {deBodymap.intensity}
+        </Label>
+        <Slider id={`${id}-intensity`} min={1} max={10} step={1} value={intensity} onChange={(e) => setIntensity(Number(e.target.value))} />
+        <span className="w-6 text-right font-semibold tabular-nums">{intensity}</span>
+      </div>
+
+      <div
+        ref={area}
+        data-testid="bodymap-canvas"
+        data-tool={tool}
+        aria-label={deBodymap.tapHint}
+        className="relative cursor-crosshair touch-none overflow-hidden rounded-lg border-2 select-none"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={() => ((strokeRef.current = null), setStroke(null))}
+      >
+        <img
+          src={image.src}
+          alt={image.name}
+          className="pointer-events-none block max-h-[60vh] w-full object-contain"
+          draggable={false}
+          onLoad={(e) => setDims({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
+        />
+        {dims ? (
+          <svg className="pointer-events-none absolute inset-0 size-full" viewBox={`0 0 ${dims.w} ${dims.h}`} preserveAspectRatio="xMidYMid meet" aria-hidden>
+            {current.points.map((m, i) => (
+              <MarkShape key={m.id} mark={m} n={i + 1} w={dims.w} h={dims.h} />
+            ))}
+            {stroke && stroke.length > 1 ? (
+              <polyline
+                points={stroke.map((p) => `${p.x * dims.w},${p.y * dims.h}`).join(' ')}
+                className={intensityStroke(intensity)}
+                fill="none"
+                strokeWidth={BODYMAP_SIZES[size] * dims.w}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={0.5}
+              />
+            ) : null}
+          </svg>
+        ) : null}
+      </div>
+      <p className="text-xs text-muted-foreground">{tool === 'brush' ? deBodymap.brushHint : deBodymap.tapHint}</p>
+
+      {current.points.length > 0 ? (
+        <ul data-testid="bodymap-points" className="flex flex-col gap-2">
+          {current.points.map((m, i) => (
+            <li key={m.id} data-testid="bodymap-mark" className="flex flex-col gap-2 rounded-md border px-3 py-2 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span>{deBodymap.markLabel(i + 1, m.kind === 'brush', m.intensity ?? 5)}</span>
+                <Button type="button" variant="ghost" size="icon" aria-label={deBodymap.removePoint(i + 1)} onClick={() => remove(m.id)}>
+                  <X aria-hidden />
+                </Button>
+              </div>
+              <Input aria-label={deBodymap.commentFor(i + 1)} placeholder={deBodymap.commentPlaceholder} value={m.comment ?? ''} onChange={(e) => setComment(m.id, e.target.value)} />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {cropSrc ? (
+        <Suspense fallback={null}>
+          <CropDialog
+            key={cropSrc}
+            src={cropSrc}
+            defaultName={deBodymap.ownImageName(ownImages.length + 1)}
+            hasMarks={current.points.length > 0}
+            busy={savingImage}
+            onCancel={() => setCropSrc(null)}
+            onApply={(area, name) => void applyCrop(area, name)}
+          />
+        </Suspense>
+      ) : null}
+      <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)} aria-labelledby={`${id}-delete-title`}>
+        <DialogTitle id={`${id}-delete-title`}>{deBodymap.deleteImageTitle}</DialogTitle>
+        <DialogDescription>{deBodymap.deleteImageHint}</DialogDescription>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => setConfirmDelete(false)}>
+            {de.lock.cancel}
+          </Button>
+          <Button type="button" variant="destructive" onClick={() => void deleteOwn()}>
+            {deBodymap.deleteImage}
+          </Button>
+        </DialogFooter>
+      </Dialog>
+      <Dialog open={switchTo !== null} onClose={() => setSwitchTo(null)} aria-labelledby={`${id}-switch-title`}>
+        <DialogTitle id={`${id}-switch-title`}>{deBodymap.switchTitle}</DialogTitle>
+        <DialogDescription>{deBodymap.switchHint}</DialogDescription>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => setSwitchTo(null)}>
+            {de.lock.cancel}
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => {
+              if (switchTo) onChange({ presetId: switchTo, points: [] });
+              setSwitchTo(null);
+            }}
+          >
+            {deBodymap.switchConfirm}
+          </Button>
+        </DialogFooter>
+      </Dialog>
+    </div>
+  );
+}
+
+export function MarkShape({ mark, n, w, h }: { mark: Mark; n: number; w: number; h: number }) {
+  const d = (mark.size ?? DEFAULT_SIZE) * w;
+  const x = mark.x * w;
+  const y = mark.y * h;
+  const font = Math.max(w * 0.025, Math.min(w * 0.04, d * 0.45));
+  return (
+    <g data-mark-kind={mark.kind ?? 'point'}>
+      {mark.kind === 'brush' && mark.path ? (
+        <polyline
+          points={mark.path.map((p) => `${p.x * w},${p.y * h}`).join(' ')}
+          className={intensityStroke(mark.intensity)}
+          fill="none"
+          strokeWidth={d}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={0.5}
+        />
+      ) : (
+        <>
+          <circle cx={x} cy={y} r={d / 2 + w * 0.008} className={intensityFill(mark.intensity)} opacity={0.25} />
+          <circle cx={x} cy={y} r={d / 2} className={`${intensityFill(mark.intensity)} ${intensityStroke(mark.intensity)}`} strokeWidth={w * 0.003} opacity={0.8} />
+        </>
+      )}
+      <text x={x} y={y} dy="0.35em" textAnchor="middle" fontSize={font} className={`fill-white ${intensityStroke(mark.intensity)} font-bold`} strokeWidth={w * 0.003} paintOrder="stroke">
+        {`#${n}`}
+      </text>
+    </g>
+  );
+}
+
+/**
+ * Schreibgeschützte Darstellung (Eintrags-Detail, BLK-47): dasselbe Bild + dieselben Markierungen wie `BodyMapField`
+ * (gemeinsame `MarkShape`), Standard- oder eigenes Bild des Tagebuchs, darunter Nummern, Art, Intensität und Kommentare.
+ */
+export function BodyMapView({ value, diaryId, label }: { value: BodymapValue; diaryId: string; label: string }) {
+  const { diary } = useData();
+  const own = useQuery(async () => diary.listBodymapImages(diaryId), [diary, diaryId]);
+  const ownImage = own.status === 'ok' ? own.data.find((i) => i.id === value.presetId) : undefined;
+  const preset = presetById(value.presetId) ?? BODYMAP_PRESETS[0];
+  const image = ownImage ? { src: ownImage.dataUrl, name: ownImage.name } : { src: preset.src, name: deBodymap.presets[preset.id] };
+  const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
+  return (
+    <section data-testid="bodymap-view" className="flex flex-col gap-2" aria-label={label}>
+      <h2 className="text-sm font-medium text-muted-foreground">{label}</h2>
+      <div className="relative overflow-hidden rounded-lg border-2">
+        <img src={image.src} alt={image.name} className="block max-h-[60vh] w-full object-contain" draggable={false} onLoad={(e) => setDims({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })} />
+        {dims ? (
+          <svg className="pointer-events-none absolute inset-0 size-full" viewBox={`0 0 ${dims.w} ${dims.h}`} preserveAspectRatio="xMidYMid meet" aria-hidden>
+            {value.points.map((m, i) => (
+              <MarkShape key={m.id} mark={m} n={i + 1} w={dims.w} h={dims.h} />
+            ))}
+          </svg>
+        ) : null}
+      </div>
+      {value.points.length > 0 ? (
+        <ul className="flex flex-col gap-1 text-sm">
+          {value.points.map((m, i) => (
+            <li key={m.id} data-testid="bodymap-view-mark">
+              {deBodymap.markLabel(i + 1, m.kind === 'brush', m.intensity ?? 5)}
+              {m.comment ? <span className="text-muted-foreground"> — {m.comment}</span> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}

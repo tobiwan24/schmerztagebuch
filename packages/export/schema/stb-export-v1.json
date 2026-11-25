@@ -1,0 +1,4178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "format": {
+      "type": "string",
+      "const": "stb-export"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    },
+    "appVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "filter": {
+      "type": "object",
+      "properties": {
+        "diaryIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "templateIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "range": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "preset": {
+                  "type": "string",
+                  "enum": [
+                    "7d",
+                    "30d",
+                    "90d",
+                    "1y",
+                    "all"
+                  ]
+                }
+              },
+              "required": [
+                "preset"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                "to": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tags": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "any",
+                "all"
+              ]
+            },
+            "values": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "mode",
+            "values"
+          ],
+          "additionalProperties": false
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "number"
+                      },
+                      "op": {
+                        "type": "string",
+                        "enum": [
+                          "<",
+                          "<=",
+                          "=",
+                          ">=",
+                          ">"
+                        ]
+                      },
+                      "value": {
+                        "type": "number"
+                      },
+                      "blockId": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "op",
+                      "value",
+                      "blockId"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "number"
+                      },
+                      "op": {
+                        "type": "string",
+                        "enum": [
+                          "<",
+                          "<=",
+                          "=",
+                          ">=",
+                          ">"
+                        ]
+                      },
+                      "value": {
+                        "type": "number"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "outcome",
+                          "symptom",
+                          "medication",
+                          "trigger",
+                          "activity",
+                          "sleep",
+                          "mood",
+                          "function",
+                          "note"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "op",
+                      "value",
+                      "role"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "number"
+                  },
+                  "weatherField": {
+                    "type": "string",
+                    "enum": [
+                      "temperatureC",
+                      "apparentTemperatureC",
+                      "pressureHpa",
+                      "pressureDelta24hHpa",
+                      "humidityPct",
+                      "precipitationMm",
+                      "cloudCoverPct",
+                      "windKmh"
+                    ]
+                  },
+                  "op": {
+                    "type": "string",
+                    "enum": [
+                      "<",
+                      "<=",
+                      "=",
+                      ">=",
+                      ">"
+                    ]
+                  },
+                  "value": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "weatherField",
+                  "op",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "option"
+                      },
+                      "optionIds": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "any",
+                          "all",
+                          "none"
+                        ]
+                      },
+                      "blockId": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "optionIds",
+                      "mode",
+                      "blockId"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "option"
+                      },
+                      "optionIds": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "any",
+                          "all",
+                          "none"
+                        ]
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "outcome",
+                          "symptom",
+                          "medication",
+                          "trigger",
+                          "activity",
+                          "sleep",
+                          "mood",
+                          "function",
+                          "note"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "optionIds",
+                      "mode",
+                      "role"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "checkbox"
+                      },
+                      "checked": {
+                        "type": "boolean"
+                      },
+                      "blockId": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "checked",
+                      "blockId"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "checkbox"
+                      },
+                      "checked": {
+                        "type": "boolean"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "outcome",
+                          "symptom",
+                          "medication",
+                          "trigger",
+                          "activity",
+                          "sleep",
+                          "mood",
+                          "function",
+                          "note"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "checked",
+                      "role"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "text"
+                      },
+                      "contains": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "blockId": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "contains",
+                      "blockId"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "text"
+                      },
+                      "contains": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "outcome",
+                          "symptom",
+                          "medication",
+                          "trigger",
+                          "activity",
+                          "sleep",
+                          "mood",
+                          "function",
+                          "note"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "contains",
+                      "role"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "bodymap"
+                      },
+                      "region": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "blockId": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "blockId"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "bodymap"
+                      },
+                      "region": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "outcome",
+                          "symptom",
+                          "medication",
+                          "trigger",
+                          "activity",
+                          "sleep",
+                          "mood",
+                          "function",
+                          "note"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "role"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "bodymap"
+                  },
+                  "region": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "attachment"
+                  },
+                  "attachmentKind": {
+                    "type": "string",
+                    "enum": [
+                      "image",
+                      "pdf"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "event"
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "event",
+                      "doctor"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "meta"
+                  },
+                  "field": {
+                    "type": "string",
+                    "enum": [
+                      "source",
+                      "author"
+                    ]
+                  },
+                  "value": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "kind",
+                  "field",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "meta"
+                  },
+                  "field": {
+                    "type": "string",
+                    "const": "hasAttachment"
+                  },
+                  "value": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "field",
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "anyOf": {
+          "type": "array",
+          "items": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "number"
+                        },
+                        "op": {
+                          "type": "string",
+                          "enum": [
+                            "<",
+                            "<=",
+                            "=",
+                            ">=",
+                            ">"
+                          ]
+                        },
+                        "value": {
+                          "type": "number"
+                        },
+                        "blockId": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "op",
+                        "value",
+                        "blockId"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "number"
+                        },
+                        "op": {
+                          "type": "string",
+                          "enum": [
+                            "<",
+                            "<=",
+                            "=",
+                            ">=",
+                            ">"
+                          ]
+                        },
+                        "value": {
+                          "type": "number"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "outcome",
+                            "symptom",
+                            "medication",
+                            "trigger",
+                            "activity",
+                            "sleep",
+                            "mood",
+                            "function",
+                            "note"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "op",
+                        "value",
+                        "role"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "number"
+                    },
+                    "weatherField": {
+                      "type": "string",
+                      "enum": [
+                        "temperatureC",
+                        "apparentTemperatureC",
+                        "pressureHpa",
+                        "pressureDelta24hHpa",
+                        "humidityPct",
+                        "precipitationMm",
+                        "cloudCoverPct",
+                        "windKmh"
+                      ]
+                    },
+                    "op": {
+                      "type": "string",
+                      "enum": [
+                        "<",
+                        "<=",
+                        "=",
+                        ">=",
+                        ">"
+                      ]
+                    },
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "weatherField",
+                    "op",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "option"
+                        },
+                        "optionIds": {
+                          "minItems": 1,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        },
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "any",
+                            "all",
+                            "none"
+                          ]
+                        },
+                        "blockId": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "optionIds",
+                        "mode",
+                        "blockId"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "option"
+                        },
+                        "optionIds": {
+                          "minItems": 1,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        },
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "any",
+                            "all",
+                            "none"
+                          ]
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "outcome",
+                            "symptom",
+                            "medication",
+                            "trigger",
+                            "activity",
+                            "sleep",
+                            "mood",
+                            "function",
+                            "note"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "optionIds",
+                        "mode",
+                        "role"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "checkbox"
+                        },
+                        "checked": {
+                          "type": "boolean"
+                        },
+                        "blockId": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "checked",
+                        "blockId"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "checkbox"
+                        },
+                        "checked": {
+                          "type": "boolean"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "outcome",
+                            "symptom",
+                            "medication",
+                            "trigger",
+                            "activity",
+                            "sleep",
+                            "mood",
+                            "function",
+                            "note"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "checked",
+                        "role"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "text"
+                        },
+                        "contains": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "blockId": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "contains",
+                        "blockId"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "text"
+                        },
+                        "contains": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "outcome",
+                            "symptom",
+                            "medication",
+                            "trigger",
+                            "activity",
+                            "sleep",
+                            "mood",
+                            "function",
+                            "note"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "contains",
+                        "role"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "bodymap"
+                        },
+                        "region": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "blockId": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "blockId"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "bodymap"
+                        },
+                        "region": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "outcome",
+                            "symptom",
+                            "medication",
+                            "trigger",
+                            "activity",
+                            "sleep",
+                            "mood",
+                            "function",
+                            "note"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "role"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "bodymap"
+                    },
+                    "region": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "attachment"
+                    },
+                    "attachmentKind": {
+                      "type": "string",
+                      "enum": [
+                        "image",
+                        "pdf"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "event"
+                    },
+                    "category": {
+                      "type": "string",
+                      "enum": [
+                        "event",
+                        "doctor"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "meta"
+                    },
+                    "field": {
+                      "type": "string",
+                      "enum": [
+                        "source",
+                        "author"
+                      ]
+                    },
+                    "value": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "field",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "meta"
+                    },
+                    "field": {
+                      "type": "string",
+                      "const": "hasAttachment"
+                    },
+                    "value": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "field",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        }
+      },
+      "required": [
+        "diaryIds",
+        "range"
+      ],
+      "additionalProperties": false
+    },
+    "diaries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "diary": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "subject": {
+                "type": "string",
+                "enum": [
+                  "human",
+                  "animal",
+                  "other"
+                ]
+              },
+              "icon": {
+                "type": "string"
+              },
+              "color": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "settings": {
+                "type": "object",
+                "properties": {
+                  "weather": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "location": {
+                        "type": "object",
+                        "properties": {
+                          "lat": {
+                            "type": "number",
+                            "minimum": -90,
+                            "maximum": 90
+                          },
+                          "lon": {
+                            "type": "number",
+                            "minimum": -180,
+                            "maximum": 180
+                          },
+                          "label": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "lat",
+                          "lon",
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "gpsDefault": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "enabled",
+                      "gpsDefault"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "quickEntryTemplateId": {
+                    "type": "string"
+                  },
+                  "quickEntryBlockIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "quickTemplateIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "weather",
+                  "timezone"
+                ],
+                "additionalProperties": false
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "hlc": {
+                "type": "string",
+                "minLength": 1
+              },
+              "purpose": {
+                "type": "string",
+                "enum": [
+                  "diary",
+                  "library"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "subject",
+              "createdAt",
+              "settings"
+            ],
+            "additionalProperties": false
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "diaryId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "icon": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                },
+                "order": {
+                  "type": "string"
+                },
+                "quickBlockIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "purpose": {
+                  "type": "string",
+                  "enum": [
+                    "diary",
+                    "training"
+                  ]
+                },
+                "functionPhases": {
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "catalogSource": {
+                  "type": "object",
+                  "properties": {
+                    "diaryId": {
+                      "type": "string"
+                    },
+                    "templateId": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "diaryId",
+                    "templateId",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                },
+                "currentVersion": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "archived": {
+                  "type": "boolean"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "versions": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "version": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      },
+                      "blocks": {
+                        "type": "array",
+                        "items": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "required": {
+                                  "type": "boolean"
+                                },
+                                "role": {
+                                  "type": "string",
+                                  "enum": [
+                                    "outcome",
+                                    "symptom",
+                                    "medication",
+                                    "trigger",
+                                    "activity",
+                                    "sleep",
+                                    "mood",
+                                    "function",
+                                    "note"
+                                  ]
+                                },
+                                "order": {
+                                  "type": "string"
+                                },
+                                "hideLabel": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "slider"
+                                },
+                                "config": {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "number"
+                                    },
+                                    "max": {
+                                      "default": 10,
+                                      "type": "number"
+                                    },
+                                    "step": {
+                                      "type": "number",
+                                      "exclusiveMinimum": 0
+                                    },
+                                    "unit": {
+                                      "type": "string"
+                                    },
+                                    "minLabel": {
+                                      "type": "string"
+                                    },
+                                    "maxLabel": {
+                                      "type": "string"
+                                    },
+                                    "infoText": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "min",
+                                    "step"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "required",
+                                "order",
+                                "type",
+                                "config"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "required": {
+                                  "type": "boolean"
+                                },
+                                "role": {
+                                  "type": "string",
+                                  "enum": [
+                                    "outcome",
+                                    "symptom",
+                                    "medication",
+                                    "trigger",
+                                    "activity",
+                                    "sleep",
+                                    "mood",
+                                    "function",
+                                    "note"
+                                  ]
+                                },
+                                "order": {
+                                  "type": "string"
+                                },
+                                "hideLabel": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "checkbox"
+                                },
+                                "config": {
+                                  "type": "object",
+                                  "properties": {
+                                    "withNote": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "withNote"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "required",
+                                "order",
+                                "type",
+                                "config"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "required": {
+                                  "type": "boolean"
+                                },
+                                "role": {
+                                  "type": "string",
+                                  "enum": [
+                                    "outcome",
+                                    "symptom",
+                                    "medication",
+                                    "trigger",
+                                    "activity",
+                                    "sleep",
+                                    "mood",
+                                    "function",
+                                    "note"
+                                  ]
+                                },
+                                "order": {
+                                  "type": "string"
+                                },
+                                "hideLabel": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "multiselect"
+                                },
+                                "config": {
+                                  "type": "object",
+                                  "properties": {
+                                    "options": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "id": {
+                                            "type": "string"
+                                          },
+                                          "label": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "color": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        },
+                                        "required": [
+                                          "id",
+                                          "label",
+                                          "color"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    },
+                                    "multiple": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "options",
+                                    "multiple"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "required",
+                                "order",
+                                "type",
+                                "config"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "required": {
+                                  "type": "boolean"
+                                },
+                                "role": {
+                                  "type": "string",
+                                  "enum": [
+                                    "outcome",
+                                    "symptom",
+                                    "medication",
+                                    "trigger",
+                                    "activity",
+                                    "sleep",
+                                    "mood",
+                                    "function",
+                                    "note"
+                                  ]
+                                },
+                                "order": {
+                                  "type": "string"
+                                },
+                                "hideLabel": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "text"
+                                },
+                                "config": {
+                                  "type": "object",
+                                  "properties": {
+                                    "maxLength": {
+                                      "type": "integer",
+                                      "exclusiveMinimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "placeholder": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "required",
+                                "order",
+                                "type",
+                                "config"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "required": {
+                                  "type": "boolean"
+                                },
+                                "role": {
+                                  "type": "string",
+                                  "enum": [
+                                    "outcome",
+                                    "symptom",
+                                    "medication",
+                                    "trigger",
+                                    "activity",
+                                    "sleep",
+                                    "mood",
+                                    "function",
+                                    "note"
+                                  ]
+                                },
+                                "order": {
+                                  "type": "string"
+                                },
+                                "hideLabel": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "textarea"
+                                },
+                                "config": {
+                                  "type": "object",
+                                  "properties": {
+                                    "allowAttachments": {
+                                      "type": "boolean"
+                                    },
+                                    "allowEvents": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "allowAttachments",
+                                    "allowEvents"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "required",
+                                "order",
+                                "type",
+                                "config"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "required": {
+                                  "type": "boolean"
+                                },
+                                "role": {
+                                  "type": "string",
+                                  "enum": [
+                                    "outcome",
+                                    "symptom",
+                                    "medication",
+                                    "trigger",
+                                    "activity",
+                                    "sleep",
+                                    "mood",
+                                    "function",
+                                    "note"
+                                  ]
+                                },
+                                "order": {
+                                  "type": "string"
+                                },
+                                "hideLabel": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "date"
+                                },
+                                "config": {
+                                  "type": "object",
+                                  "properties": {
+                                    "mode": {
+                                      "type": "string",
+                                      "enum": [
+                                        "date",
+                                        "datetime",
+                                        "duration",
+                                        "range"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "mode"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "required",
+                                "order",
+                                "type",
+                                "config"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "required": {
+                                  "type": "boolean"
+                                },
+                                "role": {
+                                  "type": "string",
+                                  "enum": [
+                                    "outcome",
+                                    "symptom",
+                                    "medication",
+                                    "trigger",
+                                    "activity",
+                                    "sleep",
+                                    "mood",
+                                    "function",
+                                    "note"
+                                  ]
+                                },
+                                "order": {
+                                  "type": "string"
+                                },
+                                "hideLabel": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "bodymap"
+                                },
+                                "config": {
+                                  "type": "object",
+                                  "properties": {
+                                    "defaultPresetId": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  },
+                                  "required": [
+                                    "defaultPresetId"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "required",
+                                "order",
+                                "type",
+                                "config"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "required": {
+                                  "type": "boolean"
+                                },
+                                "role": {
+                                  "type": "string",
+                                  "enum": [
+                                    "outcome",
+                                    "symptom",
+                                    "medication",
+                                    "trigger",
+                                    "activity",
+                                    "sleep",
+                                    "mood",
+                                    "function",
+                                    "note"
+                                  ]
+                                },
+                                "order": {
+                                  "type": "string"
+                                },
+                                "hideLabel": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "medication"
+                                },
+                                "config": {
+                                  "type": "object",
+                                  "properties": {
+                                    "presets": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "id": {
+                                            "type": "string"
+                                          },
+                                          "name": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "dose": {
+                                            "type": "number",
+                                            "exclusiveMinimum": 0
+                                          },
+                                          "unit": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 20
+                                          },
+                                          "color": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        },
+                                        "required": [
+                                          "id",
+                                          "name",
+                                          "unit",
+                                          "color"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    },
+                                    "units": {
+                                      "default": [
+                                        "mg",
+                                        "ml",
+                                        "Stk",
+                                        "Tropfen",
+                                        "Hub"
+                                      ],
+                                      "minItems": 1,
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 20
+                                      }
+                                    },
+                                    "allowFree": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "presets",
+                                    "allowFree"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "required",
+                                "order",
+                                "type",
+                                "config"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "required": {
+                                  "type": "boolean"
+                                },
+                                "role": {
+                                  "type": "string",
+                                  "enum": [
+                                    "outcome",
+                                    "symptom",
+                                    "medication",
+                                    "trigger",
+                                    "activity",
+                                    "sleep",
+                                    "mood",
+                                    "function",
+                                    "note"
+                                  ]
+                                },
+                                "order": {
+                                  "type": "string"
+                                },
+                                "hideLabel": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "exercise"
+                                },
+                                "config": {
+                                  "type": "object",
+                                  "properties": {
+                                    "description": {
+                                      "type": "string"
+                                    },
+                                    "steps": {
+                                      "maxItems": 20,
+                                      "type": "array",
+                                      "items": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          {
+                                            "type": "object",
+                                            "properties": {
+                                              "text": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              },
+                                              "imageId": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "additionalProperties": false
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "targetSets": {
+                                      "type": "integer",
+                                      "exclusiveMinimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "targetReps": {
+                                      "type": "integer",
+                                      "exclusiveMinimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "targetDurationSec": {
+                                      "type": "integer",
+                                      "exclusiveMinimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "videoUrl": {
+                                      "type": "string",
+                                      "maxLength": 2000
+                                    },
+                                    "videoMediaId": {
+                                      "type": "string"
+                                    },
+                                    "levels": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "id": {
+                                            "type": "string"
+                                          },
+                                          "label": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        },
+                                        "required": [
+                                          "id",
+                                          "label"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "required",
+                                "order",
+                                "type",
+                                "config"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      }
+                    },
+                    "required": [
+                      "version",
+                      "blocks",
+                      "createdAt"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "diaryId",
+                "name",
+                "order",
+                "currentVersion",
+                "archived",
+                "createdAt",
+                "updatedAt",
+                "versions"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "diaryId": {
+                  "type": "string"
+                },
+                "templateId": {
+                  "type": "string"
+                },
+                "templateVersion": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "occurredAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "period": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "start": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "end": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        }
+                      },
+                      "required": [
+                        "start",
+                        "end"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "start": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "end": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        }
+                      },
+                      "required": [
+                        "start",
+                        "end"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "recordedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "authorId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "values": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "meta": {
+                  "type": "object",
+                  "properties": {
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "app",
+                        "quick",
+                        "shortcut",
+                        "import",
+                        "migration-v2"
+                      ]
+                    },
+                    "timezone": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "weather": {
+                      "type": "object",
+                      "properties": {
+                        "provider": {
+                          "type": "string",
+                          "const": "open-meteo"
+                        },
+                        "fetchedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "observedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "temperatureC": {
+                          "type": "number"
+                        },
+                        "apparentTemperatureC": {
+                          "type": "number"
+                        },
+                        "pressureHpa": {
+                          "type": "number"
+                        },
+                        "pressureDelta24hHpa": {
+                          "type": "number"
+                        },
+                        "humidityPct": {
+                          "type": "number"
+                        },
+                        "precipitationMm": {
+                          "type": "number"
+                        },
+                        "cloudCoverPct": {
+                          "type": "number"
+                        },
+                        "windKmh": {
+                          "type": "number"
+                        },
+                        "weatherCode": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "provider",
+                        "fetchedAt",
+                        "observedAt",
+                        "temperatureC",
+                        "apparentTemperatureC",
+                        "pressureHpa",
+                        "pressureDelta24hHpa",
+                        "humidityPct",
+                        "precipitationMm",
+                        "cloudCoverPct",
+                        "windKmh",
+                        "weatherCode"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "weatherPending": {
+                      "type": "boolean"
+                    },
+                    "location": {
+                      "type": "object",
+                      "properties": {
+                        "lat": {
+                          "type": "number",
+                          "minimum": -90,
+                          "maximum": 90
+                        },
+                        "lon": {
+                          "type": "number",
+                          "minimum": -180,
+                          "maximum": 180
+                        },
+                        "origin": {
+                          "type": "string",
+                          "enum": [
+                            "diary",
+                            "gps"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "lat",
+                        "lon",
+                        "origin"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "timezone"
+                  ],
+                  "additionalProperties": false
+                },
+                "hlc": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "id",
+                "diaryId",
+                "templateId",
+                "templateVersion",
+                "occurredAt",
+                "recordedAt",
+                "updatedAt",
+                "authorId",
+                "values",
+                "tags",
+                "meta",
+                "hlc"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "savedFilters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "diaryId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "filter": {
+                  "type": "object",
+                  "properties": {
+                    "diaryIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "templateIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "range": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "preset": {
+                              "type": "string",
+                              "enum": [
+                                "7d",
+                                "30d",
+                                "90d",
+                                "1y",
+                                "all"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "preset"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "from": {
+                              "type": "string",
+                              "format": "date",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                            },
+                            "to": {
+                              "type": "string",
+                              "format": "date",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                            }
+                          },
+                          "required": [
+                            "from",
+                            "to"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "tags": {
+                      "type": "object",
+                      "properties": {
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "any",
+                            "all"
+                          ]
+                        },
+                        "values": {
+                          "minItems": 1,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "mode",
+                        "values"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "conditions": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "number"
+                                  },
+                                  "op": {
+                                    "type": "string",
+                                    "enum": [
+                                      "<",
+                                      "<=",
+                                      "=",
+                                      ">=",
+                                      ">"
+                                    ]
+                                  },
+                                  "value": {
+                                    "type": "number"
+                                  },
+                                  "blockId": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "op",
+                                  "value",
+                                  "blockId"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "number"
+                                  },
+                                  "op": {
+                                    "type": "string",
+                                    "enum": [
+                                      "<",
+                                      "<=",
+                                      "=",
+                                      ">=",
+                                      ">"
+                                    ]
+                                  },
+                                  "value": {
+                                    "type": "number"
+                                  },
+                                  "role": {
+                                    "type": "string",
+                                    "enum": [
+                                      "outcome",
+                                      "symptom",
+                                      "medication",
+                                      "trigger",
+                                      "activity",
+                                      "sleep",
+                                      "mood",
+                                      "function",
+                                      "note"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "op",
+                                  "value",
+                                  "role"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "number"
+                              },
+                              "weatherField": {
+                                "type": "string",
+                                "enum": [
+                                  "temperatureC",
+                                  "apparentTemperatureC",
+                                  "pressureHpa",
+                                  "pressureDelta24hHpa",
+                                  "humidityPct",
+                                  "precipitationMm",
+                                  "cloudCoverPct",
+                                  "windKmh"
+                                ]
+                              },
+                              "op": {
+                                "type": "string",
+                                "enum": [
+                                  "<",
+                                  "<=",
+                                  "=",
+                                  ">=",
+                                  ">"
+                                ]
+                              },
+                              "value": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "weatherField",
+                              "op",
+                              "value"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "option"
+                                  },
+                                  "optionIds": {
+                                    "minItems": 1,
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  },
+                                  "mode": {
+                                    "type": "string",
+                                    "enum": [
+                                      "any",
+                                      "all",
+                                      "none"
+                                    ]
+                                  },
+                                  "blockId": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "optionIds",
+                                  "mode",
+                                  "blockId"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "option"
+                                  },
+                                  "optionIds": {
+                                    "minItems": 1,
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  },
+                                  "mode": {
+                                    "type": "string",
+                                    "enum": [
+                                      "any",
+                                      "all",
+                                      "none"
+                                    ]
+                                  },
+                                  "role": {
+                                    "type": "string",
+                                    "enum": [
+                                      "outcome",
+                                      "symptom",
+                                      "medication",
+                                      "trigger",
+                                      "activity",
+                                      "sleep",
+                                      "mood",
+                                      "function",
+                                      "note"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "optionIds",
+                                  "mode",
+                                  "role"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "checkbox"
+                                  },
+                                  "checked": {
+                                    "type": "boolean"
+                                  },
+                                  "blockId": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "checked",
+                                  "blockId"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "checkbox"
+                                  },
+                                  "checked": {
+                                    "type": "boolean"
+                                  },
+                                  "role": {
+                                    "type": "string",
+                                    "enum": [
+                                      "outcome",
+                                      "symptom",
+                                      "medication",
+                                      "trigger",
+                                      "activity",
+                                      "sleep",
+                                      "mood",
+                                      "function",
+                                      "note"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "checked",
+                                  "role"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "text"
+                                  },
+                                  "contains": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "blockId": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "contains",
+                                  "blockId"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "text"
+                                  },
+                                  "contains": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "role": {
+                                    "type": "string",
+                                    "enum": [
+                                      "outcome",
+                                      "symptom",
+                                      "medication",
+                                      "trigger",
+                                      "activity",
+                                      "sleep",
+                                      "mood",
+                                      "function",
+                                      "note"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "contains",
+                                  "role"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "bodymap"
+                                  },
+                                  "region": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "blockId": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "blockId"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "bodymap"
+                                  },
+                                  "region": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "role": {
+                                    "type": "string",
+                                    "enum": [
+                                      "outcome",
+                                      "symptom",
+                                      "medication",
+                                      "trigger",
+                                      "activity",
+                                      "sleep",
+                                      "mood",
+                                      "function",
+                                      "note"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "role"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "bodymap"
+                              },
+                              "region": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            },
+                            "required": [
+                              "kind"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "attachment"
+                              },
+                              "attachmentKind": {
+                                "type": "string",
+                                "enum": [
+                                  "image",
+                                  "pdf"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "kind"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "event"
+                              },
+                              "category": {
+                                "type": "string",
+                                "enum": [
+                                  "event",
+                                  "doctor"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "kind"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "meta"
+                              },
+                              "field": {
+                                "type": "string",
+                                "enum": [
+                                  "source",
+                                  "author"
+                                ]
+                              },
+                              "value": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "field",
+                              "value"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "meta"
+                              },
+                              "field": {
+                                "type": "string",
+                                "const": "hasAttachment"
+                              },
+                              "value": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "field",
+                              "value"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      }
+                    },
+                    "anyOf": {
+                      "type": "array",
+                      "items": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "type": "string",
+                                      "const": "number"
+                                    },
+                                    "op": {
+                                      "type": "string",
+                                      "enum": [
+                                        "<",
+                                        "<=",
+                                        "=",
+                                        ">=",
+                                        ">"
+                                      ]
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "blockId": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "op",
+                                    "value",
+                                    "blockId"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "type": "string",
+                                      "const": "number"
+                                    },
+                                    "op": {
+                                      "type": "string",
+                                      "enum": [
+                                        "<",
+                                        "<=",
+                                        "=",
+                                        ">=",
+                                        ">"
+                                      ]
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "role": {
+                                      "type": "string",
+                                      "enum": [
+                                        "outcome",
+                                        "symptom",
+                                        "medication",
+                                        "trigger",
+                                        "activity",
+                                        "sleep",
+                                        "mood",
+                                        "function",
+                                        "note"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "op",
+                                    "value",
+                                    "role"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "const": "number"
+                                },
+                                "weatherField": {
+                                  "type": "string",
+                                  "enum": [
+                                    "temperatureC",
+                                    "apparentTemperatureC",
+                                    "pressureHpa",
+                                    "pressureDelta24hHpa",
+                                    "humidityPct",
+                                    "precipitationMm",
+                                    "cloudCoverPct",
+                                    "windKmh"
+                                  ]
+                                },
+                                "op": {
+                                  "type": "string",
+                                  "enum": [
+                                    "<",
+                                    "<=",
+                                    "=",
+                                    ">=",
+                                    ">"
+                                  ]
+                                },
+                                "value": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "weatherField",
+                                "op",
+                                "value"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "type": "string",
+                                      "const": "option"
+                                    },
+                                    "optionIds": {
+                                      "minItems": 1,
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "mode": {
+                                      "type": "string",
+                                      "enum": [
+                                        "any",
+                                        "all",
+                                        "none"
+                                      ]
+                                    },
+                                    "blockId": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "optionIds",
+                                    "mode",
+                                    "blockId"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "type": "string",
+                                      "const": "option"
+                                    },
+                                    "optionIds": {
+                                      "minItems": 1,
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "mode": {
+                                      "type": "string",
+                                      "enum": [
+                                        "any",
+                                        "all",
+                                        "none"
+                                      ]
+                                    },
+                                    "role": {
+                                      "type": "string",
+                                      "enum": [
+                                        "outcome",
+                                        "symptom",
+                                        "medication",
+                                        "trigger",
+                                        "activity",
+                                        "sleep",
+                                        "mood",
+                                        "function",
+                                        "note"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "optionIds",
+                                    "mode",
+                                    "role"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            },
+                            {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "type": "string",
+                                      "const": "checkbox"
+                                    },
+                                    "checked": {
+                                      "type": "boolean"
+                                    },
+                                    "blockId": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "checked",
+                                    "blockId"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "type": "string",
+                                      "const": "checkbox"
+                                    },
+                                    "checked": {
+                                      "type": "boolean"
+                                    },
+                                    "role": {
+                                      "type": "string",
+                                      "enum": [
+                                        "outcome",
+                                        "symptom",
+                                        "medication",
+                                        "trigger",
+                                        "activity",
+                                        "sleep",
+                                        "mood",
+                                        "function",
+                                        "note"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "checked",
+                                    "role"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            },
+                            {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "type": "string",
+                                      "const": "text"
+                                    },
+                                    "contains": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "blockId": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "contains",
+                                    "blockId"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "type": "string",
+                                      "const": "text"
+                                    },
+                                    "contains": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "role": {
+                                      "type": "string",
+                                      "enum": [
+                                        "outcome",
+                                        "symptom",
+                                        "medication",
+                                        "trigger",
+                                        "activity",
+                                        "sleep",
+                                        "mood",
+                                        "function",
+                                        "note"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "contains",
+                                    "role"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            },
+                            {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "type": "string",
+                                      "const": "bodymap"
+                                    },
+                                    "region": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "blockId": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "blockId"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "type": "string",
+                                      "const": "bodymap"
+                                    },
+                                    "region": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "role": {
+                                      "type": "string",
+                                      "enum": [
+                                        "outcome",
+                                        "symptom",
+                                        "medication",
+                                        "trigger",
+                                        "activity",
+                                        "sleep",
+                                        "mood",
+                                        "function",
+                                        "note"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "role"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "const": "bodymap"
+                                },
+                                "region": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "required": [
+                                "kind"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "const": "attachment"
+                                },
+                                "attachmentKind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "image",
+                                    "pdf"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "kind"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "const": "event"
+                                },
+                                "category": {
+                                  "type": "string",
+                                  "enum": [
+                                    "event",
+                                    "doctor"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "kind"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "const": "meta"
+                                },
+                                "field": {
+                                  "type": "string",
+                                  "enum": [
+                                    "source",
+                                    "author"
+                                  ]
+                                },
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "field",
+                                "value"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "const": "meta"
+                                },
+                                "field": {
+                                  "type": "string",
+                                  "const": "hasAttachment"
+                                },
+                                "value": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "field",
+                                "value"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "diaryIds",
+                    "range"
+                  ],
+                  "additionalProperties": false
+                },
+                "hlc": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                }
+              },
+              "required": [
+                "id",
+                "diaryId",
+                "name",
+                "filter",
+                "hlc",
+                "updatedAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "bodymapImages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "diaryId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "dataUrl": {
+                  "type": "string",
+                  "maxLength": 2000000,
+                  "pattern": "^data:image\\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$"
+                },
+                "width": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 4000
+                },
+                "height": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 4000
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                }
+              },
+              "required": [
+                "id",
+                "diaryId",
+                "name",
+                "dataUrl",
+                "width",
+                "height",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "notificationRules": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "diaryId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "blockId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "op": {
+                  "type": "string",
+                  "enum": [
+                    ">=",
+                    "<="
+                  ]
+                },
+                "value": {
+                  "type": "number"
+                },
+                "consecutiveDays": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 30
+                },
+                "cooldownHours": {
+                  "default": 24,
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 720
+                },
+                "hlc": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                }
+              },
+              "required": [
+                "id",
+                "diaryId",
+                "blockId",
+                "op",
+                "value",
+                "consecutiveDays",
+                "hlc",
+                "updatedAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "dashboards": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "diaryId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "order": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "widgets": {
+                  "maxItems": 24,
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "const": "timeseries"
+                          },
+                          "config": {
+                            "type": "object",
+                            "properties": {
+                              "blockId": {
+                                "type": "string"
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3650
+                              }
+                            },
+                            "required": [
+                              "days"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "span": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "const": 1
+                              },
+                              {
+                                "type": "number",
+                                "const": 2
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "config",
+                          "span"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "const": "heatmap"
+                          },
+                          "config": {
+                            "type": "object",
+                            "properties": {
+                              "blockId": {
+                                "type": "string"
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3650
+                              }
+                            },
+                            "required": [
+                              "days"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "span": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "const": 1
+                              },
+                              {
+                                "type": "number",
+                                "const": 2
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "config",
+                          "span"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "const": "medicationDays"
+                          },
+                          "config": {
+                            "type": "object",
+                            "properties": {
+                              "days": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3650
+                              }
+                            },
+                            "required": [
+                              "days"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "span": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "const": 1
+                              },
+                              {
+                                "type": "number",
+                                "const": 2
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "config",
+                          "span"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "const": "frequency"
+                          },
+                          "config": {
+                            "type": "object",
+                            "properties": {
+                              "blockId": {
+                                "type": "string"
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3650
+                              }
+                            },
+                            "required": [
+                              "days"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "span": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "const": 1
+                              },
+                              {
+                                "type": "number",
+                                "const": 2
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "config",
+                          "span"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "const": "bodymap"
+                          },
+                          "config": {
+                            "type": "object",
+                            "properties": {
+                              "blockId": {
+                                "type": "string"
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3650
+                              }
+                            },
+                            "required": [
+                              "days"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "span": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "const": 1
+                              },
+                              {
+                                "type": "number",
+                                "const": 2
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "config",
+                          "span"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "const": "correlation"
+                          },
+                          "config": {
+                            "type": "object",
+                            "properties": {
+                              "blockIdA": {
+                                "type": "string"
+                              },
+                              "blockIdB": {
+                                "type": "string"
+                              },
+                              "lag": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 7
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3650
+                              }
+                            },
+                            "required": [
+                              "blockIdA",
+                              "blockIdB",
+                              "lag",
+                              "days"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "span": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "const": 1
+                              },
+                              {
+                                "type": "number",
+                                "const": 2
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "config",
+                          "span"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "const": "kpi"
+                          },
+                          "config": {
+                            "type": "object",
+                            "properties": {
+                              "blockId": {
+                                "type": "string"
+                              },
+                              "stat": {
+                                "type": "string",
+                                "enum": [
+                                  "mean",
+                                  "median",
+                                  "max",
+                                  "min"
+                                ]
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 3650
+                              }
+                            },
+                            "required": [
+                              "stat",
+                              "days"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "span": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "const": 1
+                              },
+                              {
+                                "type": "number",
+                                "const": 2
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "config",
+                          "span"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                },
+                "hlc": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                }
+              },
+              "required": [
+                "id",
+                "diaryId",
+                "name",
+                "order",
+                "widgets",
+                "hlc",
+                "updatedAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "attachments": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "diaryId": {
+                  "type": "string"
+                },
+                "entryId": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "image",
+                    "pdf"
+                  ]
+                },
+                "mime": {
+                  "type": "string",
+                  "pattern": "^[a-z]+\\/[a-z0-9.+-]+$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "sizeBytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 20971520
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "dataUrl": {
+                  "type": "string",
+                  "pattern": "^data:[a-z]+\\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/]*=*$"
+                }
+              },
+              "required": [
+                "id",
+                "diaryId",
+                "entryId",
+                "kind",
+                "mime",
+                "name",
+                "sizeBytes",
+                "createdAt",
+                "dataUrl"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "exerciseMedia": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "diaryId": {
+                  "type": "string"
+                },
+                "templateId": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "image",
+                    "video"
+                  ]
+                },
+                "mime": {
+                  "type": "string",
+                  "pattern": "^[a-z]+\\/[a-z0-9.+-]+$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "sizeBytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 20971520
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "dataUrl": {
+                  "type": "string",
+                  "pattern": "^data:[a-z]+\\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/]*=*$"
+                }
+              },
+              "required": [
+                "id",
+                "diaryId",
+                "templateId",
+                "kind",
+                "mime",
+                "name",
+                "sizeBytes",
+                "createdAt",
+                "dataUrl"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "diary",
+          "templates",
+          "entries",
+          "savedFilters",
+          "bodymapImages"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "glossary": {
+      "type": "object",
+      "properties": {
+        "blockTypes": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "roles": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "weatherFields": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "blockTypes",
+        "roles",
+        "weatherFields"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "format",
+    "formatVersion",
+    "exportedAt",
+    "appVersion",
+    "diaries",
+    "glossary"
+  ],
+  "additionalProperties": false
+}

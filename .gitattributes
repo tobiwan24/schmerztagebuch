@@ -1,0 +1,7 @@
+# Golden Files byte-genau halten (CRLF + eingebettete LF in CSV, Spec 07 / EXP-05)
+fixtures/export/*.csv -text
+fixtures/migration/*.json -text
+
+# Skripte mit Shebang müssen LF behalten: core.autocrlf=true macht unter Windows sonst CRLF (Vitest: "Invalid or unexpected token")
+*.mjs text eol=lf
+apps/mcp/src/main.ts text eol=lf

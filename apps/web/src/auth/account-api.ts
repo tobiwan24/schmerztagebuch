@@ -1,0 +1,97 @@
+// Client der Konto-API (DECISIONS A-022). Austauschbar wie der Sync-Transport: Browser `fetch` (Cookie-Sitzung),
+// Integrationstests einen Adapter auf `fastify.inject`.
+import type { MemberDkWrap } from '@stb/crypto';
+
+export type UserKeyKind = 'identity-pub' | 'identity-priv-enc' | 'umk-wrap-passkey' | 'umk-wrap-backup' | 'backup-verifier';
+export interface UserKey {
+  kind: UserKeyKind;
+  credentialId?: string;
+  blob: string;
+}
+export interface NewDevice {
+  nameCt: string;
+  publicKey: string;
+}
+export interface DiaryMembership {
+  diaryId: string;
+  role: 'owner' | 'editor' | 'viewer';
+  keyEpoch: number;
+  wrappedDk: string;
+}
+
+/** WebAuthn-JSON (wie `PublicKeyCredential.toJSON()`). */
+export type CredentialJson = { id: string; rawId: string; type: 'public-key'; response: Record<string, unknown>; [k: string]: unknown };
+
+export interface AccountApi {
+  registerOptions(username: string, userId?: string): Promise<{ challengeId: string; options: Record<string, unknown> & { challenge: string; user: { id: string } } }>;
+  registerVerify(body: { challengeId: string; username: string; response: CredentialJson; keys: UserKey[]; device: NewDevice }): Promise<{ userId: string; deviceId: string }>;
+  loginOptions(): Promise<{ challengeId: string; options: Record<string, unknown> & { challenge: string } }>;
+  loginVerify(body: { challengeId: string; response: CredentialJson; device: NewDevice }): Promise<{ userId: string; deviceId: string; keys: UserKey[] }>;
+  /** Recovery / Gerät hinzufügen per Backup-Code (A-023). */
+  recoveryStart(body: { username: string; backupAuth: string }): Promise<{ challengeId: string; options: Record<string, unknown> & { challenge: string; user: { id: string } }; keys: UserKey[] }>;
+  recoveryFinish(body: { challengeId: string; response: CredentialJson; keys: UserKey[]; device: NewDevice }): Promise<{ userId: string; deviceId: string }>;
+  /** Backup-Code erneuern (eingeloggt): neuer Backup-Wrap und Verifier-Token ersetzen die alten (CRY-18). */
+  renewBackupCode(body: { umkWrapBackup: string; backupAuth: string }): Promise<void>;
+  createDiary(body: { diaryId: string; wrappedDk: string }): Promise<void>;
+  listDiaries(): Promise<DiaryMembership[]>;
+  /** Angemeldetes Gerät (Sitzung) — für „dieses Gerät“ in der Geräteliste (CRY-19). */
+  me(): Promise<{ userId: string; deviceId: string }>;
+  listDevices(): Promise<DeviceRecord[]>;
+  /** Anderes eigenes Gerät sperren (`revoked_at`, Sitzungen enden; CRY-14). */
+  revokeDevice(id: string): Promise<void>;
+  /** Sitzung auf dem Server beenden (Cookie wird gelöscht). */
+  logout(): Promise<void>;
+}
+
+export interface DeviceRecord {
+  id: string;
+  /** `iv.ciphertext` (base64url), mit der UMK verschlüsselt. */
+  nameCt: string;
+  createdAt: number;
+  revokedAt: number | null;
+}
+
+/** Fehler der Konto-API mit Server-Code (`challenge-expired`, `username-taken`, …) oder `server-unreachable`. */
+export class AccountApiError extends Error {
+  constructor(readonly code: string, readonly status: number) {
+    super(code);
+    this.name = 'AccountApiError';
+  }
+}
+
+export const encodeDkWrap = (w: MemberDkWrap): string => JSON.stringify(w);
+export const decodeDkWrap = (s: string): MemberDkWrap => JSON.parse(s) as MemberDkWrap;
+
+export function createFetchAccountApi(baseUrl = '', fetchFn: typeof fetch = globalThis.fetch.bind(globalThis)): AccountApi {
+  async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
+    let res: Response;
+    try {
+      res = await fetchFn(`${baseUrl}${path}`, {
+        method, credentials: 'include', cache: 'no-store',
+        ...(body === undefined ? {} : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
+      });
+    } catch {
+      throw new AccountApiError('server-unreachable', 0);
+    }
+    if (!res.ok) {
+      const err = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new AccountApiError(err.error ?? `http-${res.status}`, res.status);
+    }
+    return (res.status === 204 ? undefined : await res.json()) as T;
+  }
+  return {
+    registerOptions: (username, userId) => call('POST', '/api/v1/auth/register/options', userId ? { username, userId } : { username }),
+    registerVerify: (body) => call('POST', '/api/v1/auth/register/verify', body),
+    loginOptions: () => call('POST', '/api/v1/auth/login/options', {}),
+    loginVerify: (body) => call('POST', '/api/v1/auth/login/verify', body),
+    recoveryStart: (body) => call('POST', '/api/v1/auth/recovery/start', body),
+    recoveryFinish: (body) => call('POST', '/api/v1/auth/recovery/finish', body),
+    renewBackupCode: (body) => call('PUT', '/api/v1/auth/backup-code', body),
+    createDiary: (body) => call('POST', '/api/v1/diaries', body),
+    listDiaries: () => call('GET', '/api/v1/diaries'),
+    me: () => call('GET', '/api/v1/auth/me'),
+    listDevices: () => call('GET', '/api/v1/devices'),
+    revokeDevice: (id) => call('DELETE', `/api/v1/devices/${encodeURIComponent(id)}`),
+    logout: () => call('POST', '/api/v1/auth/logout', {}),
+  };
+}

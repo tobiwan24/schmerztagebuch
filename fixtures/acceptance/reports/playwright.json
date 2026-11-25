@@ -1,0 +1,5 @@
+{
+  "suites": [
+    { "title": "e2e", "specs": [ { "title": "XYZ-05: übersprungen", "ok": true, "tests": [ { "results": [ { "status": "skipped" } ] } ] } ] }
+  ]
+}

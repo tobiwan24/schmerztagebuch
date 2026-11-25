@@ -1,219 +1,34 @@
-# 📋 Schmerztagebuch PWA
+# Schmerztagebuch v3
 
-Eine sichere, verschlüsselte Progressive Web App zur Dokumentation von Schmerzen und Symptomen.
+Persönliches Schmerztagebuch als PWA mit Ende-zu-Ende-verschlüsseltem Sync (npm-Workspaces: `apps/web`, `apps/server`,
+`apps/mcp`, `packages/*`). v3 hat v2 abgelöst; der v2-Code ist seit 2026-11-25 aus dem Repo entfernt (RDM-036, Historie in Git).
 
-## 🌟 Features
+- Entwickeln: `npm ci`, dann `npm run verify` (Typecheck, Lint, Tests, Build); Skripte siehe `package.json`.
+- Betrieb im Homelab: [DEPLOYMENT.md](DEPLOYMENT.md). `main` ist der Produktionsstand, Änderungen kommen per PR über `develop`.
 
-### 🔐 Sicherheit & Datenschutz
-- **AES-GCM 256-bit Verschlüsselung** für sensible Gesundheitsdaten
-- **Drei Verschlüsselungsmodi**: Keine, Historie oder Volle Verschlüsselung
-- **Biometrische Authentifizierung** (Fingerabdruck/Face ID) auf unterstützten Geräten
-- **Lokale Datenspeicherung** - alle Daten bleiben primär auf dem Gerät (IndexedDB)
-- **Session-Management** mit automatischem Timeout
-- **Optionaler Cloud-Sync** (Ende-zu-Ende-verschlüsselt, siehe unten) für Mehrgeräte-Nutzung
+## Einstieg
 
-### 📱 Progressive Web App
-- **Offline-Funktionalität** - funktioniert ohne Internetverbindung
-- **Installierbar** auf Smartphone und Desktop
-- **Service Worker** für schnelle Ladezeiten und Caching
-- **Responsive Design** - optimiert für Mobile und Desktop
+| Datei | Zweck |
+|---|---|
+| [spec/00-overview.md](spec/00-overview.md) | Vision, Prinzipien, Scope, Glossar — **zuerst lesen** |
+| [spec/](spec/) | Zielspezifikationen je Bereich, jede mit Akzeptanztest-Tabelle |
+| [MILESTONES.md](MILESTONES.md) | Reihenfolge M0–M13, Akzeptanz-IDs je Meilenstein, Human-Gates |
+| [LOOP.md](LOOP.md) | Arbeitsprotokoll pro Loop-Iteration (Prompt für `/loop`) |
+| [PROGRESS.md](PROGRESS.md) | Laufender Stand — wird vom Loop gepflegt |
+| [DECISIONS.md](DECISIONS.md) | Entscheidungslog (ADR) + offene Annahmen zur Bestätigung durch den User |
+| [scripts/check-acceptance.mjs](scripts/check-acceptance.mjs) | Prüft, dass jede Akzeptanz-ID einen grünen Test hat |
 
-### ✍️ Flexible Tagebuch-Vorlagen
-- **Anpassbare Templates** für verschiedene Schmerzarten
-- **Drag & Drop Editor** zum Erstellen eigener Vorlagen
-- **8+ Block-Typen**:
-  - Text & Textarea
-  - Checkbox
-  - Slider (Schmerzskala)
-  - Datum & Zeit
-  - Multi-Select
-  - BodyMap (Körperkarte zur Schmerzlokalisation)
-  - Foto-Upload
+## Definition of Done (gesamt)
 
-### 📊 Verlauf & Export
-- **Filterbare Historie** nach Datum und Template
-- **PDF-Export** mit medizinischem Layout
-  - Automatische Einbindung von BodyMap-Bildern als Anhang
-  - Zeitraum-Filter (Letzte 7 Tage, Monat, Jahr, etc.)
-- **Detailansicht** aller Einträge
+v3 ist fertig, wenn:
 
-### 🗺️ BodyMap
-- **Interaktive Körperkarte** zur visuellen Schmerzerfassung
-- **Mehrere Schmerzpunkte** mit individueller Intensität
-- **Farb-Codierung** nach Schmerzstärke (Grün → Gelb → Orange → Rot)
-- **Preset-Verwaltung** für häufige Schmerzmuster
+1. `npm run verify` grün ist (Typecheck, Lint, Unit-/Integrationstests, Build),
+2. `npm run acceptance` meldet: **alle** automatisierten Akzeptanz-IDs aller Spezifikationen haben einen bestandenen Test,
+3. alle `manual`-Akzeptanzkriterien in [PROGRESS.md](PROGRESS.md) vom User abgehakt sind,
+4. alle Human-Gates in [MILESTONES.md](MILESTONES.md) freigegeben sind.
 
-## 🚀 Technologie-Stack
-
-- **Frontend**: React 18 + TypeScript
-- **Styling**: Vanilla CSS (Custom Properties) + shadcn/ui (Tailwind)
-- **Datenbank**: IndexedDB (Dexie)
-- **Verschlüsselung**: Web Crypto API (AES-GCM, PBKDF2)
-- **PWA**: Service Worker + Web App Manifest
-- **PDF-Generierung**: jsPDF
-- **Build-Tool**: Vite
-- **Deployment**: Vercel (Client) + Docker/Homelab (Cloud-Sync-Backend, optional)
-- **Cloud-Sync-Backend** (`server/`, optional): Fastify + better-sqlite3, WebAuthn/Passkey-Auth (`@simplewebauthn`), Envelope-Encryption
-
-## 📦 Installation & Entwicklung
-
-### Voraussetzungen
-- Node.js 18+ 
-- npm oder yarn
-
-### Setup
-
-```bash
-# Repository klonen
-git clone https://github.com/tobiwan24/schmerztagebuch.git
-cd schmerztagebuch
-
-# Dependencies installieren
-npm install
-
-# Development Server starten
-npm run dev
-
-# Für HTTPS (wichtig für iOS/Biometrie):
-npm run dev
-# App läuft auf https://localhost:5173
-```
-
-### Build für Production
-
-```bash
-# Production Build erstellen
-npm run build
-
-# Preview des Builds
-npm run preview
-```
-
-## 🔒 Verschlüsselung
-
-Die App nutzt moderne Web-Standards für maximale Sicherheit:
-
-- **AES-GCM 256-bit** Verschlüsselung
-- **PBKDF2** Key-Derivation (100.000 Iterationen)
-- **Zufällige Salts und IVs** für jeden Eintrag
-- **Keine Plaintext-Speicherung** von Passwörtern
-
-### Verschlüsselungsmodi
-
-1. **Keine Verschlüsselung**: Daten werden unverschlüsselt gespeichert
-2. **Historie verschlüsseln**: Nur gespeicherte Einträge werden verschlüsselt
-3. **Volle Verschlüsselung**: Einträge + Templates werden verschlüsselt
-
-## ☁️ Cloud-Sync (optional)
-
-Für die geräteübergreifende Nutzung gibt es ein optionales, Ende-zu-Ende-verschlüsseltes
-Sync-Backend (eigenständiger Homelab-Dienst, `server/`):
-
-- **Login per Passkey** (Face ID / Fingerabdruck via WebAuthn, PRF-Extension) — kein Passwort nötig
-- **Ende-zu-Ende-Verschlüsselung**: Der Server sieht zu keinem Zeitpunkt Klartext-Daten
-  (Envelope-Encryption, Data-Encryption-Key wird lokal mit dem Passkey ent-/verschlüsselt)
-- **Verpflichtender Backup-Code** beim Enrollment als Recovery-Anker, falls das Passkey-Gerät
-  verloren geht
-- **Last-Write-Wins-Sync** mit Konfliktauflösung zwischen mehreren Geräten
-- Lokale Offline-Fähigkeit (IndexedDB, Service Worker) bleibt vollständig erhalten — Cloud-Sync
-  ist ein optionaler Zusatz-Layer, kein Ersatz für lokal-first
-
-Cloud-Sync ist rein optional und muss aktiv in den Einstellungen eingerichtet werden; ohne
-Einrichtung verhält sich die App weiterhin komplett lokal.
-
-## 🌐 PWA Installation
-
-### Desktop (Chrome/Edge)
-1. Öffne die App im Browser
-2. Klicke auf das Install-Icon in der Adressleiste
-3. Oder: Menü → "App installieren"
-
-### iOS (Safari)
-1. Öffne die App in Safari
-2. Tippe auf Share-Button
-3. "Zum Home-Bildschirm"
-4. App vom Home-Screen öffnen für volle PWA-Funktionalität
-
-### Android (Chrome)
-1. Öffne die App in Chrome
-2. Menü → "Zum Startbildschirm hinzufügen"
-
-## 🛠️ Entwicklung
-
-### Projekt-Struktur
+## Loop starten
 
 ```
-src/
-├── components/          # React Komponenten
-│   ├── blocks/         # Block-Typen für Tagebuch
-│   ├── AuthModal.tsx   # Authentifizierung
-│   ├── Header.tsx      # App-Header
-│   └── ...
-├── pages/              # Haupt-Views
-│   ├── DiaryView.tsx   # Tagebuch-Hauptseite
-│   ├── EditorMode.tsx  # Template-Editor
-│   ├── HistoryView.tsx # Verlauf
-│   ├── SettingsView.tsx # Einstellungen
-│   └── SetupWizard.tsx # Onboarding
-├── utils/              # Utilities
-│   ├── auth.ts         # Authentifizierung & Session
-│   ├── crypto.ts       # Verschlüsselung
-│   ├── pdfExport.ts    # PDF-Generierung
-│   └── ...
-├── types/              # TypeScript Typen
-├── styles/             # CSS Dateien
-└── db.ts               # IndexedDB Wrapper
-
-public/
-├── sw.js               # Service Worker
-├── manifest.json       # PWA Manifest
-└── icons/              # App Icons
-
-server/                 # Optionales Cloud-Sync-Backend (Fastify, eigenständig deploybar)
-├── src/services/       # WebAuthn, Sessions, Sync-API, Credentials
-└── src/routes/         # HTTP-Routen (/api/auth/*, /api/sync/*)
+/loop Arbeite nach LOOP.md
 ```
-
-### Wichtige Scripts
-
-```bash
-npm run dev          # Development Server
-npm run build        # Production Build
-npm run preview      # Preview Production Build
-npm run lint         # ESLint Check
-```
-
-## 🔐 Sicherheits-Hinweise
-
-- **HTTPS erforderlich**: Verschlüsselung und Biometrie funktionieren nur über HTTPS
-- **Lokal-first**: Ohne aktivierten Cloud-Sync bleiben alle Daten ausschließlich auf dem Gerät
-- **Passwort-Recovery (lokale Verschlüsselung)**: Es gibt KEINE Wiederherstellung des lokalen Passworts - bei Verlust sind so verschlüsselte Daten unwiederbringlich!
-- **Passwort-Recovery (Cloud-Sync)**: Bei aktiviertem Passkey-Login existiert ein verpflichtender Backup-Code als Recovery-Anker, falls das Passkey-Gerät verloren geht
-- **Backup-Empfehlung**: Nutze den PDF-Export für regelmäßige Backups
-
-## 📄 Lizenz
-
-MIT License - siehe [LICENSE](LICENSE) Datei
-
-## 🤝 Contributing
-
-Contributions sind willkommen! Bitte:
-1. Fork das Repository
-2. Erstelle einen Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit deine Änderungen (`git commit -m 'Add AmazingFeature'`)
-4. Push zum Branch (`git push origin feature/AmazingFeature`)
-5. Öffne einen Pull Request
-
-## 📞 Support
-
-Bei Fragen oder Problemen öffne bitte ein [Issue](https://github.com/tobiwan24/schmerztagebuch/issues).
-
-## 🙏 Danksagungen
-
-- Icons: SVG Emoji
-- PDF-Generation: jsPDF
-- Verschlüsselung: Web Crypto API
-
----
-
-**Entwickelt mit ❤️ für sichere Gesundheitsdokumentation**

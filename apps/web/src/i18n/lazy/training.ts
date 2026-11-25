@@ -1,0 +1,32 @@
+// UI-Texte „training“ — eigenes Modul, wird nur mit den Seiten geladen, die es brauchen (Bundle-Budget QA-02).
+export const deTraining = {
+  title: 'Übungen',
+  phase: (n: number) => `Aktuelle Funktionsphase: ${n}`,
+  phaseNone: 'Noch keine Funktionsphase bekannt. Gezeigt werden Vorlagen ohne Phasenangabe.',
+  templatesLabel: 'Trainingsvorlagen',
+  emptyTitle: 'Keine passende Trainingsvorlage',
+  emptyHint: 'Lege im Vorlagen-Editor eine Trainingsvorlage an oder passe deren Funktionsphasen an.',
+  toTemplates: 'Zu den Vorlagen',
+  diaryHeading: (name: string) => `Tagebuch: ${name}`,
+  start: 'Starten',
+  startAria: (name: string) => `${name} starten`,
+  stepOf: (i: number, n: number) => `Übung ${i} von ${n}`,
+  summaryTitle: 'Abschluss',
+  summaryHint: 'Wie war es? Ergänze die Angaben und speichere den Durchgang.',
+  summaryDone: 'Erledigte Übungen',
+  noExercises: 'Diese Vorlage enthält keine Übungen.',
+  back: 'Zurück', next: 'Weiter', save: 'Durchgang speichern', saving: 'Speichert …', cancel: 'Abbrechen',
+  requiredSummary: 'Bitte fülle die markierten Pflichtfelder aus.',
+  field: {
+    done: 'Erledigt', level: 'Stufe', noLevel: 'ohne Angabe', sets: 'Sätze', reps: 'Wiederholungen', duration: 'Dauer (Sekunden)',
+    pain: 'Schmerz bei der Übung (0–10)', noPain: 'ohne Angabe',
+    target: (parts: string) => `Ziel: ${parts}`, targetSets: (n: number) => `${n} Sätze`, targetReps: (n: number) => `${n} Wiederholungen`, targetDuration: (n: number) => `${n} s`,
+    steps: 'Ablauf', video: 'Video ansehen (öffnet extern)',
+    timer: 'Timer', timerStart: 'Timer starten', timerPause: 'Timer pausieren', timerReset: 'Timer zurücksetzen',
+  },
+  media: {
+    loading: 'Lädt …', unavailable: 'Medium nicht verfügbar (noch nicht auf dieses Gerät geladen — online erneut öffnen).',
+    videoLabel: (name: string) => (name ? `Video zur Übung ${name}` : 'Video zur Übung'),
+    stepOf: (n: number, total: number) => `Schritt ${n} von ${total}`, prevStep: 'Vorheriger Schritt', nextStep: 'Nächster Schritt',
+  },
+} as const;
