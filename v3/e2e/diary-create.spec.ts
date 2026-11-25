@@ -22,9 +22,11 @@ async function createDiaryAndUseIt(page: Page) {
   await expect(page.getByTestId('diary-card')).toHaveCount(2);
   await expect(page.getByTestId('diary-card').nth(1)).toContainText('Katzentagebuch');
 
-  // Eintragsformular bietet die Vorlage des neuen Tagebuchs an
+  // Eintragsformular bietet die Vorlage des neuen Tagebuchs an, sobald es gewählt ist (RDM-034)
+  await go(page, '/');
+  await page.getByLabel('Tagebuch', { exact: true }).selectOption({ label: 'Katzentagebuch' });
   await go(page, '/entry/new');
-  await page.getByRole('button', { name: 'Migräne-Tracking' }).click();
+  await expect(page.getByText('Begleitsymptome', { exact: true })).toBeVisible();
   await page.getByLabel(/Schmerzstärke/).fill('6');
   await page.getByLabel('Notizen').fill('Katzenzeichen');
   await page.getByRole('button', { name: 'Speichern' }).click();

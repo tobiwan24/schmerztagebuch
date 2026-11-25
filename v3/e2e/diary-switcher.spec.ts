@@ -31,9 +31,13 @@ test.describe('Tagebuch-Umschalter', () => {
     await expect(page.getByLabel('Tagebuch', { exact: true })).toHaveCount(0);
 
     await createDiary(page, 'Katzentagebuch', /Migräne-Tracking/);
-    await addEntry(page, 'Migräne-Tracking', 'Beta');
-
     const switcher = page.getByLabel('Tagebuch', { exact: true });
+    // Neuer Eintrag bietet nur Vorlagen des gewählten Tagebuchs (RDM-034) → erst umschalten
+    await go(page, '/');
+    await switcher.selectOption({ label: 'Katzentagebuch' });
+    await addEntry(page, null, 'Beta');
+    await go(page, '/');
+    await switcher.selectOption({ label: 'Mein Tagebuch' });
     // Start: Umschalter sichtbar (ein Tagebuch zur Zeit, kein „Alle"), aber keine Eintragsliste mehr
     await go(page, '/');
     await expect(switcher).toBeVisible();
@@ -59,9 +63,10 @@ test.describe('Tagebuch-Umschalter', () => {
     await go(page, '/analysis');
     await expect(switcher).toHaveValue(await switcher.locator('option', { hasText: 'Katzentagebuch' }).getAttribute('value') ?? '');
 
-    // Neuer Eintrag: Vorlage des gewählten Tagebuchs ist vorausgewählt
+    // Neuer Eintrag: nur die Vorlage des gewählten Tagebuchs (RDM-034)
     await go(page, '/entry/new');
-    await expect(page.getByRole('button', { name: 'Migräne-Tracking' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByText('Begleitsymptome', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Allgemeines Schmerz-Tagebuch' })).toHaveCount(0);
 
     // Neu laden, entsperren: Auswahl bleibt
     await page.reload();

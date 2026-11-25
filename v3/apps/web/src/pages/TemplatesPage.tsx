@@ -1,15 +1,17 @@
 // Mehr → Vorlagen (Spec 05/10): Liste nach `order` mit Drag & Drop (Pointer/Touch + Pfeiltasten am Griff), Archivieren,
-// endgültiges Löschen nur mit Bestätigung und Anzahl betroffener Einträge (BLK-15), Anlage aus dem Katalog.
+// endgültiges Löschen nur mit Bestätigung und Anzahl betroffener Einträge (BLK-15), Anlage aus dem Vorlagenkatalog
+// (eigene Einträge und mitgelieferte Vorlagen, RDM-034) und „Zum Vorlagenkatalog hinzufügen“ je aktiver Vorlage.
 // Reihenfolge ändert nur `Template.order` (Fractional Index) — keine neue Vorlagenversion.
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { Link } from 'react-router';
-import { Archive, ArchiveRestore, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react';
-import { TEMPLATE_CATALOG, instantiateCatalogTemplate, keyBetween, type Template } from '@stb/core';
+import { Archive, ArchiveRestore, BookPlus, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import { TEMPLATE_CATALOG, catalogEntryFrom, instantiateCatalogTemplate, keyBetween, type Template } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { PageHeader } from '@/components/PageHeader';
 import { TemplateIcon } from '@/components/TemplateIcon';
 import { EmptyState, ErrorState } from '@/components/StateView';
@@ -17,6 +19,7 @@ import { useData } from '@/data/DataContext';
 import { useDiaryScope } from '@/data/diary-scope';
 import { useCanEditTemplates } from '@/data/useSharing';
 import { useQuery } from '@/data/useQuery';
+import { addToCatalog, instantiateCatalogEntry, refreshInCatalog, useCatalogDeps } from '@/data/template-catalog';
 import { cn } from '@/lib/utils';
 import { de } from '@/i18n/de';
 import { deTemplates } from '@/i18n/lazy/templates';
@@ -24,6 +27,11 @@ import { deTemplates } from '@/i18n/lazy/templates';
 interface Row {
   template: Template;
   entries: number;
+}
+
+interface CatalogRow {
+  template: Template;
+  fields: number;
 }
 
 export function TemplatesPage() {
@@ -39,6 +47,45 @@ export function TemplatesPage() {
   }, [data.diary, scope.diaryId]);
   const canEdit = useCanEditTemplates(query.status === 'ok' ? query.data.diaryId : null) !== false;
   const [deleting, setDeleting] = useState<Row | null>(null);
+  // Vorlagenkatalog (RDM-034): eigene Einträge aus der Bibliothek, mit Anzahl Felder
+  const catalogDeps = useCatalogDeps();
+  const catalog = useQuery(async () => {
+    const list = await data.diary.listCatalogTemplates();
+    return Promise.all(list.map(async (t): Promise<CatalogRow> => ({ template: t, fields: (await data.diary.getTemplate(t.id))?.version.blocks.length ?? 0 })));
+  }, [data.diary]);
+  const catalogRows = catalog.status === 'ok' ? catalog.data : [];
+  const [existing, setExisting] = useState<{ source: Template; entry: Template } | null>(null);
+  const [removingEntry, setRemovingEntry] = useState<CatalogRow | null>(null);
+  const [catalogStatus, setCatalogStatus] = useState<string | null>(null);
+  const [catalogBusy, setCatalogBusy] = useState(false);
+
+  async function catalogAction(run: () => Promise<string>) {
+    setCatalogBusy(true);
+    try {
+      setCatalogStatus(await run());
+    } catch {
+      setCatalogStatus(deTemplates.catalogError);
+    } finally {
+      setCatalogBusy(false);
+      catalog.retry();
+      query.retry();
+    }
+  }
+
+  function onAddToCatalog(t: Template) {
+    const entry = catalogEntryFrom(catalogRows.map((r) => r.template), t.id);
+    if (entry) return setExisting({ source: t, entry });
+    void catalogAction(async () => deTemplates.catalogAdded((await addToCatalog(catalogDeps, t.id)).template.name));
+  }
+
+  async function removeCatalogEntry(row: CatalogRow) {
+    setRemovingEntry(null);
+    await catalogAction(async () => {
+      const s = await data.stamper.stamp();
+      await data.diary.deleteTemplate(row.template.id, { hlc: s.hlc, updatedAt: s.at });
+      return deTemplates.catalogRemoved(row.template.name);
+    });
+  }
 
   // Änderungen nacheinander speichern: schnelles Ziehen + Pfeiltaste dürfen sich nicht überholen (letzte Aktion gewinnt).
   const queue = useRef<Promise<void>>(Promise.resolve());
@@ -89,7 +136,9 @@ export function TemplatesPage() {
             onMove={(t, order) => void saveMeta(t, { order })}
             onArchive={(t) => void saveMeta(t, { archived: true })}
             onDelete={setDeleting}
+            onAddToCatalog={catalogBusy ? undefined : onAddToCatalog}
           />
+          {catalogStatus ? <p role="status" data-testid="catalog-status" className="text-sm text-muted-foreground">{catalogStatus}</p> : null}
           {query.data.rows.some((r) => r.template.archived) ? (
             <section className="flex flex-col gap-2">
               <h2 className="text-sm font-medium text-muted-foreground">{deTemplates.archived}</h2>
@@ -125,22 +174,62 @@ export function TemplatesPage() {
               </Link>
             </Button>
           ) : null}
-          {query.data.diaryId && canEdit ? (
-            <section className="flex flex-col gap-2">
+          {query.data.diaryId && (canEdit || catalogRows.length > 0) ? (
+            <section className="flex flex-col gap-3" data-testid="template-catalog">
               <h2 className="text-sm font-medium text-muted-foreground">{deTemplates.fromCatalog}</h2>
-              <div className="flex flex-col gap-2">
-                {TEMPLATE_CATALOG.map((c) => (
-                  <Button key={c.id} variant="outline" className="h-auto justify-start py-3 text-left" onClick={() => void addFromCatalog(c.id, query.data.diaryId!, query.data.rows)}>
-                    <Plus aria-hidden />
-                    <span className="flex flex-col whitespace-normal">
-                      <span>{c.name}</span>
-                      <span className="text-xs text-muted-foreground">{c.description}</span>
-                    </span>
-                  </Button>
-                ))}
-              </div>
+              {catalogRows.length > 0 ? (
+                <div className="flex flex-col gap-2" data-testid="catalog-own">
+                  <h3 className="text-xs font-medium text-muted-foreground">{deTemplates.catalogOwn}</h3>
+                  {catalogRows.map((r) => (
+                    <div key={r.template.id} className="flex items-center gap-2" data-testid="catalog-own-row">
+                      <Button
+                        variant="outline"
+                        className="h-auto min-w-0 flex-1 justify-start py-3 text-left"
+                        disabled={!canEdit || catalogBusy}
+                        onClick={() => void catalogAction(async () => deTemplates.catalogCreated((await instantiateCatalogEntry(catalogDeps, r.template.id, query.data.diaryId!)).template.name))}
+                      >
+                        <TemplateIcon icon={r.template.icon} color={r.template.color} />
+                        <span className="flex min-w-0 flex-col whitespace-normal">
+                          <span>{r.template.name}</span>
+                          <span className="text-xs text-muted-foreground">{deTemplates.fieldCount(r.fields)}</span>
+                        </span>
+                      </Button>
+                      <Button variant="ghost" size="icon" aria-label={deTemplates.catalogRemove(r.template.name)} disabled={catalogBusy} onClick={() => setRemovingEntry(r)}>
+                        <Trash2 aria-hidden />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {canEdit ? (
+                <div className="flex flex-col gap-2" data-testid="catalog-builtin">
+                  {catalogRows.length > 0 ? <h3 className="text-xs font-medium text-muted-foreground">{deTemplates.catalogBuiltin}</h3> : null}
+                  {TEMPLATE_CATALOG.map((c) => (
+                    <Button key={c.id} variant="outline" className="h-auto justify-start py-3 text-left" onClick={() => void addFromCatalog(c.id, query.data.diaryId!, query.data.rows)}>
+                      <Plus aria-hidden />
+                      <span className="flex flex-col whitespace-normal">
+                        <span>{c.name}</span>
+                        <span className="text-xs text-muted-foreground">{c.description}</span>
+                      </span>
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
             </section>
           ) : null}
+          <CatalogExistsDialog
+            state={existing}
+            onCancel={() => setExisting(null)}
+            onRefresh={(x) => {
+              setExisting(null);
+              void catalogAction(async () => deTemplates.catalogUpdated((await refreshInCatalog(catalogDeps, x.entry.id, x.source.id)).template.name));
+            }}
+            onAddNew={(x) => {
+              setExisting(null);
+              void catalogAction(async () => deTemplates.catalogAdded((await addToCatalog(catalogDeps, x.source.id)).template.name));
+            }}
+          />
+          <CatalogRemoveDialog row={removingEntry} onCancel={() => setRemovingEntry(null)} onConfirm={(r) => void removeCatalogEntry(r)} />
           <DeleteDialog row={deleting} onCancel={() => setDeleting(null)} onConfirm={(r) => void remove(r)} />
         </>
       ) : null}
@@ -149,8 +238,17 @@ export function TemplatesPage() {
 }
 
 function SortableTemplates({
-  rows: initial, busy, readOnly, onMove, onArchive, onDelete,
-}: { rows: Row[]; busy: boolean; readOnly: boolean; onMove: (t: Template, order: string) => void; onArchive: (t: Template) => void; onDelete: (r: Row) => void }) {
+  rows: initial, busy, readOnly, onMove, onArchive, onDelete, onAddToCatalog,
+}: {
+  rows: Row[];
+  busy: boolean;
+  readOnly: boolean;
+  onMove: (t: Template, order: string) => void;
+  onArchive: (t: Template) => void;
+  onDelete: (r: Row) => void;
+  /** Auch bei nur lesbaren Tagebüchern (R3, Kopie in den eigenen Vorlagenkatalog); `undefined` = gerade beschäftigt. */
+  onAddToCatalog: ((t: Template) => void) | undefined;
+}) {
   const [rows, setRows] = useState(initial);
   const [dragId, setDragId] = useState<string | null>(null);
   const refs = useRef(new Map<string, HTMLDivElement>());
@@ -233,10 +331,18 @@ function SortableTemplates({
             <GripVertical aria-hidden />
           </Button>}
           <TemplateIcon icon={r.template.icon} color={r.template.color} />
-          <span className="flex flex-1 flex-col">
+          <span className="flex min-w-0 flex-1 flex-col break-words">
             <span>{r.template.name}</span>
             <span className="text-xs text-muted-foreground">{deTemplates.entryCount(r.entries)}</span>
           </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label={deTemplates.addToCatalogFor(r.template.name)} disabled={!onAddToCatalog} onClick={() => onAddToCatalog?.(r.template)}>
+                <BookPlus aria-hidden />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{deTemplates.addToCatalog}</TooltipContent>
+          </Tooltip>
           {readOnly ? null : <Button asChild variant="ghost" size="icon">
             <Link to={`/more/templates/${r.template.id}`} aria-label={deTemplates.edit(r.template.name)}>
               <Pencil aria-hidden />
@@ -279,6 +385,56 @@ function DeleteDialog({ row, onCancel, onConfirm }: { row: Row | null; onCancel:
             </Button>
             <Button variant="destructive" disabled={needsConfirm && !understood} onClick={() => (setUnderstood(false), onConfirm(row))}>
               {deTemplates.deleteFinal}
+            </Button>
+          </DialogFooter>
+        </>
+      ) : null}
+    </Dialog>
+  );
+}
+
+function CatalogExistsDialog({
+  state, onCancel, onRefresh, onAddNew,
+}: {
+  state: { source: Template; entry: Template } | null;
+  onCancel: () => void;
+  onRefresh: (s: { source: Template; entry: Template }) => void;
+  onAddNew: (s: { source: Template; entry: Template }) => void;
+}) {
+  return (
+    <Dialog open={state !== null} onClose={onCancel} aria-labelledby="catalog-exists-title">
+      {state ? (
+        <>
+          <DialogTitle id="catalog-exists-title">{deTemplates.catalogExistsTitle(state.entry.name)}</DialogTitle>
+          <DialogDescription>{deTemplates.catalogExistsHint}</DialogDescription>
+          <DialogFooter>
+            <Button variant="outline" onClick={onCancel}>
+              {de.lock.cancel}
+            </Button>
+            <Button variant="outline" onClick={() => onAddNew(state)}>
+              {deTemplates.catalogAddNew}
+            </Button>
+            <Button onClick={() => onRefresh(state)}>{deTemplates.catalogRefresh}</Button>
+          </DialogFooter>
+        </>
+      ) : null}
+    </Dialog>
+  );
+}
+
+function CatalogRemoveDialog({ row, onCancel, onConfirm }: { row: CatalogRow | null; onCancel: () => void; onConfirm: (r: CatalogRow) => void }) {
+  return (
+    <Dialog open={row !== null} onClose={onCancel} aria-labelledby="catalog-remove-title">
+      {row ? (
+        <>
+          <DialogTitle id="catalog-remove-title">{deTemplates.catalogRemoveTitle(row.template.name)}</DialogTitle>
+          <DialogDescription>{deTemplates.catalogRemoveHint}</DialogDescription>
+          <DialogFooter>
+            <Button variant="outline" onClick={onCancel}>
+              {de.lock.cancel}
+            </Button>
+            <Button variant="destructive" onClick={() => onConfirm(row)}>
+              {deTemplates.catalogRemoveConfirm}
             </Button>
           </DialogFooter>
         </>

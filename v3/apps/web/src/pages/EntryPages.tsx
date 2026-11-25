@@ -1,10 +1,10 @@
 // Eintrag: neu (`/entry/new`), bearbeiten (`/entry/:id/edit`), Detail (`/entry/:id`) — Spec 05/10, Wireframes eintrag/verlauf.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { Copy, Pencil, Trash2 } from 'lucide-react';
 import { AttachmentList } from '@/components/AttachmentList';
-import { useAuthorName } from '@/data/useSharing';
-import { displayValue, duplicateEntryInput, type BodymapValue, type TextareaValue } from '@stb/core';
+import { useAuthorName, useWritableDiaries } from '@/data/useSharing';
+import { compareByOrder, displayValue, duplicateEntryInput, type BodymapValue, type TextareaValue } from '@stb/core';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { EmptyState, ErrorState } from '@/components/StateView';
 import { EntryForm, type EntryPrefill } from '@/components/EntryForm';
 import { BodyMapView } from '@/components/blocks/BodyMapField';
 import { useData } from '@/data/DataContext';
-import { useDiaryScope } from '@/data/diary-scope';
+import { useActiveDiary } from '@/data/diary-scope';
 import { useQuery } from '@/data/useQuery';
 import { formatEntryTime } from '@/lib/entry-format';
 import { de } from '@/i18n/de';
@@ -22,17 +22,28 @@ import { de } from '@/i18n/de';
 export function EntryEditorPage() {
   const { id } = useParams();
   const { diary } = useData();
-  const { diaryId } = useDiaryScope(false);
+  const active = useActiveDiary();
+  const writable = useWritableDiaries();
+  const writableIds = writable.status === 'ok' ? writable.data.map((d) => d.id).join() : null;
   const [params] = useSearchParams();
   const from = params.get('from');
   const wantedTemplate = params.get('template');
   const query = useQuery(async () => {
-    // Vorauswahl: Vorlagen des gewählten Tagebuchs zuerst (UI-24)
-    const all = (await diary.listAllTemplates()).filter((t) => !t.archived);
-    const templates = diaryId ? [...all.filter((t) => t.diaryId === diaryId), ...all.filter((t) => t.diaryId !== diaryId)] : all;
+    const entry = id ? await diary.getEntry(id) : undefined;
+    const source = !id && from ? await diary.getEntry(from) : undefined;
+    if (!entry && !source && (!active.ready || writableIds === null)) return null;
+    // RDM-034 (R1): nur Vorlagen eines Tagebuchs — bearbeiten/duplizieren: das des Eintrags, sonst das gewählte.
+    let target = entry?.diaryId ?? source?.diaryId ?? active.diaryId;
+    let switchTo: string | null = null;
+    if (!id && !source && wantedTemplate) {
+      // Deep-Link/Kurzbefehl auf eine Vorlage eines anderen beschreibbaren Tagebuchs → Umschalter wechselt dorthin
+      const wanted = await diary.getTemplate(wantedTemplate);
+      const owner = wanted?.template.diaryId;
+      if (owner && owner !== target && writableIds?.split(',').includes(owner)) target = switchTo = owner;
+    }
+    const templates = target ? (await diary.listTemplates(target)).filter((t) => !t.archived).sort(compareByOrder) : [];
     // Duplizieren (BLK-36): Vorbelegung aus dem Original, nur wenn dessen Vorlage noch wählbar ist
     let prefill: EntryPrefill | undefined;
-    const source = !id && from ? await diary.getEntry(from) : undefined;
     if (source && templates.some((t) => t.id === source.templateId)) {
       const [entryVersion, current] = await Promise.all([diary.getTemplateVersion(source.templateId, source.templateVersion), diary.getTemplate(source.templateId)]);
       if (entryVersion && current) {
@@ -42,15 +53,20 @@ export function EntryEditorPage() {
     }
     // Vorlage aus der Kachel auf Start (BLK-44), nur wenn sie wählbar ist
     if (!prefill && !id && wantedTemplate && templates.some((t) => t.id === wantedTemplate)) prefill = { templateId: wantedTemplate, values: {}, tags: [] };
-    return { templates, entry: id ? await diary.getEntry(id) : undefined, prefill };
-  }, [diary, id, diaryId, from, wantedTemplate]);
+    return { templates, entry, prefill, switchTo };
+  }, [diary, id, active.diaryId, active.ready, writableIds, from, wantedTemplate]);
+  const switchTo = query.status === 'ok' ? query.data?.switchTo : null;
+  const { select } = active;
+  useEffect(() => {
+    if (switchTo) select(switchTo);
+  }, [switchTo, select]);
   return (
     <>
       <PageHeader title={id ? de.entry.editTitle : de.entry.newTitle} back />
-      {query.status === 'loading' ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
+      {query.status === 'loading' || (query.status === 'ok' && !query.data) ? <p className="text-muted-foreground">{de.app.loading}</p> : null}
       {query.status === 'error' ? <ErrorState onRetry={query.retry} /> : null}
-      {query.status === 'ok' && id && !query.data.entry ? <EmptyState title={de.entry.notFound} hint="" /> : null}
-      {query.status === 'ok' && !id && query.data.templates.length === 0 ? (
+      {query.status === 'ok' && query.data && id && !query.data.entry ? <EmptyState title={de.entry.notFound} hint="" /> : null}
+      {query.status === 'ok' && query.data && !id && query.data.templates.length === 0 ? (
         <>
           <EmptyState title={de.entry.noTemplateTitle} hint={de.entry.noTemplateHint} />
           <Button asChild variant="outline">
@@ -58,7 +74,7 @@ export function EntryEditorPage() {
           </Button>
         </>
       ) : null}
-      {query.status === 'ok' && (id ? query.data.entry : query.data.templates.length > 0) ? (
+      {query.status === 'ok' && query.data && (id ? query.data.entry : query.data.templates.length > 0) ? (
         <EntryForm key={from ?? id ?? wantedTemplate ?? 'new'} templates={query.data.templates} entry={query.data.entry} prefill={query.data.prefill} />
       ) : null}
     </>

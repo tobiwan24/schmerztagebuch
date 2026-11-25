@@ -32,7 +32,7 @@ test.describe('Medikamenten-Block', () => {
     await card.getByRole('button', { name: 'Medikament Paracetamol nach oben' }).click();
     await expect(card.getByTestId('preset-row').first().getByLabel('Name von Medikament 1', { exact: true })).toHaveValue('Paracetamol');
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
 
     // Formular: Vorgabe, frei, Uhrzeit, Wirkung, Entfernen
     await go(page, '/entry/new');

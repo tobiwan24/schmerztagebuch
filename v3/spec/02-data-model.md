@@ -13,6 +13,7 @@
 ```ts
 Diary        { id, name, subject: 'human' | 'animal' | 'other', icon?, color?, createdAt,
                updatedAt?: string, hlc?: string /* ab M14; für Konfliktauflösung „ganzer Datensatz per HLC" */,
+               purpose?: 'diary' | 'library' /* RDM-034: fehlt = 'diary'; 'library' = persönlicher Vorlagenkatalog */,
                settings: { weather: { enabled: boolean,
                                       location?: { lat: number, lon: number, label: string } /* fester Ort, gerundet */,
                                       gpsDefault: boolean /* GPS pro Eintrag standardmäßig an? Standard false */ },
@@ -20,7 +21,8 @@ Diary        { id, name, subject: 'human' | 'animal' | 'other', icon?, color?, c
                            quickTemplateIds?: string[] /* Vorlagen mit eigenem Schnell-Button auf Start (RDM-028) */, timezone: string } }
 
 Template     { id, diaryId, name, icon?, color?, order: string /* Fractional Index */, currentVersion: number,
-               archived: boolean, createdAt, updatedAt }
+               archived: boolean, createdAt, updatedAt,
+               catalogSource?: { diaryId, templateId, version } /* RDM-034: nur im Vorlagenkatalog, Herkunft der Kopie; unversioniert */ }
 
 TemplateVersion { templateId, version: number /* 1..n */, blocks: BlockDef[], createdAt }
                // unveränderlich; jede Strukturänderung erzeugt eine neue Version
@@ -123,6 +125,15 @@ Record-`kind`s in v3.0: `diary`, `template`, `templateVersion`, `entry`, `savedF
 ## Erweiterungen v3.x
 
 - **Lokale Verschlüsselung (M23):** Codec `aes` (DK des Tagebuchs, AAD wie in 03), Opt-in „Daten auf dem Gerät verschlüsseln“; Migration im Hintergrund plain→aes, fortsetzbar und idempotent (Outbox und `base` werden mitverschlüsselt); `occurredAt` wird im Index auf den Tag gekürzt. Ohne Entsperren keine Daten (App-Sperre). Der persistierte Suchindex steht in 06.
+- **Persönlicher Vorlagenkatalog (RDM-034, A-150):** verstecktes Tagebuch mit `purpose: 'library'` je Konto, angelegt
+  beim ersten „Zum Vorlagenkatalog hinzufügen“ (mit Konto inkl. Tagebuch-Schlüssel auf dem Server wie „Tagebuch anlegen“).
+  Einträge sind gewöhnliche `Template` + `TemplateVersion` (kein neuer `kind`), Sync/Konflikte/E2E-Verschlüsselung
+  unverändert; nie geteilt. `listDiaries`/`listAll*` schließen Bibliotheken aus (Umschalter, Start, Verlauf, Auswertung,
+  PDF/CSV/Bericht, Erinnerungen, Regeln); nur das Voll-Backup (JSON-Gesamtexport, Auto-Backup, `.stbbackup`) enthält sie.
+  Zwei Bibliotheken (offline auf zwei Geräten angelegt) sind gültig: der Vorlagenkatalog zeigt die Vereinigung, neue
+  Einträge gehen in die älteste (`createdAt`, dann ID). Kopien in den und aus dem Vorlagenkatalog bekommen neue IDs
+  (Vorlage, Blöcke, Optionen, Vorgaben, Stufen); eigene Body-Map-Bilder des Quell-Tagebuchs fallen auf das Standardbild
+  zurück, Übungsmedien werden mitkopiert (neue IDs), sofern ihr Inhalt lokal vorliegt.
 - **`Dashboard`-Entität (M21):** siehe 06. **`shares`** (Arzt-Link, M18): siehe 07. **Integrationen** (`devices.kind = 'integration'`, M24): siehe 03.
 
 ## Akzeptanztests
@@ -148,3 +159,4 @@ Record-`kind`s in v3.0: `diary`, `template`, `templateVersion`, `entry`, `savedF
 | DM-17 | Migration plain→aes (fake-indexeddb): idempotent, nach Abbruch fortsetzbar, Outbox und `base` mitverschlüsselt, Index auf den Tag gekürzt. | integration |
 | DM-18 | Schalter „Daten auf dem Gerät verschlüsseln“ an → danach enthält IndexedDB keinen Klartext-Marker mehr; die App arbeitet entsperrt normal; Auto-Sicherung und Export funktionieren. | e2e |
 | DM-19 | Leistung und Akku mit lokaler Verschlüsselung auf dem iPhone mit echtem Datenbestand. | manual |
+| DM-20 | `Diary.purpose` und `Template.catalogSource` optional, alte Daten gültig; `listDiaries`/`listAll*` enthalten keine Bibliothek; zwei Bibliotheken → `listCatalogTemplates` liefert die Vereinigung, neue Einträge in die älteste. | unit |

@@ -45,6 +45,7 @@ Reihenfolge verbindlich, Plan und Aufgaben in [PROGRESS.md](PROGRESS.md).
 | M24 | v3.x: Integrationen, client-sdk, MCP | CRY-23 CRY-24 ARC-08 EXP-27 EXP-28 | — |
 | M25 | v3.x: Einladung per QR-Code (RDM-032) | SHR-17 SHR-18 SHR-19 SHR-20 | — |
 | M26 | v3.x: Übungsmedien — Video + Bild pro Schritt (RDM-033) | BLK-54 BLK-55 BLK-56 BLK-57 | — |
+| M27 | v3.x: Vorlagen strikt pro Tagebuch + eigener Vorlagenkatalog (RDM-034) | BLK-58 BLK-59 BLK-60 BLK-61 BLK-62 BLK-63 DM-20 SHR-21 | — |
 
 ## Manuelle Kriterien (Abhaken in PROGRESS.md)
 

@@ -59,7 +59,7 @@ test.describe('Auswertung', () => {
     await page.getByTestId('lock-banner').getByRole('link', { name: 'Entsperren' }).click();
     await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Mit Passwort entsperren' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible({ timeout: 30_000 });
     await go(page, '/analysis');
 
     // Verlauf mit Ereignismarkierungen
@@ -107,7 +107,7 @@ test.describe('Auswertung', () => {
     await page.getByTestId('lock-banner').getByRole('link', { name: 'Entsperren' }).click();
     await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Mit Passwort entsperren' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible({ timeout: 30_000 });
     await go(page, '/analysis');
     await expect(page.getByTestId('analysis-view-trend').locator('.recharts-line-curve')).toHaveCount(1, { timeout: 15_000 });
 
@@ -142,7 +142,7 @@ test.describe('Auswertung', () => {
     await page.getByTestId('lock-banner').getByRole('link', { name: 'Entsperren' }).click();
     await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Mit Passwort entsperren' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible({ timeout: 30_000 });
     await go(page, '/analysis');
     await page.getByRole('button', { name: '7 T' }).click();
     const period = page.getByTestId('analysis-period');

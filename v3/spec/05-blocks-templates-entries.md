@@ -27,7 +27,18 @@
 
 ## Vorlagen
 
-- Anlegen leer, aus Katalog (v2 `templateCatalog` portiert) oder durch Duplizieren.
+- Anlegen leer, aus dem Vorlagenkatalog (mitgeliefert: v2 `templateCatalog` portiert; eigene Einträge, RDM-034) oder durch Duplizieren.
+- **Strikt pro Tagebuch (RDM-034, A-150):** Jede Ansicht, die Vorlagen zum Eintragen anbietet (Start-Kacheln,
+  Schnell-Buttons, „Neuer Eintrag“, Schnelleintrag, Wischen im Formular), zeigt nur Vorlagen des gewählten Tagebuchs
+  (Umschalter, bei nur einem Tagebuch dieses). Bearbeiten und Duplizieren nutzen das Tagebuch des Eintrags.
+  `/entry/new?template=<id>` mit einer Vorlage eines anderen beschreibbaren Tagebuchs schaltet den Umschalter dorthin.
+  „Alle“ bleibt Verlauf und Auswertung vorbehalten.
+- **Persönlicher Vorlagenkatalog (RDM-034):** Unter Mehr → Vorlagen hat jede aktive Vorlage „Zum Vorlagenkatalog
+  hinzufügen“ (auch für Mitglieder mit Leserecht; Kopie). Gibt es schon einen Eintrag aus derselben Vorlage, fragt ein
+  Dialog „Im Vorlagenkatalog aktualisieren“ (Blöcke als neue Version, Name/Symbol/Farbe übernommen) oder „Als neuen
+  Eintrag hinzufügen“. Abschnitt „Aus dem Vorlagenkatalog“: „Eigene“ (Anzahl Felder, Entfernen mit Bestätigung) und
+  „Mitgeliefert“; Antippen legt die Vorlage im gewählten Tagebuch an (nur wer dort Vorlagen bearbeiten darf).
+  Einträge im Vorlagenkatalog werden nicht direkt bearbeitet; die Kopie folgt dem Original nicht automatisch.
 - **Reihenfolge der Vorlagen per Drag & Drop editierbar** (Fractional Index, 02). Ebenso Reihenfolge der Blöcke.
 - Archivieren statt Löschen, solange Einträge existieren; endgültiges Löschen nur mit Bestätigung + Anzahl betroffener Einträge.
 - Rollen pro Block im Editor optional setzbar. *(v3.x: Vorschlag per LLM, nie automatisch übernommen.)*
@@ -56,8 +67,8 @@ Route `/more/templates/new` und `/more/templates/:id` (nur `owner` bzw. local-on
 - **Auswahl der Vorlage** im Schnelleintrag: alle aktiven Vorlagen des Tagebuchs (jede hat Schnelleintrag-Felder, notfalls per Standardregel) als Auswahl oberhalb der Felder; die zuletzt genutzte ist vorausgewählt (sonst die erste in Vorlagen-Reihenfolge).
 - Erreichbar mit **einem Tipp** von der Startseite; Speichern mit höchstens **drei Tipps** insgesamt (Vorauswahl der Vorlage = kein Tipp).
 - Weitere Felder können später im Eintrag ergänzt werden (`meta.source = 'quick'`).
-- **Schnell-Buttons je Vorlage:** Die Tagebuch-Einstellung `quickTemplateIds` wählt Vorlagen, die auf Start einen eigenen Knopf „Schnell: <Vorlage>“ bekommen (`/quick?template=<id>`, Vorlage vorausgewählt); ohne Auswahl bleibt der eine Knopf „Schnell eintragen“.
-- Mehrere beschreibbare Tagebücher: Start zeigt je Tagebuch einen Knopf (`/quick?diary=<id>`); `/quick` ohne Parameter zeigt dann eine Auswahl. Wetter wie im Formular (fester Ort / `gpsDefault`).
+- **Schnell-Buttons je Vorlage:** Die Tagebuch-Einstellung `quickTemplateIds` wählt Vorlagen, die auf Start einen eigenen Knopf „Schnell: <Vorlage>“ bekommen (`/quick?diary=<id>&template=<id>`, Vorlage vorausgewählt); ohne Auswahl bleibt der eine Knopf „Schnell eintragen“ (`/quick?diary=<id>`).
+- Start zeigt nur die Knöpfe des gewählten Tagebuchs (RDM-034, ersetzt „je Tagebuch ein Knopf“); ist es nur lesbar, gibt es keine Knöpfe und keine Kacheln, sondern den Hinweis „In diesem Tagebuch kannst du nur lesen.“. `/quick` ohne Parameter nimmt das gewählte Tagebuch, wenn es beschreibbar ist, sonst bei mehreren beschreibbaren Tagebüchern eine Auswahl. Wetter wie im Formular (fester Ort / `gpsDefault`).
 
 ## Wetter als Metadaten
 
@@ -125,14 +136,14 @@ Der Vorlagen-Editor kann Rollen je Block vorschlagen (Freigabe pro Vorgang, Deta
 | BLK-34 | Nachtrag: beim Entsperren und beim Ereignis `online` werden Einträge mit `weatherPending` aller Tagebücher nacheinander nachgetragen (ein Lauf zur Zeit), danach ohne `weatherPending` und mit neuem HLC; fehlgeschlagene bleiben markiert. | integration |
 | BLK-35 | Eintrag-Detail „Löschen": Bestätigungsdialog; Bestätigen entfernt den Eintrag aus Detail, Start und Verlauf (Tombstone mit neuem HLC, zugehörige Anhang-Metadaten ebenfalls gelöscht); Abbrechen ändert nichts. | e2e |
 | BLK-36 | Eintrag-Detail „Duplizieren": öffnet das Formular vorbefüllt mit Vorlage, Werten (abgebildet auf die aktuelle Version, ohne archivierte Felder und ohne Anhänge) und Tags, Zeitpunkt = jetzt; Speichern erzeugt einen neuen Eintrag mit neuer ID, das Original bleibt unverändert. | e2e |
-| BLK-37 | Schnelleintrag pro Tagebuch (Auswahl ab M14c im Vorlagen-Editor, BLK-45; bis dahin in den Tagebuch-Einstellungen): gewählte Vorlage + Blöcke erscheinen in `/quick?diary=<id>`; bei mehreren beschreibbaren Tagebüchern zeigt der Start je Tagebuch einen Schnelleintrag-Knopf (Speichern weiter in ≤ 3 Tipps), `/quick` ohne Parameter zeigt dann eine Auswahl; ohne Einstellung gilt die Standardregel. | e2e |
+| BLK-37 | Schnelleintrag pro Tagebuch (Auswahl ab M14c im Vorlagen-Editor, BLK-45; bis dahin in den Tagebuch-Einstellungen): gewählte Vorlage + Blöcke erscheinen in `/quick?diary=<id>`; Start zeigt nur den Knopf des gewählten Tagebuchs (Speichern weiter in ≤ 3 Tipps, RDM-034), `/quick` ohne Parameter nimmt das gewählte Tagebuch; ohne Einstellung gilt die Standardregel. | e2e |
 | BLK-38 | Ortssuche: Geocoding-Request erst ab 2 Zeichen (`count=5`, `language=de`), Treffer als „Ort, Region, Land"; gewählter Ort wird auf 1 Dezimalstelle gerundet gespeichert; „Aktuellen Standort übernehmen" rundet ebenso; Fehler/offline → Hinweis, nichts gespeichert. | unit |
 | BLK-39 | Wetter-Ort setzen im Onboarding (optionaler, überspringbarer Schritt) und in den Tagebuch-Einstellungen (Ortssuche mit gemockter Geocoding-API oder Standort) → `settings.weather.location` gesetzt, Wetter an; Ort entfernen → Wetter aus und Hinweis „Ohne Ort kein Wetter". | e2e |
 | BLK-40 | Standardbilder „Körper Vorderseite/Rückseite" haben in den äußeren 4 Pixelspalten links keine sichtbaren Pixel (Alpha = 0) — Regression für das Artefakt bei y≈470. | unit |
 | BLK-41 | Eintragsformular: Slider-`infoText` als aufklappbarer Info-Hinweis am Feld; Multiselect-Optionen in ihrer Farbe (Kontrast AA, ausgewählt deutlich unterscheidbar); Blöcke mit `hideLabel` zeigen kein sichtbares Label (zugänglicher Name bleibt). | e2e |
 | BLK-42 | Eintragsformular (neu, mehrere Vorlagen): Wischen nach links/rechts wechselt die Vorlage wie die Auswahlknöpfe; mit Eingaben nur nach Rückfrage (BLK-09-Regel). | e2e |
 | BLK-43 | `BlockDef.hideLabel` (optional) wird von Schema, Editor (je Block und „alle Labels ein/aus") und JSON-Export unterstützt; Umschalten erzeugt eine neue Version (Spec 02: Label-Darstellung ist Struktur). | unit |
-| BLK-44 | Start zeigt Vorlagen-Kacheln (Icon, Farbe, Name) aller aktiven Vorlagen beschreibbarer Tagebücher in Vorlagen-Reihenfolge; ein Tipp öffnet `/entry/new?template=<id>` mit dieser Vorlage; im Konto-Modus Begrüßung mit Benutzernamen. | e2e |
+| BLK-44 | Start zeigt Vorlagen-Kacheln (Icon, Farbe, Name) der aktiven Vorlagen des gewählten Tagebuchs in Vorlagen-Reihenfolge (RDM-034); ein Tipp öffnet `/entry/new?template=<id>` mit dieser Vorlage; im Konto-Modus Begrüßung mit Benutzernamen. | e2e |
 | BLK-45 | Schnelleintrag im Vorlagen-Editor: je Block Schalter „Im Schnelleintrag" (`quickBlockIds`, keine neue Vorlagenversion); `/quick` zeigt genau diese Blöcke in Vorlagen-Reihenfolge, ohne Auswahl die Standardregel; frühere Tagebuch-Einstellungen werden migriert und sind in den Tagebuch-Einstellungen nicht mehr einstellbar. | e2e |
 | BLK-46 | Schnelleintrag mit Vorlagenwahl: `/quick` bietet alle aktiven Vorlagen des Tagebuchs zur Auswahl, die zuletzt genutzte ist vorausgewählt; Wechsel tauscht die Felder (mit Eingaben nur nach Rückfrage, BLK-09-Regel); Speichern bleibt in ≤ 3 Tipps. | e2e |
 | BLK-47 | Eintrags-Detailansicht (`/entry/:id`, aus dem Verlauf): Körperkarten-Felder zeigen das Bild mit Markierungen (Punkte/Pinsel, Nummern, Kommentare) schreibgeschützt, mit Standard- und eigenem Bild; Feld ohne Markierung zeigt das Bild ohne Marker. | e2e |
@@ -145,4 +156,10 @@ Der Vorlagen-Editor kann Rollen je Block vorschlagen (Freigabe pro Vorgang, Deta
 | BLK-54 | `core/exercise-media.ts` + `blocks/exercise.ts`: Schritte als Text (alt) oder `{ text?, imageId? }`, `videoMediaId`, Metadaten-Schema `exerciseMedia`; `checkExerciseMediaFile` nimmt Video (mp4/webm/mov) und Bilder (ohne SVG) bis 20 MB an. | unit |
 | BLK-55 | JSON v1: Feld `exerciseMedia` im Schema, Export nur zu vorhandenen Vorlagen, Rundweg, Import-Prüfung (Vorlage fehlt → inkonsistent), „Als Kopie“ schreibt `videoMediaId`/`imageId` um; ältere Dateien ohne Feld bleiben lesbar. | unit |
 | BLK-56 | Editor: Schritt mit Bild und Video hochladen, zu großes Video wird mit Hinweis abgelehnt; nach Speichern im Training: Video abspielbar (`blob:`-Quelle), Schritt-Ansicht mit Bild und Vor/Zurück. | e2e |
+| BLK-58 | Zwei beschreibbare Tagebücher T1/T2 mit je eigener Vorlage: Start zeigt bei T1 nur die Kacheln und Schnell-Buttons von T1, nach Umschalten nur die von T2; `/entry/new` bietet jeweils nur die Vorlagen des gewählten Tagebuchs; Wischen wechselt nur innerhalb. | e2e |
+| BLK-59 | Eintrag aus T2 bearbeiten/duplizieren, während T1 gewählt ist → Formular bietet nur Vorlagen aus T2. `/entry/new?template=<T2-Vorlage>` bei gewähltem T1 → Umschalter steht danach auf T2. | e2e |
+| BLK-60 | Gewähltes Tagebuch nur lesbar (`viewer`): Start zeigt keine Kacheln und keine Schnell-Buttons, aber den Hinweis „nur lesen“; `/quick` ohne Parameter zeigt die Auswahl der beschreibbaren Tagebücher. | e2e |
+| BLK-61 | `catalogCopyOf` / `instantiateFromCatalog`: neue IDs für Vorlage, Blöcke, Optionen; Version 1; `quickBlockIds` abgebildet; `catalogSource` nur an der Vorlagenkatalog-Kopie; Body-Map mit eigenem Bild → Standardbild; Ergebnis validiert gegen die Schemas. | unit |
+| BLK-62 | Mehr → Vorlagen: „Zum Vorlagenkatalog hinzufügen“ → Eintrag erscheint unter „Eigene“; daraus in einem anderen Tagebuch angelegte Vorlage ist unabhängig (Änderung ändert weder Original noch Vorlagenkatalog); erneutes Hinzufügen bietet „Im Vorlagenkatalog aktualisieren“; Entfernen mit Bestätigung. | e2e |
+| BLK-63 | Vorlagenkatalog auf zwei Geräten desselben Kontos: Hinzufügen, Aktualisieren und Entfernen auf Gerät A sind nach Sync auf Gerät B sichtbar. | e2e |
 | BLK-57 | Echtes iPhone-Video (.mov, ≤ 20 MB) und Schrittfotos in der installierten App hochgeladen; im Training auf iPhone und einem zweiten Gerät (nach Sync) abgespielt bzw. angezeigt. | manual |

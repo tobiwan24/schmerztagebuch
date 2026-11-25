@@ -4,6 +4,9 @@ import type { Clock } from './env.js';
 import { idSchema, isoDateTime } from './blocks/index.js';
 
 export const DIARY_SUBJECTS = ['human', 'animal', 'other'] as const;
+/** RDM-034: `library` = verstecktes Tagebuch für den persönlichen Vorlagenkatalog (nie geteilt, nicht im Umschalter). */
+export const DIARY_PURPOSES = ['diary', 'library'] as const;
+export type DiaryPurpose = (typeof DIARY_PURPOSES)[number];
 
 export const diarySettingsSchema = z.strictObject({
   weather: z.strictObject({
@@ -30,16 +33,22 @@ export const diarySchema = z.strictObject({
   /** Ab M14 (DM-14): Stempel für die Konfliktauflösung per HLC; ältere Tagebücher haben sie nicht. */
   updatedAt: isoDateTime.optional(),
   hlc: z.string().min(1).optional(),
+  /** Fehlt = `diary` (RDM-034, DM-20). */
+  purpose: z.enum(DIARY_PURPOSES).optional(),
 });
 export type Diary = z.infer<typeof diarySchema>;
+
+/** Bibliothek = persönlicher Vorlagenkatalog (RDM-034). */
+export const isLibraryDiary = (d: Pick<Diary, 'purpose'>): boolean => d.purpose === 'library';
 export type DiarySubject = Diary['subject'];
 
 /** Neues Tagebuch mit Standard-Einstellungen: Wetter aus, bis ein fester Ort gesetzt ist (Spec 05), GPS aus. Mit `location`: Ort gerundet, Wetter an. */
-export function createDiary(input: { id: string; name: string; subject: DiarySubject; timezone: string; location?: { lat: number; lon: number; label: string } }, clock: Clock): Diary {
+export function createDiary(input: { id: string; name: string; subject: DiarySubject; timezone: string; location?: { lat: number; lon: number; label: string }; purpose?: DiaryPurpose }, clock: Clock): Diary {
   return diarySchema.parse({
     id: input.id,
     name: input.name,
     subject: input.subject,
+    ...(input.purpose === 'library' ? { purpose: 'library' } : {}),
     createdAt: new Date(clock.now()).toISOString(),
     settings: {
       weather: input.location

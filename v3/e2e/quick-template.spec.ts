@@ -43,7 +43,7 @@ test.describe('Schnelleintrag im Vorlagen-Editor und Vorlagenwahl', () => {
     await card(page, 'Notizen').getByLabel('Im Schnelleintrag').check();
     await card(page, 'Schmerzstärke').getByLabel('Im Schnelleintrag').check();
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
     const [tpl] = await records(page, 'template');
     expect(tpl!.currentVersion).toBe(1);
     expect(tpl!.quickBlockIds).toHaveLength(2);
@@ -86,7 +86,7 @@ test.describe('Schnelleintrag im Vorlagen-Editor und Vorlagenwahl', () => {
     await page.getByRole('group', { name: 'Feld hinzufügen' }).getByRole('button', { name: 'Slider', exact: true }).click();
     await page.getByRole('region', { name: /^Feld 1:/ }).getByLabel('Bezeichnung', { exact: true }).fill('Stimmung');
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
 
     await go(page, '/quick');
     const choice = page.getByTestId('quick-template-choice');
@@ -128,7 +128,7 @@ test.describe('Schnelleintrag im Vorlagen-Editor und Vorlagenwahl', () => {
     await page.getByRole('group', { name: 'Feld hinzufügen' }).getByRole('button', { name: 'Slider', exact: true }).click();
     await page.getByRole('region', { name: /^Feld 1:/ }).getByLabel('Bezeichnung', { exact: true }).fill('Stimmung');
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
     const second = (await records(page, 'template')).find((x) => x.name === 'Zweite')!;
 
     await go(page, `/quick?template=${second.id}`);

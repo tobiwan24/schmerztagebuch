@@ -4,6 +4,15 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.15.0-alpha.1',
+    date: '2026-11-25',
+    points: [
+      'Vorlagen pro Tagebuch: Start, „Neuer Eintrag“ und der Schnelleintrag zeigen nur noch die Vorlagen des oben gewählten Tagebuchs.',
+      'Eigener Vorlagenkatalog: Unter Mehr → Vorlagen fügst du eine Vorlage mit „Zum Vorlagenkatalog hinzufügen“ hinzu – auch aus einem geteilten Tagebuch – und legst sie später in jedem Tagebuch an.',
+      'Der Vorlagenkatalog ist auf allen deinen Geräten gleich und im Backup enthalten. Geänderte Vorlagen aktualisierst du dort per Knopfdruck.',
+    ],
+  },
+  {
     version: '3.14.0-alpha.1',
     date: '2026-11-24',
     points: [

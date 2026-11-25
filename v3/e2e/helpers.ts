@@ -164,10 +164,10 @@ export async function openMembers(page: Page) {
   await page.getByTestId('members-card').waitFor();
 }
 
-/** Lädt eine neue Person ein (Rolle „Darf eintragen“) und lässt sie annehmen; wartet, bis der Owner sie bestätigt hat. */
-export async function inviteMember(owner: Page, browser: Browser, name: string, expectedMembers: number): Promise<{ ctx: BrowserContext; page: Page }> {
+/** Lädt eine neue Person ein (Rolle „Darf eintragen“ bzw. `role`) und lässt sie annehmen; wartet, bis der Owner sie bestätigt hat. */
+export async function inviteMember(owner: Page, browser: Browser, name: string, expectedMembers: number, role: 'Darf eintragen' | 'Darf lesen' = 'Darf eintragen'): Promise<{ ctx: BrowserContext; page: Page }> {
   await openMembers(owner);
-  await owner.getByRole('button', { name: 'Darf eintragen' }).click();
+  await owner.getByRole('button', { name: role }).click();
   await owner.getByRole('button', { name: 'Einladungslink erzeugen' }).click();
   const hash = new URL((await owner.getByTestId('invite-link').textContent())!).hash;
   const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, locale: 'de-DE' });

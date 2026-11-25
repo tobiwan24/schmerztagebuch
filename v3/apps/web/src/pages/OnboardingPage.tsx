@@ -147,7 +147,7 @@ export function OnboardingPage() {
       {current === 'backup' && pending ? <BackupCodeStep code={pending.backupCode} busy={busy} onConfirmed={() => void onConfirmed()} /> : null}
       {current === 'diary' ? <DiaryStep onNext={(c) => (setDiaryChoice(c), setStep('location'))} /> : null}
       {current === 'location' ? <LocationStep onDone={(location) => (setDiaryChoice((c) => (c ? { ...c, ...(location ? { location } : {}) } : c)), setStep('template'))} /> : null}
-      {current === 'template' ? <TemplateStep busy={busy} onDone={(id) => void onTemplate(id)} /> : null}
+      {current === 'template' ? <TemplateStep busy={busy} onDone={(c) => void onTemplate(c?.id ?? null)} /> : null}
       {setupError ? <AuthErrorNotice code={setupError} /> : null}
     </main>
   );

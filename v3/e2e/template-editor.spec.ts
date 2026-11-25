@@ -30,7 +30,7 @@ test.describe('Vorlagen-Editor', () => {
     await page.getByRole('button', { name: 'Symbol Pill' }).click();
     await page.getByRole('button', { name: 'Rot' }).click();
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
     const row = (name: string) => page.getByTestId('template-row').filter({ hasText: name });
     await expect(row('Meine Vorlage').getByTestId('template-icon')).toHaveAttribute('data-icon', 'Pill');
     await expect(row('Meine Vorlage').getByTestId('template-icon')).toHaveAttribute('data-color', 'red');
@@ -113,7 +113,7 @@ test.describe('Vorlagen-Editor', () => {
     await card(7).getByLabel('Bezeichnung', { exact: true }).fill('Ort');
     await card(7).getByLabel('Standardbild').selectOption({ label: 'Fuß plantar' });
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
 
     // Neuer Eintrag zeigt die Felder mit ihrer Konfiguration
     await go(page, '/entry/new');
@@ -141,7 +141,7 @@ test.describe('Vorlagen-Editor', () => {
     await expect(card(1).getByLabel('Maximum', { exact: true })).toHaveValue('20');
     await card(1).getByLabel('Bezeichnung', { exact: true }).fill('Stärke');
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
     await go(page, '/entry/new');
     await page.getByRole('button', { name: 'Blocktest' }).click();
     await expect(field('Stärke')).toBeVisible();
@@ -159,7 +159,7 @@ test.describe('Vorlagen-Editor', () => {
     // Ein Typwechsel wird nicht angeboten
     await expect(page.getByRole('region', { name: /^Feld 1:/ }).getByLabel('Typ')).toHaveCount(0);
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
 
     // Eintrag mit allen drei Feldern (Version 1)
     await go(page, '/entry/new');
@@ -188,7 +188,7 @@ test.describe('Vorlagen-Editor', () => {
     await page.mouse.up();
     await expect.poll(labels).toEqual(['Beta', 'Gamma', 'Alpha']);
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
 
     // Neuer Eintrag zeigt die neue Reihenfolge
     await go(page, '/entry/new');
@@ -202,7 +202,7 @@ test.describe('Vorlagen-Editor', () => {
     await page.getByRole('button', { name: 'Feld Gamma entfernen' }).click();
     await expect.poll(labels).toEqual(['Beta', 'Alpha']);
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
     await go(page, new URL(entryUrl).pathname);
     await expect(page.getByTestId('entry-field').filter({ hasText: 'Gamma' })).toContainText('Wert-G');
     await expect(page.getByTestId('entry-field').filter({ hasText: 'Gamma' })).not.toContainText('archiviertes Feld');
@@ -249,7 +249,7 @@ test.describe('Vorlagen-Editor', () => {
     await expect(card(1).getByLabel('Bezeichnung im Formular ausblenden')).not.toBeChecked();
     await card(2).getByLabel('Bezeichnung im Formular ausblenden').check();
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
     await page.getByRole('link', { name: 'Ohne Labels bearbeiten' }).click();
     await expect(card(1).getByLabel('Bezeichnung im Formular ausblenden')).not.toBeChecked();
     await expect(card(2).getByLabel('Bezeichnung im Formular ausblenden')).toBeChecked();

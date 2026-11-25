@@ -138,14 +138,42 @@ export function removeBlock(blocks: readonly BlockDef[], id: string): BlockDef[]
   return sorted(blocks).filter((b) => b.id !== id);
 }
 
-/**
- * Kopie einer Vorlage: neue IDs für Vorlage, Blöcke, Optionen, Medikamenten-Vorgaben und Übungs-Stufen, Name „… (Kopie)", Version 1.
- * `nextOrder` = Order-Key der Vorlage direkt nach dem Original (oder `null`); die Kopie landet dazwischen.
- */
-export function duplicateTemplate(source: TemplateState, ids: IdGenerator, clock: Clock, nextOrder: string | null): TemplateState {
-  const { template, version } = source;
+export interface CopyBlocksOptions {
+  /**
+   * Eigene Body-Map-Bilder des Quell-Tagebuchs (RDM-034): zeigt `defaultPresetId` auf eines davon, fällt die Kopie auf
+   * das Standardbild zurück (eigene Bilder sind Records des Tagebuchs und werden nicht mitkopiert).
+   */
+  ownBodymapImageIds?: ReadonlySet<string>;
+  /**
+   * Übungsmedien, die mitkopiert werden (RDM-034). Ohne Angabe bleiben Verweise unverändert (Kopie im selben Tagebuch);
+   * mit Angabe bekommen enthaltene Medien eine neue ID (`mediaIds`), alle anderen Verweise entfallen.
+   */
+  copyableMediaIds?: ReadonlySet<string>;
+}
+
+export interface CopiedBlocks {
+  blocks: BlockDef[];
+  /** alte → neue Block-ID */
+  idMap: Map<string, string>;
+  /** alte → neue Übungsmedien-ID (nur mit `copyableMediaIds`) */
+  mediaIds: Map<string, string>;
+}
+
+/** Neue IDs für Blöcke, Optionen, Medikamenten-Vorgaben und Übungs-Stufen (gemeinsam für Duplizieren und Vorlagenkatalog). */
+export function copyBlocks(blocks: readonly BlockDef[], ids: IdGenerator, opts: CopyBlocksOptions = {}): CopiedBlocks {
   const idMap = new Map<string, string>();
-  const blocks = version.blocks.map((b): BlockDef => {
+  const mediaIds = new Map<string, string>();
+  const media = (old: string | undefined): string | undefined => {
+    if (old === undefined || !opts.copyableMediaIds) return old;
+    if (!opts.copyableMediaIds.has(old)) return undefined;
+    let id = mediaIds.get(old);
+    if (!id) {
+      id = ids.newId();
+      mediaIds.set(old, id);
+    }
+    return id;
+  };
+  const out = blocks.map((b): BlockDef => {
     const id = ids.newId();
     idMap.set(b.id, id);
     if (b.type === 'multiselect') {
@@ -154,11 +182,41 @@ export function duplicateTemplate(source: TemplateState, ids: IdGenerator, clock
     if (b.type === 'medication') {
       return { ...b, id, config: { ...b.config, presets: b.config.presets.map((p) => ({ ...p, id: ids.newId() })) } };
     }
+    if (b.type === 'bodymap' && opts.ownBodymapImageIds?.has(b.config.defaultPresetId)) {
+      return { ...b, id, config: { ...b.config, defaultPresetId: DEFAULT_BODYMAP_PRESET_ID } };
+    }
     if (b.type === 'exercise') {
-      return { ...b, id, config: { ...b.config, ...(b.config.levels ? { levels: b.config.levels.map((l) => ({ ...l, id: ids.newId() })) } : {}) } };
+      const { videoMediaId, steps, levels, ...rest } = b.config;
+      const video = media(videoMediaId);
+      const newSteps = steps?.flatMap((s) => {
+        if (typeof s === 'string' || s.imageId === undefined) return [s];
+        const imageId = media(s.imageId);
+        if (imageId) return [{ ...s, imageId }];
+        return s.text !== undefined ? [{ text: s.text }] : [];
+      });
+      return {
+        ...b,
+        id,
+        config: {
+          ...rest,
+          ...(video !== undefined ? { videoMediaId: video } : {}),
+          ...(newSteps !== undefined ? { steps: newSteps } : {}),
+          ...(levels ? { levels: levels.map((l) => ({ ...l, id: ids.newId() })) } : {}),
+        },
+      };
     }
     return { ...b, id };
   });
+  return { blocks: out, idMap, mediaIds };
+}
+
+/**
+ * Kopie einer Vorlage: neue IDs für Vorlage, Blöcke, Optionen, Medikamenten-Vorgaben und Übungs-Stufen, Name „… (Kopie)", Version 1.
+ * `nextOrder` = Order-Key der Vorlage direkt nach dem Original (oder `null`); die Kopie landet dazwischen.
+ */
+export function duplicateTemplate(source: TemplateState, ids: IdGenerator, clock: Clock, nextOrder: string | null): TemplateState {
+  const { template, version } = source;
+  const { blocks, idMap } = copyBlocks(version.blocks, ids);
   const quick = template.quickBlockIds?.flatMap((q) => idMap.get(q) ?? []);
   return createTemplate(
     {

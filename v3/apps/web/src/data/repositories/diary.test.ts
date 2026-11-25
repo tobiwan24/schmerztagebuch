@@ -244,3 +244,32 @@ describe('Gespeicherte Filter', () => {
   });
 });
 
+
+describe('Diary-Repository: Vorlagenkatalog (RDM-034)', () => {
+  it('DM-20: listDiaries/listAll* schließen Bibliotheken aus; listCatalogTemplates liefert die Vereinigung zweier Bibliotheken', async () => {
+    const registry = createCodecRegistry([plainCodec]);
+    const repo = createDiaryRepository(createRecordRepository(db, { registry, writeCodec: 'plain', clock, outbox: true }));
+    const settings = { weather: { enabled: false, gpsDefault: false }, timezone: 'Europe/Berlin' };
+    const diary = { id: newId(), name: 'Tagebuch', subject: 'human' as const, createdAt: iso(), settings };
+    const libA = { id: newId(), name: 'Bibliothek', subject: 'other' as const, createdAt: iso(), settings, purpose: 'library' as const };
+    const libB = { ...libA, id: newId(), createdAt: iso() };
+    const k0 = keyBetween(null, null);
+    const k1 = keyBetween(k0, null);
+    const tpl = (diaryId: string, name: string, order: string) =>
+      createTemplate({ id: newId(), diaryId, name, order, blocks: [{ id: newId(), type: 'text', label: 'Notiz', required: false, order: k0, config: {} }] }, clock);
+    const own = tpl(diary.id, 'Eigene', k0);
+    const a = tpl(libA.id, 'Katalog A', k1);
+    const b = tpl(libB.id, 'Katalog B', k0);
+    await repo.createDiary(diary, own);
+    await repo.createDiary(libA, a);
+    await repo.createDiary(libB, b);
+
+    expect((await repo.listDiaries()).map((d) => d.id)).toEqual([diary.id]);
+    expect((await repo.listDiaries({ includeLibrary: true })).map((d) => d.id)).toEqual([diary.id, libA.id, libB.id]);
+    expect((await repo.listAllTemplates()).map((x) => x.id)).toEqual([own.template.id]);
+    expect(await repo.listAllTemplates({ includeLibrary: true })).toHaveLength(3);
+    expect((await repo.listAllTemplateVersions()).map((v) => v.templateId)).toEqual([own.template.id]);
+    expect((await repo.listLibraries()).map((d) => d.id)).toEqual([libA.id, libB.id]);
+    expect((await repo.listCatalogTemplates()).map((x) => x.name)).toEqual(['Katalog B', 'Katalog A']);
+  });
+});

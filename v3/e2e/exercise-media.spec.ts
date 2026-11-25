@@ -45,14 +45,14 @@ test.describe('Übungsmedien', () => {
     await expect(card.getByTestId('exercise-video-edit')).toContainText('brücke.mp4');
 
     await page.getByRole('button', { name: 'Speichern' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
 
     // Neu laden: Medien kommen aus dem lokalen Speicher
     await page.reload();
     await page.getByTestId('lock-banner').getByRole('link', { name: 'Entsperren' }).click();
     await page.getByLabel('Passwort', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Mit Passwort entsperren' }).click();
-    await expect(page.getByRole('heading', { name: 'Vorlagen' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible({ timeout: 30_000 });
     await go(page, '/training');
     await page.getByTestId('training-template').filter({ hasText: 'Medientraining' }).click();
     await expect(page.getByTestId('training-step-title')).toHaveText('Brücke');
