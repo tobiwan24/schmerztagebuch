@@ -80,6 +80,7 @@ Abhaken in [PROGRESS.md](PROGRESS.md) → „G4 — Ablösung" und „Ablösungs
 
 ### 6. v2-Server nach 30 Tagen abschalten
 - Wenn 30 Tage lang keine Migration mehr nötig war.
+- **Erledigt 2026-11-25 (vorzeitig auf Wunsch des Users, RDM-036, A-152):** v2-Stack, Images und Daten vom Server entfernt, Caddy und Backup ohne v2, v2-Code aus dem Repo entfernt, v3 in der Repo-Wurzel.
 
 ## Rückweg
 - Bis Schritt 6 bleibt v2 vollständig erhalten: Build-Ziel zurück auf den Repo-Root stellen. Die v2-`PainDiaryDB` wird von
