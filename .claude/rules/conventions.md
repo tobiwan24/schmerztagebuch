@@ -70,7 +70,7 @@ chore/was-erledigt-wird       # Config, Tooling, Deps
 
 **Workflow:**
 ```bash
-git checkout develop           # Von develop abzweigen (nie direkt auf main)
+git checkout main              # Von main abzweigen (nie direkt auf main arbeiten)
 git pull                       # Aktuellen Stand holen
 git checkout -b feat/xy        # Neuen Branch erstellen
 ```
@@ -80,8 +80,8 @@ Vor dem Branch-Erstellen immer prüfen ob bereits ein passender Branch existiert
 git branch -a | grep xy
 ```
 
-**Release:** Feature-Branch → PR nach `develop` → PR `develop` → `main`. `main` ist der Produktionsstand, den die VM deployt
-(seit 2026-11-25, RDM-036).
+**Release:** Feature-Branch → PR direkt nach `main` (seit 2026-11-25, User-Vorgabe). `main` ist der Produktionsstand, den die
+VM deployt (RDM-036).
 
 ## Commit Conventions
 

@@ -118,4 +118,4 @@ Mit jedem Release: `apps/web/src/version.ts` erhöhen und Eintrag in `apps/web/s
 
 ### Branches
 
-Feature-Branch von `develop` → PR nach `develop` → PR `develop` → `main`. `main` ist Produktion (VM deployt `main`).
+Feature-Branch von `main` → PR direkt nach `main` (seit 2026-11-25). `main` ist Produktion (VM deployt `main`).
