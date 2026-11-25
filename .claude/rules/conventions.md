@@ -18,7 +18,7 @@ Skip plan mode for: single-line fixes, obvious typos, adding one small utility f
   HTML-Element außerhalb `components/ui/`) ist eine **Ausnahme** und wird **vor `ExitPlanMode` per `AskUserQuestion`** zur
   Genehmigung gestellt. Ohne ausdrückliche Freigabe des Users wird sie nicht umgesetzt.
 - Taucht eine Ausnahme erst beim Implementieren auf: anhalten und fragen, nicht selbst entscheiden.
-- Freigaben stehen in `v3/DECISIONS.md` (A-Eintrag mit „Freigabe User JJJJ-MM-TT“) und im Register `v3/spec/ui-components.json`;
+- Freigaben stehen in `DECISIONS.md` (A-Eintrag mit „Freigabe User JJJJ-MM-TT“) und im Register `spec/ui-components.json`;
   Claude/Loop/Agenten tragen dort **nie** eine Freigabe ohne ausdrückliche Zustimmung des Users ein (geprüft von
   `npm run lint`, UI-33).
 
@@ -45,25 +45,15 @@ Skip plan mode for: single-line fixes, obvious typos, adding one small utility f
 - Never claim a component accepts a prop without reading its type definition.
 - When uncertain about any fact: `Grep`/`Glob` first, then answer.
 
-## File Structure Conventions
+## Projektstruktur und technische Regeln (v3)
 
-| Type | Location |
-|---|---|
-| Page-level views | `src/pages/` |
-| Block components | `src/components/blocks/` |
-| Shared UI | `src/components/ui/` (shadcn) |
-| Utilities | `src/utils/` |
-| TypeScript types | `src/types/` |
-| Custom CSS | `src/styles/` (imported in `main.tsx`) |
-| Static assets | `public/` |
-| Pre-built templates | `src/data/templateCatalog.ts` |
+Seit 2026-11-25 (RDM-036) liegt v3 in der Repo-Wurzel; der v2-Code ist entfernt. Struktur, Abhängigkeits- und
+Krypto-Regeln stehen in `spec/01-architecture.md` und den übrigen Specs, Arbeitsregeln in `LOOP.md`, Entscheidungen in
+`DECISIONS.md`. Lint (`npm run lint`) erzwingt u. a. Import-Grenzen, shadcn-only (UI-33) und kein `any`.
 
-## Styling Rules
-
-- shadcn/ui components → Tailwind CSS with `cn()` utility
-- Custom page/component styles → CSS classes in the appropriate `*.css` file (not inline styles)
-- Never mix Tailwind utility classes into custom CSS files
-- CSS variables for theming are defined in `src/index.css`
+- UI: shadcn/ui-Komponenten aus `apps/web/src/components/ui/`, Tailwind mit `cn()`, Icons nur `lucide-react`.
+- Datenzugriff im Web nur über Repositories (`apps/web/src/data/`), nie Dexie direkt aus Komponenten.
+- Pure Logik in `packages/*`, Tests beginnen mit der Akzeptanz-ID.
 
 ## Branch Conventions
 
@@ -80,7 +70,7 @@ chore/was-erledigt-wird       # Config, Tooling, Deps
 
 **Workflow:**
 ```bash
-git checkout develop           # Von develop abzweigen (nicht main)
+git checkout develop           # Von develop abzweigen (nie direkt auf main)
 git pull                       # Aktuellen Stand holen
 git checkout -b feat/xy        # Neuen Branch erstellen
 ```
@@ -89,6 +79,9 @@ Vor dem Branch-Erstellen immer prüfen ob bereits ein passender Branch existiert
 ```bash
 git branch -a | grep xy
 ```
+
+**Release:** Feature-Branch → PR nach `develop` → PR `develop` → `main`. `main` ist der Produktionsstand, den die VM deployt
+(seit 2026-11-25, RDM-036).
 
 ## Commit Conventions
 
@@ -104,22 +97,3 @@ Format: `<type>(<scope>): <short description>`
 | `style:` | CSS/visual changes only |
 
 Example: `feat(bodymap): add preset pain patterns`
-
-## Dexie / DB Rules
-
-- Schema version is currently **16** — increment when adding/changing tables or indexes
-- All migration logic goes in `db.ts`, not in components
-- Never call `db.version()` outside of `db.ts`
-
-## Encryption Rules
-
-- Never log or expose passwords or derived keys
-- Always check `encryptionMode` before reading/writing entries
-- Encrypted entries have `encrypted: true` and `data` as a Base64 string
-- Decryption happens lazily (in HistoryView via IntersectionObserver), not eagerly
-
-## TypeScript Rules
-
-- All block components must accept typed `Block` variants — no `any`
-- Props interfaces are defined inline or in the same file as the component
-- Use type guards from `src/types/blocks.ts` when narrowing block types

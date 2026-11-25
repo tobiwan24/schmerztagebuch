@@ -84,70 +84,38 @@ It contains planning documents only and is completely separate from the main rep
 
 ## Commands
 
+Monorepo mit npm-Workspaces in der Repo-Wurzel (v3; v2 ist seit 2026-11-25 entfernt, RDM-036).
+
 ```bash
-npm run dev        # Start dev server (http://localhost:5173)
-npm run build      # TypeScript compile + Vite production build
-npm run preview    # Preview production build
-npm run lint       # ESLint check
+npm ci                 # Abhängigkeiten
+npm run verify         # Typecheck, Lint (inkl. UI-33 shadcn-only), Unit-/Integrationstests, Build, Bundle-Budget
+npm run test:e2e       # Playwright (Chromium + WebKit)
+npm run acceptance     # Akzeptanz-IDs aus spec/*.md gegen die Testreports (-- --milestone Mx)
+npm run verify:docker  # Docker-Build + Health (braucht laufendes Docker)
 ```
 
-There is no test framework configured in this project.
-
-> **Note:** Web Crypto API (`crypto.subtle`) requires HTTPS or localhost. Encryption/biometrics only work on `localhost` or a proper HTTPS deployment.
+> Web Crypto und WebAuthn brauchen HTTPS oder `localhost`.
 
 ## Architecture
 
-### Navigation
-The app uses **manual view-state routing** — no React Router. `App.tsx` holds a `currentView` state that switches between: `setup | home | diary | editor | history | settings | dashboard`. Navigation is done by calling `setCurrentView` through handler functions passed as props.
+Die Wahrheit steht in den Specs und Projektdateien, nicht hier:
 
-### Database (`src/db.ts`)
-Dexie (IndexedDB wrapper) with database name `PainDiaryDB` at schema **version 21**. Three tables:
-- `templates` — reusable diary templates with ordered blocks
-- `entries` — filled-in template submissions (data stored as JSON string, optionally encrypted)
-- `settings` — key/value pairs for app configuration
-
-`entries` also carries sync-related fields (`syncId`, `updatedAt`, `deleted` soft-delete, `encryptionSource: 'cloud' | 'local'`) added for Cloud-Sync (see below).
-
-When adding a schema change, increment the version number. Auto-migration logic lives in `db.ts` (e.g. `migrateTemplateStyles`, `migrateImageBlocksToTextArea`). DB writes go exclusively through `db.ts` functions (`createEntry`/`updateEntry`/…) — never call `db.entries.*`/`db.templates.*` directly from components or utils.
-
-### Block System
-All diary content is composed of **blocks** (`src/types/blocks.ts`). The `BlockType` union is: `text | checkbox | image | slider | date | multiselect | textarea | bodymap`. `image` blocks are legacy and are transparently auto-migrated to `textarea` blocks on read.
-
-`BlockRenderer.tsx` is the central dispatcher — it receives a `Block` and routes to the appropriate component in `src/components/blocks/`. To add a new block type, add it to `BlockType`, create a component in `blocks/`, add a case to `BlockRenderer`, and add it to `BlockPalette`.
-
-### Encryption (`src/utils/crypto.ts` + `src/utils/auth.ts`)
-Three encryption modes stored in settings: `none | history | full`.
-- Password is never stored in plain text — a test string is encrypted and stored (`passwordTest` key), used for verification.
-- Active session stores the password in `sessionStorage` with a 24-hour timeout.
-- Encryption format: `Base64(salt[16] + iv[12] + ciphertext)` using AES-GCM 256-bit + PBKDF2 (100k iterations).
-- Biometric auth uses WebAuthn (`navigator.credentials`) and only works on real HTTPS domains (not localhost/IP).
-
-### Cloud-Sync (optional, `src/services/syncService.ts` + `server/`)
-Optional E2E-encrypted multi-device sync against a self-hosted backend (`server/`, Fastify + better-sqlite3, deployed separately via Docker — see Homelab repo). Client-side:
-- Login via WebAuthn Passkey (PRF extension) derives a Data-Encryption-Key (DEK) client-side; the server never sees plaintext. `src/utils/keyManagement.ts` handles HKDF/AES-KW envelope encryption, `src/utils/entryEncryption.ts` exposes `getCloudEncryptionKey()`.
-- Decryption call sites must check the Cloud-DEK first (see `src/hooks/useDecrypt.ts` for the canonical priority order: Cloud-DEK → local session password), since Passkey-only users never have a local session password set.
-- `runSync()` (push-then-pull, LWW conflict resolution) is triggered explicitly right after a successful entry/template save (`DiaryView.tsx`, `HistoryView.tsx`, `EditorMode.tsx`) plus `visibilitychange`/`online` events and app start (`NavigationContext.tsx`) as a safety net — there are no generic Dexie write-hooks anymore (removed to avoid self-retriggering on pull-applied writes).
-- A mandatory backup code (recoverable KEK) is the recovery path if the Passkey device is lost.
-
-### Styling
-Hybrid approach:
-- **shadcn/ui components** (`src/components/ui/`) use Tailwind CSS with CSS variables defined in `src/index.css`.
-- **Custom styles** are imported in `main.tsx`: `global.css`, `layout.css`, `components.css`, `tutorial.css`, `blocks.css`, `setup.css`.
-- Path alias `@/` resolves to `src/` (configured in `vite.config.ts`).
-
-### Key Files
-| File | Purpose |
+| Datei | Inhalt |
 |---|---|
-| `src/App.tsx` | Root component, view routing, auth gate, template loading |
-| `src/db.ts` | Dexie DB instance + all CRUD functions + migration logic |
-| `src/types/blocks.ts` | All block type definitions and type guards |
-| `src/types/database.ts` | `Template`, `Entry`, `Settings` interfaces |
-| `src/utils/crypto.ts` | AES-GCM encrypt/decrypt |
-| `src/utils/auth.ts` | Session management, password verification, WebAuthn biometrics |
-| `src/utils/pdfExport.ts` | jsPDF-based PDF export with BodyMap image embedding |
-| `src/data/templateCatalog.ts` | Pre-built template definitions shown in setup wizard |
-| `src/contexts/TutorialContext.tsx` | Per-page tutorial state, persisted in `localStorage` |
-| `public/sw.js` | Service worker for PWA offline caching |
+| `README.md` | Einstieg, Definition of Done |
+| `spec/00-overview.md` … `spec/12-*.md` | Zielspezifikationen je Bereich mit Akzeptanz-IDs (`spec/01-architecture.md`: Struktur, Abhängigkeitsregeln) |
+| `LOOP.md` | Arbeitsregeln (Test zuerst, Akzeptanz-IDs, Commits) |
+| `DECISIONS.md` | Entscheidungslog (A-NNN), UI-Ausnahmen nur mit „Freigabe User“ |
+| `PROGRESS.md`, `MILESTONES.md` | Stand, Meilensteine, manuelle Kriterien |
+| `DEPLOYMENT.md` | Betrieb auf VM 100 (`~/docker/schmerztagebuch-v3`, Branch `main`) |
 
-### PWA
-Service worker is manually registered in `main.tsx` (not via vite-plugin-pwa). `public/sw.js` and `public/manifest.json` are the relevant files. The `vite-plugin-pwa` package is listed as a dependency but the actual SW registration is manual.
+Kurzüberblick: `apps/web` (React-PWA, Dexie-Repositories, Sync, shadcn/ui), `apps/server` (Fastify, SQLite, Blobs),
+`apps/mcp`, `packages/{core,crypto,sync-protocol,analysis,export,llm,client-sdk}`.
+
+### Versionierung
+
+Mit jedem Release: `apps/web/src/version.ts` erhöhen und Eintrag in `apps/web/src/data/changelog.ts`.
+
+### Branches
+
+Feature-Branch von `develop` → PR nach `develop` → PR `develop` → `main`. `main` ist Produktion (VM deployt `main`).
