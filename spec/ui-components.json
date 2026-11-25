@@ -8,6 +8,7 @@
     "date-picker": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/date-picker", "note": "shadcn-Komposition Popover + Calendar (Date Picker, Date and Time Picker, Calendar with presets), A-146" },
     "field": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/field" },
     "input": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/input" },
+    "input-group": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/input-group", "note": "Uhrzeitfelder im Zeitraum-Picker (Calendar „Date and Time Picker“)" },
     "popover": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/popover" },
     "separator": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/separator" },
     "table": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/table" },

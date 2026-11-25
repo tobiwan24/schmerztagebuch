@@ -270,6 +270,17 @@ export async function pickDateTime(page: Page, label: string, value: string): Pr
   await pickDate(page, label, value.slice(0, 10), value.slice(11, 16));
 }
 
+/** Zeitraum mit Uhrzeiten (`YYYY-MM-DDTHH:mm`) im DateTimeRangePicker: zwei Tage, beide Uhrzeiten, Popup per Esc schließen. */
+export async function pickDateTimeRange(page: Page, label: string, start: string, end: string): Promise<void> {
+  await page.getByLabel(label, { exact: true }).click();
+  await chooseDay(page, start.slice(0, 10));
+  await chooseDay(page, end.slice(0, 10));
+  await popover(page).getByLabel('Beginn: Uhrzeit', { exact: true }).fill(start.slice(11, 16));
+  await popover(page).getByLabel('Ende: Uhrzeit', { exact: true }).fill(end.slice(11, 16));
+  await page.keyboard.press('Escape');
+  await expect(popover(page)).toHaveCount(0);
+}
+
 /** Zeitraum im Range-Datepicker wählen (zwei Klicks im selben Popup). */
 export async function pickRange(page: Page, label: string, from: string, to: string): Promise<void> {
   await page.getByLabel(label, { exact: true }).click();

@@ -93,6 +93,7 @@ export const de = {
     pointLabel: 'Zeitpunkt',
     periodStart: 'Beginn',
     periodEnd: 'Ende',
+    periodLabel: 'Zeitraum',
     withTime: 'Mit Uhrzeit',
     timeMissing: 'Bitte gib eine Zeitangabe ein.',
     endBeforeStart: 'Das Ende liegt vor dem Beginn.',
