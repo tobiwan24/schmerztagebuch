@@ -228,6 +228,10 @@ const MIGRATIONS: readonly string[] = [
   );
   CREATE INDEX IF NOT EXISTS integrations_diary ON integrations (diary_id);
   `,
+  // 14: Kurzbefehl-Manifest (FEAT-023): mit dem Intake-Token versiegelte Vorlagenstruktur je Schlüssel (nur Siegel, A-153)
+  `
+  ALTER TABLE intake_keys ADD COLUMN manifest TEXT;
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

@@ -17,7 +17,7 @@ export { normalizeBackupCode, generateBackupCode, parseBackupCode, deriveBackupA
 export { generateIdentityEcdhKeyPair, exportPublicKey, importPublicKey, wrapDkForMember, unwrapDkForMember, type MemberDkWrap, type DkWrapContext } from './share.js';
 export { sealBackupFile, openBackupFile, readBackupHeader, BACKUP_FILE_FORMAT, BACKUP_FILE_VERSION, type BackupSecret, type BackupFileHeader } from './backup-file.js';
 export { sealIdentityKey, openIdentityKey, type SealedIdentity } from './identity.js';
-export { sealForIntake, unsealIntake, type IntakeSeal } from './intake.js';
+export { sealForIntake, unsealIntake, sealManifest, openManifest, type IntakeSeal, type ManifestSeal } from './intake.js';
 export { createInvitationSecret, encryptInvitation, decryptInvitation, invitationMac, verifyInvitationMac, safetyNumber, updateVerification, type InvitationDetails, type VerificationState } from './invitation.js';
 export { generateShareId, generateShareKey, encryptReport, decryptReport, buildReportLink, parseReportKey } from './report-share.js';
 export {

@@ -1,10 +1,11 @@
 // Intake-Briefkasten (Spec 08): Kurzbefehl → Token prüfen → Form prüfen → sofort versiegeln → nur Siegel speichern.
 // Der Klartext wird nie persistiert und nie geloggt (Fastify loggt keine Bodies; Fehlerantworten enthalten keine Inhalte).
 import { createHash, randomUUID } from 'node:crypto';
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { sealForIntake } from '@stb/crypto';
-import { INTAKE_BODY_MAX_BYTES, intakeBodySchema, intakeKeyRequestSchema } from '@stb/sync-protocol';
+import { checkIntake, versionFromBundle, type ShortcutBundle } from '@stb/core';
+import { openManifest, sealForIntake } from '@stb/crypto';
+import { INTAKE_BODY_MAX_BYTES, INTAKE_MANIFEST_MAX_CHARS, intakeBodySchema, intakeKeyRequestSchema, manifestUploadSchema } from '@stb/sync-protocol';
 import type { Db } from '../db.js';
 import type { AuthProvider } from '../auth/types.js';
 import { requirePrincipal } from '../auth/require.js';
@@ -21,16 +22,86 @@ const keyParams = z.object({ id: z.string().min(1).max(128), keyId: z.string().m
 
 export function registerIntakeRoutes(app: FastifyInstance, { db, auth, now }: { db: Db; auth: AuthProvider; now: () => number }): void {
   const limiter = createRateLimiter(INTAKE_RATE_LIMIT);
+  // Manifest-Abruf und Prüfung zählen getrennt vom Senden (Mischform: mehrere Prüfungen je Eintrag).
+  const readLimiter = createRateLimiter(INTAKE_RATE_LIMIT);
   const failLimiter = createRateLimiter(INTAKE_FAIL_LIMIT);
   // Ein Intake-Schlüssel gilt nur, solange sein Ersteller aktives Mitglied mit Schreibrecht für Intake ist (SHR-07).
   const findKey = db.prepare(`
-    SELECT k.public_key FROM intake_keys k
+    SELECT k.public_key, k.manifest FROM intake_keys k
     JOIN memberships m ON m.diary_id = k.diary_id AND m.principal_id = k.created_by
     WHERE k.diary_id = ? AND k.token_hash = ? AND k.revoked_at IS NULL
       AND m.revoked_at IS NULL AND m.role IN ('owner', 'editor')
   `);
   const tooMany = (reply: FastifyReply, retryAfterMs: number) =>
     reply.code(429).header('retry-after', String(Math.ceil(retryAfterMs / 1000))).send({ error: 'rate-limited' });
+
+  /** Bearer-Token prüfen (gleiche Fehlversuch-Begrenzung wie beim Senden); bei Fehler ist die Antwort schon gesendet. */
+  function authenticateToken(req: FastifyRequest, reply: FastifyReply) {
+    void reply.header('cache-control', 'no-store');
+    const params = diaryParams.safeParse(req.params);
+    const header = req.headers.authorization ?? '';
+    const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+    const key = params.success && token ? (findKey.get(params.data.diaryId, sha256(token)) as { public_key: string; manifest: string | null } | undefined) : undefined;
+    if (!params.success || !key) {
+      const fail = failLimiter.hit(req.ip, now());
+      void (fail.allowed ? reply.code(401).send({ error: 'unauthenticated' }) : tooMany(reply, fail.retryAfterMs));
+      return null;
+    }
+    const rl = readLimiter.hit(sha256(token), now());
+    if (!rl.allowed) {
+      void tooMany(reply, rl.retryAfterMs);
+      return null;
+    }
+    return { diaryId: params.data.diaryId, token, manifest: key.manifest };
+  }
+
+  /** Siegel im Arbeitsspeicher öffnen (nur kurz lesbar, A-153); nie persistiert oder geloggt. */
+  async function openBundle(a: { diaryId: string; token: string; manifest: string | null }): Promise<ShortcutBundle | null> {
+    if (!a.manifest) return null;
+    try {
+      const bundle = JSON.parse(new TextDecoder().decode(await openManifest(a.token, a.diaryId, JSON.parse(a.manifest) as never))) as ShortcutBundle;
+      return bundle?.manifest && bundle.blocks ? bundle : null;
+    } catch {
+      return null;
+    }
+  }
+
+  app.get('/api/v1/intake/:diaryId/manifest', async (req, reply) => {
+    const a = authenticateToken(req, reply);
+    if (!a) return reply;
+    const bundle = await openBundle(a);
+    if (!bundle) return reply.code(404).send({ error: 'manifest-missing' });
+    return reply.send(bundle.manifest);
+  });
+
+  // Dry-Run: prüft die erfassten Werte gegen die Vorlage und speichert nichts.
+  app.post('/api/v1/intake/:diaryId/check', { bodyLimit: INTAKE_BODY_MAX_BYTES }, async (req, reply) => {
+    const a = authenticateToken(req, reply);
+    if (!a) return reply;
+    const body = intakeBodySchema.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid-request' });
+    const bundle = await openBundle(a);
+    if (!bundle) return reply.code(404).send({ error: 'manifest-missing' });
+    const templateId = body.data.templateId ?? bundle.manifest.defaultTemplateId;
+    const version = templateId ? versionFromBundle(bundle, templateId) : null;
+    if (!templateId || !version) return reply.code(404).send({ error: 'template-unknown' });
+    return reply.send({ templateId, ...checkIntake(body.data, version) });
+  });
+
+  app.put('/api/v1/diaries/:id/intake-keys/:keyId/manifest', { bodyLimit: INTAKE_MANIFEST_MAX_CHARS + 1024 }, async (req, reply) => {
+    const p = await requirePrincipal(auth, req, reply);
+    if (!p) return reply;
+    const params = keyParams.safeParse(req.params);
+    const body = manifestUploadSchema.safeParse(req.body);
+    if (!params.success || !body.success) return reply.code(400).send({ error: 'invalid-request' });
+    const role = findActiveRole(db, params.data.id, p.userId);
+    if (role !== 'owner' && role !== 'editor') return reply.code(403).send({ error: 'forbidden' });
+    // Wie beim Widerrufen: Owner jeden Schlüssel, Editoren nur ihren eigenen (A-017). Gespeichert wird nur das Siegel.
+    const r = db
+      .prepare("UPDATE intake_keys SET manifest = ? WHERE id = ? AND diary_id = ? AND revoked_at IS NULL AND (? = 'owner' OR created_by = ?)")
+      .run(JSON.stringify(body.data.seal), params.data.keyId, params.data.id, role, p.userId);
+    return r.changes ? reply.code(204).send() : reply.code(404).send({ error: 'not-found' });
+  });
 
   app.post('/api/v1/intake/:diaryId', { bodyLimit: INTAKE_BODY_MAX_BYTES }, async (req, reply) => {
     void reply.header('cache-control', 'no-store');
@@ -106,7 +177,7 @@ export function registerIntakeRoutes(app: FastifyInstance, { db, auth, now }: { 
     if (role !== 'owner' && role !== 'editor') return reply.code(403).send({ error: 'forbidden' });
     // Owner dürfen jeden Intake-Schlüssel widerrufen, Editoren nur ihren eigenen (A-017).
     const r = db
-      .prepare("UPDATE intake_keys SET revoked_at = COALESCE(revoked_at, ?) WHERE id = ? AND diary_id = ? AND (? = 'owner' OR created_by = ?)")
+      .prepare("UPDATE intake_keys SET revoked_at = COALESCE(revoked_at, ?), manifest = NULL WHERE id = ? AND diary_id = ? AND (? = 'owner' OR created_by = ?)")
       .run(now(), params.data.keyId, params.data.id, role, p.userId);
     return r.changes ? reply.code(204).send() : reply.code(404).send({ error: 'not-found' });
   });

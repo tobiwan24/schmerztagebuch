@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Writable } from 'node:stream';
 import { createHash, randomBytes } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
-import { generateIdentityEcdhKeyPair, exportPublicKey, unsealIntake, type IntakeSeal } from '@stb/crypto';
+import { generateIdentityEcdhKeyPair, exportPublicKey, unsealIntake, sealManifest, type IntakeSeal } from '@stb/crypto';
+import { buildShortcutBundle, createIdGenerator, instantiateCatalogTemplate, type ShortcutBundle } from '@stb/core';
 import { openDatabase, type Db } from '../db.js';
 import { migrate } from '../schema.js';
 import { buildApp } from '../app.js';
@@ -128,5 +129,95 @@ describe('Intake-Endpunkt', () => {
     // nach Ablauf des Fensters wieder erlaubt
     now += 60 * 60 * 1000;
     expect((await send({ text: 'wieder' })).statusCode).toBe(202);
+  });
+});
+
+describe('Kurzbefehl-Manifest', () => {
+  const clock = { now: () => 1_700_000_000_000 };
+  const { newId } = createIdGenerator(clock);
+  const migraine = instantiateCatalogTemplate('migraine', { id: newId(), diaryId: newId(), order: 'V', newId }, clock);
+  const bundle: ShortcutBundle = buildShortcutBundle('STB-MANIFEST-MARKER-Tagebuch', [migraine], migraine.template.id);
+  const keyId = () => (db.prepare('SELECT id FROM intake_keys').get() as { id: string }).id;
+  const upload = async (t = token, user = 'olga', id = keyId()) =>
+    app.inject({
+      method: 'PUT', url: `/api/v1/diaries/${D}/intake-keys/${id}/manifest`, headers: as(user),
+      payload: { seal: await sealManifest(t, D, new TextEncoder().encode(JSON.stringify(bundle))) },
+    });
+  const getManifest = (t = token, diaryId = D) => app.inject({ method: 'GET', url: `/api/v1/intake/${diaryId}/manifest`, headers: { authorization: `Bearer ${t}` } });
+  const check = (body: unknown, t = token) =>
+    app.inject({ method: 'POST', url: `/api/v1/intake/${D}/check`, headers: { authorization: `Bearer ${t}`, 'content-type': 'application/json' }, payload: JSON.stringify(body) });
+  const dumpAll = () => {
+    const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as { name: string }[]).map((t) => t.name);
+    return JSON.stringify(tables.map((t) => db.prepare(`SELECT * FROM "${t}"`).all()));
+  };
+
+  it('VOI-20: GET manifest → 401 bei falschem, fehlendem oder widerrufenem Token, 404 ohne Upload, 200 mit Manifest', async () => {
+    expect((await getManifest('falsch')).statusCode).toBe(401);
+    expect((await app.inject({ method: 'GET', url: `/api/v1/intake/${D}/manifest` })).statusCode).toBe(401);
+    const none = await getManifest();
+    expect(none.statusCode).toBe(404);
+    expect(none.json()).toEqual({ error: 'manifest-missing' });
+    expect((await upload()).statusCode).toBe(204);
+    const ok = await getManifest();
+    expect(ok.statusCode).toBe(200);
+    expect(ok.headers['cache-control']).toBe('no-store');
+    expect(ok.json()).toEqual(bundle.manifest);
+    expect((await app.inject({ method: 'DELETE', url: `/api/v1/diaries/${D}/intake-keys/${keyId()}`, headers: as('olga') })).statusCode).toBe(204);
+    expect((await getManifest()).statusCode).toBe(401);
+    expect((db.prepare('SELECT manifest FROM intake_keys').get() as { manifest: string | null }).manifest).toBeNull();
+  });
+
+  it('VOI-20: Upload nur für owner/editor (Editor nur eigener Schlüssel), nur Siegel, ≤ 64 KB, gültige Form', async () => {
+    expect((await upload(token, 'vic')).statusCode).toBe(403);
+    expect((await app.inject({ method: 'PUT', url: `/api/v1/diaries/${D}/intake-keys/${keyId()}/manifest` })).statusCode).toBe(401);
+    expect((await upload(token, 'olga', 'gibt-es-nicht')).statusCode).toBe(404);
+    db.prepare("INSERT INTO memberships (diary_id, principal_id, role, key_epoch, wrapped_dk, created_at) VALUES (?, 'ed', 'editor', 1, 'w', 0)").run(D);
+    expect((await upload(token, 'ed')).statusCode).toBe(404);
+    const bad = await app.inject({ method: 'PUT', url: `/api/v1/diaries/${D}/intake-keys/${keyId()}/manifest`, headers: as('olga'), payload: { seal: { v: 1, iv: 'AAAAAAAAAAAAAAAA', ct: 'A'.repeat(64 * 1024 + 1) } } });
+    expect(bad.statusCode).toBe(400);
+    expect((await app.inject({ method: 'PUT', url: `/api/v1/diaries/${D}/intake-keys/${keyId()}/manifest`, headers: as('olga'), payload: { plain: 1 } })).statusCode).toBe(400);
+  });
+
+  it('VOI-20: Siegel mit anderem Token ist nicht abrufbar; DB und Log enthalten keinen Klartext-Marker', async () => {
+    expect((await upload('anderes-token')).statusCode).toBe(204);
+    expect((await getManifest()).statusCode).toBe(404);
+    expect((await upload()).statusCode).toBe(204);
+    expect((await getManifest()).statusCode).toBe(200);
+    expect((await check({ values: { Schmerzstärke: 4 } })).statusCode).toBe(200);
+    const dump = dumpAll();
+    expect(dump).not.toContain('STB-MANIFEST-MARKER');
+    expect(dump).not.toContain(migraine.template.name);
+    expect(dump).not.toContain('Begleitsymptome');
+    expect(dump).not.toContain(token);
+    const log = logs.join('');
+    expect(log.length).toBeGreaterThan(0);
+    expect(log).not.toContain('STB-MANIFEST-MARKER');
+    expect(log).not.toContain('Begleitsymptome');
+    expect(log).not.toContain(token);
+  });
+
+  it('VOI-21: POST check liefert fehlende und ungültige Felder plus Zusammenfassung und schreibt nichts', async () => {
+    expect((await check({ values: {} }, 'falsch')).statusCode).toBe(401);
+    expect((await check({ values: {} })).statusCode).toBe(404);
+    await upload();
+    const before = dumpAll();
+    const r = await check({ templateId: migraine.template.id, values: { Schmerzstärke: 11, Begleitsymptome: ['Übelkeit'] } });
+    expect(r.statusCode).toBe(200);
+    const body = r.json() as { templateId: string; missing: { label: string }[]; invalid: { field: string }[]; summary: string };
+    expect(body.templateId).toBe(migraine.template.id);
+    expect(body.invalid).toHaveLength(1);
+    expect(body.missing.map((f) => f.label)).toContain('Auslöser');
+    expect(body.missing.map((f) => f.label)).not.toContain('Begleitsymptome');
+    expect(body.summary).toContain('Übelkeit');
+    // ohne templateId gilt die Standardvorlage des Manifests
+    expect(((await check({ values: { Schmerzstärke: 4 } })).json() as { summary: string }).summary).toContain('Schmerzstärke: 4');
+    expect(dumpAll()).toBe(before);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM intake_items').get()).toEqual({ n: 0 });
+  });
+
+  it('VOI-21: unbekannte Vorlage → 404, ungültige Form → 400', async () => {
+    await upload();
+    expect((await check({ templateId: 'gibt-es-nicht', values: {} })).statusCode).toBe(404);
+    expect((await check({ unbekannt: 1 })).statusCode).toBe(400);
   });
 });

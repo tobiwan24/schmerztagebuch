@@ -185,7 +185,7 @@ describe('Flag canEditTemplates (SHR-14)', () => {
   it('SHR-14: Migration auf einer alten Datenbank (Schema 11) ergänzt die Spalte mit Standard 0', () => {
     const old = openDatabase(':memory:');
     migrate(old);
-    old.exec('ALTER TABLE memberships DROP COLUMN can_edit_templates');
+    old.exec('ALTER TABLE memberships DROP COLUMN can_edit_templates; ALTER TABLE intake_keys DROP COLUMN manifest');
     old.pragma('user_version = 11');
     old.prepare('INSERT INTO diaries (id, created_at) VALUES (?, 0)').run('x');
     old.prepare("INSERT INTO memberships (diary_id, principal_id, role, key_epoch, wrapped_dk, created_at) VALUES ('x', 'ed', 'editor', 1, 'w', 0)").run();

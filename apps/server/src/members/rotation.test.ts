@@ -193,7 +193,7 @@ describe('DK-Rotation: Server', () => {
   it('CRY-22: Migration 11 auf einer alten Datenbank (Schema 10) behält Daten; Bestand ist Epoche 1', () => {
     const old = openDatabase(':memory:');
     migrate(old);
-    old.exec('ALTER TABLE diaries DROP COLUMN key_epoch; ALTER TABLE diaries DROP COLUMN rotation_from; ALTER TABLE diaries DROP COLUMN prev_dk_wrap; ALTER TABLE records DROP COLUMN key_epoch; ALTER TABLE blobs DROP COLUMN key_epoch; ALTER TABLE memberships DROP COLUMN can_edit_templates');
+    old.exec('ALTER TABLE diaries DROP COLUMN key_epoch; ALTER TABLE diaries DROP COLUMN rotation_from; ALTER TABLE diaries DROP COLUMN prev_dk_wrap; ALTER TABLE records DROP COLUMN key_epoch; ALTER TABLE blobs DROP COLUMN key_epoch; ALTER TABLE memberships DROP COLUMN can_edit_templates; ALTER TABLE intake_keys DROP COLUMN manifest');
     old.pragma('user_version = 10');
     old.prepare("INSERT INTO diaries (id, created_at) VALUES ('alt', 1)").run();
     old.prepare("INSERT INTO records (id, diary_id, kind, rev, seq, deleted, ciphertext, size, updated_at) VALUES ('r', 'alt', 'entry', 1, 1, 0, 'ct', 2, 1)").run();
