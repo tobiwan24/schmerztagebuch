@@ -33,7 +33,7 @@ import { TagInput } from '@/components/TagInput';
 import { TemplateIcon } from '@/components/TemplateIcon';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
-import { DatePicker, DateTimePicker } from '@/components/ui/date-picker';
+import { DateRangePicker, DateTimePicker, DateTimeRangePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { FieldLegend, FieldSet } from '@/components/ui/field';
@@ -437,24 +437,22 @@ function TimeField({ time, error, onChange }: { time: TimeInput; error: ReturnTy
         </div>
       ) : (
         <>
-          {/* Mit Uhrzeit untereinander, sonst wird die Datumsauswahl neben dem Uhrzeitfeld zu schmal. */}
-          <div className={cn('grid grid-cols-1 gap-3', !time.withTime && 'min-[400px]:grid-cols-2')}>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="entry-time">{de.entry.periodStart}</Label>
-              {time.withTime ? (
-                <DateTimePicker id="entry-time" label={de.entry.periodStart} value={time.start} defaultTime="00:00" onChange={(v) => onChange({ ...time, start: minutes(v) })} {...invalid} />
-              ) : (
-                <DatePicker id="entry-time" required value={time.start} onChange={(v) => onChange({ ...time, start: v })} {...invalid} />
-              )}
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="entry-time-end">{de.entry.periodEnd}</Label>
-              {time.withTime ? (
-                <DateTimePicker id="entry-time-end" label={de.entry.periodEnd} value={time.end} defaultTime="23:59" onChange={(v) => onChange({ ...time, end: minutes(v) })} {...invalid} />
-              ) : (
-                <DatePicker id="entry-time-end" required value={time.end} onChange={(v) => onChange({ ...time, end: v })} {...invalid} />
-              )}
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="entry-time">{de.entry.periodLabel}</Label>
+            {time.withTime ? (
+              <DateTimeRangePicker
+                id="entry-time"
+                className="w-auto max-w-full self-start"
+                labelStart={de.entry.periodStart}
+                labelEnd={de.entry.periodEnd}
+                start={time.start}
+                end={time.end}
+                onChange={(start, end) => onChange({ ...time, start: minutes(start), end: minutes(end) })}
+                {...invalid}
+              />
+            ) : (
+              <DateRangePicker id="entry-time" className="w-auto max-w-full self-start" from={time.start} to={time.end} onChange={(start, end) => onChange({ ...time, start, end })} {...invalid} />
+            )}
           </div>
           <div className="flex min-h-11 items-center gap-3">
             <Checkbox id="entry-with-time" checked={time.withTime} onChange={(e) => setWithTime(e.target.checked)} />

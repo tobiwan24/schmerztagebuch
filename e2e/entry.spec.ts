@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { go, onboardWithPassword, pickDate, pickDateTime } from './helpers';
+import { go, onboardWithPassword, pickDateTime, pickDateTimeRange, pickRange } from './helpers';
 
 /** Nur im Test: ersten Block der Vorlagenversion zum Pflichtfeld machen (Vorlagen-Editor folgt in M8). */
 async function makeFirstBlockRequired(page: Page): Promise<void> {
@@ -147,8 +147,7 @@ test.describe('Eintragsformular', () => {
     // Zeitraum ganztägig
     await go(page, '/entry/new');
     await page.getByRole('button', { name: 'Zeitraum' }).click();
-    await pickDate(page, 'Beginn', '2026-03-02');
-    await pickDate(page, 'Ende', '2026-03-04');
+    await pickRange(page, 'Zeitraum', '2026-03-02', '2026-03-04');
     await save(page);
     await expect(page.getByTestId('entry-time')).toContainText('02.03.2026 – 04.03.2026');
     await expect(page.getByTestId('entry-time')).toContainText('Zeitraum');
@@ -157,11 +156,12 @@ test.describe('Eintragsformular', () => {
     await go(page, '/entry/new');
     await page.getByRole('button', { name: 'Zeitraum' }).click();
     await page.getByLabel('Mit Uhrzeit').check();
-    await pickDateTime(page, 'Beginn', '2026-03-10T18:00');
-    await pickDateTime(page, 'Ende', '2026-03-10T08:00');
+    await pickDateTimeRange(page, 'Zeitraum', '2026-03-10T18:00', '2026-03-10T08:00');
     await save(page);
     await expect(page.getByText('Das Ende liegt vor dem Beginn.')).toBeVisible();
+    await page.getByLabel('Zeitraum', { exact: true }).click();
     await page.getByLabel('Ende: Uhrzeit', { exact: true }).fill('22:15');
+    await page.keyboard.press('Escape');
     await save(page);
     await expect(page.getByTestId('entry-time')).toContainText('10.03.2026, 18:00 – 22:15');
 
@@ -201,8 +201,7 @@ test.describe('Eintragsformular', () => {
     await go(page, '/entry/new');
     await page.getByRole('button', { name: 'Zeitraum' }).click();
     await page.getByLabel('Mit Uhrzeit').check();
-    await pickDateTime(page, 'Beginn', '2026-03-02T18:00');
-    await pickDateTime(page, 'Ende', '2026-03-04T08:00');
+    await pickDateTimeRange(page, 'Zeitraum', '2026-03-02T18:00', '2026-03-04T08:00');
     await save(page);
     await expect(page.getByTestId('entry-time')).toContainText('Zeitraum');
     await expect(h1).toHaveAccessibleName(/\d{2}:\d{2} Zeitraum$/);
