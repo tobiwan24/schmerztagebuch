@@ -1,4 +1,4 @@
-import { expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
+import { expect, type Browser, type BrowserContext, type CDPSession, type Page } from '@playwright/test';
 import { buildV2Dump } from '../packages/core/src/migration-v2/fixture';
 
 export const PASSWORD = 'sicheres-passwort-123';
@@ -44,16 +44,17 @@ export async function go(page: Page, path: string): Promise<void> {
   await expect(page.locator('html')).toHaveAttribute('data-route', path, { timeout: 10_000 });
 }
 
-/** Virtueller Authenticator mit PRF (nur Chromium, CDP). */
-export async function addVirtualAuthenticator(page: Page): Promise<void> {
+/** Virtueller Authenticator mit PRF (nur Chromium, CDP). Liefert CDP-Sitzung und Authenticator-ID (z. B. zum Leeren). */
+export async function addVirtualAuthenticator(page: Page): Promise<{ cdp: CDPSession; authenticatorId: string }> {
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('WebAuthn.enable');
-  await cdp.send('WebAuthn.addVirtualAuthenticator', {
+  const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', {
     options: {
       protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true,
       isUserVerified: true, automaticPresenceSimulation: true, hasPrf: true,
     },
   });
+  return { cdp, authenticatorId };
 }
 
 /** Sperren über die Einstellungen. */

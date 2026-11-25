@@ -27,7 +27,7 @@ describe('Wechsel „nur dieses Gerät“ → Konto mit lokaler Verschlüsselung
   it('A-125: der hochgeladene DK ist der abgeleitete lokale DK — lokal verschlüsselte Records bleiben lesbar', async () => {
     const now = () => 1_700_000_000_000;
     const { umk } = await createLocalAccount(db, { factor: { kind: 'password', password: 'geheim lang genug' }, now });
-    const session = createCryptoSession(db, { now });
+    const session = createCryptoSession(db);
     session.unlock(umk);
     const registry = createCodecRegistry([plainCodec, createDiaryAesCodec(session.keys)]);
     const repo = createRecordRepository(db, { registry, writeCodec: 'aes', clock: { now }, outbox: false });

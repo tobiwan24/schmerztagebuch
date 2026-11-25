@@ -218,7 +218,7 @@ describe('Konto „Mit Konto"', () => {
     expect((await loadDevices(apiA, pending.umk)).find((d) => d.id === other.id)!.revokedAt).not.toBeNull();
     await expect(apiB.listDiaries()).rejects.toMatchObject({ status: 401 }); // B ist gesperrt
 
-    const session = createCryptoSession(dbA, { now });
+    const session = createCryptoSession(dbA);
     session.unlock(pending.umk);
     const records = await dbA.records.count();
     await discardLocalKeys(dbA, apiA, session);

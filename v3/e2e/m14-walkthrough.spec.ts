@@ -132,7 +132,7 @@ test.describe('M14-Rundgang (iPhone-Viewport)', () => {
     await expect(page.getByTestId('factors')).toBeVisible();
     await noOverflow(page, 'Einstellungen (Konto & Sync)');
     await go(page, '/more/settings/sicherheit');
-    await expect(page.getByTestId('stay-status')).toBeVisible();
+    await expect(page.getByTestId('lock-settings')).toBeVisible();
     await noOverflow(page, 'Einstellungen (Sicherheit & Sperre)');
     await go(page, '/more/settings/updates');
     await expect(page.getByTestId('update-settings')).toBeVisible();

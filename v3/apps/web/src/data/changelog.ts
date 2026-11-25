@@ -4,6 +4,15 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.16.0-alpha.1',
+    date: '2026-11-25',
+    points: [
+      'Schneller entsperren: Mit Passkey startet Face ID bzw. der Fingerabdruck sofort, wenn du die App öffnest oder zurückholst – ohne zusätzlichen Tipp.',
+      '„Auf diesem Gerät entsperrt bleiben“ gibt es nicht mehr; die automatische Sperre bei Inaktivität bleibt einstellbar.',
+      'Vorlagen sortieren: Unter Mehr → Vorlagen zeigt „Reihenfolge ändern“ eine kompakte Liste. Beim Ziehen scrollt die Liste am Rand mit.',
+    ],
+  },
+  {
     version: '3.15.0-alpha.1',
     date: '2026-11-25',
     points: [

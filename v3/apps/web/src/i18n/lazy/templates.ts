@@ -36,6 +36,9 @@ export const deTemplates = {
   deleteConfirm: 'Ich verstehe, dass die Einträge verloren gehen.',
   deleteFinal: 'Endgültig löschen',
   create: 'Neue leere Vorlage',
+  sortMode: 'Reihenfolge ändern',
+  sortDone: 'Fertig',
+  sortHint: 'Am Griff ziehen; am oberen oder unteren Rand scrollt die Liste mit. Pfeiltasten verschieben ebenfalls.',
   edit: (name: string) => `${name} bearbeiten`,
   editor: {
     titleNew: 'Neue Vorlage',

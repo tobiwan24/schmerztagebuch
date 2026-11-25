@@ -20,8 +20,12 @@ import { localUserId } from '@/data/identity';
 
 export type AuthStatus = 'loading' | 'no-account' | 'locked' | 'unlocked';
 
+export type LockReason = 'start' | 'idle' | 'manual';
+
 export interface AuthApi {
   status: AuthStatus;
+  /** Warum gesperrt (RDM-035): App-Start, Inaktivität oder „Jetzt sperren“ — nur nach `manual` startet der Passkey nicht von selbst. */
+  lockReason: LockReason;
   /** Art des Kontos auf diesem Gerät (`null` ohne Konto). Bestimmt Outbox und Sync (Spec 04 „Modi"). */
   accountMode: 'local-only' | 'cloud-primary' | null;
   /** Synchronisiert dieses Gerät? `cloud-primary` und nicht auf „nur dieses Gerät“ zurückgestellt (UI-20). */
@@ -38,8 +42,8 @@ export interface AuthApi {
   rpId: string;
   now: () => number;
   /** Nach bestätigtem Backup-Code: Konto speichern und entsperren. */
-  finishPending(pending: PendingAccount, opts?: { stayUnlocked?: boolean }): Promise<void>;
-  unlockWith(factor: UmkFactor, opts?: { stayUnlocked?: boolean }): Promise<void>;
+  finishPending(pending: PendingAccount): Promise<void>;
+  unlockWith(factor: UmkFactor): Promise<void>;
   /** Vorbereitete Passkey-Optionen (beim Öffnen des Entsperr-Dialogs gebaut), `null` ohne Passkey. */
   passkeyRequest(): Promise<CredentialRequestOptions | null>;
   /** Hat das Konto einen Passwort-Faktor? (Auch nach dem Wechsel auf ein Konto bleibt er gültig.) */
@@ -88,8 +92,9 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
   const server = useMemo(() => accountApi ?? createFetchAccountApi(''), [accountApi]);
   const db = useMemo(() => injected ?? new StbDb(), [injected]);
   const now = useCallback(() => Date.now(), []);
-  const session = useMemo(() => createCryptoSession(db, { now }), [db, now]);
+  const session = useMemo(() => createCryptoSession(db), [db]);
   const [status, setStatus] = useState<AuthStatus>('loading');
+  const [lockReason, setLockReason] = useState<LockReason>('start');
   const [accountMode, setAccountMode] = useState<AuthApi['accountMode']>(null);
   const [accountVersion, setAccountVersion] = useState(0);
   const [detached, setDetached] = useState(false);
@@ -115,9 +120,9 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
       const exists = await hasAccount(db);
       // Vor dem ersten Rendern der Ansichten bekannt, damit nichts mit dem falschen Codec geschrieben wird (A-125).
       const enc = await loadLocalEncryption(db);
-      const next: AuthStatus = !exists ? 'no-account' : (await session.restore()) ? 'unlocked' : 'locked';
-      // „Entsperrt bleiben“: auch hier die Konto-DKs öffnen (sonst wären aes-Records eines Konto-Tagebuchs unlesbar).
-      if (next === 'unlocked') await loadDiaryKeysInto(db, session, session.umk()).catch(() => undefined);
+      // „Entsperrt bleiben“ ist entfallen (RDM-035): Wraps früherer Versionen löschen, die App startet gesperrt.
+      await session.forgetDevice().catch(() => undefined);
+      const next: AuthStatus = exists ? 'locked' : 'no-account';
       if (!cancelled) {
         setLocalEncryption(enc.enabled);
         setStatus(next);
@@ -135,6 +140,7 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
     const monitor = createIdleMonitor({ now }, () => {
       session.lock();
       void session.forgetDevice();
+      setLockReason('idle');
       setStatus('locked');
     });
     const check = () => void loadLockSettings(db).then((l) => monitor.check(l.idleMinutes));
@@ -156,6 +162,7 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
   // Stabiles Objekt (nur bei Statuswechsel neu), damit Effekte in Ansichten nicht bei jedem Render erneut laufen.
   const api = useMemo<AuthApi>(() => ({
     status,
+    lockReason,
     accountMode,
     syncAttached: accountMode === 'cloud-primary' && !detached,
     async setSyncAttached(attached) {
@@ -173,19 +180,17 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
     credentials: navigator.credentials,
     rpId: location.hostname,
     now,
-    async finishPending(pending, opts) {
+    async finishPending(pending) {
       await pending.commit();
       session.unlock(pending.umk);
       await loadDiaryKeys(pending.umk);
       setAccountVersion((v) => v + 1);
-      if (opts?.stayUnlocked) await session.stayUnlocked((await loadLockSettings(db)).stayDays);
       setStatus('unlocked');
     },
-    async unlockWith(factor, opts) {
+    async unlockWith(factor) {
       const umk = await unlockLocal(db, factor);
       session.unlock(umk);
       await loadDiaryKeys(umk);
-      if (opts?.stayUnlocked) await session.stayUnlocked((await loadLockSettings(db)).stayDays);
       setStatus('unlocked');
     },
     async passkeyRequest() {
@@ -198,6 +203,7 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
     async lock() {
       session.lock();
       await session.forgetDevice();
+      setLockReason('manual');
       setStatus('locked');
     },
     cloud: {
@@ -265,7 +271,7 @@ export function AuthProvider({ children, db: injected, accountApi }: { children:
         session.setDiaryKey(diaryId, await createCloudDiary(db, server, account, diaryId), 1);
       },
     },
-  }), [status, accountMode, detached, localEncryption, db, session, now, server]);
+  }), [status, lockReason, accountMode, detached, localEncryption, db, session, now, server]);
 
   /** Cloud-Konto: lokal bekannte DKs öffnen (offline möglich), damit die Sync-Engine ver-/entschlüsseln kann. */
   function loadDiaryKeys(umk: CryptoKey) {
