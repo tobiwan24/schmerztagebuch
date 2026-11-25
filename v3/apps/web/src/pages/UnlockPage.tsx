@@ -1,11 +1,12 @@
 // Entsperren (Spec 03): Passkey-Optionen werden beim Öffnen vorbereitet, der Klick ruft `credentials.get` ohne `await` davor.
+// Mit `auto=1` (App geöffnet, RDM-035) startet der Passkey sofort; scheitert das (Abbruch, fehlende Nutzergeste), bleibt
+// ohne Fehlermeldung der Knopf als Rückfall.
 // Abbrechen führt zurück — der Dialog bleibt über Banner und Einstellungen erreichbar (CRY-10). Recovery per Backup-Code (CRY-16).
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { Fingerprint, LifeBuoy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/PageHeader';
@@ -13,7 +14,6 @@ import { AuthErrorNotice } from '@/components/AuthErrorNotice';
 import { BackupCodeStep } from '@/components/BackupCodeStep';
 import { FactorSetup, type NewFactor } from '@/components/FactorSetup';
 import { useAuth } from '@/auth/AuthContext';
-import { DEFAULT_LOCK_SETTINGS, loadLockSettings } from '@/data/lock-settings';
 import { unlockWithPasskey } from '@/auth/passkey';
 import { toAuthErrorCode, type AuthErrorCode } from '@/auth/errors';
 import { prepareRecovery, type PendingAccount } from '@/auth/local-account';
@@ -27,12 +27,12 @@ export function UnlockPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const next = params.get('next') || '/';
+  const auto = params.get('auto') === '1';
+  const autoStarted = useRef(false);
   const [prepared, setPrepared] = useState<CredentialRequestOptions | null>(null);
   const [mode, setMode] = useState<Mode>('unlock');
   const [error, setError] = useState<AuthErrorCode | null>(null);
   const [busy, setBusy] = useState(false);
-  const [stay, setStay] = useState(false);
-  const [stayDays, setStayDays] = useState(DEFAULT_LOCK_SETTINGS.stayDays);
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [pending, setPending] = useState<PendingAccount | null>(null);
@@ -40,9 +40,6 @@ export function UnlockPage() {
 
   // Beim Öffnen einmal vorbereiten. Abhängig nur von der (stabilen) DB — `auth` selbst ist pro Render neu.
   const { passkeyRequest, hasPasswordFactor, db } = auth;
-  useEffect(() => {
-    void loadLockSettings(db).then((l) => setStayDays(l.stayDays));
-  }, [db]);
   useEffect(() => {
     let cancelled = false;
     void passkeyRequest().then((p) => {
@@ -56,6 +53,18 @@ export function UnlockPage() {
     };
   }, [db, passkeyRequest, hasPasswordFactor]);
 
+  // Autostart einmal, sobald die Optionen bereitstehen (Face ID/Fingerabdruck ohne Tipp).
+  const { credentials, unlockWith, status } = auth;
+  useEffect(() => {
+    if (!auto || !prepared || autoStarted.current || status !== 'locked') return;
+    autoStarted.current = true;
+    setBusy(true);
+    unlockWithPasskey(credentials, prepared)
+      .then((p) => unlockWith({ kind: 'passkey', prf: p }))
+      .catch(() => undefined) // Rückfall: Knopf „Mit Passkey entsperren“
+      .finally(() => setBusy(false));
+  }, [auto, prepared, credentials, unlockWith, status]);
+
   if (auth.status === 'no-account') return <Navigate to="/onboarding" replace />;
   if (auth.status === 'unlocked' && mode === 'unlock') return <Navigate to={next} replace />;
 
@@ -66,7 +75,7 @@ export function UnlockPage() {
     setBusy(true);
     setError(null);
     prf
-      .then((p) => auth.unlockWith({ kind: 'passkey', prf: p }, { stayUnlocked: stay }))
+      .then((p) => auth.unlockWith({ kind: 'passkey', prf: p }))
       .catch((e: unknown) => setError(toAuthErrorCode(e, { gesture: true, factor: 'passkey' })))
       .finally(() => setBusy(false));
   }
@@ -76,7 +85,7 @@ export function UnlockPage() {
     setBusy(true);
     setError(null);
     try {
-      await auth.unlockWith({ kind: 'password', password }, { stayUnlocked: stay });
+      await auth.unlockWith({ kind: 'password', password });
     } catch (err) {
       setError(toAuthErrorCode(err, { factor: 'password' }));
     } finally {
@@ -136,10 +145,6 @@ export function UnlockPage() {
                 </Button>
               </form>
             ) : null}
-            <Label className="min-h-11">
-              <Checkbox checked={stay} onChange={(e) => setStay(e.target.checked)} />
-              {de.lock.stayUnlocked(stayDays)}
-            </Label>
             <Button variant="ghost" onClick={() => setMode('recovery-code')}>
               <LifeBuoy aria-hidden />
               {de.lock.useBackupCode}

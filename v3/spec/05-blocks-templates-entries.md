@@ -39,7 +39,7 @@
   Eintrag hinzufügen“. Abschnitt „Aus dem Vorlagenkatalog“: „Eigene“ (Anzahl Felder, Entfernen mit Bestätigung) und
   „Mitgeliefert“; Antippen legt die Vorlage im gewählten Tagebuch an (nur wer dort Vorlagen bearbeiten darf).
   Einträge im Vorlagenkatalog werden nicht direkt bearbeitet; die Kopie folgt dem Original nicht automatisch.
-- **Reihenfolge der Vorlagen per Drag & Drop editierbar** (Fractional Index, 02). Ebenso Reihenfolge der Blöcke.
+- **Reihenfolge der Vorlagen per Drag & Drop editierbar** (Fractional Index, 02). Ebenso Reihenfolge der Blöcke. Mehr → Vorlagen hat dafür einen **Sortier-Modus** („Reihenfolge ändern“ → kompakte, einzeilige Liste ohne Aktionsknöpfe, „Fertig“); beim Ziehen am oberen/unteren Rand scrollt die Seite mit (RDM-035).
 - Archivieren statt Löschen, solange Einträge existieren; endgültiges Löschen nur mit Bestätigung + Anzahl betroffener Einträge.
 - Rollen pro Block im Editor optional setzbar. *(v3.x: Vorschlag per LLM, nie automatisch übernommen.)*
 
@@ -162,4 +162,5 @@ Der Vorlagen-Editor kann Rollen je Block vorschlagen (Freigabe pro Vorgang, Deta
 | BLK-61 | `catalogCopyOf` / `instantiateFromCatalog`: neue IDs für Vorlage, Blöcke, Optionen; Version 1; `quickBlockIds` abgebildet; `catalogSource` nur an der Vorlagenkatalog-Kopie; Body-Map mit eigenem Bild → Standardbild; Ergebnis validiert gegen die Schemas. | unit |
 | BLK-62 | Mehr → Vorlagen: „Zum Vorlagenkatalog hinzufügen“ → Eintrag erscheint unter „Eigene“; daraus in einem anderen Tagebuch angelegte Vorlage ist unabhängig (Änderung ändert weder Original noch Vorlagenkatalog); erneutes Hinzufügen bietet „Im Vorlagenkatalog aktualisieren“; Entfernen mit Bestätigung. | e2e |
 | BLK-63 | Vorlagenkatalog auf zwei Geräten desselben Kontos: Hinzufügen, Aktualisieren und Entfernen auf Gerät A sind nach Sync auf Gerät B sichtbar. | e2e |
+| BLK-64 | Mehr → Vorlagen: „Reihenfolge ändern“ zeigt eine kompakte Liste ohne Aktionsknöpfe; eine Vorlage lässt sich über den sichtbaren Bereich hinaus ziehen (Seite scrollt am Rand mit), die Reihenfolge bleibt nach Reload. | e2e |
 | BLK-57 | Echtes iPhone-Video (.mov, ≤ 20 MB) und Schrittfotos in der installierten App hochgeladen; im Training auf iPhone und einem zweiten Gerät (nach Sync) abgespielt bzw. angezeigt. | manual |

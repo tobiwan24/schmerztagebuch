@@ -1,5 +1,6 @@
 // Grundgerüst: Kopfzeile, Inhalt, untere Leiste mit vier Zielen (Spec 10 „Navigation"). Mobile-first, Desktop zentriert.
-import { Link, Navigate, NavLink, Outlet, useLocation } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { useReminderScheduler } from '@/data/useReminders';
 import { useRuleEvaluation } from '@/data/useRuleHints';
 import { Lock } from 'lucide-react';
@@ -15,6 +16,18 @@ import { DiaryScopeProvider } from '@/data/diary-scope';
 import { BarChart3, Home, List, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { de } from '@/i18n/de';
+
+/**
+ * Passkey-Autostart (RDM-035, A-151): beim Öffnen der App bzw. Zurückkehren aus dem Hintergrund einmal zur
+ * Entsperren-Seite mit `auto=1`. „Scharf“ nach dem Start und nach jedem Hintergrund; verbraucht durch die Umleitung —
+ * Abbrechen (CRY-10) startet den Passkey also erst nach dem nächsten Hintergrund erneut, „Jetzt sperren“ nie.
+ */
+let autoUnlockArmed = true;
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') autoUnlockArmed = true;
+  });
+}
 
 const TABS = [
   { to: '/', label: de.nav.start, Icon: Home, end: true },
@@ -32,13 +45,36 @@ const OPEN_WHEN_LOCKED = [
 ];
 
 export function AppShell() {
-  const { status } = useAuth();
+  const { status, lockReason, passkeyRequest } = useAuth();
+  const navigate = useNavigate();
+  const [visibleTick, setVisibleTick] = useState(0);
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') setVisibleTick((n) => n + 1);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
   useReminderScheduler();
   useRuleEvaluation();
   const { diary } = useData();
   const location = useLocation();
   // Entsperrt, aber noch kein Tagebuch → Onboarding fortsetzen. Bei Lesefehler normal weiter (Fehlerzustand der Ansicht).
   const diaries = useQuery(() => (status === 'unlocked' ? diary.listDiaries() : Promise.resolve(null)), [diary, status]);
+  const autoTarget = status === 'locked' && lockReason !== 'manual' && !OPEN_WHEN_LOCKED.includes(location.pathname) ? location.pathname + location.search + location.hash : null;
+  useEffect(() => {
+    if (!autoTarget || !autoUnlockArmed) return;
+    let cancelled = false;
+    // Nur mit Passkey; Passwort-Konten sehen wie bisher Banner und Gesperrt-Ansicht.
+    void passkeyRequest().then((prepared) => {
+      if (cancelled || !prepared || !autoUnlockArmed) return;
+      autoUnlockArmed = false;
+      void navigate(`/unlock?next=${encodeURIComponent(autoTarget)}&auto=1`, { replace: true });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [autoTarget, visibleTick, passkeyRequest, navigate]);
   if (status === 'loading') return <p className="p-4 text-muted-foreground">{de.app.loading}</p>;
   if (status === 'no-account') return <Navigate to="/onboarding" replace />;
   if (status === 'unlocked' && diaries.status === 'ok' && diaries.data?.length === 0) return <Navigate to="/onboarding" replace />;

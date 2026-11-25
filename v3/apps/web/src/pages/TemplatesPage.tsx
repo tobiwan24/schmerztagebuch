@@ -2,9 +2,9 @@
 // endgültiges Löschen nur mit Bestätigung und Anzahl betroffener Einträge (BLK-15), Anlage aus dem Vorlagenkatalog
 // (eigene Einträge und mitgelieferte Vorlagen, RDM-034) und „Zum Vorlagenkatalog hinzufügen“ je aktiver Vorlage.
 // Reihenfolge ändert nur `Template.order` (Fractional Index) — keine neue Vorlagenversion.
-import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { Link } from 'react-router';
-import { Archive, ArchiveRestore, BookPlus, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Archive, ArchiveRestore, ArrowUpDown, BookPlus, Check, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { TEMPLATE_CATALOG, catalogEntryFrom, instantiateCatalogTemplate, keyBetween, type Template } from '@stb/core';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -90,6 +90,8 @@ export function TemplatesPage() {
   // Änderungen nacheinander speichern: schnelles Ziehen + Pfeiltaste dürfen sich nicht überholen (letzte Aktion gewinnt).
   const queue = useRef<Promise<void>>(Promise.resolve());
   const [pending, setPending] = useState(0);
+  // Sortier-Modus (RDM-035): kompakte, einzeilige Liste ohne Aktionen, damit sich lange Listen ziehen lassen
+  const [sorting, setSorting] = useState(false);
   function saveMeta(t: Template, patch: Partial<Pick<Template, 'order' | 'archived'>>) {
     setPending((n) => n + 1);
     queue.current = queue.current
@@ -128,16 +130,32 @@ export function TemplatesPage() {
         <>
           {canEdit ? null : <p role="status" className="text-sm text-muted-foreground">{deTemplates.readOnly}</p>}
           {query.data.rows.filter((r) => !r.template.archived).length === 0 ? <EmptyState title={deTemplates.emptyTitle} hint={deTemplates.emptyHint} /> : null}
+          {canEdit && query.data.rows.filter((r) => !r.template.archived).length > 1 ? (
+            sorting ? (
+              <Button onClick={() => setSorting(false)}>
+                <Check aria-hidden />
+                {deTemplates.sortDone}
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => setSorting(true)}>
+                <ArrowUpDown aria-hidden />
+                {deTemplates.sortMode}
+              </Button>
+            )
+          ) : null}
+          {sorting && canEdit ? <p className="text-sm text-muted-foreground">{deTemplates.sortHint}</p> : null}
           <SortableTemplates
             key={query.data.rows.map((r) => r.template.id + r.template.order + String(r.template.archived)).join()}
             rows={query.data.rows.filter((r) => !r.template.archived)}
             busy={pending > 0}
             readOnly={!canEdit}
+            compact={sorting && canEdit}
             onMove={(t, order) => void saveMeta(t, { order })}
             onArchive={(t) => void saveMeta(t, { archived: true })}
             onDelete={setDeleting}
             onAddToCatalog={catalogBusy ? undefined : onAddToCatalog}
           />
+          {sorting && canEdit ? null : <>
           {catalogStatus ? <p role="status" data-testid="catalog-status" className="text-sm text-muted-foreground">{catalogStatus}</p> : null}
           {query.data.rows.some((r) => r.template.archived) ? (
             <section className="flex flex-col gap-2">
@@ -217,6 +235,7 @@ export function TemplatesPage() {
               ) : null}
             </section>
           ) : null}
+          </>}
           <CatalogExistsDialog
             state={existing}
             onCancel={() => setExisting(null)}
@@ -237,12 +256,19 @@ export function TemplatesPage() {
   );
 }
 
+/** Randbereich (px), in dem die Seite beim Ziehen mitscrollt; unten zusätzlich die Höhe der Fußleiste. */
+const SCROLL_EDGE = 80;
+const BOTTOM_BAR = 72;
+const SCROLL_STEP = 12;
+
 function SortableTemplates({
-  rows: initial, busy, readOnly, onMove, onArchive, onDelete, onAddToCatalog,
+  rows: initial, busy, readOnly, compact = false, onMove, onArchive, onDelete, onAddToCatalog,
 }: {
   rows: Row[];
   busy: boolean;
   readOnly: boolean;
+  /** Sortier-Modus: einzeilig, ohne Aktionsknöpfe. */
+  compact?: boolean;
   onMove: (t: Template, order: string) => void;
   onArchive: (t: Template) => void;
   onDelete: (r: Row) => void;
@@ -252,6 +278,66 @@ function SortableTemplates({
   const [rows, setRows] = useState(initial);
   const [dragId, setDragId] = useState<string | null>(null);
   const refs = useRef(new Map<string, HTMLDivElement>());
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const pointerY = useRef<number | null>(null);
+
+  /** Zielposition für die gezogene Vorlage an der Höhe `y` (Viewport) bestimmen und übernehmen. */
+  function reorderAt(id: string, y: number) {
+    const list = rowsRef.current;
+    const others = list.filter((r) => r.template.id !== id);
+    let target = others.length;
+    for (let i = 0; i < others.length; i++) {
+      const rect = refs.current.get(others[i]!.template.id)?.getBoundingClientRect();
+      if (rect && y < rect.top + rect.height / 2) {
+        target = i;
+        break;
+      }
+    }
+    if (list.findIndex((r) => r.template.id === id) !== target) setRows(moveTo(list, id, target));
+  }
+
+  // Ende des Ziehens (aktueller Stand über Ref, weil die Fenster-Listener nur einmal je Ziehen angelegt werden)
+  const finishDrag = useRef<() => void>(() => undefined);
+  finishDrag.current = () => {
+    if (!dragId) return;
+    pointerY.current = null;
+    commit(rowsRef.current, dragId);
+    setDragId(null);
+  };
+
+  // Ziehen über Fenster-Listener statt Pointer-Capture: Beim Umsortieren verschiebt React den DOM-Knoten der Zeile, dabei
+  // ginge die Capture am Griff verloren. Mitscrollen (RDM-035): am oberen/unteren Rand scrollt die Seite.
+  useEffect(() => {
+    if (!dragId) return;
+    const onMove = (e: globalThis.PointerEvent) => {
+      pointerY.current = e.clientY;
+      reorderAt(dragId, e.clientY);
+    };
+    const onEnd = () => finishDrag.current();
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onEnd);
+    window.addEventListener('pointercancel', onEnd);
+    let frame = 0;
+    const tick = () => {
+      const y = pointerY.current;
+      if (y !== null) {
+        const delta = y < SCROLL_EDGE ? -SCROLL_STEP : y > window.innerHeight - BOTTOM_BAR - SCROLL_EDGE ? SCROLL_STEP : 0;
+        if (delta !== 0) {
+          window.scrollBy(0, delta);
+          reorderAt(dragId, y);
+        }
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onEnd);
+      window.removeEventListener('pointercancel', onEnd);
+    };
+  }, [dragId]);
 
   /** Neue Order zwischen den Nachbarn an der Zielposition; nur speichern, wenn sich die Position geändert hat. */
   function commit(list: Row[], id: string) {
@@ -270,28 +356,9 @@ function SortableTemplates({
   }
 
   function onPointerDown(e: PointerEvent<HTMLButtonElement>, id: string) {
-    e.currentTarget.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    pointerY.current = e.clientY;
     setDragId(id);
-  }
-
-  function onPointerMove(e: PointerEvent<HTMLButtonElement>) {
-    if (!dragId) return;
-    const others = rows.filter((r) => r.template.id !== dragId);
-    let target = others.length;
-    for (let i = 0; i < others.length; i++) {
-      const rect = refs.current.get(others[i]!.template.id)?.getBoundingClientRect();
-      if (rect && e.clientY < rect.top + rect.height / 2) {
-        target = i;
-        break;
-      }
-    }
-    if (rows.findIndex((r) => r.template.id === dragId) !== target) setRows(moveTo(rows, dragId, target));
-  }
-
-  function onPointerUp() {
-    if (!dragId) return;
-    commit(rows, dragId);
-    setDragId(null);
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLButtonElement>, id: string) {
@@ -314,7 +381,7 @@ function SortableTemplates({
             else refs.current.delete(r.template.id);
           }}
           data-testid="template-row"
-          className={cn('flex min-h-12 items-center gap-2 border-b px-2 py-2 last:border-b-0', dragId === r.template.id && 'bg-accent')}
+          className={cn('flex items-center gap-2 border-b px-2 last:border-b-0', compact ? 'min-h-11 py-0.5' : 'min-h-12 py-2', dragId === r.template.id && 'bg-accent')}
         >
           {readOnly ? null : <Button
             variant="ghost"
@@ -323,18 +390,20 @@ function SortableTemplates({
             aria-label={deTemplates.move(r.template.name)}
             aria-description={deTemplates.moveHint}
             onPointerDown={(e) => onPointerDown(e, r.template.id)}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
             onKeyDown={(e) => onKeyDown(e, r.template.id)}
           >
             <GripVertical aria-hidden />
           </Button>}
           <TemplateIcon icon={r.template.icon} color={r.template.color} />
-          <span className="flex min-w-0 flex-1 flex-col break-words">
-            <span>{r.template.name}</span>
-            <span className="text-xs text-muted-foreground">{deTemplates.entryCount(r.entries)}</span>
-          </span>
+          {compact ? (
+            <span className="min-w-0 flex-1 truncate">{r.template.name}</span>
+          ) : (
+            <span className="flex min-w-0 flex-1 flex-col break-words">
+              <span>{r.template.name}</span>
+              <span className="text-xs text-muted-foreground">{deTemplates.entryCount(r.entries)}</span>
+            </span>
+          )}
+          {compact ? null : <>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" aria-label={deTemplates.addToCatalogFor(r.template.name)} disabled={!onAddToCatalog} onClick={() => onAddToCatalog?.(r.template)}>
@@ -356,6 +425,7 @@ function SortableTemplates({
               <Trash2 aria-hidden />
             </Button>
           ) : null}
+          </>}
         </div>
       ))}
     </Card>
