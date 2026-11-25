@@ -29,7 +29,7 @@ v3.x (nicht blockierend):
 - **DM-19** Leistung und Akku mit lokaler Verschlüsselung auf dem iPhone mit echtem Datenbestand
 - **SHR-20** QR-Einladung mit der installierten App auf einem echten zweiten iPhone scannen und annehmen (RDM-032)
 - **BLK-57** Echtes iPhone-Video (.mov, ≤ 20 MB) und Schrittfotos hochladen, im Training auf iPhone und zweitem Gerät abspielen (RDM-033)
-- **CRY-26** Installierte App auf dem iPhone öffnen bzw. aus dem Hintergrund holen → Face ID startet sofort ohne Tipp (RDM-035)
+- ~~**CRY-26** Installierte App auf dem iPhone öffnen bzw. aus dem Hintergrund holen → Face ID startet sofort ohne Tipp (RDM-035)~~ — erledigt 2026-11-25, User bestätigt
 
 Weitere Punkte: Ollama installieren und Modell laden, Anthropic-Konto/Schlüssel und `LLM_PROVIDER` im Deployment setzen (nur wenn KI gewünscht); `npm run verify:docker` einmal mit laufendem Docker (der Koordinator hat es nach M24.2 grün gemeldet, der Stand nach M24.5 ist durch ihn zu bestätigen).
 
@@ -242,7 +242,7 @@ Review-Restbefunde und Blocker:
 | M25 | erledigt | 3/3 IDs automatisiert (SHR-20 manuell, offen) — Einladung per QR-Code (RDM-032), Version 3.13.0-alpha.1 |
 | M26 | erledigt | 3/3 IDs automatisiert (BLK-57 manuell, offen) — Übungsmedien: Video + Bild pro Schritt (RDM-033), Version 3.14.0-alpha.1 |
 | M27 | erledigt | 8/8 IDs automatisiert — Vorlagen strikt pro Tagebuch + eigener Vorlagenkatalog (RDM-034), Version 3.15.0-alpha.1 |
-| M28 | erledigt | 2/2 IDs automatisiert (CRY-26 manuell, offen) — Passkey beim Öffnen + Vorlagen-Sortier-Modus (RDM-035), Version 3.16.0-alpha.1 |
+| M28 | erledigt | 2/2 IDs automatisiert, CRY-26 manuell bestätigt (2026-11-25) — Passkey beim Öffnen + Vorlagen-Sortier-Modus (RDM-035), Version 3.16.0-alpha.1 |
 
 ## Manuelle Kriterien und Gates (vom User abzuhaken)
 
@@ -272,7 +272,7 @@ Review-Restbefunde und Blocker:
 - [ ] DM-19 Leistung und Akku mit lokaler Verschlüsselung auf dem iPhone
 - [ ] SHR-20 QR-Einladung auf einem echten zweiten iPhone gescannt und angenommen
 - [ ] BLK-57 Echtes iPhone-Video (.mov) und Schrittfotos hochgeladen, im Training auf iPhone und zweitem Gerät abgespielt
-- [ ] CRY-26 Installierte App auf dem iPhone öffnen bzw. aus dem Hintergrund holen → Face ID startet sofort ohne Tipp
+- [x] CRY-26 Installierte App auf dem iPhone öffnen bzw. aus dem Hintergrund holen → Face ID startet sofort ohne Tipp — User bestätigt im Chat („face id startet sofort, klappt“), 2026-11-25, auf `:8060` mit 3.16.0-alpha.1
 
 ### Ablösungs-Checkliste (Spec 11)
 - [ ] Letzter v2-Sync auf jedem Gerät
