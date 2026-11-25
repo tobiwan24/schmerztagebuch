@@ -50,3 +50,35 @@ export async function unsealIntake(seal: IntakeSeal, recipient: CryptoKeyPair, d
     throw new CryptoError('decrypt-failed', 'Intake-Siegel konnte nicht geöffnet werden');
   }
 }
+
+// Manifest-Siegel (FEAT-023): Vorlagenstruktur, die die App mit dem Intake-Token versiegelt. Der Server speichert nur das Siegel
+// und öffnet es im Arbeitsspeicher, wenn der Kurzbefehl mit demselben Token fragt (A-153).
+export interface ManifestSeal {
+  v: 1;
+  iv: string;
+  ct: string;
+}
+
+async function manifestKey(token: string, diaryId: string, usage: KeyUsage): Promise<CryptoKey> {
+  const base = await subtle().importKey('raw', utf8(token), 'HKDF', false, ['deriveKey']);
+  return subtle().deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: utf8(diaryId), info: utf8(DOMAINS.intakeManifest) }, base, { name: 'AES-GCM', length: 256 }, false, [usage]);
+}
+
+const manifestAad = (diaryId: string) => utf8(`${DOMAINS.intakeManifest}|${diaryId}`);
+
+/** Versiegelt das Manifest mit einem Schlüssel aus dem Token (HKDF-SHA-256, Salt = Tagebuch-ID, AES-GCM). */
+export async function sealManifest(token: string, diaryId: string, bytes: Uint8Array<ArrayBuffer>): Promise<ManifestSeal> {
+  const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await subtle().encrypt({ name: 'AES-GCM', iv, additionalData: manifestAad(diaryId) }, await manifestKey(token, diaryId, 'encrypt'), bytes));
+  return { v: 1, iv: toBase64Url(iv), ct: toBase64Url(ct) };
+}
+
+/** Öffnet ein Manifest-Siegel. Falsches Token, falsches Tagebuch oder Manipulation → `decrypt-failed`. */
+export async function openManifest(token: string, diaryId: string, seal: ManifestSeal): Promise<Uint8Array<ArrayBuffer>> {
+  try {
+    if (seal.v !== 1) throw new Error('Version');
+    return new Uint8Array(await subtle().decrypt({ name: 'AES-GCM', iv: fromBase64Url(seal.iv), additionalData: manifestAad(diaryId) }, await manifestKey(token, diaryId, 'decrypt'), fromBase64Url(seal.ct)));
+  } catch {
+    throw new CryptoError('decrypt-failed', 'Manifest-Siegel konnte nicht geöffnet werden');
+  }
+}

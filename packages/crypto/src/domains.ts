@@ -7,6 +7,7 @@ export const DOMAINS = {
   share: 'stb/v3/share',
   deviceLocal: 'stb/v3/device-local',
   intake: 'stb/v3/intake',
+  intakeManifest: 'stb/v3/intake-manifest',
   fingerprint: 'stb/v3/fingerprint',
   identitySeal: 'stb/v3/identity-seal',
   backupAuth: 'stb/v3/backup-auth',

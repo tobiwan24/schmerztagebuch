@@ -47,6 +47,7 @@ Reihenfolge verbindlich, Plan und Aufgaben in [PROGRESS.md](PROGRESS.md).
 | M26 | v3.x: Übungsmedien — Video + Bild pro Schritt (RDM-033) | BLK-54 BLK-55 BLK-56 BLK-57 | — |
 | M27 | v3.x: Vorlagen strikt pro Tagebuch + eigener Vorlagenkatalog (RDM-034) | BLK-58 BLK-59 BLK-60 BLK-61 BLK-62 BLK-63 DM-20 SHR-21 | — |
 | M28 | v3.x: Passkey startet beim Öffnen + Vorlagen-Sortier-Modus (RDM-035) | CRY-25 CRY-26 BLK-64 | — |
+| M29 | v3.x: Kurzbefehl mit Manifest und Mischform (FEAT-023, A-153) | VOI-18 VOI-19 VOI-20 VOI-21 VOI-22 VOI-23 VOI-24 | — |
 
 ## Manuelle Kriterien (Abhaken in PROGRESS.md)
 
@@ -56,7 +57,7 @@ Reihenfolge verbindlich, Plan und Aufgaben in [PROGRESS.md](PROGRESS.md).
 | G2 | UI-11 CRY-17 |
 | G3 | UI-12 ANA-16 EXP-13 |
 | G4 | UI-13 MIG-16 VOI-11 SHR-12 |
-| v3.x (nicht blockierend) | EXP-25 VOI-17 ANA-31 SHR-16 DM-19 SHR-20 BLK-57 CRY-26 |
+| v3.x (nicht blockierend) | EXP-25 VOI-17 ANA-31 SHR-16 DM-19 SHR-20 BLK-57 CRY-26 VOI-24 |
 
 ## Hinweise zur Reihenfolge
 

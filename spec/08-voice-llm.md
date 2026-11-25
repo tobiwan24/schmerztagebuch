@@ -12,7 +12,8 @@ mit getrenntem Speicher) und kann selbst nicht AES-GCM/ECDH rechnen. Deshalb:
 1. **Einrichten (in der App, pro Tagebuch, Rolle `owner`/`editor`):** Die App erzeugt ein ECDH-P-256-Schlüsselpaar
    `intake`. Der private Schlüssel wird als Record `kind: 'intakeKey'` gespeichert (mit DK verschlüsselt synchronisiert).
    Der öffentliche Schlüssel und der Hash eines zufälligen **Intake-Tokens** (256 Bit) gehen an den Server
-   (`intake_keys`). Das Token wird **einmal** angezeigt.
+   (`intake_keys`). Das Token bleibt zusätzlich im verschlüsselten
+   `intakeKey`-Record (FEAT-023, A-153), damit die App die Zugangsdaten jederzeit kopierbar anbieten und das Manifest versiegeln kann.
 2. **Kurzbefehl:** sendet `POST /api/v1/intake/:diaryId` mit `Authorization: Bearer <token>` und JSON:
    ```ts
    { templateId?: string, occurredAt?: ISO, text?: string,
@@ -40,17 +41,56 @@ eine Bestätigung. Ohne Einrichtung gibt es keinen Intake.
 
 ## Einrichtungshilfe in der App
 
-- Seite „Kurzbefehl einrichten" pro Tagebuch: Endpunkt-URL, Token (einmalig), Schritt-für-Schritt-Anleitung, und ein
-  **kopierbarer Prompt** für das Modell im Kurzbefehl, der die Blöcke der Vorlage mit ID, Label, Typ, Wertebereich und
-  Optionen als JSON-Ziel beschreibt (wird aus der aktuellen Vorlagenversion generiert).
+- Seite „Kurzbefehl“ pro Tagebuch: geführter Ablauf in vier Schritten (siehe „Verteilung“), Zugangsdaten (Adresse + Token) kopierbar.
+  Der Prompt je Vorlage steht im Manifest (VOI-08); der Kurzbefehl holt ihn selbst.
 - Token widerrufen / neu erzeugen; Liste aktiver Intake-Schlüssel.
 - **Zwischenablage-Weg** (funktioniert auch in `local-only`): Kurzbefehl kopiert dasselbe JSON in die Zwischenablage;
   in der App „Aus Zwischenablage einfügen" erzeugt daraus einen Eintragsentwurf zur Bestätigung.
 
+## Manifest (FEAT-023, A-153)
+
+Ein allgemeiner Kurzbefehl „Schmerztagebuch eintragen“ wird einmal installiert und holt bei jedem Lauf das aktuelle
+**Manifest** des Tagebuchs: `{ v: 1, diary, defaultTemplateId, templates: [{ id, name, version, prompt, fields }] }` mit
+`fields: [{ id, label, type, required, question, options?, min?, max? }]` (Körperkarte und Übung fehlen; nur aktive
+Nicht-Trainingsvorlagen). Der `prompt` ist `buildShortcutPrompt` (VOI-08), die Fragetexte erzeugt `core` aus Typ und Label.
+
+- **Verteilung:** Die App baut das Manifest (`buildShortcutBundle`) und versiegelt es mit dem Intake-Token
+  (`sealManifest`: HKDF-SHA-256 aus dem Token, Salt = Tagebuch-ID, Domain `stb/v3/intake-manifest`, AES-GCM, AAD = Domain +
+  Tagebuch-ID). Hochgeladen wird nur das Siegel (`PUT /api/v1/diaries/:id/intake-keys/:keyId/manifest`, Sitzung, `owner`/`editor`,
+  ≤ 64 KB), und zwar nur, wenn sich der Hash (`manifestHash`) gegenüber dem letzten Upload ändert (bei der Einrichtung und im
+  Sync-Lauf je Cloud-Tagebuch mit Schlüssel). Der Server speichert nur das Siegel (`intake_keys.manifest`); Widerrufen löscht es.
+- **Abruf:** `GET /api/v1/intake/:diaryId/manifest` (Bearer-Token). Der Server öffnet das Siegel kurz im Arbeitsspeicher und
+  antwortet mit dem Manifest (`no-store`). Falsches/widerrufenes Token → 401, noch kein Upload → 404 `manifest-missing`.
+  **Potenzielle Sicherheitslücke** (A-153, im Hinweisdialog genannt): Ein kompromittierter laufender Server kann die
+  Vorlagenstruktur beim Abruf mitlesen; ein gestohlenes Token erlaubt erstmals Lesen der Vorlagenstruktur; das Token liegt
+  dauerhaft im Schlüssel-Record. Einträge werden weiterhin nur versiegelt gespeichert.
+
+## Prüfen (Dry-Run)
+
+`POST /api/v1/intake/:diaryId/check` (Bearer-Token, Body wie Intake, `templateId` optional → Standardvorlage des Manifests)
+antwortet `{ templateId, missing: fields[], invalid: [{ field, message }], summary }` und **speichert nichts**.
+`checkIntake` (core) nutzt `mapIntakeToValues`; `missing` enthält alle Felder ohne gültigen Wert (mit `required`),
+`summary` ist ein vorlesbarer Satz aus `displayValue`. Rate-Limit und Fehlversuch-Begrenzung wie beim Senden, aber eigener
+Zähler (Mischform braucht mehrere Prüfungen je Eintrag).
+
+## Mischform-Ablauf
+
+1. Vorlage wählen. 2. Frei sprechen, das Modell füllt die Felder. 3. Der Kurzbefehl ruft `check` auf und fragt **alle**
+fehlenden oder ungültigen Felder einzeln nach (optionale Felder dürfen mit leerer Antwort übersprungen werden).
+4. Siri liest die Zusammenfassung vor und fragt „Passt das?“. 5. Senden an den Briefkasten. Auslöser: „Hey Siri,
+Schmerztagebuch eintragen“, Action-Button, Sperrbildschirm, Watch. Bauanleitung: `docs/kurzbefehl-bauanleitung.md`.
+
+## Verteilung (iCloud-Link, Anleitung als Fallback)
+
+Geführter Ablauf auf der Kurzbefehl-Seite in vier Schritten: **Hinweis** (Dialog mit Pflicht-Häkchen, nennt die Vorlagen-Ausnahme),
+**Installieren** („Kurzbefehl laden“ über `SHORTCUT_ICLOUD_URL`, ausgeblendet solange leer; darunter aufklappbar die Anleitung
+zum Selbstbau), **Verbinden** („Zugangsdaten kopieren“: JSON `{ url, token }` für die eine Importfrage des Kurzbefehls),
+**Testen** („Prüfen“ stößt einen Sync an und zeigt „Angekommen ✓ (Uhrzeit)“ oder „Noch nichts angekommen“).
+
 ## Grenzen
 
 - `local-only`: Intake über den Server ist nicht verfügbar (nur Zwischenablage-Weg).
-- Offline-iPhone: der Kurzbefehl meldet den Fehler; es gibt keine Warteschlange im Kurzbefehl.
+- Offline-iPhone: der Kurzbefehl meldet den Fehler; es gibt keine Warteschlange im Kurzbefehl (RDM-039).
 - Rate-Limit pro Token (Standard 60/h).
 
 ## LLM (v3.x, M19)
@@ -82,3 +122,10 @@ Endpunkte (angemeldet, Body ≤ 32 KB, Rate-Limit 30/h je Nutzer, Tagesbudget `L
 | VOI-15 | Auswertung/Export „Zusammenfassung für den Arzt“: standardmäßig gehen nur Kennzahlen raus (Notizen nur per Häkchen). Der Text ist bearbeitbar, mit Hinweis „keine Diagnose“, und kann optional als Abschnitt in den PDF-Export. | e2e |
 | VOI-16 | Einstellungen → KI-Funktionen: Opt-in Standard aus; zeigt Provider, Modell und „Drittanbieter ja/nein“ aus `status`; alle KI-Knöpfe sind ausgeblendet bei `off`, Opt-in aus oder local-only und deaktiviert, solange offline. | e2e |
 | VOI-17 | Echte Provider: Ollama auf der Server-Hardware (Antwortzeit, Qualität auf Deutsch) und/oder Anthropic mit echtem Schlüssel, getestet am iPhone. | manual |
+| VOI-18 | Das Manifest enthält alle Vorlagen mit Feldern (Typ, Pflicht, Frage, Optionen, Bereich) und Prompt; die Körperkarte fehlt. | unit |
+| VOI-19 | Manifest-Siegel: Token öffnet, falsches Token oder falsches Tagebuch schlägt fehl. | unit |
+| VOI-20 | `GET manifest`: 401 bei falschem oder widerrufenem Token, 404 ohne Upload, 200 mit Manifest; DB und Log enthalten keinen Klartext-Marker. | integration |
+| VOI-21 | `POST check`: liefert fehlende und ungültige Felder plus Zusammenfassung, schreibt nichts in die DB. | integration |
+| VOI-22 | Die App lädt das Manifest nur bei geändertem Hash hoch (Einrichtung und Sync). | integration |
+| VOI-23 | Einrichtungsablauf: Hinweis enthält den Vorlagen-Hinweis; Zugangsdaten kopierbar; Testschritt zeigt „Angekommen“. | e2e |
+| VOI-24 | Echter Kurzbefehl per iCloud-Link: Mischform-Durchlauf mit „Hey Siri, Schmerztagebuch eintragen“ am iPhone. | manual |

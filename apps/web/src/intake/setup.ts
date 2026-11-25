@@ -18,6 +18,13 @@ export interface IntakeKeyRecord {
   publicKey: string;
   privateKeyJwk: JsonWebKey;
   createdAt: string;
+  /**
+   * Zugangs-Token (FEAT-023, A-153): bleibt im verschlüsselten Record, damit die App das Manifest damit versiegeln und das
+   * Kopieren der Zugangsdaten jederzeit anbieten kann. Fehlt bei älteren Schlüsseln (dort nur widerrufen/neu erzeugen).
+   */
+  token?: string;
+  /** Hash des zuletzt hochgeladenen Manifests; weicht er vom aktuellen ab, lädt `syncManifests` neu hoch. */
+  manifestHash?: string;
 }
 
 async function sha256b64url(s: string): Promise<string> {
@@ -39,7 +46,7 @@ export async function setupIntake(deps: {
   const token = toBase64Url(globalThis.crypto.getRandomValues(new Uint8Array(32)));
   const { id: serverKeyId } = await deps.api.register(deps.diaryId, { publicKey, tokenHash: await sha256b64url(token) });
   const record: IntakeKeyRecord = {
-    id: deps.newId(), diaryId: deps.diaryId, serverKeyId, createdBy: deps.createdBy, publicKey, privateKeyJwk, createdAt: new Date(deps.now()).toISOString(),
+    id: deps.newId(), diaryId: deps.diaryId, serverKeyId, createdBy: deps.createdBy, publicKey, privateKeyJwk, createdAt: new Date(deps.now()).toISOString(), token,
   };
   await deps.records.put({ id: record.id, diaryId: deps.diaryId, kind: 'intakeKey', payload: record });
   return { token, record };

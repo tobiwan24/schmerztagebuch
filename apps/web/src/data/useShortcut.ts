@@ -1,13 +1,15 @@
-// Kurzbefehl je Tagebuch (Spec 08): Intake einrichten/widerrufen (nur mit Konto), Prompt für den Kurzbefehl,
+// Kurzbefehl je Tagebuch (Spec 08): Intake einrichten/widerrufen (nur mit Konto), Zugangsdaten für den Kurzbefehl,
 // Zwischenablage-Weg (auch local-only) und Eingang. Ansichten greifen nur hierüber zu (Spec 01).
 import { useCallback } from 'react';
-import { buildShortcutPrompt, quickEntrySelection, type TemplateState } from '@stb/core';
+import { quickEntrySelection, type TemplateState } from '@stb/core';
 import { useAuth } from '@/auth/AuthContext';
 import { createIntakeApi } from '@/intake/api';
+import { syncManifests } from '@/intake/manifest';
 import { setupIntake, type IntakeKeyRecord } from '@/intake/setup';
 import { draftFromText, entryFromDraft, type ShortcutDraft } from '@/intake/draft';
 import type { IntakeInboxItem } from '@/intake/pickup';
 import { useData } from './DataContext';
+import { useSync } from './SyncContext';
 import { useQuery } from './useQuery';
 
 const api = createIntakeApi('');
@@ -21,6 +23,7 @@ export function useShortcut(diaryId: string) {
   const { db } = useAuth();
   const data = useData();
   const { diary, records, stamper, newId, now } = data;
+  const { syncNow } = useSync();
 
   const info = useQuery(async () => {
     const d = await diary.getDiary(diaryId);
@@ -28,24 +31,32 @@ export function useShortcut(diaryId: string) {
     const states = await templateStates(diary, diaryId);
     const quick = quickEntrySelection(d, states);
     const mode = (await db.sync_state.get(diaryId))?.mode ?? 'local-only';
-    const keys = (await records.list(diaryId, 'intakeKey')).map((r) => r.payload as IntakeKeyRecord).map((k) => ({ id: k.id, serverKeyId: k.serverKeyId, createdBy: k.createdBy, createdAt: k.createdAt }));
+    const keyRecords = (await records.list(diaryId, 'intakeKey')).map((r) => r.payload as IntakeKeyRecord);
+    const keys = keyRecords.map((k) => ({ id: k.id, serverKeyId: k.serverKeyId, createdBy: k.createdBy, createdAt: k.createdAt }));
+    const endpoint = `${globalThis.location?.origin ?? ''}/api/v1/intake/${diaryId}`;
+    // Zugangsdaten für die eine Importfrage des Kurzbefehls: Adresse und Token des neuesten Schlüssels mit Token.
+    const newest = keyRecords.filter((k) => k.token).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+    const shortcutEntries = (await diary.listEntries(diaryId)).filter((e) => e.meta.source === 'shortcut').map((e) => e.recordedAt).sort();
     const template = quick?.state ?? null;
     return {
       diary: d,
       cloud: mode === 'cloud-primary',
       keys,
       template,
-      prompt: template ? buildShortcutPrompt(template.template.name, template.version) : null,
-      endpoint: `${globalThis.location?.origin ?? ''}/api/v1/intake/${diaryId}`,
+      endpoint,
+      connection: newest ? JSON.stringify({ url: endpoint, token: newest.token }) : null,
+      lastShortcutEntryAt: shortcutEntries.at(-1) ?? null,
     };
   }, [diary, records, db, diaryId]);
 
   const setup = useCallback(async () => {
     const { userId } = await stamper.identity();
     const r = await setupIntake({ api, records, diaryId, createdBy: userId, newId, now });
+    // Manifest sofort hochladen (FEAT-023); gelingt das nicht, holt es der nächste Sync nach.
+    await syncManifests({ api, records, diary, diaryId }).catch(() => null);
     info.retry();
     return r.token;
-  }, [records, diaryId, stamper, newId, now, info]);
+  }, [records, diary, diaryId, stamper, newId, now, info]);
 
   const revoke = useCallback(
     async (key: { id: string; serverKeyId: string }) => {
@@ -55,6 +66,12 @@ export function useShortcut(diaryId: string) {
     },
     [diaryId, records, info],
   );
+
+  /** Testschritt: Sync anstoßen (holt Kurzbefehl-Items ab) und den Stand neu lesen. */
+  const checkArrival = useCallback(async () => {
+    await syncNow();
+    info.retry();
+  }, [syncNow, info]);
 
   const draft = useCallback(
     (text: string) => draftFromText(text, diary, info.status === 'ok' ? info.data?.template?.template.id : undefined),
@@ -72,7 +89,7 @@ export function useShortcut(diaryId: string) {
     [stamper, diary, diaryId, newId, now, records],
   );
 
-  return { info, setup, revoke, draft, saveDraft };
+  return { info, setup, revoke, checkArrival, draft, saveDraft };
 }
 
 /** Eingang (Spec 08): Kurzbefehl-Items, aus denen kein Eintrag entstehen konnte. */

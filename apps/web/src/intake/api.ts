@@ -1,8 +1,10 @@
 // HTTP-Client für Intake-Schlüssel und -Items (Spec 08; Server `apps/server/src/intake/routes.ts`).
+import type { ManifestSeal } from '@stb/crypto';
+import type { ManifestApi } from './manifest.js';
 import type { IntakeItemsApi } from './pickup.js';
 import type { IntakeKeyApi } from './setup.js';
 
-export function createIntakeApi(baseUrl = '', fetchFn: typeof fetch = globalThis.fetch.bind(globalThis)): IntakeKeyApi & IntakeItemsApi & { revoke(diaryId: string, keyId: string): Promise<void> } {
+export function createIntakeApi(baseUrl = '', fetchFn: typeof fetch = globalThis.fetch.bind(globalThis)): IntakeKeyApi & IntakeItemsApi & ManifestApi & { revoke(diaryId: string, keyId: string): Promise<void> } {
   async function call(method: string, path: string, body?: unknown): Promise<Response> {
     const res = await fetchFn(`${baseUrl}${path}`, {
       method, credentials: 'include', cache: 'no-store',
@@ -20,6 +22,10 @@ export function createIntakeApi(baseUrl = '', fetchFn: typeof fetch = globalThis
     },
     async ack(itemId) {
       await call('DELETE', `/api/v1/intake-items/${encodeURIComponent(itemId)}`);
+    },
+    async uploadManifest(diaryId: string, serverKeyId: string, seal: ManifestSeal) {
+      const res = await call('PUT', `/api/v1/diaries/${encodeURIComponent(diaryId)}/intake-keys/${encodeURIComponent(serverKeyId)}/manifest`, { seal });
+      if (!res.ok) throw new Error(`Manifest-Upload fehlgeschlagen: HTTP ${res.status}`);
     },
     async revoke(diaryId, keyId) {
       await call('DELETE', `/api/v1/diaries/${encodeURIComponent(diaryId)}/intake-keys/${encodeURIComponent(keyId)}`);

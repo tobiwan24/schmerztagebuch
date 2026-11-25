@@ -8,6 +8,7 @@ import { SyncModeError, switchToLocalOnly } from '@/sync/mode';
 import { createFetchTransport } from '@/sync/transport';
 import { quickEntrySelection, type HlcClock, type TemplateState } from '@stb/core';
 import { createIntakeApi } from '@/intake/api';
+import { syncManifests } from '@/intake/manifest';
 import { pickupIntake } from '@/intake/pickup';
 import { createFetchAccountApi } from '@/auth/account-api';
 import { isCloudAccount, syncMemberships } from '@/auth/cloud-account';
@@ -190,7 +191,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         api: createIntakeApi(''), records, diary, diaryId: d.id, authorId: userId, timezone: d.settings.timezone, newId, now, nextHlc: () => hlc.tick(),
         ...(quick ? { defaultTemplateId: quick.state.template.id } : {}),
       }).catch(() => null);
-      if (r && (r.entries.length || r.inbox.length)) await engine?.sync().catch(() => undefined);
+      // Manifest für den Kurzbefehl aktuell halten (FEAT-023); der geänderte Hash im Schlüssel-Record wird gleich mitsynchronisiert.
+      const m = await syncManifests({ api: createIntakeApi(''), records, diary, diaryId: d.id }).catch(() => null);
+      if ((r && (r.entries.length || r.inbox.length)) || (m && m.uploaded > 0)) await engine?.sync().catch(() => undefined);
     }
   }, [db, records, diary, stamper, newId, now, engine]);
 

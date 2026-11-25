@@ -61,15 +61,56 @@ test.describe('Kurzbefehl', () => {
     await expect(confirm).toBeDisabled();
     // Abbrechen ohne Bestätigung → kein Schlüssel, kein Token
     await page.getByRole('button', { name: 'Abbrechen' }).click();
-    await expect(page.getByTestId('intake-token')).toHaveCount(0);
     await expect(page.getByTestId('intake-keys')).toHaveCount(0);
-    // mit Bestätigung → Token einmalig sichtbar, Schlüssel aktiv
+    // mit Bestätigung → Schlüssel aktiv, Zugangsdaten kopierbar
     await card.getByRole('button', { name: 'Kurzbefehl einrichten' }).click();
     await page.getByLabel('Ich habe verstanden').check();
     await expect(confirm).toBeEnabled();
     await confirm.click();
-    await expect(page.getByTestId('intake-token')).toContainText('Token');
     await expect(page.getByTestId('intake-keys').locator('li')).toHaveCount(1);
     await expect(card).toContainText('/api/v1/intake/');
+    await expect(card.getByRole('button', { name: 'Zugangsdaten kopieren' })).toBeVisible();
+  });
+
+  test('VOI-23: geführte Einrichtung — Hinweis nennt die Vorlagen, Zugangsdaten kopierbar, Manifest abrufbar, Testschritt zeigt „Angekommen“', async ({ page, context, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Konto mit virtuellem Authenticator (Chromium)');
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await addVirtualAuthenticator(page);
+    await onboardWithCloud(page, uniqueUser('voi23'));
+    await go(page, '/more/diaries');
+    await page.getByTestId('diary-card').getByRole('link', { name: 'Kurzbefehl (Siri)' }).click();
+    const card = page.getByTestId('intake-card');
+    // vor der Einrichtung nur Schritt 1
+    await expect(card.getByTestId('intake-step-1')).toBeVisible();
+    await expect(card.getByTestId('intake-step-3')).toHaveCount(0);
+    await card.getByRole('button', { name: 'Kurzbefehl einrichten' }).click();
+    await expect(page.getByRole('dialog')).toContainText('Die Vorlagen (Titel, Feldnamen, Optionen, Medikamentennamen) werden beim Abruf kurz unverschlüsselt auf dem Server gelesen');
+    await page.getByLabel('Ich habe verstanden').check();
+    await page.getByRole('button', { name: 'Einrichten', exact: true }).click();
+    // Schritt 2: ohne iCloud-Link kein Download-Knopf, Selbstbau-Anleitung aufklappbar
+    await expect(card.getByTestId('intake-step-2')).toBeVisible();
+    await expect(card.getByRole('button', { name: 'Kurzbefehl laden' })).toHaveCount(0);
+    await expect(card.getByText('Kurzbefehle-App → neuer Kurzbefehl')).toBeHidden();
+    await card.getByRole('button', { name: 'Selbst bauen (Anleitung)' }).click();
+    await expect(card.getByText('Kurzbefehle-App → neuer Kurzbefehl')).toBeVisible();
+    // Schritt 3: Zugangsdaten (Adresse + Token) in einem Zug kopieren
+    await card.getByRole('button', { name: 'Zugangsdaten kopieren' }).click();
+    await expect(card.getByRole('button', { name: 'Kopiert' })).toBeVisible();
+    const conn = JSON.parse(await page.evaluate(() => navigator.clipboard.readText())) as { url: string; token: string };
+    expect(conn.url).toContain('/api/v1/intake/');
+    expect(conn.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    const auth = { authorization: `Bearer ${conn.token}` };
+    // das Manifest ist sofort abrufbar und enthält die Vorlage des Tagebuchs
+    await expect.poll(async () => (await page.request.get(`${conn.url}/manifest`, { headers: auth })).status()).toBe(200);
+    const manifest = (await (await page.request.get(`${conn.url}/manifest`, { headers: auth })).json()) as { templates: { name: string }[] };
+    expect(manifest.templates.map((t) => t.name)).toContain('Allgemeines Schmerz-Tagebuch');
+    expect((await page.request.get(`${conn.url}/manifest`, { headers: { authorization: 'Bearer falsch' } })).status()).toBe(401);
+    // Schritt 4: noch nichts angekommen → Eintrag senden → angekommen
+    await card.getByRole('button', { name: 'Prüfen' }).click();
+    await expect(card.getByTestId('intake-arrival')).toHaveText('Noch nichts angekommen');
+    const sent = await page.request.post(conn.url, { headers: auth, data: { values: { Schmerzstärke: 5 }, text: 'STB-E2E-MARKER Manifest' } });
+    expect(sent.status()).toBe(202);
+    await card.getByRole('button', { name: 'Prüfen' }).click();
+    await expect(card.getByTestId('intake-arrival')).toContainText('Angekommen ✓ (');
   });
 });

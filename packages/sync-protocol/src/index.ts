@@ -92,6 +92,27 @@ export const intakeKeyRequestSchema = z.strictObject({
   /** SHA-256(token) als base64url — das Token selbst erreicht den Server erst beim Intake. */
   tokenHash: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
 });
+// Kurzbefehl-Manifest (FEAT-023, A-153): die App lädt das mit dem Intake-Token versiegelte Manifest hoch (nur Siegel, ≤ 64 KB).
+export const INTAKE_MANIFEST_MAX_CHARS = 64 * 1024;
+export const manifestUploadSchema = z.strictObject({
+  seal: z.strictObject({
+    v: z.literal(1),
+    iv: z.string().regex(/^[A-Za-z0-9_-]{16}$/),
+    ct: z.string().regex(/^[A-Za-z0-9_-]+$/).max(INTAKE_MANIFEST_MAX_CHARS),
+  }),
+});
+export type ManifestUpload = z.infer<typeof manifestUploadSchema>;
+
+/** Antwort von `POST /api/v1/intake/:diaryId/check` (Dry-Run, speichert nichts). */
+const manifestFieldSchema = z.looseObject({ id: z.string(), label: z.string(), type: z.string(), required: z.boolean(), question: z.string() });
+export const intakeCheckResponseSchema = z.strictObject({
+  templateId: z.string(),
+  missing: z.array(manifestFieldSchema),
+  invalid: z.array(z.strictObject({ field: z.string(), message: z.string() })),
+  summary: z.string(),
+});
+export type IntakeCheckResponse = z.infer<typeof intakeCheckResponseSchema>;
+
 export { mergeEntry, type EntrySide, type MergeConflict, type EntryMergeResult } from './merge.js';
 
 // ---------------------------------------------------------------------------------------------------------------
