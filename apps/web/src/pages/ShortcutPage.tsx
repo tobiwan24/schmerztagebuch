@@ -1,17 +1,22 @@
 // Tagebuch → Kurzbefehl (Spec 08): Intake einrichten (nur mit Konto; Hinweisdialog mit Pflicht-Bestätigung, VOI-02),
-// Token einmalig, Endpunkt + Prompt kopieren, Schlüssel widerrufen; Zwischenablage-Weg mit Entwurf (VOI-09, auch local-only).
+// geführter Ablauf (Hinweis, installieren, Zugangsdaten kopieren, testen; FEAT-023), Schlüssel widerrufen; Zwischenablage-Weg mit Entwurf (VOI-09, auch local-only).
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { Check } from 'lucide-react';
 import { displayValue } from '@stb/core';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { PageHeader } from '@/components/PageHeader';
 import { ErrorState } from '@/components/StateView';
 import { useInbox, useShortcut } from '@/data/useShortcut';
+import { SHORTCUT_ICLOUD_URL } from '@/intake/config';
 import type { ShortcutDraft } from '@/intake/draft';
 import { de } from '@/i18n/de';
 
@@ -44,15 +49,18 @@ function IntakeCard({ sc }: { sc: ReturnType<typeof useShortcut> }) {
   const data = sc.info.status === 'ok' ? sc.info.data! : null;
   const [open, setOpen] = useState(false);
   const [understood, setUnderstood] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [checked, setChecked] = useState(false);
+  const [checking, setChecking] = useState(false);
   if (!data) return null;
+  const configured = data.keys.length > 0;
   async function confirm() {
     setBusy(true);
     setError(false);
     try {
-      setToken(await sc.setup());
+      await sc.setup();
       setOpen(false);
     } catch {
       setError(true);
@@ -60,40 +68,81 @@ function IntakeCard({ sc }: { sc: ReturnType<typeof useShortcut> }) {
       setBusy(false);
     }
   }
+  async function check() {
+    setChecking(true);
+    try {
+      await sc.checkArrival();
+      setChecked(true);
+    } finally {
+      setChecking(false);
+    }
+  }
+  const arrivedAt = data.lastShortcutEntryAt ? new Date(data.lastShortcutEntryAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : null;
   return (
     <Card data-testid="intake-card">
       <CardHeader>
         <CardTitle className="text-base">{t.intakeTitle}</CardTitle>
         <CardDescription>{t.intakeHint}</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {token ? (
-          <div data-testid="intake-token" className="flex flex-col gap-2 rounded-md border p-3">
-            <p className="text-sm font-medium">{t.tokenOnce}</p>
-            <code className="break-all text-xs">{token}</code>
-            <Button size="sm" variant="outline" onClick={() => copy(token)}>{t.copyToken}</Button>
-          </div>
-        ) : null}
-        <div className="flex flex-col gap-1">
-          <span className="text-sm font-medium">{t.endpoint}</span>
-          <code className="break-all text-xs">{data.endpoint}</code>
-        </div>
-        {data.prompt ? (
-          <Button size="sm" variant="outline" onClick={() => copy(data.prompt!)}>{t.copyPrompt}</Button>
-        ) : null}
-        <ol className="ml-4 list-decimal text-sm text-muted-foreground">
-          {t.steps.map((s) => <li key={s}>{s}</li>)}
-        </ol>
-        <Button onClick={() => (setUnderstood(false), setOpen(true))}>{data.keys.length ? t.newToken : t.setup}</Button>
-        {data.keys.length ? (
-          <ul data-testid="intake-keys" className="flex flex-col gap-2">
-            {data.keys.map((k) => (
-              <li key={k.id} className="flex items-center justify-between gap-2 text-sm">
-                <span>{t.keyCreated(new Date(k.createdAt).toLocaleString('de-DE'))}</span>
-                <Button size="sm" variant="outline" onClick={() => void sc.revoke(k)}>{t.revoke}</Button>
-              </li>
-            ))}
-          </ul>
+      <CardContent className="flex flex-col gap-4">
+        <section data-testid="intake-step-1" className="flex flex-col gap-2">
+          <h3 className="flex items-center gap-2 text-sm font-medium"><Badge>1</Badge>{t.step1Title}</h3>
+          <p className="text-sm text-muted-foreground">{t.step1Text}</p>
+          {configured ? <Badge variant="outline" className="self-start"><Check className="size-3" />{t.step1Done}</Badge> : null}
+          <Button onClick={() => (setUnderstood(false), setOpen(true))}>{configured ? t.newToken : t.setup}</Button>
+        </section>
+        {configured ? (
+          <>
+            <Separator />
+            <section data-testid="intake-step-2" className="flex flex-col gap-2">
+              <h3 className="flex items-center gap-2 text-sm font-medium"><Badge>2</Badge>{t.step2Title}</h3>
+              {SHORTCUT_ICLOUD_URL ? <Button onClick={() => window.open(SHORTCUT_ICLOUD_URL, '_blank', 'noopener')}>{t.download}</Button> : null}
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm">{t.buildTitle}</Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <ol className="ml-4 mt-2 list-decimal text-sm text-muted-foreground">
+                    {t.steps.map((st) => <li key={st}>{st}</li>)}
+                  </ol>
+                </CollapsibleContent>
+              </Collapsible>
+            </section>
+            <Separator />
+            <section data-testid="intake-step-3" className="flex flex-col gap-2">
+              <h3 className="flex items-center gap-2 text-sm font-medium"><Badge>3</Badge>{t.step3Title}</h3>
+              <p className="text-sm text-muted-foreground">{t.step3Text}</p>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium">{t.endpoint}</span>
+                <code className="break-all text-xs">{data.endpoint}</code>
+              </div>
+              {data.connection ? (
+                <Button variant="outline" onClick={() => (copy(data.connection!), setCopied(true))}>{copied ? t.copied : t.copyConnection}</Button>
+              ) : (
+                <p role="status" className="text-sm text-muted-foreground">{t.noConnection}</p>
+              )}
+            </section>
+            <Separator />
+            <section data-testid="intake-step-4" className="flex flex-col gap-2">
+              <h3 className="flex items-center gap-2 text-sm font-medium"><Badge>4</Badge>{t.step4Title}</h3>
+              <p className="text-sm text-muted-foreground">{t.step4Text}</p>
+              <Button variant="outline" disabled={checking} onClick={() => void check()}>{t.check}</Button>
+              {checked ? (
+                <Badge data-testid="intake-arrival" variant={arrivedAt ? 'default' : 'outline'} className="self-start">
+                  {arrivedAt ? t.arrived(arrivedAt) : t.notArrived}
+                </Badge>
+              ) : null}
+            </section>
+            <Separator />
+            <ul data-testid="intake-keys" className="flex flex-col gap-2">
+              {data.keys.map((k) => (
+                <li key={k.id} className="flex items-center justify-between gap-2 text-sm">
+                  <span>{t.keyCreated(new Date(k.createdAt).toLocaleString('de-DE'))}</span>
+                  <Button size="sm" variant="outline" onClick={() => void sc.revoke(k)}>{t.revoke}</Button>
+                </li>
+              ))}
+            </ul>
+          </>
         ) : null}
       </CardContent>
       <Dialog open={open} onClose={() => setOpen(false)} aria-labelledby="intake-notice-title">

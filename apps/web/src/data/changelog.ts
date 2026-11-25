@@ -4,6 +4,15 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.17.0-alpha.1',
+    date: '2026-11-25',
+    points: [
+      'Ein Kurzbefehl für alle Vorlagen: „Hey Siri, Schmerztagebuch eintragen“ holt bei jedem Lauf die aktuellen Vorlagen deines Tagebuchs – nach Vorlagenänderungen musst du den Kurzbefehl nicht mehr anpassen.',
+      'Mischform: Du sprichst frei, der Kurzbefehl fragt fehlende oder ungültige Felder einzeln nach, liest eine Zusammenfassung vor und sendet den Eintrag erst nach „Passt das?“.',
+      'Die Kurzbefehl-Seite führt in vier Schritten durch Hinweis, Installieren, Zugangsdaten kopieren und Testen („Angekommen ✓“). Der Hinweis nennt neu, dass die Vorlagen beim Abruf kurz unverschlüsselt auf dem Server gelesen werden.',
+    ],
+  },
+  {
     version: '3.16.0-alpha.1',
     date: '2026-11-25',
     points: [

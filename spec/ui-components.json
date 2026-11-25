@@ -4,6 +4,7 @@
     "badge": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/badge" },
     "button": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/button" },
     "calendar": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/calendar" },
+    "collapsible": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/collapsible" },
     "card": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/card" },
     "date-picker": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/date-picker", "note": "shadcn-Komposition Popover + Calendar (Date Picker, Date and Time Picker, Calendar with presets), A-146" },
     "field": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/field" },
@@ -38,6 +39,7 @@
   "dependencies": {
     "@radix-ui/react-slot": { "kind": "ui-only" },
     "@radix-ui/react-popover": { "kind": "ui-only" },
+    "@radix-ui/react-collapsible": { "kind": "ui-only" },
     "@radix-ui/react-tooltip": { "kind": "ui-only" },
     "@radix-ui/react-separator": { "kind": "ui-only" },
     "react-day-picker": { "kind": "ui-only" },
