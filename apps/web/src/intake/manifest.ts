@@ -24,7 +24,7 @@ export async function syncManifests(deps: SyncManifestsDeps): Promise<{ uploaded
   const d = await deps.diary.getDiary(deps.diaryId);
   if (!d) return { uploaded: 0 };
   const states = (await Promise.all((await deps.diary.listTemplates(d.id)).map((t) => deps.diary.getTemplate(t.id)))).filter((s): s is TemplateState => !!s);
-  const bundle = buildShortcutBundle(d.name, states, quickEntrySelection(d, states)?.state.template.id);
+  const bundle = buildShortcutBundle(d.name, states, quickEntrySelection(d, states)?.state.template.id, d.settings.shortcutAsk ?? 'all');
   const hash = manifestHash(bundle);
   const bytes = new TextEncoder().encode(JSON.stringify(bundle));
   let uploaded = 0;

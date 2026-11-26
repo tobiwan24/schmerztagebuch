@@ -78,13 +78,45 @@ const intakeMedication = z.strictObject({
 });
 const intakeValue = z.union([z.number(), z.string(), z.boolean(), z.array(z.string()), intakeMedication, z.array(intakeMedication)]);
 
-export const intakeBodySchema = z.strictObject({
-  templateId: z.string().min(1).max(128).optional(),
-  occurredAt: z.iso.datetime({ offset: true }).optional(),
-  text: z.string().optional(),
-  values: z.record(z.string().min(1).max(200), intakeValue).optional(),
-});
-export type IntakeBody = z.infer<typeof intakeBodySchema>;
+const intakeTemplateId = z.string().min(1).max(128);
+const intakeOccurredAt = z.iso.datetime({ offset: true });
+const intakeValueKey = z.string().min(1).max(200);
+
+/**
+ * Tolerante Annahme (FEAT-024: „Server ignoriert Unpassendes statt abzubrechen“): unbekannte Schlüssel, ein ungültiges
+ * `occurredAt`, eine ungültige `templateId` und unpassende `values`-Einträge fallen weg; `lines` als Liste wird zu Text.
+ * Kein Objekt bleibt unverändert (→ Fehler).
+ */
+function tolerantIntakeBody(raw: unknown): unknown {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return raw;
+  const r = raw as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  if (intakeTemplateId.safeParse(r.templateId).success) out.templateId = r.templateId;
+  if (intakeOccurredAt.safeParse(r.occurredAt).success) out.occurredAt = r.occurredAt;
+  if (typeof r.text === 'string') out.text = r.text;
+  if (typeof r.lines === 'string') out.lines = r.lines;
+  else if (Array.isArray(r.lines) && r.lines.every((l) => typeof l === 'string')) out.lines = r.lines.join('\n');
+  if (typeof r.values === 'object' && r.values !== null && !Array.isArray(r.values)) {
+    out.values = Object.fromEntries(Object.entries(r.values).filter(([k, v]) => intakeValueKey.safeParse(k).success && intakeValue.safeParse(v).success));
+  }
+  return out;
+}
+
+export const intakeBodySchema = z.preprocess(
+  tolerantIntakeBody,
+  z
+    .strictObject({
+      templateId: intakeTemplateId.optional(),
+      occurredAt: intakeOccurredAt.optional(),
+      text: z.string().optional(),
+      values: z.record(intakeValueKey, intakeValue).optional(),
+      /** Zeilenformat (FEAT-024): „Feld: Wert“ je Zeile; reservierte Zeilen `Diktat:` und `Sprachmodell:`. */
+      lines: z.string().max(INTAKE_BODY_MAX_BYTES).optional(),
+    })
+    // Ohne Text, Werte oder Zeilen gibt es nichts zu übernehmen.
+    .refine((b) => b.text !== undefined || b.values !== undefined || b.lines !== undefined, { message: 'leerer Body' }),
+);
+export type IntakeBody = z.output<typeof intakeBodySchema>;
 
 export const intakeKeyRequestSchema = z.strictObject({
   /** ECDH-P-256-Public-Key (raw, base64url). */
@@ -108,7 +140,9 @@ const manifestFieldSchema = z.looseObject({ id: z.string(), label: z.string(), t
 export const intakeCheckResponseSchema = z.strictObject({
   templateId: z.string(),
   missing: z.array(manifestFieldSchema),
-  invalid: z.array(z.strictObject({ field: z.string(), message: z.string() })),
+  invalid: z.array(z.strictObject({ field: z.string(), message: z.string(), candidates: z.array(z.string()).optional() })),
+  /** FEAT-024: Rückfragen in Reihenfolge; der Kurzbefehl hängt die Antwort als Zeile `label: Antwort` an. */
+  questions: z.array(z.strictObject({ label: z.string(), question: z.string() })),
   summary: z.string(),
 });
 export type IntakeCheckResponse = z.infer<typeof intakeCheckResponseSchema>;

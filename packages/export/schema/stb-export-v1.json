@@ -1203,6 +1203,13 @@
                       "type": "string"
                     }
                   },
+                  "shortcutAsk": {
+                    "type": "string",
+                    "enum": [
+                      "required",
+                      "all"
+                    ]
+                  },
                   "timezone": {
                     "type": "string",
                     "minLength": 1
@@ -1540,6 +1547,11 @@
                                           "label": {
                                             "type": "string",
                                             "minLength": 1
+                                          },
+                                          "short": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 40
                                           },
                                           "color": {
                                             "type": "string",
@@ -2317,6 +2329,28 @@
                         "lat",
                         "lon",
                         "origin"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "dictation": {
+                      "type": "object",
+                      "properties": {
+                        "text": {
+                          "type": "string",
+                          "maxLength": 16384
+                        },
+                        "lines": {
+                          "type": "string",
+                          "maxLength": 16384
+                        },
+                        "model": {
+                          "type": "string",
+                          "maxLength": 100
+                        }
+                      },
+                      "required": [
+                        "text",
+                        "lines"
                       ],
                       "additionalProperties": false
                     }

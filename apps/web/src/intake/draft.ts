@@ -37,6 +37,7 @@ export function entryFromDraft(d: ShortcutDraft, ctx: { id: string; diaryId: str
   return {
     id: ctx.id, diaryId: ctx.diaryId, templateId: d.state.template.id, templateVersion: d.state.version.version,
     occurredAt: d.body.occurredAt ?? now, recordedAt: now, updatedAt: now, authorId: ctx.authorId,
-    values: d.mapping.values, tags: d.mapping.tags, meta: { source: 'shortcut', timezone: ctx.timezone }, hlc: ctx.hlc,
+    values: d.mapping.values, tags: d.mapping.tags,
+    meta: { source: 'shortcut', timezone: ctx.timezone, ...(d.mapping.dictation ? { dictation: d.mapping.dictation } : {}) }, hlc: ctx.hlc,
   };
 }

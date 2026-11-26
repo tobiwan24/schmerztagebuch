@@ -1,8 +1,9 @@
 // Blockliste des Vorlagen-Editors (Spec 05 „Vorlagen-Editor"): Palette, Bezeichnung, Beschreibung, Pflicht, Rolle und
 // typabhängige Konfiguration. Typwechsel wird nicht angeboten (DM-07); Umsortieren/Entfernen folgen (M14.5).
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { GripVertical, Plus, Trash2 } from 'lucide-react';
-import { ROLES, moveBlock, newBlock, removeBlock, setHideLabel, type BlockDef, type BlockType, type Role } from '@stb/core';
+import { GripVertical, Plus, Trash2, TriangleAlert } from 'lucide-react';
+import { ROLES, moveBlock, newBlock, removeBlock, setHideLabel, shortcutWarnings, type BlockDef, type BlockType, type Role } from '@stb/core';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -33,6 +34,12 @@ export function BlockEditor({
   training?: boolean;
 }) {
   const replace = (next: BlockDef) => onChange(blocks.map((b) => (b.id === next.id ? next : b)));
+  // Vermerk am Feld (FEAT-024): Felder/Optionen, die sich per Kurzbefehl schlecht erfassen lassen (nur Warnungen, keine Infos).
+  const shortcutNotes = new Map<string, string[]>();
+  for (const w of shortcutWarnings('', { templateId: '', version: 1, blocks, createdAt: '' })) {
+    if (w.severity !== 'warn' || !w.blockId) continue;
+    shortcutNotes.set(w.blockId, [...(shortcutNotes.get(w.blockId) ?? []), w.message]);
+  }
   const [dragId, setDragId] = useState<string | null>(null);
   const refs = useRef(new Map<string, HTMLElement>());
 
@@ -75,6 +82,7 @@ export function BlockEditor({
           def={b}
           index={i + 1}
           messages={issues.get(b.id) ?? []}
+          shortcutNotes={shortcutNotes.get(b.id) ?? []}
           newId={newId}
           onChange={replace}
           quick={quickIds.includes(b.id)}
@@ -124,11 +132,12 @@ interface GripHandlers {
 }
 
 function BlockCard({
-  def, index, messages, newId, onChange, quick, onQuick, dragging, cardRef, onRemove, grip,
+  def, index, messages, shortcutNotes, newId, onChange, quick, onQuick, dragging, cardRef, onRemove, grip,
 }: {
   def: BlockDef;
   index: number;
   messages: string[];
+  shortcutNotes: string[];
   newId: () => string;
   onChange: (def: BlockDef) => void;
   quick: boolean;
@@ -218,6 +227,17 @@ function BlockCard({
         </Select>
       </div>
       <BlockConfigFields def={def} newId={newId} onChange={onChange} />
+      {shortcutNotes.length ? (
+        <Alert role="status" data-testid="shortcut-field-warning">
+          <TriangleAlert aria-hidden />
+          <AlertTitle>{t.shortcutWarning}</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc pl-4">
+              {shortcutNotes.map((n) => <li key={n}>{n}</li>)}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      ) : null}
       {messages.map((m) => (
         <p key={m} role="alert" className="text-sm text-destructive">
           {m}

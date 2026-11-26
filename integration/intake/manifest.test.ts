@@ -81,3 +81,16 @@ describe('Manifest hochladen', () => {
     expect(((await d.records.list(diaryId, 'intakeKey'))[0]!.payload as IntakeKeyRecord).manifestHash).not.toBe(h1);
   });
 });
+
+describe('Manifest: Nachfragen-Modus (FEAT-024)', () => {
+  it('VOI-31: Option „Nachfragen“ reist im Manifest mit und löst einen neuen Upload aus', async () => {
+    const { sync, get, uploads, d, diaryId } = await setup();
+    await sync();
+    expect(((await get()).json() as { ask: string }).ask).toBe('all');
+    const diary = (await d.repo.getDiary(diaryId))!;
+    await d.repo.saveDiary({ ...diary, settings: { ...diary.settings, shortcutAsk: 'required' } });
+    expect(await sync()).toEqual({ uploaded: 1 });
+    expect(uploads()).toBe(2);
+    expect(((await get()).json() as { ask: string }).ask).toBe('required');
+  });
+});

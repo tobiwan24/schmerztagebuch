@@ -107,6 +107,7 @@ export async function pickupIntake(d: PickupDeps): Promise<PickupResult> {
     let saved = false;
     if (state && !problems.length) {
       const mapping = mapIntakeToValues(body, state.version);
+      // Harte Fehler nur aus `values`; unpassende Zeilen (FEAT-024) werden ignoriert und bleiben in `meta.dictation.lines`.
       problems.push(...mapping.errors.map((e) => `${e.key}: ${e.message}`));
       // Vorlage ohne Notizfeld: Text/Restwerte hätten keinen Platz im Eintrag → Eingang statt Verlust (Review Befund 3, A-020).
       if (mapping.note) problems.push(`Text ohne Notizfeld in der Vorlage: ${mapping.note}`);
@@ -115,7 +116,8 @@ export async function pickupIntake(d: PickupDeps): Promise<PickupResult> {
         const entry: Entry = {
           id: entryId, diaryId: d.diaryId, templateId: state.template.id, templateVersion: state.version.version,
           occurredAt: body.occurredAt ?? receivedAt, recordedAt: now, updatedAt: now, authorId: opened.createdBy ?? d.authorId,
-          values: mapping.values, tags: mapping.tags, meta: { source: 'shortcut', timezone: d.timezone }, hlc: d.nextHlc(),
+          values: mapping.values, tags: mapping.tags,
+          meta: { source: 'shortcut', timezone: d.timezone, ...(mapping.dictation ? { dictation: mapping.dictation } : {}) }, hlc: d.nextHlc(),
         };
         try {
           await d.diary.saveEntry(entry);

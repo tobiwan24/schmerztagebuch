@@ -13,6 +13,8 @@ const t = deTemplates.editor.multiselect;
 export interface OptionDef {
   id: string;
   label: string;
+  /** Kurzname für den Kurzbefehl (FEAT-024), optional. */
+  short?: string;
   color: string;
 }
 
@@ -42,6 +44,16 @@ export function OptionsEditor({
   const [dragId, setDragId] = useState<string | null>(null);
   const refs = useRef(new Map<string, HTMLDivElement>());
   const patch = (id: string, p: Partial<OptionDef>) => onChange(options.map((o) => (o.id === id ? { ...o, ...p } : o)));
+  /** Leerer Kurzname entfernt das Feld (kein leerer String in der Vorlage). */
+  const setShort = (id: string, value: string) =>
+    onChange(
+      options.map((o) => {
+        if (o.id !== id) return o;
+        const { short: _drop, ...rest } = o;
+        void _drop;
+        return value.trim() ? { ...rest, short: value } : rest;
+      }),
+    );
 
   function onPointerMove(e: PointerEvent<HTMLButtonElement>) {
     if (!dragId) return;
@@ -106,6 +118,13 @@ export function OptionsEditor({
               <Trash2 aria-hidden />
             </Button>
           </div>
+          <Input
+            id={`block-${blockId}-option-${o.id}-short`}
+            aria-label={t.shortLabel(i + 1)}
+            placeholder={t.shortPlaceholder}
+            value={o.short ?? ''}
+            onChange={(e) => setShort(o.id, e.target.value)}
+          />
           <div className="flex flex-wrap gap-1 pl-1" role="group" aria-label={t.color(o.label || String(i + 1))}>
             {OPTION_COLORS.map((c) => (
               <Button

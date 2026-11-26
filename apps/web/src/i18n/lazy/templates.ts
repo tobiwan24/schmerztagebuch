@@ -57,6 +57,7 @@ export const deTemplates = {
     noBlocks: 'Noch keine Felder. Füge unten ein Feld hinzu.',
     addBlock: 'Feld hinzufügen',
     blockTitle: (n: number, type: string) => `Feld ${n}: ${type}`,
+    shortcutWarning: 'Für den Kurzbefehl (Siri) schwierig',
     types: {
       slider: 'Slider', checkbox: 'Checkbox', multiselect: 'Auswahl', text: 'Text', textarea: 'Textfeld', date: 'Datum und Zeit', bodymap: 'Körperkarte', medication: 'Medikamente', exercise: 'Übung',
     },
@@ -89,6 +90,7 @@ export const deTemplates = {
     multiselect: {
       mode: 'Auswahl', single: 'Eine Option', multiple: 'Mehrere Optionen', options: 'Optionen', add: 'Option hinzufügen',
       optionLabel: (n: number) => `Option ${n}`, defaultLabel: (n: number) => `Option ${n}`,
+      shortLabel: (n: number) => `Kurzname für Option ${n} (optional)`, shortPlaceholder: 'Kurzname für Siri (optional)',
       remove: (name: string) => `Option ${name} entfernen`, move: (name: string) => `Option ${name} verschieben`,
       moveHint: 'Mit Pfeil hoch und Pfeil runter verschieben oder ziehen.', color: (name: string) => `Farbe von ${name}`,
       colorNames: {

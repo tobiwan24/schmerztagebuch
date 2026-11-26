@@ -85,7 +85,7 @@ export function registerIntakeRoutes(app: FastifyInstance, { db, auth, now }: { 
     const templateId = body.data.templateId ?? bundle.manifest.defaultTemplateId;
     const version = templateId ? versionFromBundle(bundle, templateId) : null;
     if (!templateId || !version) return reply.code(404).send({ error: 'template-unknown' });
-    return reply.send({ templateId, ...checkIntake(body.data, version) });
+    return reply.send({ templateId, ...checkIntake(body.data, version, { ask: bundle.manifest.ask ?? 'all' }) });
   });
 
   app.put('/api/v1/diaries/:id/intake-keys/:keyId/manifest', { bodyLimit: INTAKE_MANIFEST_MAX_CHARS + 1024 }, async (req, reply) => {

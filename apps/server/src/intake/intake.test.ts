@@ -220,4 +220,36 @@ describe('Kurzbefehl-Manifest', () => {
     expect((await check({ templateId: 'gibt-es-nicht', values: {} })).statusCode).toBe(404);
     expect((await check({ unbekannt: 1 })).statusCode).toBe(400);
   });
+
+  it('VOI-29: POST check mit Zeilen liefert Rückfragen (Kandidaten zuerst), Zusammenfassung, schreibt nichts', async () => {
+    await upload();
+    const before = dumpAll();
+    const r = await check({ templateId: migraine.template.id, lines: 'Diktat: Stärke vier, übel\nSprachmodell: ja\nSchmerzstärke: vier\nBegleitsymptome: Übelkeid' });
+    expect(r.statusCode).toBe(200);
+    const body = r.json() as { invalid: { candidates?: string[] }[]; questions: { label: string; question: string }[]; summary: string };
+    expect(body.invalid[0]!.candidates).toEqual(['Übelkeit']);
+    expect(body.questions[0]).toMatchObject({ label: 'Begleitsymptome', question: expect.stringContaining('Meintest du „Übelkeit“?') });
+    expect(body.questions.map((q) => q.label)).toContain('Auslöser'); // Standard: alle leeren Felder
+    expect(body.summary).toBe('Schmerzstärke: 4.');
+    expect(dumpAll()).toBe(before);
+  });
+
+  it('VOI-29: Nachfragen-Modus aus dem Manifest; ohne Sprachmodell alle Felder', async () => {
+    const req = buildShortcutBundle('T', [migraine], migraine.template.id, 'required');
+    await app.inject({ method: 'PUT', url: `/api/v1/diaries/${D}/intake-keys/${keyId()}/manifest`, headers: as('olga'), payload: { seal: await sealManifest(token, D, new TextEncoder().encode(JSON.stringify(req))) } });
+    const onlyRequired = (await check({ lines: 'Sprachmodell: ja\nSchmerzstärke: 3' })).json() as { questions: { label: string }[] };
+    expect(onlyRequired.questions.map((q) => q.label)).not.toContain('Auslöser');
+    const noModel = (await check({ lines: 'Diktat: \nSprachmodell: nein' })).json() as { questions: { label: string }[] };
+    expect(noModel.questions.map((q) => q.label)).toContain('Auslöser');
+    expect(noModel.questions.map((q) => q.label)).toContain('Schmerzstärke');
+  });
+
+  it('VOI-29: tolerant — unbekannte Schlüssel, falsches occurredAt und unpassende Werte werden ignoriert statt 400', async () => {
+    await upload();
+    const r = await check({ templateId: migraine.template.id, lines: 'Schmerzstärke: 5', occurredAt: '14:30', extra: { a: 1 }, values: { Schmerzstärke: { value: 5, min: 0, max: 10 } } });
+    expect(r.statusCode).toBe(200);
+    expect((r.json() as { summary: string }).summary).toBe('Schmerzstärke: 5.');
+    expect((await send({ lines: 'Schmerzstärke: 5', occurredAt: 'gestern', extra: true })).statusCode).toBe(202);
+    expect((await send({ lines: ['Schmerzstärke: 5', 'Notizen: x'] })).statusCode).toBe(202);
+  });
 });

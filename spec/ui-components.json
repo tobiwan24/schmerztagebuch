@@ -1,6 +1,7 @@
 {
   "$comment": "UI-33 (Spec 10, A-147): Register 'nur shadcn'. Jede Datei in apps/web/src/components/ui/ und jedes Paket der Web-App steht hier. Ausnahmen (source/kind 'ausnahme') brauchen eine ausdrückliche Freigabe des Users, dokumentiert als A-Eintrag in DECISIONS.md mit 'Freigabe User JJJJ-MM-TT'. Loop/Agenten tragen NIE selbst eine Freigabe ein. Geprüft von scripts/check-ui-components.mjs; die Element-Listen speisen die ESLint-Whitelist.",
   "components": {
+    "alert": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/alert" },
     "badge": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/badge" },
     "button": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/button" },
     "calendar": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/calendar" },
@@ -11,6 +12,7 @@
     "input": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/input" },
     "input-group": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/input-group", "note": "Uhrzeitfelder im Zeitraum-Picker (Calendar „Date and Time Picker“)" },
     "popover": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/popover" },
+    "radio-group": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/radio-group" },
     "separator": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/separator" },
     "table": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/table" },
     "textarea": { "source": "shadcn", "doc": "https://ui.shadcn.com/docs/components/radix/textarea" },
@@ -40,6 +42,7 @@
     "@radix-ui/react-slot": { "kind": "ui-only" },
     "@radix-ui/react-popover": { "kind": "ui-only" },
     "@radix-ui/react-collapsible": { "kind": "ui-only" },
+    "@radix-ui/react-radio-group": { "kind": "ui-only" },
     "@radix-ui/react-tooltip": { "kind": "ui-only" },
     "@radix-ui/react-separator": { "kind": "ui-only" },
     "react-day-picker": { "kind": "ui-only" },

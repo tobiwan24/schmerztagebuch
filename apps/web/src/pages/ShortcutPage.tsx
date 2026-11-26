@@ -1,9 +1,10 @@
 // Tagebuch → Kurzbefehl (Spec 08): Intake einrichten (nur mit Konto; Hinweisdialog mit Pflicht-Bestätigung, VOI-02),
 // geführter Ablauf (Hinweis, installieren, Zugangsdaten kopieren, testen; FEAT-023), Schlüssel widerrufen; Zwischenablage-Weg mit Entwurf (VOI-09, auch local-only).
 import { useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
-import { Check } from 'lucide-react';
-import { displayValue } from '@stb/core';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
+import { Check, TriangleAlert } from 'lucide-react';
+import { displayValue, type ShortcutAsk } from '@stb/core';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { PageHeader } from '@/components/PageHeader';
@@ -85,6 +87,27 @@ function IntakeCard({ sc }: { sc: ReturnType<typeof useShortcut> }) {
         <CardDescription>{t.intakeHint}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        {data.warnings.length ? (
+          // Dauerhafter Hinweis auf problematische Felder (FEAT-024), mit Weg in den Vorlagen-Editor.
+          <Alert role="status" data-testid="shortcut-warnings">
+            <TriangleAlert aria-hidden />
+            <AlertTitle>{t.warningsTitle}</AlertTitle>
+            <AlertDescription>
+              <p>{t.warningsHint}</p>
+              {data.warnings.map((w) => (
+                <div key={w.templateId} className="flex flex-col gap-1">
+                  <p className="font-medium text-foreground">{w.name}</p>
+                  <ul className="list-disc pl-4">
+                    {w.items.map((i) => <li key={`${i.kind}-${i.blockId ?? ''}-${i.optionId ?? ''}`}>{i.message}</li>)}
+                  </ul>
+                  <Button asChild variant="outline" size="sm">
+                    <Link to={`/more/templates/${w.templateId}`}>{t.warningsEdit(w.name)}</Link>
+                  </Button>
+                </div>
+              ))}
+            </AlertDescription>
+          </Alert>
+        ) : null}
         <section data-testid="intake-step-1" className="flex flex-col gap-2">
           <h3 className="flex items-center gap-2 text-sm font-medium"><Badge>1</Badge>{t.step1Title}</h3>
           <p className="text-sm text-muted-foreground">{t.step1Text}</p>
@@ -132,6 +155,21 @@ function IntakeCard({ sc }: { sc: ReturnType<typeof useShortcut> }) {
                   {arrivedAt ? t.arrived(arrivedAt) : t.notArrived}
                 </Badge>
               ) : null}
+            </section>
+            <Separator />
+            <section data-testid="intake-ask" className="flex flex-col gap-2">
+              <h3 id="intake-ask-title" className="text-sm font-medium">{t.askTitle}</h3>
+              <p className="text-sm text-muted-foreground">{t.askHint}</p>
+              <RadioGroup aria-labelledby="intake-ask-title" value={data.ask} onValueChange={(v) => void sc.setAsk(v as ShortcutAsk)}>
+                <div className="flex items-center gap-3">
+                  <RadioGroupItem id="intake-ask-all" value="all" />
+                  <Label htmlFor="intake-ask-all" className="font-normal">{t.askAll}</Label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <RadioGroupItem id="intake-ask-required" value="required" />
+                  <Label htmlFor="intake-ask-required" className="font-normal">{t.askRequired}</Label>
+                </div>
+              </RadioGroup>
             </section>
             <Separator />
             <ul data-testid="intake-keys" className="flex flex-col gap-2">

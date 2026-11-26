@@ -148,3 +148,32 @@ describe('Intake abholen', () => {
     expect(((await d.records.list(diaryId, 'intakeInbox'))[0]?.payload as IntakeInboxItem).problems[0]).toMatch(/Vorlage .* nicht gefunden/);
   });
 });
+
+describe('Intake abholen: Zeilenformat (FEAT-024)', () => {
+  it('VOI-30: Zeilen-Body → Eintrag mit meta.dictation (Diktat, Zeilen, Modell); ungültige Zeilen erzeugen keinen Eingang', async () => {
+    const { server, d, diaryId, shortcut, pickup, block } = await setup();
+    const lines = ['Diktat: STB-DIKTAT-MARKER Stärke sechs, übel', 'Sprachmodell: ja', 'Schmerzstärke: sechs', 'Begleitsymptome: Übelkeit, Ferse', 'Wetter: sonnig'].join('\n');
+    expect((await shortcut({ lines })).statusCode).toBe(202);
+    expect(JSON.stringify(server.db.prepare('SELECT * FROM intake_items').all())).not.toContain('STB-DIKTAT-MARKER');
+    const r = await pickup();
+    expect(r.inbox).toEqual([]);
+    expect(r.entries).toHaveLength(1);
+    const entry = (await d.repo.getEntry(r.entries[0]!))!;
+    expect(entry.meta).toMatchObject({ source: 'shortcut', dictation: { text: 'STB-DIKTAT-MARKER Stärke sechs, übel', lines, model: 'ja' } });
+    expect(entry.values[block('Schmerzstärke').id]).toBe(6);
+    const sym = block('Begleitsymptome');
+    expect(entry.values[sym.id]).toEqual(sym.type === 'multiselect' ? [sym.config.options.find((o) => o.label === 'Übelkeit')!.id] : []);
+    // Unbekannte Zeilen nur in den Rohdaten, nicht in den Notizen
+    expect(entry.values[block('Notizen').id]).toBeUndefined();
+    expect(await d.repo.listEntries(diaryId)).toHaveLength(1);
+  });
+
+  it('VOI-30: unbekannte Vorlage → weiterhin Eingang (nichts geht verloren)', async () => {
+    const { d, diaryId, shortcut, pickup } = await setup();
+    await shortcut({ templateId: 'gibt-es-nicht', lines: 'Schmerzstärke: 3' });
+    const r = await pickup();
+    expect(r.entries).toEqual([]);
+    const inbox = (await d.records.list(diaryId, 'intakeInbox')).map((x) => x.payload as IntakeInboxItem);
+    expect(inbox[0]?.body.lines).toBe('Schmerzstärke: 3');
+  });
+});

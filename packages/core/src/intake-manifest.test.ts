@@ -90,3 +90,54 @@ describe('Kurzbefehl-Prüfung (Dry-Run)', () => {
     expect(versionFromBundle(b, 'gibt-es-nicht')).toBeNull();
   });
 });
+
+describe('Kurzbefehl im Zeilenformat (FEAT-024)', () => {
+  const required = migraine.version.blocks.filter((b) => b.required && b.type !== 'bodymap');
+  const reqVersion = { ...migraine.version, blocks: migraine.version.blocks.map((b) => (b.label === 'Schmerzstärke' ? { ...b, required: true } : b)) };
+
+  it('VOI-29: `questions` je Modus: nur Pflichtfelder bzw. alle leeren Felder; Fragen nennen die Optionen', () => {
+    const all = checkIntake({ lines: 'Sprachmodell: ja\nBegleitsymptome: Übelkeit' }, reqVersion, { ask: 'all' });
+    expect(all.questions.map((q) => q.label)).toContain('Schmerzstärke');
+    expect(all.questions.map((q) => q.label)).not.toContain('Begleitsymptome');
+    const trig = all.questions.find((q) => q.label === 'Auslöser')!;
+    expect(trig.question).toContain('Stress');
+    const req = checkIntake({ lines: 'Sprachmodell: ja\nBegleitsymptome: Übelkeit' }, reqVersion, { ask: 'required' });
+    expect(req.questions.map((q) => q.label)).toEqual(['Schmerzstärke']);
+    expect(required.length).toBeGreaterThanOrEqual(0);
+  });
+
+  it('VOI-29: ohne Sprachmodell werden alle leeren Felder gefragt, auch im Modus „nur Pflicht“', () => {
+    const r = checkIntake({ lines: 'Diktat: irgendwas\nSprachmodell: nein' }, reqVersion, { ask: 'required' });
+    expect(r.questions.length).toBe(reqVersion.blocks.filter((b) => b.type !== 'bodymap').length);
+  });
+
+  it('VOI-29: ungültige Zeilen zuerst, mit Meldung und Kandidaten; Zusammenfassung ohne sie', () => {
+    const r = checkIntake({ lines: 'Schmerzstärke: 4\nBegleitsymptome: Übelkeid' }, reqVersion, { ask: 'required' });
+    expect(r.invalid).toEqual([{ field: byLabel('Begleitsymptome').id, message: expect.stringContaining('Meintest du „Übelkeit“?'), candidates: ['Übelkeit'] }]);
+    expect(r.questions[0]).toEqual({ label: 'Begleitsymptome', question: expect.stringMatching(/^Option „Übelkeid“ gibt es nicht\. Meintest du „Übelkeit“\? Begleitsymptome: /) });
+    expect(r.summary).toBe('Schmerzstärke: 4.');
+    const fixed = checkIntake({ lines: 'Schmerzstärke: 4\nBegleitsymptome: Übelkeid\nBegleitsymptome: ja' }, reqVersion, { ask: 'required' });
+    expect(fixed.invalid).toEqual([]);
+    expect(fixed.summary).toContain('Übelkeit');
+  });
+
+  it('VOI-31: Manifest trägt den Nachfragen-Modus; Modus und Kurznamen ändern den Hash', () => {
+    const a = buildShortcutBundle('T', [migraine], migraine.template.id);
+    expect(a.manifest.ask).toBe('all');
+    const req = buildShortcutBundle('T', [migraine], migraine.template.id, 'required');
+    expect(req.manifest.ask).toBe('required');
+    expect(manifestHash(req)).not.toBe(manifestHash(a));
+    const shortened = {
+      ...migraine,
+      version: {
+        ...migraine.version,
+        blocks: migraine.version.blocks.map((b) =>
+          b.type === 'multiselect' && b.label === 'Begleitsymptome' ? { ...b, config: { ...b.config, options: b.config.options.map((o, i) => (i === 0 ? { ...o, short: 'Kurz' } : o)) } } : b,
+        ),
+      },
+    };
+    const s = buildShortcutBundle('T', [shortened], migraine.template.id);
+    expect(manifestHash(s)).not.toBe(manifestHash(a));
+    expect(s.manifest.templates[0]!.prompt).toContain('(Kurz)');
+  });
+});
