@@ -2,7 +2,13 @@
 import { compareByOrder } from './fractional-index.js';
 import { parseBlockValue } from './blocks/index.js';
 import { uuidV7FromSeed } from './ids.js';
+import {
+  RESERVED_LINES, buildLinePrompt, fieldHint, isNo, isYes, levenshtein, normalizeLabel, optionNames, parseGermanDate,
+  parseGermanNumber, resolveOptions, similarOptions, softNorm, type NamedOption,
+} from './intake-lines.js';
 import type { BlockDef, TemplateVersion } from './templates.js';
+
+export { normalizeLabel };
 
 /** Form des entsiegelten Kurzbefehl-Bodys (gleich `intakeBodySchema` in sync-protocol). */
 /** Medikamenten-Position per Kurzbefehl (Block `medication`): Name genügt, der Rest ist optional. */
@@ -19,17 +25,8 @@ export interface IntakeInput {
   occurredAt?: string;
   text?: string;
   values?: Record<string, number | string | boolean | string[] | IntakeMedication | IntakeMedication[]>;
-}
-
-/** Groß/Klein-, Umlaut- und Satzzeichen-tolerante Form eines Labels („Übelkeit" = „uebelkeit" = „ubelkeit"). */
-export function normalizeLabel(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/ß/g, 'ss')
-    .replace(/ae/g, 'a').replace(/oe/g, 'o').replace(/ue/g, 'u')
-    .normalize('NFKD')
-    .replace(/\p{M}/gu, '')
-    .replace(/[^a-z0-9]/g, '');
+  /** Zeilenformat (FEAT-024): „Feld: Wert“ je Zeile, letzte Zeile je Feld gewinnt; reservierte Zeilen `Diktat:`, `Sprachmodell:`. */
+  lines?: string;
 }
 
 export interface IntakeMapping {
@@ -41,6 +38,13 @@ export interface IntakeMapping {
   tags: string[];
   /** Notiztext, falls die Vorlage keinen textarea-Block hat. */
   note?: string;
+  /**
+   * Nicht passende Zeilen des Zeilenformats (unbekannte Option, ungültiger Wert): weiche Fehler — der Kurzbefehl fragt nach,
+   * die Abholung ignoriert sie (die Zeilen bleiben in `dictation.lines`). `candidates` = ähnliche Optionen („Meintest du …?“).
+   */
+  lineErrors: { blockId: string; key: string; message: string; candidates: string[] }[];
+  /** Rohdaten des Zeilenformats für `meta.dictation` (nur wenn `lines` geschickt wurde). */
+  dictation?: { text: string; lines: string; model?: string };
 }
 
 const TRUE = new Set(['true', 'ja', 'yes', '1', 'x']);
@@ -99,7 +103,7 @@ function convert(b: BlockDef, raw: unknown): { ok: true; value: unknown } | { ok
       const labels = Array.isArray(raw) ? raw : [String(raw)];
       const ids: string[] = [];
       for (const l of labels) {
-        const opt = b.config.options.find((o) => normalizeLabel(o.label) === normalizeLabel(String(l)) || o.id === l);
+        const opt = b.config.options.find((o) => o.id === l || optionNames(o).some((n) => normalizeLabel(n) === normalizeLabel(String(l))));
         if (!opt) return fail(`Option „${String(l)}" gibt es nicht`);
         if (!ids.includes(opt.id)) ids.push(opt.id);
       }
@@ -130,7 +134,7 @@ function convert(b: BlockDef, raw: unknown): { ok: true; value: unknown } | { ok
 
 /** Bildet Kurzbefehl-Werte auf Blöcke einer Vorlagenversion ab (Block-ID, Label tolerant, Options-Labels). */
 export function mapIntakeToValues(input: IntakeInput, version: TemplateVersion): IntakeMapping {
-  const out: IntakeMapping = { values: {}, unmatched: [], errors: [], tags: [] };
+  const out: IntakeMapping = { values: {}, unmatched: [], errors: [], tags: [], lineErrors: [] };
   const byId = new Map(version.blocks.map((b) => [b.id, b]));
   const byLabel = new Map(version.blocks.map((b) => [normalizeLabel(b.label), b]));
   for (const [key, raw] of Object.entries(input.values ?? {})) {
@@ -142,6 +146,15 @@ export function mapIntakeToValues(input: IntakeInput, version: TemplateVersion):
     const c = convert(block, raw);
     if (c.ok) out.values[block.id] = c.value;
     else out.errors.push({ blockId: block.id, key, message: c.message });
+  }
+  if (input.lines !== undefined) {
+    // Zeilen überschreiben `values` desselben Felds (neuere Angabe), ihre Fehler sind weich (Rückfrage statt Eingang).
+    const l = mapLines(input.lines, version);
+    for (const [id, v] of Object.entries(l.values)) out.values[id] = v;
+    const touched = new Set([...Object.keys(l.values), ...l.errors.map((e) => e.blockId)]);
+    out.errors = out.errors.filter((e) => !touched.has(e.blockId));
+    out.lineErrors = l.errors;
+    out.dictation = { text: l.dictation ?? '', lines: input.lines, ...(l.model ? { model: l.model } : {}) };
   }
 
   const lines = [input.text?.trim(), ...out.unmatched.map((u) => `${u.key}: ${Array.isArray(u.value) ? u.value.map((x) => (typeof x === 'object' ? JSON.stringify(x) : String(x))).join(', ') : typeof u.value === 'object' ? JSON.stringify(u.value) : String(u.value)}`)].filter(
@@ -183,18 +196,144 @@ export function describeBlocksForPrompt(version: TemplateVersion): Record<string
   });
 }
 
-/** Kopierbarer Prompt für das Modell im Kurzbefehl: beschreibt das JSON-Ziel aus der aktuellen Vorlagenversion. */
+/** Prompt für das Modell im Kurzbefehl (Zeilenformat, FEAT-024); steht je Vorlage im Manifest. */
 export function buildShortcutPrompt(templateName: string, version: TemplateVersion): string {
-  const blocks = describeBlocksForPrompt(version);
-  const schema = { template: templateName, blocks };
-  return [
-    `Wandle das Diktat in JSON für die Vorlage „${templateName}" um.`,
-    'Antworte nur mit einem JSON-Objekt der Form {"occurredAt"?: ISO-Zeitpunkt, "text"?: string, "values": {<Block-ID>: Wert}}.',
-    'Verwende als Schlüssel in "values" die Block-ID; lass Blöcke weg, zu denen nichts gesagt wurde. Halte Bereiche (min/max/step) ein',
-    'und nimm bei Optionen nur die genannten Bezeichnungen. Alles Übrige kommt in "text".',
-    '',
-    '```json',
-    JSON.stringify(schema, null, 2),
-    '```',
-  ].join('\n');
+  return buildLinePrompt(templateName, version);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Zeilenformat (FEAT-024)
+
+type LineError = IntakeMapping['lineErrors'][number];
+type Resolved =
+  | { ok: true; raw: unknown }
+  | { ok: false; message: string; candidates: string[]; partial?: string[]; pending?: { ids: string[]; option: string } };
+
+const optionList = (b: Extract<BlockDef, { type: 'multiselect' }>): NamedOption[] =>
+  b.config.options.map((o) => ({ id: o.id, label: o.label, names: optionNames(o) }));
+
+function unknownOptionMessage(token: string, candidates: string[]): string {
+  const q = candidates.map((c) => `„${c}“`);
+  const ask = q.length === 0 ? '' : q.length === 1 ? ` Meintest du ${q[0]}?` : ` Meintest du ${q.slice(0, -1).join(', ')} oder ${q.at(-1)}?`;
+  return `Option „${token}“ gibt es nicht.${ask}`;
+}
+
+const notANumber = (value: string): Resolved => ({ ok: false, message: `„${value}“ ist keine eindeutige Zahl.`, candidates: [] });
+
+/** Ein gesprochener Wert → Rohwert für `convert` (Zahlwort, Options-IDs, Datum …) oder weicher Fehler mit Kandidaten. */
+function resolveLineValue(b: BlockDef, value: string): Resolved {
+  switch (b.type) {
+    case 'slider': {
+      const n = parseGermanNumber(value);
+      return Number.isNaN(n) ? notANumber(value) : { ok: true, raw: n };
+    }
+    case 'checkbox':
+      return { ok: true, raw: isYes(value) ? true : isNo(value) ? false : value };
+    case 'multiselect': {
+      const options = optionList(b);
+      const r = resolveOptions(value, options);
+      if (!r.unknown.length) return r.ids.length ? { ok: true, raw: r.ids } : { ok: false, message: `„${value}“ passt zu keiner Option.`, candidates: [] };
+      const rest = options.filter((o) => !r.ids.includes(o.id));
+      const per = r.unknown.map((t) => ({ t, c: similarOptions(t, rest) }));
+      const single = per.length === 1 && per[0]!.c.length === 1 ? rest.find((o) => o.label === per[0]!.c[0]) : undefined;
+      return {
+        ok: false,
+        message: per.map((p) => unknownOptionMessage(p.t, p.c)).join(' '),
+        candidates: [...new Set(per.flatMap((p) => p.c))],
+        partial: r.ids,
+        ...(single ? { pending: { ids: r.ids, option: single.id } } : {}),
+      };
+    }
+    case 'medication': {
+      // Namen trennen; bekannte Presets erkennt `medicationItems`, Unbekanntes bleibt freier Name (oder Fehler ohne allowFree).
+      const r = resolveOptions(value, b.config.presets.map((p) => ({ id: p.name, label: p.name, names: [p.name] })));
+      return { ok: true, raw: [...r.ids, ...r.unknown] };
+    }
+    case 'date': {
+      if (b.config.mode === 'duration') {
+        const n = parseGermanNumber(value);
+        return Number.isNaN(n) ? notANumber(value) : { ok: true, raw: n };
+      }
+      if (b.config.mode === 'date') {
+        const d = parseGermanDate(value);
+        return d ? { ok: true, raw: d } : { ok: false, message: `„${value}“ ist kein vollständiges Datum.`, candidates: [] };
+      }
+      return { ok: true, raw: value };
+    }
+    default:
+      return { ok: true, raw: value };
+  }
+}
+
+/** Feld zu einem Zeilen-Label: tolerant gleich, sonst eindeutig ähnlich (Tippfehler) oder eindeutiges ganzes Wort des Feldnamens. */
+function findBlockByLabel(label: string, blocks: readonly BlockDef[]): BlockDef | undefined {
+  const n = normalizeLabel(label);
+  if (!n) return undefined;
+  const exact = blocks.find((b) => normalizeLabel(b.label) === n);
+  if (exact) return exact;
+  const near = blocks.filter((b) => {
+    const bl = normalizeLabel(b.label);
+    return (bl.length >= 5 && levenshtein(n, bl) <= 2) || (n.length >= 4 && softNorm(b.label).split(' ').includes(softNorm(label)));
+  });
+  return near.length === 1 ? near[0] : undefined;
+}
+
+const LEADING_JUNK = /^[\s\-*•"„“'0-9.)]+/;
+const TRAILING_QUOTES = /["“”']+\s*$/;
+
+/** Wertet die Zeilen aus: letzte Zeile je Feld gewinnt; „ja“/„nein“ beantwortet einen einzelnen Vorschlag der Zeile davor. */
+function mapLines(lines: string, version: TemplateVersion): { values: Record<string, unknown>; errors: LineError[]; dictation?: string; model?: string } {
+  const blocks = [...version.blocks].sort(compareByOrder).filter((b) => b.type !== 'bodymap' && b.type !== 'exercise');
+  const reserved = { dictation: normalizeLabel(RESERVED_LINES.dictation), model: normalizeLabel(RESERVED_LINES.model) };
+  let dictation: string | undefined;
+  let model: string | undefined;
+  const perBlock = new Map<string, { key: string; values: string[] }>();
+  for (const rawLine of lines.split(/\r?\n/)) {
+    const idx = rawLine.indexOf(':');
+    if (idx < 1) continue; // Zeilen ohne Doppelpunkt werden ignoriert
+    const key = rawLine.slice(0, idx).replace(LEADING_JUNK, '').replace(TRAILING_QUOTES, '').trim();
+    const value = rawLine.slice(idx + 1).trim().replace(/^["„“]+|["“”]+$/g, '').trim();
+    const nk = normalizeLabel(key);
+    if (nk === reserved.dictation) {
+      dictation ??= value; // erste Zeile gilt: die schreibt der Kurzbefehl selbst
+      continue;
+    }
+    if (nk === reserved.model) {
+      model ??= value;
+      continue;
+    }
+    if (!value) continue;
+    const block = findBlockByLabel(key, blocks);
+    if (!block) continue; // unbekannte Zeile: nur in den Rohdaten (meta.dictation.lines), nicht in den Notizen
+    // Vom Modell abgeschriebene Feldbeschreibung (Gerätetest 2026-11-26) ist keine Angabe.
+    if (normalizeLabel(value) === normalizeLabel(fieldHint(block, blocks))) continue;
+    const entry = perBlock.get(block.id) ?? { key, values: [] };
+    entry.values.push(value);
+    perBlock.set(block.id, entry);
+  }
+  const values: Record<string, unknown> = {};
+  const errors: LineError[] = [];
+  for (const b of blocks) {
+    const entry = perBlock.get(b.id);
+    if (!entry) continue;
+    let state: Resolved | undefined;
+    for (const v of entry.values) {
+      const pending = state && !state.ok ? state.pending : undefined;
+      if (pending && isYes(v)) state = { ok: true, raw: [...pending.ids, pending.option] };
+      else if (pending && isNo(v)) state = pending.ids.length ? { ok: true, raw: pending.ids } : undefined;
+      else state = resolveLineValue(b, v);
+    }
+    if (!state) continue;
+    if (!state.ok) {
+      errors.push({ blockId: b.id, key: entry.key, message: state.message, candidates: state.candidates });
+      // Erkanntes behalten (Server ignoriert Unpassendes statt abzubrechen)
+      const c = state.partial?.length ? convert(b, state.partial) : undefined;
+      if (c?.ok) values[b.id] = c.value;
+      continue;
+    }
+    const c = convert(b, state.raw);
+    if (c.ok) values[b.id] = c.value;
+    else errors.push({ blockId: b.id, key: entry.key, message: c.message, candidates: [] });
+  }
+  return { values, errors, ...(dictation !== undefined ? { dictation } : {}), ...(model !== undefined ? { model } : {}) };
 }

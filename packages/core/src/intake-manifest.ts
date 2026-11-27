@@ -4,7 +4,9 @@ import { z } from 'zod';
 import { canonical } from './canonical.js';
 import { compareByOrder } from './fractional-index.js';
 import { displayValue, isValueEmpty } from './entry-form.js';
+import type { ShortcutAsk } from './diary.js';
 import { buildShortcutPrompt, mapIntakeToValues, type IntakeInput } from './intake.js';
+import { isNo, voiceFillable } from './intake-lines.js';
 import { blockDefSchema, type BlockDef, type TemplateState, type TemplateVersion } from './templates.js';
 
 /** Blocktypen, die der Kurzbefehl nicht befüllen kann (Körperkarte, Übung). */
@@ -34,6 +36,8 @@ export interface ShortcutManifest {
   v: 1;
   diary: string;
   defaultTemplateId: string | null;
+  /** FEAT-024: Was `check` in `questions` nachfragt — nur Pflichtfelder oder alle leeren Felder (Tagebuch-Option). */
+  ask: ShortcutAsk;
   templates: ManifestTemplate[];
 }
 
@@ -45,7 +49,13 @@ export interface ShortcutBundle {
 
 export interface CheckResult {
   missing: ManifestField[];
-  invalid: { field: string; message: string }[];
+  /** `candidates` nur bei Zeilen (FEAT-024): ähnliche Optionen für „Meintest du …?“. */
+  invalid: { field: string; message: string; candidates?: string[] }[];
+  /**
+   * FEAT-024: vorlesbare Rückfragen in Reihenfolge (ungültige zuerst, dann leere Felder je Modus). Der Kurzbefehl fragt jede
+   * und hängt die Antwort als Zeile `label: Antwort` an.
+   */
+  questions: { label: string; question: string }[];
   summary: string;
 }
 
@@ -86,7 +96,7 @@ function fieldOf(b: BlockDef): ManifestField {
 const offered = (states: readonly TemplateState[]): TemplateState[] =>
   states.filter((s) => !s.template.archived && s.template.purpose !== 'training').sort((a, b) => compareByOrder(a.template, b.template));
 
-export function buildShortcutBundle(diaryName: string, states: readonly TemplateState[], quickTemplateId?: string): ShortcutBundle {
+export function buildShortcutBundle(diaryName: string, states: readonly TemplateState[], quickTemplateId?: string, ask: ShortcutAsk = 'all'): ShortcutBundle {
   const list = offered(states);
   const blocks: Record<string, BlockDef[]> = {};
   const templates = list.map((s): ManifestTemplate => {
@@ -101,11 +111,11 @@ export function buildShortcutBundle(diaryName: string, states: readonly Template
     };
   });
   const defaultTemplateId = templates.find((t) => t.id === quickTemplateId)?.id ?? templates[0]?.id ?? null;
-  return { manifest: { v: 1, diary: diaryName, defaultTemplateId, templates }, blocks };
+  return { manifest: { v: 1, diary: diaryName, defaultTemplateId, ask, templates }, blocks };
 }
 
-export const buildShortcutManifest = (diaryName: string, states: readonly TemplateState[], quickTemplateId?: string): ShortcutManifest =>
-  buildShortcutBundle(diaryName, states, quickTemplateId).manifest;
+export const buildShortcutManifest = (diaryName: string, states: readonly TemplateState[], quickTemplateId?: string, ask: ShortcutAsk = 'all'): ShortcutManifest =>
+  buildShortcutBundle(diaryName, states, quickTemplateId, ask).manifest;
 
 /** Vorlagenversion (nur befüllbare Blöcke) für `checkIntake` aus dem Siegelinhalt; unbekannte Vorlage oder defekte Blöcke → `null`. */
 export function versionFromBundle(bundle: Pick<ShortcutBundle, 'blocks'>, templateId: string): TemplateVersion | null {
@@ -114,20 +124,39 @@ export function versionFromBundle(bundle: Pick<ShortcutBundle, 'blocks'>, templa
   return parsed.success ? { templateId, version: 1, blocks: parsed.data, createdAt: new Date(0).toISOString() } : null;
 }
 
-/** Prüft erfasste Werte, ohne etwas zu speichern: fehlende und ungültige Felder plus vorlesbare Zusammenfassung. */
-export function checkIntake(input: IntakeInput, version: TemplateVersion): CheckResult {
+/** Rückfrage mit den Optionen (Kurzname bevorzugt, weil leichter zu sprechen). */
+function spokenQuestion(b: BlockDef): string {
+  const names = b.type === 'multiselect' ? b.config.options.map((o) => o.short ?? o.label) : b.type === 'medication' ? b.config.presets.map((p) => p.name) : [];
+  return names.length ? `${question(b)} ${names.join(', ')}.` : question(b);
+}
+
+/**
+ * Prüft erfasste Werte, ohne etwas zu speichern: fehlende und ungültige Felder, Rückfragen (`questions`) und vorlesbare
+ * Zusammenfassung. `ask` = Tagebuch-Option; ohne Sprachmodell (`Sprachmodell: nein`) werden immer alle leeren Felder gefragt.
+ */
+export function checkIntake(input: IntakeInput, version: TemplateVersion, opts: { ask?: ShortcutAsk } = {}): CheckResult {
   const blocks = fillableBlocks(version);
   const fieldIds = new Set(blocks.map((b) => b.id));
   const mapping = mapIntakeToValues(input, version);
-  const invalid = mapping.errors.filter((e) => fieldIds.has(e.blockId)).map((e) => ({ field: e.blockId, message: e.message }));
+  const invalid: CheckResult['invalid'] = [
+    ...mapping.errors.filter((e) => fieldIds.has(e.blockId)).map((e) => ({ field: e.blockId, message: e.message })),
+    ...mapping.lineErrors.filter((e) => fieldIds.has(e.blockId)).map((e) => ({ field: e.blockId, message: e.message, candidates: e.candidates })),
+  ];
   const invalidIds = new Set(invalid.map((i) => i.field));
-  const missing = blocks.filter((b) => !invalidIds.has(b.id) && (mapping.values[b.id] === undefined || isValueEmpty(b, mapping.values[b.id]))).map(fieldOf);
+  const empty = blocks.filter((b) => !invalidIds.has(b.id) && (mapping.values[b.id] === undefined || isValueEmpty(b, mapping.values[b.id])));
+  const missing = empty.map(fieldOf);
+  const ask = mapping.dictation?.model !== undefined && isNo(mapping.dictation.model) ? 'all' : (opts.ask ?? 'all');
+  const byId = new Map(blocks.map((b) => [b.id, b]));
+  const questions = [
+    ...invalid.map((i) => byId.get(i.field)!).filter(voiceFillable).map((b) => ({ label: b.label, question: `${invalid.find((i) => i.field === b.id)!.message} ${spokenQuestion(b)}` })),
+    ...empty.filter((b) => voiceFillable(b) && (ask === 'all' || b.required)).map((b) => ({ label: b.label, question: spokenQuestion(b) })),
+  ];
   const parts = blocks
     .filter((b) => mapping.values[b.id] !== undefined)
     .map((b) => ({ b, text: displayValue(b, mapping.values[b.id]) }))
     .filter((p) => p.text !== '')
     .map((p) => `${p.b.label}: ${p.text}`);
-  return { missing, invalid, summary: parts.length ? `${parts.join('. ')}.` : 'Keine Angaben.' };
+  return { missing, invalid, questions, summary: parts.length ? `${parts.join('. ')}.` : 'Keine Angaben.' };
 }
 
 /** Stabiler (nicht kryptografischer) Hash zur Änderungserkennung; Schlüsselreihenfolge egal (cyrb53 über `canonical`). */

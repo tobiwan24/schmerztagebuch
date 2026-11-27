@@ -56,21 +56,16 @@ describe('Kurzbefehl-Zuordnung', () => {
 });
 
 describe('Kurzbefehl-Prompt', () => {
-  it('VOI-08: enthält alle Blöcke der aktuellen Version mit ID, Typ, Bereich und Optionen', () => {
+  it('VOI-08: enthält alle befüllbaren Blöcke der aktuellen Version mit Name, Bereich und Optionen (Zeilenformat, ohne IDs)', () => {
     const prompt = buildShortcutPrompt(state.template.name, state.version);
-    for (const b of state.version.blocks) {
-      expect(prompt).toContain(b.id);
-      expect(prompt).toContain(b.type);
-      expect(prompt).toContain(b.label);
+    const felder = prompt.split('\nFelder:\n')[1]!.split('\n\n')[0]!.split('\n');
+    expect(felder).toHaveLength(state.version.blocks.filter((b) => b.type !== 'bodymap').length);
+    for (const b of state.version.blocks.filter((x) => x.type !== 'bodymap')) {
+      expect(felder.some((l) => l.startsWith(`${b.label}: `))).toBe(true);
+      expect(prompt).not.toContain(b.id);
     }
-    expect(prompt).toContain('"min": 0');
-    expect(prompt).toContain('"max": 72');
-    expect(prompt).toContain('"step": 1');
+    expect(prompt).toContain('Dauer (Stunden): Zahl 0 bis 72');
     for (const label of ['Übelkeit', 'Aura', 'Lichtempfindlichkeit', 'Lärmempfindlichkeit', 'Stress', 'Hormone']) expect(prompt).toContain(label);
-    expect(prompt).toContain('occurredAt');
-    // Der JSON-Teil ist gültiges JSON
-    const json = prompt.slice(prompt.indexOf('```json') + 7, prompt.lastIndexOf('```'));
-    expect(JSON.parse(json).blocks).toHaveLength(state.version.blocks.length);
   });
 });
 
@@ -114,7 +109,10 @@ describe('Kurzbefehl: Medikamente', () => {
 
   it('BLK-50: der Prompt beschreibt den Medikamenten-Block mit den Vorgaben', () => {
     const p = buildShortcutPrompt('Schmerztagebuch mit Medikamenten', med.version);
-    expect(p).toContain('Ibuprofen');
-    expect(p).toContain('"type": "medication"');
+    expect(p).toMatch(/\nMedikamente: .*Ibuprofen/);
+    // Zeilenformat: Namen per Komma/„und“, bekannte werden dem Preset zugeordnet
+    const r = mapIntakeToValues({ lines: 'Medikamente: Ibuprofen und Arnika' }, med.version);
+    expect(r.lineErrors).toEqual([]);
+    expect((r.values[block.id] as { items: { name: string }[] }).items.map((i) => i.name)).toEqual(['Ibuprofen', 'Arnika']);
   });
 });

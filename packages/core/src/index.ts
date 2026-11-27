@@ -19,6 +19,10 @@ export {
   buildShortcutBundle, buildShortcutManifest, checkIntake, manifestHash, versionFromBundle,
   type CheckResult, type ManifestField, type ManifestTemplate, type ShortcutBundle, type ShortcutManifest,
 } from './intake-manifest.js';
+export {
+  buildLinePrompt, shortcutWarnings, RESERVED_LINES, SHORTCUT_LOCALE_LINE, PROMPT_TOKEN_LIMIT,
+  type ShortcutWarning, type ShortcutWarningKind,
+} from './intake-lines.js';
 export * from './migration-v2/index.js';
 export * from './template-editor.js';
 export * from './template-catalog.js';

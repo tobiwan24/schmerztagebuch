@@ -1,7 +1,7 @@
 // Kurzbefehl je Tagebuch (Spec 08): Intake einrichten/widerrufen (nur mit Konto), Zugangsdaten für den Kurzbefehl,
 // Zwischenablage-Weg (auch local-only) und Eingang. Ansichten greifen nur hierüber zu (Spec 01).
 import { useCallback } from 'react';
-import { quickEntrySelection, type TemplateState } from '@stb/core';
+import { quickEntrySelection, shortcutWarnings, updateDiarySettings, type ShortcutAsk, type TemplateState } from '@stb/core';
 import { useAuth } from '@/auth/AuthContext';
 import { createIntakeApi } from '@/intake/api';
 import { syncManifests } from '@/intake/manifest';
@@ -38,8 +38,15 @@ export function useShortcut(diaryId: string) {
     const newest = keyRecords.filter((k) => k.token).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
     const shortcutEntries = (await diary.listEntries(diaryId)).filter((e) => e.meta.source === 'shortcut').map((e) => e.recordedAt).sort();
     const template = quick?.state ?? null;
+    // Problematische Felder je angebotener Vorlage (FEAT-024; gleiche Auswahl wie das Manifest: aktiv, ohne Training).
+    const warnings = states
+      .filter((s) => !s.template.archived && s.template.purpose !== 'training')
+      .map((s) => ({ templateId: s.template.id, name: s.template.name, items: shortcutWarnings(s.template.name, s.version) }))
+      .filter((w) => w.items.length > 0);
     return {
       diary: d,
+      warnings,
+      ask: d.settings.shortcutAsk ?? ('all' as ShortcutAsk),
       cloud: mode === 'cloud-primary',
       keys,
       template,
@@ -67,6 +74,19 @@ export function useShortcut(diaryId: string) {
     [diaryId, records, info],
   );
 
+  /** Tagebuch-Option „Nachfragen“ (FEAT-024) speichern; das geänderte Manifest wird sofort hochgeladen. */
+  const setAsk = useCallback(
+    async (ask: ShortcutAsk) => {
+      const current = await diary.getDiary(diaryId);
+      if (!current) return;
+      const s = await stamper.stamp();
+      await diary.saveDiary(updateDiarySettings(current, { shortcutAsk: ask }, { hlc: s.hlc, updatedAt: s.at }));
+      await syncManifests({ api, records, diary, diaryId }).catch(() => null);
+      info.retry();
+    },
+    [diary, diaryId, stamper, records, info],
+  );
+
   /** Testschritt: Sync anstoßen (holt Kurzbefehl-Items ab) und den Stand neu lesen. */
   const checkArrival = useCallback(async () => {
     await syncNow();
@@ -89,7 +109,7 @@ export function useShortcut(diaryId: string) {
     [stamper, diary, diaryId, newId, now, records],
   );
 
-  return { info, setup, revoke, checkArrival, draft, saveDraft };
+  return { info, setup, revoke, setAsk, checkArrival, draft, saveDraft };
 }
 
 /** Eingang (Spec 08): Kurzbefehl-Items, aus denen kein Eintrag entstehen konnte. */

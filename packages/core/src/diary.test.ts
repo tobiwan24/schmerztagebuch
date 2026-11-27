@@ -70,3 +70,14 @@ describe('Tagebuch-Einstellungen ändern', () => {
     expect(cleared.settings.quickEntryBlockIds).toBeUndefined();
   });
 });
+
+describe('Kurzbefehl-Option „Nachfragen“ (FEAT-024)', () => {
+  it('VOI-31: `shortcutAsk` speichert „nur Pflichtfelder“ oder „alle leeren Felder“; `null` entfernt den Wert', () => {
+    const base = createDiary({ id: uuidV7FromSeed(1, new Uint8Array(10).fill(1)), name: 'T', subject: 'human', timezone: 'Europe/Berlin' }, clock);
+    const stamp = { hlc: 'h1', updatedAt: '2026-03-02T08:00:00.000Z' };
+    const req = updateDiarySettings(base, { shortcutAsk: 'required' }, stamp);
+    expect(req.settings.shortcutAsk).toBe('required');
+    expect(updateDiarySettings(req, { shortcutAsk: null }, stamp).settings.shortcutAsk).toBeUndefined();
+    expect(diarySchema.safeParse({ ...base, settings: { ...base.settings, shortcutAsk: 'manchmal' } }).success).toBe(false);
+  });
+});

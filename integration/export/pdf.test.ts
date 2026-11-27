@@ -159,3 +159,14 @@ describe('PDF Zusammenfassung für den Arzt', () => {
     }
   });
 });
+
+describe('PDF ohne Kurzbefehl-Rohdaten (FEAT-024)', () => {
+  it('VOI-30: meta.dictation (Diktat und Zeilen) erscheint nicht im PDF', async () => {
+    const withRaw = exportFixture();
+    const e = withRaw.entries[0]!;
+    withRaw.entries[0] = { ...e, meta: { ...e.meta, source: 'shortcut', dictation: { text: 'STB-ROH-DIKTAT', lines: 'Diktat: STB-ROH-DIKTAT\nWetter: STB-ROH-ZEILE', model: 'ja' } } };
+    const r = await inspect(await renderReportPdf(buildReport(withRaw, { now: FIXTURE_EXPORT_NOW }), { imageSize: 'none', renderBodymap: async () => null }));
+    expect(r.text).toContain('Migräne-Tracking');
+    expect(r.text).not.toContain('STB-ROH');
+  }, 60_000);
+});

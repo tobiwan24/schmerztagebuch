@@ -218,6 +218,11 @@ export const entryMetaSchema = z.strictObject({
   location: z
     .strictObject({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180), origin: z.enum(['diary', 'gps']) })
     .optional(),
+  /**
+   * Rohdaten des Kurzbefehls im Zeilenformat (FEAT-024): Diktat, alle Zeilen (Modell + Rückfragen) und die Antwort auf
+   * „Sprachmodell verwenden?“. Verschlüsselt mit dem Eintrag, nicht im PDF; nur aufklappbar in der Eintragsansicht.
+   */
+  dictation: z.strictObject({ text: z.string().max(16_384), lines: z.string().max(16_384), model: z.string().max(100).optional() }).optional(),
 });
 export type EntryMeta = z.infer<typeof entryMetaSchema>;
 

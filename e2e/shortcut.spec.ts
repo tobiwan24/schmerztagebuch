@@ -114,3 +114,62 @@ test.describe('Kurzbefehl', () => {
     await expect(card.getByTestId('intake-arrival')).toContainText('Angekommen ✓ (');
   });
 });
+
+test.describe('Kurzbefehl im Zeilenformat (FEAT-024)', () => {
+  test.describe.configure({ timeout: 90_000 });
+
+  test('VOI-33: Zeilen über die Zwischenablage → Eintrag zeigt die Rohdaten aufklappbar (local-only)', async ({ page }) => {
+    await onboardWithPassword(page);
+    await go(page, '/more/diaries');
+    await page.getByTestId('diary-card').getByRole('link', { name: 'Kurzbefehl (Siri)' }).click();
+    const lines = 'Diktat: STB-E2E-DIKTAT Stärke vier\nSprachmodell: ja\nSchmerzstärke: vier\nWetter: STB-E2E-ZEILE';
+    await page.getByLabel('Inhalt (JSON)').fill(JSON.stringify({ lines }));
+    await page.getByRole('button', { name: 'Entwurf anzeigen' }).click();
+    await expect(page.getByTestId('shortcut-draft')).toContainText('Schmerzstärke: 4');
+    await page.getByRole('button', { name: 'Als Eintrag speichern' }).click();
+    await expect(page.getByTestId('entry-time')).toBeVisible();
+    await expect(page.getByTestId('entry-field').filter({ hasText: 'Schmerzstärke' })).toContainText('4');
+    // Rohdaten zugeklappt, nicht in den Feldern
+    await expect(page.getByText('STB-E2E-DIKTAT')).toBeHidden();
+    await expect(page.getByTestId('entry-field').filter({ hasText: 'STB-E2E-ZEILE' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Rohdaten des Kurzbefehls' }).click();
+    const raw = page.getByTestId('entry-dictation');
+    await expect(raw).toContainText('STB-E2E-DIKTAT Stärke vier');
+    await expect(raw).toContainText('Wetter: STB-E2E-ZEILE');
+    await expect(raw).toContainText('Sprachmodell: ja');
+  });
+
+  test('VOI-33: Kurzbefehl-Seite zeigt Hinweise zu problematischen Feldern; Option „Nachfragen“ wird gespeichert und reist im Manifest', async ({ page, context, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Konto mit virtuellem Authenticator (Chromium)');
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await addVirtualAuthenticator(page);
+    await onboardWithCloud(page, uniqueUser('voi33'));
+    await go(page, '/more/diaries');
+    await page.getByTestId('diary-card').getByRole('link', { name: 'Kurzbefehl (Siri)' }).click();
+    const card = page.getByTestId('intake-card');
+    await card.getByRole('button', { name: 'Kurzbefehl einrichten' }).click();
+    await page.getByLabel('Ich habe verstanden').check();
+    await page.getByRole('button', { name: 'Einrichten', exact: true }).click();
+    // Dauerhafter Hinweis: Körperkarte wird übersprungen
+    const hint = page.getByTestId('shortcut-warnings');
+    await expect(hint).toContainText('Schmerzlokalisation');
+    await expect(hint).toContainText('übersprungen');
+    // Nachfragen: Standard „alle leeren Felder“, umstellen auf „nur Pflichtfelder“
+    const all = page.getByRole('radio', { name: 'Alle leeren Felder' });
+    const required = page.getByRole('radio', { name: 'Nur Pflichtfelder' });
+    await expect(all).toBeChecked();
+    await required.click();
+    await expect(required).toBeChecked();
+    await card.getByRole('button', { name: 'Zugangsdaten kopieren' }).click();
+    const conn = JSON.parse(await page.evaluate(() => navigator.clipboard.readText())) as { url: string; token: string };
+    const auth = { authorization: `Bearer ${conn.token}` };
+    await expect
+      .poll(async () => ((await (await page.request.get(`${conn.url}/manifest`, { headers: auth })).json()) as { ask?: string }).ask)
+      .toBe('required');
+    await page.reload();
+    await expect(page.getByRole('radio', { name: 'Nur Pflichtfelder' })).toBeChecked();
+    // Prüfen im Zeilenformat liefert Rückfragen
+    const checked = await page.request.post(`${conn.url}/check`, { headers: auth, data: { lines: 'Sprachmodell: nein' } });
+    expect(((await checked.json()) as { questions: { label: string }[] }).questions.map((q) => q.label)).toContain('Schmerzstärke');
+  });
+});

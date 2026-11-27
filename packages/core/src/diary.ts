@@ -7,6 +7,8 @@ export const DIARY_SUBJECTS = ['human', 'animal', 'other'] as const;
 /** RDM-034: `library` = verstecktes Tagebuch für den persönlichen Vorlagenkatalog (nie geteilt, nicht im Umschalter). */
 export const DIARY_PURPOSES = ['diary', 'library'] as const;
 export type DiaryPurpose = (typeof DIARY_PURPOSES)[number];
+export const SHORTCUT_ASK = ['required', 'all'] as const;
+export type ShortcutAsk = (typeof SHORTCUT_ASK)[number];
 
 export const diarySettingsSchema = z.strictObject({
   weather: z.strictObject({
@@ -18,6 +20,8 @@ export const diarySettingsSchema = z.strictObject({
   quickEntryBlockIds: z.array(idSchema).optional(),
   /** RDM-028 P2: Vorlagen, für die die Start-Seite einen eigenen Schnell-Knopf zeigt (Reihenfolge der Vorlagenliste). */
   quickTemplateIds: z.array(idSchema).optional(),
+  /** FEAT-024: Was der Kurzbefehl nachfragt — nur Pflichtfelder oder alle leeren Felder (fehlt = alle). Reist im Manifest mit. */
+  shortcutAsk: z.enum(SHORTCUT_ASK).optional(),
   timezone: z.string().min(1),
 });
 export type DiarySettings = z.infer<typeof diarySettingsSchema>;
@@ -73,6 +77,8 @@ export interface DiarySettingsPatch {
   quickEntryBlockIds?: string[] | null;
   /** `null` oder leeres Array löscht das Feld; Duplikate entfallen. */
   quickTemplateIds?: string[] | null;
+  /** `null` = Standard (alle leeren Felder nachfragen). */
+  shortcutAsk?: ShortcutAsk | null;
 }
 
 /** Orte werden nur auf 1 Dezimalstelle (≈ 10 km) gespeichert (Spec 05 „Wetter als Metadaten"). */
@@ -105,6 +111,8 @@ export function updateDiarySettings(
   else if (quickEntryBlockIds !== undefined) settings.quickEntryBlockIds = quickEntryBlockIds;
   if (quickTemplateIds === null || quickTemplateIds?.length === 0) delete settings.quickTemplateIds;
   else if (quickTemplateIds !== undefined) settings.quickTemplateIds = [...new Set(quickTemplateIds)];
+  if (patch.shortcutAsk === null) delete settings.shortcutAsk;
+  else if (patch.shortcutAsk !== undefined) settings.shortcutAsk = patch.shortcutAsk;
 
   const templateId = settings.quickEntryTemplateId as string | undefined;
   const blockIds = settings.quickEntryBlockIds as string[] | undefined;

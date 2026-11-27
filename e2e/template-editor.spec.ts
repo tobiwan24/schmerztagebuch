@@ -255,3 +255,23 @@ test.describe('Vorlagen-Editor', () => {
     await expect(card(2).getByLabel('Bezeichnung im Formular ausblenden')).toBeChecked();
   });
 });
+
+test.describe('Vorlagen-Editor: Kurzbefehl (FEAT-024)', () => {
+  test('VOI-32: Kurzname je Option speicherbar; Vermerk am problematischen Feld verschwindet mit Kurzname', async ({ page }) => {
+    await onboardWithPassword(page);
+    await go(page, '/more/templates/new');
+    await page.getByLabel('Name', { exact: true }).fill('Fuß');
+    await page.getByRole('group', { name: 'Feld hinzufügen' }).getByRole('button', { name: 'Auswahl', exact: true }).click();
+    const card = page.getByRole('region', { name: /^Feld 1:/ });
+    await card.getByLabel('Bezeichnung', { exact: true }).fill('Schmerzpunkte');
+    await card.getByLabel('Option 1', { exact: true }).fill('Zwischen Achillessehne und USG/OSG');
+    const warn = card.getByTestId('shortcut-field-warning');
+    await expect(warn).toContainText('Zwischen Achillessehne und USG/OSG');
+    await card.getByLabel('Kurzname für Option 1 (optional)').fill('Sehnenansatz');
+    await expect(warn).toHaveCount(0);
+    await page.getByRole('button', { name: 'Speichern' }).click();
+    await expect(page.getByRole('heading', { name: 'Vorlagen', exact: true })).toBeVisible();
+    await page.getByRole('link', { name: 'Fuß bearbeiten' }).click();
+    await expect(page.getByRole('region', { name: /^Feld 1:/ }).getByLabel('Kurzname für Option 1 (optional)')).toHaveValue('Sehnenansatz');
+  });
+});

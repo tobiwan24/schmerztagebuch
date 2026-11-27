@@ -9,6 +9,7 @@ import { Dialog, DialogDescription, DialogFooter, DialogTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState, ErrorState } from '@/components/StateView';
 import { EntryForm, type EntryPrefill } from '@/components/EntryForm';
@@ -175,6 +176,22 @@ export function EntryDetailPage() {
             </ul>
           ) : null}
           <AttachmentList ids={attachmentIdsOf(query.data.fields)} />
+          {query.data.entry.meta.dictation ? (
+            // Rohdaten des Kurzbefehls (FEAT-024): nur hier, zugeklappt; nicht im PDF.
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" size="sm">{de.entry.dictation}</Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <Card data-testid="entry-dictation" className="mt-2 gap-2 p-4 text-sm">
+                  <p className="text-muted-foreground">{de.entry.dictationText}</p>
+                  <p>{query.data.entry.meta.dictation.text}</p>
+                  <p className="text-muted-foreground">{de.entry.dictationLines}</p>
+                  <pre className="whitespace-pre-wrap wrap-break-word text-xs">{query.data.entry.meta.dictation.lines}</pre>
+                </Card>
+              </CollapsibleContent>
+            </Collapsible>
+          ) : null}
           <Button asChild variant="outline">
             <Link to={`/entry/${id}/edit`}>
               <Pencil aria-hidden />

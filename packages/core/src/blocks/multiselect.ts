@@ -1,7 +1,13 @@
 import { z } from 'zod';
 import { defineBlock, idSchema } from './common.js';
 
-export const multiselectOption = z.strictObject({ id: idSchema, label: z.string().trim().min(1), color: z.string().min(1) });
+export const multiselectOption = z.strictObject({
+  id: idSchema,
+  label: z.string().trim().min(1),
+  /** Kurzname für den Kurzbefehl (FEAT-024): leichter zu sprechen; das Modell bekommt Name und Kurzname. */
+  short: z.string().trim().min(1).max(40).optional(),
+  color: z.string().min(1),
+});
 
 export const multiselectConfig = z
   .strictObject({ options: z.array(multiselectOption), multiple: z.boolean() })

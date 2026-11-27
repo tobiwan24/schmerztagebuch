@@ -4,6 +4,17 @@ import type { Release } from './whats-new.js';
 
 export const changelog: readonly Release[] = [
   {
+    version: '3.18.0-alpha.1',
+    date: '2026-11-26',
+    points: [
+      'Kurzbefehl einfacher und robuster: Das Sprachmodell schreibt nur noch Zeilen wie „Schmerzstärke: 6“. Unklare Angaben fragt Siri nach („Meintest du …?“), „ja“ übernimmt den Vorschlag.',
+      'Ohne Sprachmodell (z. B. ältere iPhones) fragt der Kurzbefehl alle Felder nacheinander ab.',
+      'Neu auf der Kurzbefehl-Seite: „Nachfragen“ – nur Pflichtfelder oder alle leeren Felder – und Hinweise auf Felder, die sich schlecht sprechen lassen.',
+      'Im Vorlagen-Editor gibt es je Option einen Kurznamen für Siri. Felder, die für den Kurzbefehl schwierig sind, sind markiert.',
+      'Im Eintrag zeigt „Rohdaten des Kurzbefehls“ das Diktat und alle Zeilen (verschlüsselt, nicht im PDF).',
+    ],
+  },
+  {
     version: '3.17.0-alpha.1',
     date: '2026-11-25',
     points: [

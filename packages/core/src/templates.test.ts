@@ -183,3 +183,12 @@ describe('Einträge', () => {
     expect(cleared.state.template.currentVersion).toBe(1);
   });
 });
+
+describe('Rohdaten des Kurzbefehls (FEAT-024)', () => {
+  it('VOI-30: `meta.dictation` (Diktat, Zeilen, Modell) ist erlaubt, fremde Schlüssel nicht', async () => {
+    const { entryMetaSchema } = await import('./templates.js');
+    expect(entryMetaSchema.safeParse({ source: 'shortcut', timezone: 'Europe/Berlin', dictation: { text: 'Stärke drei', lines: 'Diktat: Stärke drei\nSchmerzstärke: 3', model: 'ja' } }).success).toBe(true);
+    expect(entryMetaSchema.safeParse({ source: 'shortcut', timezone: 'Europe/Berlin', dictation: { text: '', lines: '' } }).success).toBe(true);
+    expect(entryMetaSchema.safeParse({ source: 'shortcut', timezone: 'Europe/Berlin', dictation: { text: 'x', lines: 'y', extra: 1 } }).success).toBe(false);
+  });
+});
